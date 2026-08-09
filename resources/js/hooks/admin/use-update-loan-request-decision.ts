@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import type { LoanRequestDecisionResult } from '@/types/loan-requests';
@@ -39,46 +39,42 @@ export function useUpdateLoanRequestDecision(
         {},
     );
 
-    const updateDecision = useCallback(
-        async (
-            loanRequestId: number,
-            action: LoanRequestDecisionAction,
-            payload: LoanRequestApprovePayload | LoanRequestDeclinePayload,
-        ) => {
-            setProcessingIds((current) => ({
-                ...current,
-                [loanRequestId]: true,
-            }));
-            const toastId = `loan-request-decision-${action}-${loanRequestId}`;
+    const updateDecision = async (
+        loanRequestId: number,
+        action: LoanRequestDecisionAction,
+        payload: LoanRequestApprovePayload | LoanRequestDeclinePayload,
+    ) => {
+        setProcessingIds((current) => ({
+            ...current,
+            [loanRequestId]: true,
+        }));
+        const toastId = `loan-request-decision-${action}-${loanRequestId}`;
 
-            try {
-                const result =
-                    action === 'approve'
-                        ? await adminApi.approveLoanRequest(
-                              loanRequestId,
-                              payload as LoanRequestApprovePayload,
-                          )
-                        : await adminApi.declineLoanRequest(loanRequestId, {
-                              decision_notes:
-                                  payload.decision_notes ?? null,
-                          });
+        try {
+            const result =
+                action === 'approve'
+                    ? await adminApi.approveLoanRequest(
+                          loanRequestId,
+                          payload as LoanRequestApprovePayload,
+                      )
+                    : await adminApi.declineLoanRequest(loanRequestId, {
+                          decision_notes: payload.decision_notes ?? null,
+                      });
 
-                showSuccessToast(successCopy[action], { id: toastId });
-                options?.onUpdated?.(result, action);
-                return result;
-            } catch (error) {
-                showErrorToast(error, errorCopy[action], { id: toastId });
-                return null;
-            } finally {
-                setProcessingIds((current) => {
-                    const next = { ...current };
-                    delete next[loanRequestId];
-                    return next;
-                });
-            }
-        },
-        [options],
-    );
+            showSuccessToast(successCopy[action], { id: toastId });
+            options?.onUpdated?.(result, action);
+            return result;
+        } catch (error) {
+            showErrorToast(error, errorCopy[action], { id: toastId });
+            return null;
+        } finally {
+            setProcessingIds((current) => {
+                const next = { ...current };
+                delete next[loanRequestId];
+                return next;
+            });
+        }
+    };
 
     return {
         updateDecision,

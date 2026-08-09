@@ -52,7 +52,7 @@ test('superadmin can grant admin access to a registered member', function () {
     expect(
         AdminProfile::query()
             ->where('user_id', $member->user_id)
-            ->where('access_level', AdminProfile::ACCESS_LEVEL_ADMIN)
+            ->where('access_level', AdminProfile::ACCESS_LEVEL_SUPERADMIN)
             ->exists(),
     )->toBeTrue();
     expect(
@@ -60,7 +60,7 @@ test('superadmin can grant admin access to a registered member', function () {
             ->where('user_id', $member->user_id)
             ->value('profile_pic_path'),
     )->toBe($profilePhotoPath);
-    expect($response->json('data.member.admin_access_level'))->toBe('admin');
+    expect($response->json('data.member.admin_access_level'))->toBe('superadmin');
     expect($response->json('data.member.is_admin'))->toBeTrue();
 
     $list = $this->actingAs($superadmin)->getJson('/spa/admin/members');

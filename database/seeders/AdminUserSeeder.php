@@ -69,10 +69,10 @@ class AdminUserSeeder extends Seeder
             ['user_id' => $admin->user_id],
             [
                 'fullname' => $fullname,
-                'access_level' => AdminProfile::ACCESS_LEVEL_ADMIN,
+                'access_level' => AdminProfile::ACCESS_LEVEL_SUPERADMIN,
             ],
         );
-        Role::attachNamedRole($admin, Role::ADMIN);
+        Role::attachNamedRole($admin, Role::SUPERADMIN);
 
         $this->command?->info(
             sprintf(

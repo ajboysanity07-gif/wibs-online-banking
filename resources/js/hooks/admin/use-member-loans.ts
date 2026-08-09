@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api';
 import { adminApi } from '@/lib/api/admin';
 import type { MemberLoansResponse, PaginationMeta } from '@/types/admin';
@@ -31,7 +31,7 @@ export function useMemberLoans(
     options?: MemberLoansOptions,
 ) {
     const initialKey = `${memberKey ?? 'unknown'}`;
-    const emptyResponse = useMemo(() => buildEmptyResponse(perPage), [perPage]);
+    const emptyResponse = buildEmptyResponse(perPage);
     const initialData = options?.initial ?? emptyResponse;
 
     const [state, setState] = useState<MemberLoansState>({
@@ -48,38 +48,35 @@ export function useMemberLoans(
         didSkipInitialFetch.current = { key: initialKey, skipped: false };
     }
 
-    const refresh = useCallback(
-        async (signal?: AbortSignal) => {
-            if (!memberKey) {
-                return null;
-            }
+    const refresh = async (signal?: AbortSignal) => {
+        if (!memberKey) {
+            return null;
+        }
 
-            setState((current) => ({ ...current, loading: true, error: null }));
+        setState((current) => ({ ...current, loading: true, error: null }));
 
-            try {
-                const data = await adminApi.getMemberLoans(
-                    memberKey,
-                    { page, perPage },
-                    signal,
-                );
-                setState({ data, loading: false, error: null });
-                return data;
-            } catch (error) {
-                if (!signal?.aborted) {
-                    setState((current) => ({
-                        ...current,
-                        loading: false,
-                        error: getApiErrorMessage(
-                            error,
-                            'Unable to load loans right now.',
-                        ),
-                    }));
-                }
-                return null;
+        try {
+            const data = await adminApi.getMemberLoans(
+                memberKey,
+                { page, perPage },
+                signal,
+            );
+            setState({ data, loading: false, error: null });
+            return data;
+        } catch (error) {
+            if (!signal?.aborted) {
+                setState((current) => ({
+                    ...current,
+                    loading: false,
+                    error: getApiErrorMessage(
+                        error,
+                        'Unable to load loans right now.',
+                    ),
+                }));
             }
-        },
-        [memberKey, page, perPage],
-    );
+            return null;
+        }
+    };
 
     useEffect(() => {
         if (options?.enabled === false || !memberKey) {

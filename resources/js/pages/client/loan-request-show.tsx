@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { CircleAlert } from 'lucide-react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
@@ -234,31 +234,26 @@ export default function LoanRequestShow({
         ['submitted', 'pending_review', 'under_review'].includes(
             currentLoanRequest.status,
         );
-    const fieldDirectory = useMemo(() => {
-        const fields = new Map<
-            string,
-            {
-                sectionKey: keyof LoanRequestDataSections;
-                definition: LoanRequestDataFieldDefinition;
-            }
-        >();
+    const fieldDirectory = new Map<
+        string,
+        {
+            sectionKey: keyof LoanRequestDataSections;
+            definition: LoanRequestDataFieldDefinition;
+        }
+    >();
 
-        Object.entries(dataSectionDefinitions).forEach(
-            ([sectionKey, sectionDefinition]) => {
-                Object.entries(sectionDefinition.fields).forEach(
-                    ([fieldKey, definition]) => {
-                        fields.set(fieldKey, {
-                            sectionKey:
-                                sectionKey as keyof LoanRequestDataSections,
-                            definition,
-                        });
-                    },
-                );
-            },
-        );
-
-        return fields;
-    }, [dataSectionDefinitions]);
+    Object.entries(dataSectionDefinitions).forEach(
+        ([sectionKey, sectionDefinition]) => {
+            Object.entries(sectionDefinition.fields).forEach(
+                ([fieldKey, definition]) => {
+                    fieldDirectory.set(fieldKey, {
+                        sectionKey: sectionKey as keyof LoanRequestDataSections,
+                        definition,
+                    });
+                },
+            );
+        },
+    );
     const requestedFieldKeys = currentLoanRequest.member_action_fields ?? [];
     const memberActionFields = requestedFieldKeys
         .map((fieldKey) => {

@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { Eye, EyeOff, LockKeyhole, RefreshCw } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -28,7 +28,7 @@ export default function TwoFactorRecoveryCodes({
     const codesSectionRef = useRef<HTMLDivElement | null>(null);
     const canRegenerateCodes = recoveryCodesList.length > 0 && codesAreVisible;
 
-    const toggleCodesVisibility = useCallback(async () => {
+    const toggleCodesVisibility = async () => {
         if (!codesAreVisible && !recoveryCodesList.length) {
             await fetchRecoveryCodes();
         }
@@ -43,7 +43,7 @@ export default function TwoFactorRecoveryCodes({
                 });
             });
         }
-    }, [codesAreVisible, recoveryCodesList.length, fetchRecoveryCodes]);
+    };
 
     const RecoveryCodeIconComponent = codesAreVisible ? EyeOff : Eye;
 

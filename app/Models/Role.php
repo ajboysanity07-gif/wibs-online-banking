@@ -36,7 +36,6 @@ class Role extends Model
     public static function defaults(): array
     {
         return [
-            ['name' => self::ADMIN, 'display_name' => 'Admin'],
             ['name' => self::SUPERADMIN, 'display_name' => 'Superadmin'],
             ['name' => self::LOAN_PROCESSOR, 'display_name' => 'Loan Processor'],
             ['name' => self::LOAN_MANAGER, 'display_name' => 'Loan Manager'],
@@ -63,13 +62,6 @@ class Role extends Model
         bool $includeLegacyLoanOfficer = false,
     ): array {
         $permissions = [
-            self::ADMIN => [
-                Permission::LOAN_VIEW,
-                Permission::MEMBER_VIEW,
-                Permission::MEMBER_CREATE,
-                Permission::MEMBER_UPDATE,
-                Permission::PAYMENT_CREATE,
-            ],
             self::SUPERADMIN => [
                 Permission::LOAN_VIEW,
                 Permission::LOAN_MANAGE_ASSIGNMENT,

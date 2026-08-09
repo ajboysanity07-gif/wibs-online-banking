@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { PAYDAY_OPTIONS } from '@/components/loan-request/loan-request-fields';
 import {
@@ -310,14 +310,9 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
         useState<string | null>(null);
 
     const assignOfficerOptions = workflow?.assign?.officerOptions ?? [];
-    const reassignOfficerOptions = useMemo(
-        () =>
-            (workflow?.reassign?.officerOptions ?? []).filter(
-                (officer) =>
-                    officer.user_id !== loanRequest.assigned_officer_id,
-            ),
-        [loanRequest.assigned_officer_id, workflow?.reassign?.officerOptions],
-    );
+    const reassignOfficerOptions = (
+        workflow?.reassign?.officerOptions ?? []
+    ).filter((officer) => officer.user_id !== loanRequest.assigned_officer_id);
 
     const selectedAssignOfficer =
         assignOfficerOptions.find(

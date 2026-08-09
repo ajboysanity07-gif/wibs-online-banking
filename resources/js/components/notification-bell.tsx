@@ -1,8 +1,16 @@
 import { Link, router } from '@inertiajs/react';
-import { ArrowRight, Bell, BellDot, CheckCheck, Clock3, Inbox, TriangleAlert } from 'lucide-react';
+import {
+    ArrowRight,
+    Bell,
+    BellDot,
+    CheckCheck,
+    Clock3,
+    Inbox,
+    TriangleAlert,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -296,16 +304,16 @@ export function NotificationBell() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const loadUnreadCount = useCallback(async () => {
+    const loadUnreadCount = async () => {
         try {
             const count = await notificationsApi.getUnreadCount();
             setUnreadCount(count);
         } catch {
             return;
         }
-    }, []);
+    };
 
-    const loadNotifications = useCallback(async () => {
+    const loadNotifications = async () => {
         setLoading(true);
         setError(null);
 
@@ -317,7 +325,7 @@ export function NotificationBell() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    };
 
     useEffect(() => {
         void loadUnreadCount();
@@ -339,44 +347,39 @@ export function NotificationBell() {
         }
     };
 
-    const handleNotificationSelect = useCallback(
-        async (notification: NotificationItem) => {
-            const destination = resolveNotificationDestination(notification.data);
+    const handleNotificationSelect = async (notification: NotificationItem) => {
+        const destination = resolveNotificationDestination(notification.data);
 
-            if (notification.read_at) {
-                if (destination) {
-                    setOpen(false);
-                    router.visit(destination);
-                }
-
-                return;
+        if (notification.read_at) {
+            if (destination) {
+                setOpen(false);
+                router.visit(destination);
             }
 
-            try {
-                const result = await notificationsApi.markAsRead(
-                    notification.id,
-                );
-                setNotifications((current) =>
-                    current.map((item) =>
-                        item.id === result.notification.id
-                            ? result.notification
-                            : item,
-                    ),
-                );
-                setUnreadCount(result.unreadCount);
+            return;
+        }
 
-                if (destination) {
-                    setOpen(false);
-                    router.visit(destination);
-                }
-            } catch {
-                return;
+        try {
+            const result = await notificationsApi.markAsRead(notification.id);
+            setNotifications((current) =>
+                current.map((item) =>
+                    item.id === result.notification.id
+                        ? result.notification
+                        : item,
+                ),
+            );
+            setUnreadCount(result.unreadCount);
+
+            if (destination) {
+                setOpen(false);
+                router.visit(destination);
             }
-        },
-        [],
-    );
+        } catch {
+            return;
+        }
+    };
 
-    const handleMarkAllAsRead = useCallback(async () => {
+    const handleMarkAllAsRead = async () => {
         if (!hasUnread) {
             return;
         }
@@ -393,7 +396,7 @@ export function NotificationBell() {
         } catch {
             return;
         }
-    }, [hasUnread]);
+    };
 
     return (
         <DropdownMenu open={open} onOpenChange={handleOpenChange}>
@@ -493,7 +496,10 @@ export function NotificationBell() {
                         size="sm"
                         className="h-9 w-full justify-between rounded-xl px-3 text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     >
-                        <Link href="/notifications" onClick={() => setOpen(false)}>
+                        <Link
+                            href="/notifications"
+                            onClick={() => setOpen(false)}
+                        >
                             View all notifications
                             <ArrowRight className="size-3.5" />
                         </Link>

@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, ChevronDown } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
 import {
@@ -446,77 +446,59 @@ export default function LoanRequestPage({
     const [savedCoMakers, setSavedCoMakers] =
         useState<SavedCoMakerOption[]>(initialSavedCoMakers);
 
-    const glapiChunks = useMemo(
-        () =>
-            chunkGlapiItemGroups(
-                getGlapiItemGroups(dataSectionDefinitions.health_glapi),
-                GLAPI_GROUPS_PER_STEP,
-            ),
-        [dataSectionDefinitions.health_glapi],
+    const glapiChunks = chunkGlapiItemGroups(
+        getGlapiItemGroups(dataSectionDefinitions.health_glapi),
+        GLAPI_GROUPS_PER_STEP,
     );
 
-    const glapiItemNumberToStepOffset = useMemo(() => {
-        const map: Record<string, number> = {};
+    const glapiItemNumberToStepOffset: Record<string, number> = {};
 
-        glapiChunks.forEach((chunk, chunkIndex) => {
-            chunk.forEach((group) => {
-                map[group.number] = chunkIndex;
-            });
+    glapiChunks.forEach((chunk, chunkIndex) => {
+        chunk.forEach((group) => {
+            glapiItemNumberToStepOffset[group.number] = chunkIndex;
         });
+    });
 
-        GLAPI_VIRTUAL_ITEMS.forEach((virtual) => {
-            if (virtual.afterNumber in map) {
-                map[virtual.key] = map[virtual.afterNumber];
-            }
-        });
+    GLAPI_VIRTUAL_ITEMS.forEach((virtual) => {
+        if (virtual.afterNumber in glapiItemNumberToStepOffset) {
+            glapiItemNumberToStepOffset[virtual.key] =
+                glapiItemNumberToStepOffset[virtual.afterNumber];
+        }
+    });
 
-        return map;
-    }, [glapiChunks]);
-
-    const initialFormData = useMemo<LoanRequestFormData>(
-        () => ({
-            typecode: draft?.typecode ?? loanTypes[0]?.typecode ?? '',
-            requested_amount: toStringValue(draft?.requested_amount),
-            requested_term: toStringValue(draft?.requested_term),
-            loan_purpose: draft?.loan_purpose ?? '',
-            availment_status: draft?.availment_status ?? '',
-            undertaking_accepted: false,
-            applicant: toPersonForm(applicant),
-            co_maker_1: toPersonForm(coMakerOne),
-            co_maker_2: toPersonForm(coMakerTwo),
-            insurance: {
-                ...dataSections.insurance,
-            },
-            health: {
-                ...dataSections.health,
-            },
-            health_glapi: {
-                ...dataSections.health_glapi,
-            },
-            banking: {
-                ...dataSections.banking,
-            },
-            barangay: {
-                ...dataSections.barangay,
-            },
-            declarations: {
-                ...dataSections.declarations,
-                ...autoFilledDeclarations,
-            },
-            dependents: {
-                ...dataSections.dependents,
-            },
-        }),
-        [
-            applicant,
-            autoFilledDeclarations,
-            coMakerOne,
-            coMakerTwo,
-            dataSections,
-            draft,
-            loanTypes,
-        ],
-    );
+    const initialFormData: LoanRequestFormData = {
+        typecode: draft?.typecode ?? loanTypes[0]?.typecode ?? '',
+        requested_amount: toStringValue(draft?.requested_amount),
+        requested_term: toStringValue(draft?.requested_term),
+        loan_purpose: draft?.loan_purpose ?? '',
+        availment_status: draft?.availment_status ?? '',
+        undertaking_accepted: false,
+        applicant: toPersonForm(applicant),
+        co_maker_1: toPersonForm(coMakerOne),
+        co_maker_2: toPersonForm(coMakerTwo),
+        insurance: {
+            ...dataSections.insurance,
+        },
+        health: {
+            ...dataSections.health,
+        },
+        health_glapi: {
+            ...dataSections.health_glapi,
+        },
+        banking: {
+            ...dataSections.banking,
+        },
+        barangay: {
+            ...dataSections.barangay,
+        },
+        declarations: {
+            ...dataSections.declarations,
+            ...autoFilledDeclarations,
+        },
+        dependents: {
+            ...dataSections.dependents,
+        },
+    };
 
     const form = useForm<LoanRequestFormData>(initialFormData);
     const isFirstStep = currentStep === 0;

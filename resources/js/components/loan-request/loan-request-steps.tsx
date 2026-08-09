@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { useMemo } from 'react';
 
 import {
     ApplicantCycleSection,
@@ -1334,45 +1333,37 @@ export function LoanRequestHealthQuestionnaireStep({
     healthDefinition,
     onHealthChange,
 }: HealthQuestionnaireStepProps) {
-    const childrenByParent = useMemo(() => {
-        const map: Record<string, string[]> = {};
+    const childrenByParent: Record<string, string[]> = {};
 
-        Object.entries(definition.fields).forEach(([fieldKey, field]) => {
-            if (!field.detail_of) {
-                return;
+    Object.entries(definition.fields).forEach(([fieldKey, field]) => {
+        if (!field.detail_of) {
+            return;
+        }
+
+        const parents = Array.isArray(field.detail_of)
+            ? field.detail_of
+            : [field.detail_of];
+
+        parents.forEach((parentKey) => {
+            if (!childrenByParent[parentKey]) {
+                childrenByParent[parentKey] = [];
             }
 
-            const parents = Array.isArray(field.detail_of)
-                ? field.detail_of
-                : [field.detail_of];
-
-            parents.forEach((parentKey) => {
-                if (!map[parentKey]) {
-                    map[parentKey] = [];
-                }
-
-                map[parentKey].push(fieldKey);
-            });
+            childrenByParent[parentKey].push(fieldKey);
         });
+    });
 
-        return map;
-    }, [definition]);
+    const parentsByChild: Record<string, string[]> = {};
 
-    const parentsByChild = useMemo(() => {
-        const map: Record<string, string[]> = {};
+    Object.entries(definition.fields).forEach(([fieldKey, field]) => {
+        if (!field.detail_of) {
+            return;
+        }
 
-        Object.entries(definition.fields).forEach(([fieldKey, field]) => {
-            if (!field.detail_of) {
-                return;
-            }
-
-            map[fieldKey] = Array.isArray(field.detail_of)
-                ? field.detail_of
-                : [field.detail_of];
-        });
-
-        return map;
-    }, [definition]);
+        parentsByChild[fieldKey] = Array.isArray(field.detail_of)
+            ? field.detail_of
+            : [field.detail_of];
+    });
 
     const renderedChildren = new Set<string>();
 
@@ -1498,30 +1489,21 @@ export function LoanRequestHealthQuestionnaireStep({
     // the displayed badge number, so a virtual item's number reflects its
     // actual position among everything that comes before it -- not the
     // literal source-form item number it was thematically anchored to.
-    const sequence = useMemo(
-        () => buildGlapiSequence(definition),
-        [definition],
+    const sequence = buildGlapiSequence(definition);
+
+    const badgeNumbers: Record<string, string> = {};
+
+    sequence.forEach((entry, index) => {
+        badgeNumbers[entry.number] = String(index + 1);
+    });
+
+    const renderedItemNumberSet = new Set(itemNumbers);
+
+    const renderedEntries = sequence.filter((entry) =>
+        entry.kind === 'group'
+            ? renderedItemNumberSet.has(entry.number)
+            : renderedItemNumberSet.has(entry.afterNumber),
     );
-
-    const badgeNumbers = useMemo(() => {
-        const map: Record<string, string> = {};
-
-        sequence.forEach((entry, index) => {
-            map[entry.number] = String(index + 1);
-        });
-
-        return map;
-    }, [sequence]);
-
-    const renderedEntries = useMemo(() => {
-        const itemNumberSet = new Set(itemNumbers);
-
-        return sequence.filter((entry) =>
-            entry.kind === 'group'
-                ? itemNumberSet.has(entry.number)
-                : itemNumberSet.has(entry.afterNumber),
-        );
-    }, [sequence, itemNumbers]);
 
     const renderCard = (
         key: string,

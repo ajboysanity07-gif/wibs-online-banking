@@ -1,5 +1,5 @@
 import type { AxiosResponse } from 'axios';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import client from '@/lib/api/client';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import type { LoanRequestCorrectionReportPayload } from '@/types/loan-requests';
@@ -35,50 +35,48 @@ export function useSubmitLoanRequestCorrectionReport(
         {},
     );
 
-    const submitReport = useCallback(
-        async (
-            loanRequestId: number,
-            payload: LoanRequestCorrectionReportPayload,
-        ) => {
-            setProcessingIds((current) => ({
-                ...current,
-                [loanRequestId]: true,
-            }));
+    const submitReport = async (
+        loanRequestId: number,
+        payload: LoanRequestCorrectionReportPayload,
+    ) => {
+        setProcessingIds((current) => ({
+            ...current,
+            [loanRequestId]: true,
+        }));
 
-            const toastId = `loan-request-correction-report-${loanRequestId}`;
+        const toastId = `loan-request-correction-report-${loanRequestId}`;
 
-            try {
-                const response =
-                    await client.post<ApiResponse<LoanRequestCorrectionReportResponse>>(
-                        `/client/loans/requests/${loanRequestId}/correction-reports`,
-                        payload,
-                    );
+        try {
+            const response = await client.post<
+                ApiResponse<LoanRequestCorrectionReportResponse>
+            >(
+                `/client/loans/requests/${loanRequestId}/correction-reports`,
+                payload,
+            );
 
-                unwrap(response);
+            unwrap(response);
 
-                showSuccessToast('Correction report sent to admin.', {
-                    id: toastId,
-                });
-                options?.onSubmitted?.();
+            showSuccessToast('Correction report sent to admin.', {
+                id: toastId,
+            });
+            options?.onSubmitted?.();
 
-                return true;
-            } catch (error) {
-                showErrorToast(error, 'Failed to send correction report.', {
-                    id: toastId,
-                });
+            return true;
+        } catch (error) {
+            showErrorToast(error, 'Failed to send correction report.', {
+                id: toastId,
+            });
 
-                return false;
-            } finally {
-                setProcessingIds((current) => {
-                    const next = { ...current };
-                    delete next[loanRequestId];
+            return false;
+        } finally {
+            setProcessingIds((current) => {
+                const next = { ...current };
+                delete next[loanRequestId];
 
-                    return next;
-                });
-            }
-        },
-        [options],
-    );
+                return next;
+            });
+        }
+    };
 
     return {
         submitReport,

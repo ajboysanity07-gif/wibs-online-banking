@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Clock, PiggyBank } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { MemberDetailPageHeader } from '@/components/member-detail-page-header';
 import {
     MemberDetailPrimaryCard,
@@ -51,7 +51,7 @@ export default function MemberSavings({
     savingsError = null,
 }: Props) {
     const [loading, setLoading] = useState(false);
-    const items = useMemo(() => savings?.items ?? [], [savings]);
+    const items = savings?.items ?? [];
     const meta = savings?.meta ?? fallbackMeta;
     const summaryValue = summary ?? null;
     const isLoading = loading || (savings === null && !savingsError);
@@ -59,19 +59,17 @@ export default function MemberSavings({
         ? 'Loading loan security...'
         : 'No loan security transactions found.';
 
-    const savingsNumbers = useMemo(() => {
-        const uniqueNumbers = new Set<string>();
+    const savingsNumbersSet = new Set<string>();
 
-        items.forEach((item) => {
-            if (item.svnumber === null || item.svnumber === '') {
-                return;
-            }
+    items.forEach((item) => {
+        if (item.svnumber === null || item.svnumber === '') {
+            return;
+        }
 
-            uniqueNumbers.add(String(item.svnumber));
-        });
+        savingsNumbersSet.add(String(item.svnumber));
+    });
 
-        return Array.from(uniqueNumbers);
-    }, [items]);
+    const savingsNumbers = Array.from(savingsNumbersSet);
 
     const reloadPage = (nextPage: number) => {
         setLoading(true);

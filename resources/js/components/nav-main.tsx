@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { ChevronDown } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -30,22 +30,15 @@ export function NavMain({
 
         return window.localStorage.getItem(collapsibleStorageKey) === 'true';
     });
-    const groupContentId = useMemo(
-        () =>
-            `${(collapsibleStorageKey ?? label)
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, '-')}-content`,
-        [collapsibleStorageKey, label],
-    );
+    const groupContentId = `${(collapsibleStorageKey ?? label)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')}-content`;
 
     const handleToggleCollapse = (): void => {
         setIsCollapsed((currentValue) => {
             const nextValue = !currentValue;
 
-            if (
-                typeof window !== 'undefined' &&
-                collapsibleStorageKey
-            ) {
+            if (typeof window !== 'undefined' && collapsibleStorageKey) {
                 window.localStorage.setItem(
                     collapsibleStorageKey,
                     String(nextValue),
@@ -94,15 +87,13 @@ export function NavMain({
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton
                                         asChild
-                                        isActive={
-                                            isMatch({
-                                                href: item.href,
-                                                match: item.match,
-                                                matchPaths: item.matchPaths,
-                                                excludeMatchPaths:
-                                                    item.excludeMatchPaths,
-                                            })
-                                        }
+                                        isActive={isMatch({
+                                            href: item.href,
+                                            match: item.match,
+                                            matchPaths: item.matchPaths,
+                                            excludeMatchPaths:
+                                                item.excludeMatchPaths,
+                                        })}
                                         tooltip={{ children: item.title }}
                                     >
                                         <Link href={item.href} prefetch>

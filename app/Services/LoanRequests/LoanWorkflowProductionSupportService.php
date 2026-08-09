@@ -2194,18 +2194,15 @@ class LoanWorkflowProductionSupportService
             return $issues;
         }
 
-        $allStaffRoleNames = array_merge(Role::editableStaffNames(), [Role::ADMIN]);
-
         $driftCount = AppUser::query()
             ->whereHas('adminProfile', fn ($q) => $q->where('access_level', AdminProfile::ACCESS_LEVEL_ADMIN))
-            ->whereDoesntHave('roles', fn ($q) => $q->whereIn('name', $allStaffRoleNames))
             ->count();
 
         if ($driftCount > 0) {
             $issues['deferred'][] = $this->issue(
                 'legacy_admin_drift',
                 sprintf(
-                    '%d user(s) have a legacy admin profile but no staff RBAC role. Run admin:backfill-legacy-roles to fix.',
+                    '%d user(s) still have the retired legacy "admin" access level. Reassign them to superadmin.',
                     $driftCount,
                 ),
                 $driftCount,

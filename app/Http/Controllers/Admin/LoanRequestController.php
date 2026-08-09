@@ -9,6 +9,7 @@ use App\Models\AppUser;
 use App\Models\DocumentAccessLog;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
+use App\Models\Permission;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanManagerWitnessResolver;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
@@ -22,6 +23,7 @@ use App\Services\LoanRequests\LoanRequestService;
 use App\Support\DocumentFilename;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -47,6 +49,8 @@ class LoanRequestController extends Controller
         if ($loanRequestRecord === null) {
             abort(404);
         }
+
+        Gate::authorize('view', $loanRequestRecord);
 
         if ($this->isDraft($loanRequestRecord)) {
             abort(404);
@@ -138,6 +142,9 @@ class LoanRequestController extends Controller
             abort(404);
         }
 
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
         if (! $this->canViewPdf($loanRequestRecord)) {
             abort(404);
         }
@@ -165,6 +172,9 @@ class LoanRequestController extends Controller
             abort(404);
         }
 
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
         if (! $this->canViewPdf($loanRequestRecord)) {
             abort(404);
         }
@@ -181,6 +191,9 @@ class LoanRequestController extends Controller
         if ($loanRequestRecord === null) {
             abort(404);
         }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
 
         if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
@@ -199,6 +212,9 @@ class LoanRequestController extends Controller
             abort(404);
         }
 
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
         if (! $this->canViewPdf($loanRequestRecord)) {
             abort(404);
         }
@@ -212,7 +228,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -225,7 +248,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -238,7 +268,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -251,7 +288,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasPreAcceptanceDisclosureStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasPreAcceptanceDisclosureStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -264,7 +308,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasPreAcceptanceDisclosureStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasPreAcceptanceDisclosureStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -277,7 +328,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -290,7 +348,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -303,7 +368,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -316,7 +388,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -329,7 +408,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -342,7 +428,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -355,7 +448,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -368,7 +468,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -381,7 +488,14 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -399,6 +513,9 @@ class LoanRequestController extends Controller
         if ($loanRequestRecord === null) {
             abort(404);
         }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
 
         $document = $loanRequestRecord->documents()
             ->where('document_key', $documentKey->value)
@@ -598,6 +715,25 @@ HTML
         return LoanRequest::query()
             ->whereKey($loanRequestId)
             ->first();
+    }
+
+    private function authorizeAdminDocumentAccess(LoanRequest $loanRequest): void
+    {
+        $actor = request()->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        if (
+            $loanRequest->assigned_officer_id === $actor->user_id
+            || $actor->hasPermission(Permission::LOAN_MANAGE_ASSIGNMENT)
+            || $actor->hasPermission(Permission::LOAN_APPROVE)
+            || $actor->hasPermission(Permission::LOAN_DECLINE)
+            || $actor->isSuperadmin()
+        ) {
+            return;
+        }
+
+        abort(403);
     }
 
     private function isDraft(LoanRequest $loanRequest): bool

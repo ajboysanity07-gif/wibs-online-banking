@@ -1,5 +1,5 @@
 import { ArrowRight, ChevronDown, History } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import {
     Card,
@@ -37,7 +37,7 @@ export function LoanRequestAuditTrail({
         audience === 'member'
             ? 'No workflow history is available yet.'
             : 'No workflow history available yet.';
-    const orderedEntries = useMemo(() => [...entries].reverse(), [entries]);
+    const orderedEntries = [...entries].reverse();
     const [latestEntry, ...olderEntries] = orderedEntries;
     const hasOlderEntries = olderEntries.length > 0;
 

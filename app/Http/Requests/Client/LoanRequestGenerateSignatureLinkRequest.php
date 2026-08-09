@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Client;
 
+use App\LoanCivilStatus;
+use App\LoanPaydayOption;
 use App\LoanRequestPersonRole;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -12,22 +14,6 @@ use Illuminate\Validation\Rule;
 class LoanRequestGenerateSignatureLinkRequest extends FormRequest
 {
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
-
-    private const CIVIL_STATUS_OPTIONS = [
-        'Single',
-        'Married',
-        'Separated',
-        'Widowed',
-    ];
-
-    private const PAYDAY_OPTIONS = [
-        'Weekly',
-        '15th',
-        '30th',
-        '15th & 30th',
-        'Bi-Weekly',
-        'Monthly',
-    ];
 
     protected function prepareForValidation(): void
     {
@@ -163,7 +149,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             "{$prefix}.payday" => [
                 'required',
                 'string',
-                Rule::in(self::PAYDAY_OPTIONS),
+                Rule::in(LoanPaydayOption::values()),
             ],
         ];
 
@@ -176,7 +162,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             $rules["{$prefix}.civil_status"] = [
                 'required',
                 'string',
-                Rule::in(self::CIVIL_STATUS_OPTIONS),
+                Rule::in(LoanCivilStatus::values()),
             ];
         }
 
@@ -237,7 +223,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
                 'sometimes',
                 'nullable',
                 'string',
-                Rule::in(self::PAYDAY_OPTIONS),
+                Rule::in(LoanPaydayOption::values()),
             ],
         ];
 
@@ -256,7 +242,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
                 'sometimes',
                 'nullable',
                 'string',
-                Rule::in(self::CIVIL_STATUS_OPTIONS),
+                Rule::in(LoanCivilStatus::values()),
             ];
         }
 

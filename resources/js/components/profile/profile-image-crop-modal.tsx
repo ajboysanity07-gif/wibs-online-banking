@@ -1,5 +1,5 @@
 import { Minus, Plus } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Cropper, { type Area, type Point } from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
 import { Button } from '@/components/ui/button';
@@ -44,15 +44,15 @@ export default function ProfileImageCropModal({
     const cropContainerRef = useRef<HTMLDivElement | null>(null);
     const hasPreview = Boolean(imagePreviewUrl);
 
-    const resetCropState = useCallback(() => {
+    const resetCropState = () => {
         setCrop({ x: 0, y: 0 });
         setZoom(MIN_ZOOM);
         setCroppedAreaPixels(null);
-    }, []);
+    };
 
-    const handleCropComplete = useCallback((_: Area, croppedPixels: Area) => {
+    const handleCropComplete = (_: Area, croppedPixels: Area) => {
         setCroppedAreaPixels(croppedPixels);
-    }, []);
+    };
 
     useEffect(() => {
         if (!isOpen) {
@@ -98,7 +98,7 @@ export default function ProfileImageCropModal({
         setZoom(clampZoom(value));
     };
 
-    const handleSave = useCallback(async () => {
+    const handleSave = async () => {
         if (!imagePreviewUrl || !croppedAreaPixels) {
             return;
         }
@@ -113,7 +113,7 @@ export default function ProfileImageCropModal({
         } catch {
             return;
         }
-    }, [crop, croppedAreaPixels, imagePreviewUrl, onClose, onSave, zoom]);
+    };
 
     const canSave = hasPreview && Boolean(croppedAreaPixels);
     return (

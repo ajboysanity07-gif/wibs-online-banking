@@ -31,6 +31,7 @@ class MemberDetailResource extends JsonResource
         $adminAccessLevel = $this->resolveAdminAccessLevel($resource, $userId);
         $isAdmin = $adminAccessLevel !== null && $adminAccessLevel !== 'member';
         $isSuperadmin = $adminAccessLevel === AdminProfile::ACCESS_LEVEL_SUPERADMIN;
+        $adminAccessRevocable = data_get($resource, 'adminProfile.reviewed_by') !== null;
 
         return [
             'member_id' => $this->resolveMemberId($userId, $acctno),
@@ -45,6 +46,7 @@ class MemberDetailResource extends JsonResource
             'is_admin' => $isAdmin,
             'is_superadmin' => $isSuperadmin,
             'admin_access_level' => $adminAccessLevel,
+            'admin_access_revocable' => $adminAccessRevocable,
             'created_at' => $this->formatDateValue(data_get($resource, 'created_at')),
             'avatar_url' => $resource instanceof AppUser ? $resource->avatar : null,
         ];

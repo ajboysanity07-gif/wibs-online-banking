@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 
@@ -25,46 +25,43 @@ export function useCreateAdminCorrectedLoanRequest(
         {},
     );
 
-    const createAdminCorrectedCopy = useCallback(
-        async (
-            loanRequestId: number,
-            payload: CreateAdminCorrectedCopyPayload,
-        ) => {
-            setProcessingIds((current) => ({
-                ...current,
-                [loanRequestId]: true,
-            }));
+    const createAdminCorrectedCopy = async (
+        loanRequestId: number,
+        payload: CreateAdminCorrectedCopyPayload,
+    ) => {
+        setProcessingIds((current) => ({
+            ...current,
+            [loanRequestId]: true,
+        }));
 
-            const toastId = `loan-request-admin-corrected-copy-${loanRequestId}`;
+        const toastId = `loan-request-admin-corrected-copy-${loanRequestId}`;
 
-            try {
-                const result = await adminApi.createAdminCorrectedCopy(
-                    loanRequestId,
-                    payload,
-                );
+        try {
+            const result = await adminApi.createAdminCorrectedCopy(
+                loanRequestId,
+                payload,
+            );
 
-                showSuccessToast('Corrected request created successfully.', {
-                    id: toastId,
-                });
-                options?.onCreated?.(result);
+            showSuccessToast('Corrected request created successfully.', {
+                id: toastId,
+            });
+            options?.onCreated?.(result);
 
-                return result;
-            } catch (error) {
-                showErrorToast(error, 'Failed to create corrected request.', {
-                    id: toastId,
-                });
+            return result;
+        } catch (error) {
+            showErrorToast(error, 'Failed to create corrected request.', {
+                id: toastId,
+            });
 
-                return null;
-            } finally {
-                setProcessingIds((current) => {
-                    const next = { ...current };
-                    delete next[loanRequestId];
-                    return next;
-                });
-            }
-        },
-        [options],
-    );
+            return null;
+        } finally {
+            setProcessingIds((current) => {
+                const next = { ...current };
+                delete next[loanRequestId];
+                return next;
+            });
+        }
+    };
 
     return {
         createAdminCorrectedCopy,

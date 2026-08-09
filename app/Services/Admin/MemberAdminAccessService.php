@@ -23,7 +23,7 @@ class MemberAdminAccessService
     {
         $this->guardTargetUser($user, $actor);
 
-        $member = DB::transaction(function () use ($user): AppUser {
+        $member = DB::transaction(function () use ($user, $actor): AppUser {
             $user->loadMissing('adminProfile', 'userProfile');
 
             if ($user->isSuperadmin()) {
@@ -36,7 +36,9 @@ class MemberAdminAccessService
             $profilePicPath = $this->resolveProfilePicPath($user);
             $adminProfileData = [
                 'fullname' => $fullname,
-                'access_level' => AdminProfile::ACCESS_LEVEL_ADMIN,
+                'access_level' => AdminProfile::ACCESS_LEVEL_SUPERADMIN,
+                'reviewed_by' => $actor->user_id,
+                'reviewed_at' => now(),
             ];
 
             if ($profilePicPath !== null) {
@@ -47,7 +49,7 @@ class MemberAdminAccessService
                 ['user_id' => $user->user_id],
                 $adminProfileData,
             );
-            Role::attachNamedRole($user, Role::ADMIN);
+            Role::attachNamedRole($user, Role::SUPERADMIN);
 
             return $this->loadMember($user->refresh());
         });
@@ -72,7 +74,7 @@ class MemberAdminAccessService
 
         $user->loadMissing('adminProfile');
 
-        if ($user->isSuperadmin()) {
+        if ($user->isSuperadmin() && $user->adminProfile?->reviewed_by === null) {
             throw ValidationException::withMessages([
                 'member' => 'Superadmin access cannot be revoked from here.',
             ]);
@@ -82,7 +84,7 @@ class MemberAdminAccessService
             AdminProfile::query()
                 ->where('user_id', $user->user_id)
                 ->delete();
-            Role::detachNamedRole($user, Role::ADMIN);
+            Role::detachNamedRole($user, Role::SUPERADMIN);
 
             return $this->loadMember($user->refresh());
         });

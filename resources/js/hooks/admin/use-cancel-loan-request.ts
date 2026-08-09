@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import type { LoanRequestCancellationResult } from '@/types/loan-requests';
@@ -16,47 +16,44 @@ export function useCancelLoanRequest(options?: LoanRequestCancellationOptions) {
         {},
     );
 
-    const cancelLoanRequest = useCallback(
-        async (
-            loanRequestId: number,
-            payload: LoanRequestCancellationPayload,
-        ) => {
-            setProcessingIds((current) => ({
-                ...current,
-                [loanRequestId]: true,
-            }));
+    const cancelLoanRequest = async (
+        loanRequestId: number,
+        payload: LoanRequestCancellationPayload,
+    ) => {
+        setProcessingIds((current) => ({
+            ...current,
+            [loanRequestId]: true,
+        }));
 
-            const toastId = `loan-request-cancel-${loanRequestId}`;
+        const toastId = `loan-request-cancel-${loanRequestId}`;
 
-            try {
-                const result = await adminApi.cancelLoanRequest(
-                    loanRequestId,
-                    payload,
-                );
+        try {
+            const result = await adminApi.cancelLoanRequest(
+                loanRequestId,
+                payload,
+            );
 
-                showSuccessToast('Loan request cancelled successfully.', {
-                    id: toastId,
-                });
-                options?.onUpdated?.(result);
+            showSuccessToast('Loan request cancelled successfully.', {
+                id: toastId,
+            });
+            options?.onUpdated?.(result);
 
-                return result;
-            } catch (error) {
-                showErrorToast(error, 'Failed to cancel loan request.', {
-                    id: toastId,
-                });
+            return result;
+        } catch (error) {
+            showErrorToast(error, 'Failed to cancel loan request.', {
+                id: toastId,
+            });
 
-                return null;
-            } finally {
-                setProcessingIds((current) => {
-                    const next = { ...current };
-                    delete next[loanRequestId];
+            return null;
+        } finally {
+            setProcessingIds((current) => {
+                const next = { ...current };
+                delete next[loanRequestId];
 
-                    return next;
-                });
-            }
-        },
-        [options],
-    );
+                return next;
+            });
+        }
+    };
 
     return {
         cancelLoanRequest,

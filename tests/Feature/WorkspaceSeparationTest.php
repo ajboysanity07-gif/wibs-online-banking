@@ -78,20 +78,32 @@ test('rbac hybrid users expose both workspaces', function (string $role): void {
     'superadmin hybrid' => Role::SUPERADMIN,
 ]);
 
-test('legacy admins continue to resolve the staff workspace', function (): void {
-    $legacyAdmin = createStaffWorkspaceUser(
+test('legacy superadmins continue to resolve the staff workspace', function (): void {
+    $legacySuperadmin = createStaffWorkspaceUser(
         [],
-        withAdminProfile: true,
+        withSuperadminProfile: true,
     );
 
     $this
-        ->actingAs($legacyAdmin)
+        ->actingAs($legacySuperadmin)
         ->get(route('admin.dashboard'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('auth.availableWorkspaces', ['staff'])
             ->where('auth.activeWorkspace', 'staff')
             ->where('auth.hasMultipleWorkspaces', false));
+});
+
+test('an unmigrated legacy admin profile with no RBAC role cannot resolve the staff workspace', function (): void {
+    $unmigratedLegacyAdmin = createStaffWorkspaceUser(
+        [],
+        withAdminProfile: true,
+    );
+
+    $this
+        ->actingAs($unmigratedLegacyAdmin)
+        ->get(route('admin.dashboard'))
+        ->assertForbidden();
 });
 
 test('suspended hybrid staff retain member access only', function (): void {

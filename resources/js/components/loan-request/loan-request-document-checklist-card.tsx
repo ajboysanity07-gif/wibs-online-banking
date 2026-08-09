@@ -14,7 +14,7 @@ import {
     RefreshCw,
     XCircle,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -147,20 +147,14 @@ export const LoanRequestDocumentChecklistCard = ({
     // when this component's own request(s) have actually finished.
     const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
 
-    const sortedChecklist = useMemo(
-        () =>
-            [...documentChecklist]
-                .filter(
-                    (document) => !hideNotApplicable || document.is_applicable,
-                )
-                .sort((a, b) => {
-                    const aIncomplete = a.blockers.length > 0 ? 1 : 0;
-                    const bIncomplete = b.blockers.length > 0 ? 1 : 0;
+    const sortedChecklist = [...documentChecklist]
+        .filter((document) => !hideNotApplicable || document.is_applicable)
+        .sort((a, b) => {
+            const aIncomplete = a.blockers.length > 0 ? 1 : 0;
+            const bIncomplete = b.blockers.length > 0 ? 1 : 0;
 
-                    return bIncomplete - aIncomplete;
-                }),
-        [documentChecklist, hideNotApplicable],
-    );
+            return bIncomplete - aIncomplete;
+        });
 
     const isDocumentLocked = (
         document: LoanRequestDocumentChecklistItem,

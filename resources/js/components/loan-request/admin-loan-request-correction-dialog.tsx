@@ -12,7 +12,7 @@ import {
     Users,
 } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
 import {
@@ -1152,49 +1152,33 @@ function CorrectionDialogForm({
     const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>(
         'forward',
     );
-    const initialFormData = useMemo(
-        () =>
-            buildInitialFormData(
-                loanRequest,
-                applicant,
-                coMakerOne,
-                coMakerTwo,
-                dataSections,
-                correctionReportContext,
-            ),
-        [
-            applicant,
-            coMakerOne,
-            coMakerTwo,
-            dataSections,
-            correctionReportContext,
-            loanRequest,
-        ],
+    const initialFormData = buildInitialFormData(
+        loanRequest,
+        applicant,
+        coMakerOne,
+        coMakerTwo,
+        dataSections,
+        correctionReportContext,
     );
     const [formData, setFormData] =
         useState<CorrectionFormData>(initialFormData);
     const [clientErrors, setClientErrors] = useState<ValidationErrors>({});
 
-    const availableLoanTypes = useMemo(() => {
-        if (
-            !loanRequest.typecode ||
-            loanTypes.some((type) => type.typecode === loanRequest.typecode)
-        ) {
-            return loanTypes;
-        }
+    const availableLoanTypes =
+        !loanRequest.typecode ||
+        loanTypes.some((type) => type.typecode === loanRequest.typecode)
+            ? loanTypes
+            : [
+                  {
+                      typecode: loanRequest.typecode,
+                      label:
+                          loanRequest.loan_type_label_snapshot ??
+                          loanRequest.typecode,
+                  },
+                  ...loanTypes,
+              ];
 
-        return [
-            {
-                typecode: loanRequest.typecode,
-                label:
-                    loanRequest.loan_type_label_snapshot ??
-                    loanRequest.typecode,
-            },
-            ...loanTypes,
-        ];
-    }, [loanRequest, loanTypes]);
-
-    const changeGroups = useMemo<ChangeGroup[]>(() => {
+    const changeGroups: ChangeGroup[] = (() => {
         const loanChanges = (
             Object.keys(loanFieldLabels) as LoanDetailField[]
         ).reduce<ChangeEntry[]>((changes, field) => {
@@ -1361,22 +1345,15 @@ function CorrectionDialogForm({
                 changes: [...bankingChanges, ...barangayChanges],
             },
         ];
-    }, [availableLoanTypes, formData, initialFormData]);
+    })();
 
-    const totalChanges = useMemo(
-        () =>
-            changeGroups.reduce(
-                (count, group) => count + group.changes.length,
-                0,
-            ),
-        [changeGroups],
+    const totalChanges = changeGroups.reduce(
+        (count, group) => count + group.changes.length,
+        0,
     );
 
     const hasChanges = totalChanges > 0;
-    const fullValidationErrors = useMemo(
-        () => validateAllRequiredFields(formData),
-        [formData],
-    );
+    const fullValidationErrors = validateAllRequiredFields(formData);
     const canSubmit =
         hasChanges &&
         Object.keys(fullValidationErrors).length === 0 &&
@@ -1384,30 +1361,24 @@ function CorrectionDialogForm({
     const isLastStep = currentStep === WIZARD_STEPS.length - 1;
     const stepMeta = WIZARD_STEPS[currentStep];
 
-    const mergedErrors = useMemo(
-        () => ({ ...errors, ...clientErrors }),
-        [clientErrors, errors],
-    );
+    const mergedErrors = { ...errors, ...clientErrors };
 
     // Correction is scoped to just the applicant's own PEP self-attestation --
     // the other ~66 GLAPI health-questionnaire fields are member-only and have
     // no editing surface here, mirroring how the 'health' section above is
     // narrowed to smoking status/hypertension rather than exposing the full
     // health questionnaire.
-    const pepDefinition = useMemo(
-        () => ({
-            label: dataSectionDefinitions.health_glapi?.label ?? 'GLAPI',
-            fields: {
-                applicant_pep_status:
-                    dataSectionDefinitions.health_glapi?.fields
-                        ?.applicant_pep_status,
-                applicant_pep_status_details:
-                    dataSectionDefinitions.health_glapi?.fields
-                        ?.applicant_pep_status_details,
-            },
-        }),
-        [dataSectionDefinitions.health_glapi],
-    );
+    const pepDefinition = {
+        label: dataSectionDefinitions.health_glapi?.label ?? 'GLAPI',
+        fields: {
+            applicant_pep_status:
+                dataSectionDefinitions.health_glapi?.fields
+                    ?.applicant_pep_status,
+            applicant_pep_status_details:
+                dataSectionDefinitions.health_glapi?.fields
+                    ?.applicant_pep_status_details,
+        },
+    };
 
     const handleLoanDetailChange = (field: LoanDetailField, value: string) => {
         setFormData((current) => ({

@@ -1,11 +1,11 @@
 <?php
 
 use App\Models\LoanRequest;
-use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\ApprovedLoanDocumentDataBuilder;
 
 function resolveDeductionStartDateForTest(?string $wibsReleaseDate, ?string $paymentMode): ?string
 {
-    $service = app(ApprovedLoanDocumentService::class);
+    $service = app(ApprovedLoanDocumentDataBuilder::class);
     $loanRequest = new LoanRequest(['wibs_release_date' => $wibsReleaseDate]);
 
     $date = (new ReflectionMethod($service, 'resolveDeductionStartDate'))

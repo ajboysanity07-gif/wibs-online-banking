@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api';
 import { adminApi } from '@/lib/api/admin';
 import type {
@@ -46,10 +46,7 @@ export function useMemberLoanPayments(
     options?: MemberLoanPaymentsOptions,
 ) {
     const initialKey = `${memberKey ?? 'unknown'}-${loanNumber ?? 'unknown'}`;
-    const emptyResponse = useMemo(
-        () => buildEmptyResponse(perPage, filters),
-        [filters, perPage],
-    );
+    const emptyResponse = buildEmptyResponse(perPage, filters);
     const initialData = options?.initial ?? emptyResponse;
     const filterKey = buildFilterKey(filters);
 
@@ -70,53 +67,42 @@ export function useMemberLoanPayments(
         };
     }
 
-    const refresh = useCallback(
-        async (signal?: AbortSignal) => {
-            if (!memberKey || loanNumber === null || loanNumber === undefined) {
-                return null;
-            }
+    const refresh = async (signal?: AbortSignal) => {
+        if (!memberKey || loanNumber === null || loanNumber === undefined) {
+            return null;
+        }
 
-            setState((current) => ({ ...current, loading: true, error: null }));
+        setState((current) => ({ ...current, loading: true, error: null }));
 
-            try {
-                const data = await adminApi.getMemberLoanPayments(
-                    memberKey,
-                    loanNumber,
-                    {
-                        page,
-                        perPage,
-                        range: filters.range,
-                        start: filters.start,
-                        end: filters.end,
-                    },
-                    signal,
-                );
-                setState({ data, loading: false, error: null });
-                return data;
-            } catch (error) {
-                if (!signal?.aborted) {
-                    setState((current) => ({
-                        ...current,
-                        loading: false,
-                        error: getApiErrorMessage(
-                            error,
-                            'Unable to load payments right now.',
-                        ),
-                    }));
-                }
-                return null;
+        try {
+            const data = await adminApi.getMemberLoanPayments(
+                memberKey,
+                loanNumber,
+                {
+                    page,
+                    perPage,
+                    range: filters.range,
+                    start: filters.start,
+                    end: filters.end,
+                },
+                signal,
+            );
+            setState({ data, loading: false, error: null });
+            return data;
+        } catch (error) {
+            if (!signal?.aborted) {
+                setState((current) => ({
+                    ...current,
+                    loading: false,
+                    error: getApiErrorMessage(
+                        error,
+                        'Unable to load payments right now.',
+                    ),
+                }));
             }
-        },
-        [
-            filters.end,
-            filters.range,
-            filters.start,
-            loanNumber,
-            memberKey,
-            page,
-            perPage,
-        ],
-    );
+            return null;
+        }
+    };
 
     useEffect(() => {
         if (

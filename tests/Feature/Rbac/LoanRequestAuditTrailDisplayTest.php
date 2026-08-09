@@ -18,7 +18,7 @@ beforeEach(function (): void {
 
 test('admin loan request detail page includes the full audit trail payload', function (): void {
     $admin = createAuditTrailActor(
-        [Role::ADMIN],
+        [Role::SUPERADMIN],
         withAdminProfile: true,
         username: 'Workflow Admin',
         fullname: 'Workflow Admin',
@@ -133,7 +133,7 @@ test('admin audit trail surfaces the approval terms recorded by the real approve
     Queue::fake();
 
     $admin = createAuditTrailActor(
-        [Role::ADMIN],
+        [Role::SUPERADMIN],
         withAdminProfile: true,
         username: 'Approval Terms Admin',
         fullname: 'Approval Terms Admin',
@@ -430,7 +430,7 @@ function createAuditTrailActor(
     $user = AppUser::factory()->create($attributes);
 
     if ($withAdminProfile) {
-        AdminProfile::factory()->admin()->create([
+        AdminProfile::factory()->superadmin()->create([
             'user_id' => $user->user_id,
             'fullname' => $fullname ?? $username ?? 'Workflow User',
         ]);

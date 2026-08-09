@@ -402,25 +402,18 @@ class MemberAccountsRepository
             return [0.0, 0.0];
         }
 
-        $balanceSelect = $this->hasColumn('wsvmaster', 'balance')
-            ? DB::raw('COALESCE(SUM(balance), 0) as balance_total')
-            : DB::raw('0 as balance_total');
-        $mortuarySelect = $this->hasColumn('wsvmaster', 'mortuary')
-            ? DB::raw('COALESCE(SUM(mortuary), 0) as mortuary_total')
-            : DB::raw('0 as mortuary_total');
-
-        $query = Wsvmaster::query()
-            ->where('acctno', $acctno)
-            ->select([$balanceSelect, $mortuarySelect]);
+        $query = Wsvmaster::query()->where('acctno', $acctno);
 
         if ($this->hasColumn('wsvmaster', 'typecode')) {
             $query->where('typecode', self::LOAN_SECURITY_TYPECODE);
         }
 
-        $totals = $query->first();
-
-        $loanSecurityBalance = (float) ($totals?->balance_total ?? 0);
-        $mortuaryTotal = (float) ($totals?->mortuary_total ?? 0);
+        $loanSecurityBalance = $this->hasColumn('wsvmaster', 'balance')
+            ? (float) (clone $query)->sum('balance')
+            : 0.0;
+        $mortuaryTotal = $this->hasColumn('wsvmaster', 'mortuary')
+            ? (float) (clone $query)->sum('mortuary')
+            : 0.0;
 
         return [$loanSecurityBalance, $loanSecurityBalance + $mortuaryTotal];
     }

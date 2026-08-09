@@ -9,6 +9,8 @@ use App\Http\Requests\Client\LoanRequestPrerequisiteRequest;
 use App\Http\Requests\Client\LoanRequestResolveActionRequest;
 use App\Http\Requests\Client\LoanRequestStoreRequest;
 use App\Http\Requests\Client\SaveDraftRequest;
+use App\LoanCivilStatus;
+use App\LoanPaydayOption;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
@@ -34,22 +36,6 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class LoanRequestController extends Controller
 {
-    private const CIVIL_STATUS_OPTIONS = [
-        'Single',
-        'Married',
-        'Separated',
-        'Widowed',
-    ];
-
-    private const PAYDAY_OPTIONS = [
-        'Weekly',
-        '15th',
-        '30th',
-        '15th & 30th',
-        'Bi-Weekly',
-        'Monthly',
-    ];
-
     public function create(
         Request $request,
         LoanRequestService $service,
@@ -1114,7 +1100,7 @@ class LoanRequestController extends Controller
             return null;
         }
 
-        return in_array($resolved, self::CIVIL_STATUS_OPTIONS, true)
+        return in_array($resolved, LoanCivilStatus::values(), true)
             ? $resolved
             : null;
     }
@@ -1131,7 +1117,7 @@ class LoanRequestController extends Controller
             return null;
         }
 
-        if (in_array($trimmed, self::PAYDAY_OPTIONS, true)) {
+        if (in_array($trimmed, LoanPaydayOption::values(), true)) {
             return $trimmed;
         }
 

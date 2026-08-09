@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import type { MemberDetail, MemberAdminAccessAction } from '@/types/admin';
@@ -22,33 +22,33 @@ export function useUpdateMemberAdminAccess(options?: AdminAccessOptions) {
         Record<string, boolean>
     >({});
 
-    const updateAdminAccess = useCallback(
-        async (memberKey: string | number, action: MemberAdminAccessAction) => {
-            const key = String(memberKey);
-            setProcessingKeys((current) => ({ ...current, [key]: true }));
-            const toastId = `member-admin-access-${action}-${key}`;
+    const updateAdminAccess = async (
+        memberKey: string | number,
+        action: MemberAdminAccessAction,
+    ) => {
+        const key = String(memberKey);
+        setProcessingKeys((current) => ({ ...current, [key]: true }));
+        const toastId = `member-admin-access-${action}-${key}`;
 
-            try {
-                const member =
-                    action === 'grant'
-                        ? await adminApi.grantMemberAdminAccess(memberKey)
-                        : await adminApi.revokeMemberAdminAccess(memberKey);
-                showSuccessToast(successCopy[action], { id: toastId });
-                options?.onUpdated?.(member, action);
-                return member;
-            } catch (error) {
-                showErrorToast(error, errorCopy[action], { id: toastId });
-                return null;
-            } finally {
-                setProcessingKeys((current) => {
-                    const next = { ...current };
-                    delete next[key];
-                    return next;
-                });
-            }
-        },
-        [options],
-    );
+        try {
+            const member =
+                action === 'grant'
+                    ? await adminApi.grantMemberAdminAccess(memberKey)
+                    : await adminApi.revokeMemberAdminAccess(memberKey);
+            showSuccessToast(successCopy[action], { id: toastId });
+            options?.onUpdated?.(member, action);
+            return member;
+        } catch (error) {
+            showErrorToast(error, errorCopy[action], { id: toastId });
+            return null;
+        } finally {
+            setProcessingKeys((current) => {
+                const next = { ...current };
+                delete next[key];
+                return next;
+            });
+        }
+    };
 
     return {
         updateAdminAccess,

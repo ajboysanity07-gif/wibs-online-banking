@@ -1,10 +1,4 @@
-import {
-    createContext,
-    useCallback,
-    useContext,
-    useMemo,
-    useState,
-} from 'react';
+import { createContext, useContext, useState } from 'react';
 
 import { useMemberAccountsSummary } from '@/hooks/admin/use-member-accounts-summary';
 import { useMemberRecentAccountActions } from '@/hooks/admin/use-member-recent-account-actions';
@@ -65,12 +59,9 @@ export function MemberAccountsProvider({
     const enabled = Boolean(memberKey && acctno);
     const actionsPage =
         actionsPageState.memberKey === accountKey ? actionsPageState.page : 1;
-    const setActionsPage = useCallback(
-        (page: number) => {
-            setActionsPageState({ memberKey: accountKey, page });
-        },
-        [accountKey],
-    );
+    const setActionsPage = (page: number) => {
+        setActionsPageState({ memberKey: accountKey, page });
+    };
 
     const summaryState = useMemberAccountsSummary(memberKey, {
         enabled,
@@ -86,43 +77,30 @@ export function MemberAccountsProvider({
         },
     );
 
-    const refreshOverview = useCallback(async () => {
+    const refreshOverview = async () => {
         await Promise.all([summaryState.refresh(), actionsState.refresh()]);
-    }, [actionsState, summaryState]);
+    };
 
-    const value = useMemo<MemberAccountsContextValue>(
-        () => ({
-            memberKey,
-            acctno,
-            summary: summaryState.summary,
-            summaryLoading: summaryState.loading,
-            summaryError: summaryState.error,
-            actions: actionsState.items,
-            actionsMeta: actionsState.meta,
-            actionsLoading: actionsState.loading,
-            actionsError: actionsState.error,
-            actionsPage,
-            setActionsPage,
-            loansDialogOpen,
-            setLoansDialogOpen,
-            savingsDialogOpen,
-            setSavingsDialogOpen,
-            refreshSummary: summaryState.refresh,
-            refreshActions: actionsState.refresh,
-            refreshOverview,
-        }),
-        [
-            acctno,
-            actionsPage,
-            actionsState,
-            loansDialogOpen,
-            memberKey,
-            refreshOverview,
-            savingsDialogOpen,
-            setActionsPage,
-            summaryState,
-        ],
-    );
+    const value: MemberAccountsContextValue = {
+        memberKey,
+        acctno,
+        summary: summaryState.summary,
+        summaryLoading: summaryState.loading,
+        summaryError: summaryState.error,
+        actions: actionsState.items,
+        actionsMeta: actionsState.meta,
+        actionsLoading: actionsState.loading,
+        actionsError: actionsState.error,
+        actionsPage,
+        setActionsPage,
+        loansDialogOpen,
+        setLoansDialogOpen,
+        savingsDialogOpen,
+        setSavingsDialogOpen,
+        refreshSummary: summaryState.refresh,
+        refreshActions: actionsState.refresh,
+        refreshOverview,
+    };
 
     return (
         <MemberAccountsContext.Provider value={value}>

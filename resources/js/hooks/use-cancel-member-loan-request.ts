@@ -1,5 +1,5 @@
 import type { AxiosResponse } from 'axios';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import client from '@/lib/api/client';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import type { LoanRequestMemberCancellationResult } from '@/types/loan-requests';
@@ -32,48 +32,45 @@ export function useCancelMemberLoanRequest(
         {},
     );
 
-    const cancelLoanRequest = useCallback(
-        async (
-            loanRequestId: number,
-            payload: LoanRequestCancellationPayload,
-        ) => {
-            setProcessingIds((current) => ({
-                ...current,
-                [loanRequestId]: true,
-            }));
+    const cancelLoanRequest = async (
+        loanRequestId: number,
+        payload: LoanRequestCancellationPayload,
+    ) => {
+        setProcessingIds((current) => ({
+            ...current,
+            [loanRequestId]: true,
+        }));
 
-            const toastId = `member-loan-request-cancel-${loanRequestId}`;
+        const toastId = `member-loan-request-cancel-${loanRequestId}`;
 
-            try {
-                const response = await client.patch<
-                    ApiResponse<LoanRequestMemberCancellationResult>
-                >(`/client/loans/requests/${loanRequestId}/cancel`, payload);
+        try {
+            const response = await client.patch<
+                ApiResponse<LoanRequestMemberCancellationResult>
+            >(`/client/loans/requests/${loanRequestId}/cancel`, payload);
 
-                const result = unwrap(response);
+            const result = unwrap(response);
 
-                showSuccessToast('Loan request cancelled successfully.', {
-                    id: toastId,
-                });
-                options?.onUpdated?.(result);
+            showSuccessToast('Loan request cancelled successfully.', {
+                id: toastId,
+            });
+            options?.onUpdated?.(result);
 
-                return result;
-            } catch (error) {
-                showErrorToast(error, 'Failed to cancel loan request.', {
-                    id: toastId,
-                });
+            return result;
+        } catch (error) {
+            showErrorToast(error, 'Failed to cancel loan request.', {
+                id: toastId,
+            });
 
-                return null;
-            } finally {
-                setProcessingIds((current) => {
-                    const next = { ...current };
-                    delete next[loanRequestId];
+            return null;
+        } finally {
+            setProcessingIds((current) => {
+                const next = { ...current };
+                delete next[loanRequestId];
 
-                    return next;
-                });
-            }
-        },
-        [options],
-    );
+                return next;
+            });
+        }
+    };
 
     return {
         cancelLoanRequest,

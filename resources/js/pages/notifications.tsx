@@ -1,6 +1,13 @@
 import { Head, router } from '@inertiajs/react';
-import { CheckCheck, Clock3, Filter, Inbox, type LucideIcon, TriangleAlert } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+    CheckCheck,
+    Clock3,
+    Filter,
+    Inbox,
+    type LucideIcon,
+    TriangleAlert,
+} from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { PageHero } from '@/components/page-hero';
 import { PageShell } from '@/components/page-shell';
 import { SurfaceCard } from '@/components/surface-card';
@@ -321,13 +328,15 @@ export default function NotificationsPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const loadNotifications = useCallback(async () => {
+    const loadNotifications = async () => {
         setLoading(true);
         setError(null);
 
         try {
             const [items, count] = await Promise.all([
-                notificationsApi.getNotifications(FULL_PAGE_NOTIFICATIONS_LIMIT),
+                notificationsApi.getNotifications(
+                    FULL_PAGE_NOTIFICATIONS_LIMIT,
+                ),
                 notificationsApi.getUnreadCount(),
             ]);
             setNotifications(items);
@@ -337,82 +346,70 @@ export default function NotificationsPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    };
 
     useEffect(() => {
         void loadNotifications();
     }, [loadNotifications]);
 
     const hasUnread = unreadCount > 0;
-    const filteredNotifications = useMemo(
-        () =>
-            notifications.filter((notification) =>
-                notificationBelongsToFilter(notification, activeFilter),
-            ),
-        [activeFilter, notifications],
+    const filteredNotifications = notifications.filter((notification) =>
+        notificationBelongsToFilter(notification, activeFilter),
     );
 
-    const groupedNotifications = useMemo(() => {
-        return filteredNotifications.reduce(
-            (groups, notification) => {
-                const key = resolveGroupKey(notification.created_at);
-                groups[key].push(notification);
+    const groupedNotifications = filteredNotifications.reduce(
+        (groups, notification) => {
+            const key = resolveGroupKey(notification.created_at);
+            groups[key].push(notification);
 
-                return groups;
-            },
-            {
-                today: [] as NotificationItem[],
-                yesterday: [] as NotificationItem[],
-                older: [] as NotificationItem[],
-            },
-        );
-    }, [filteredNotifications]);
-
-    const filterCounts = useMemo(
-        () => ({
-            all: notifications.length,
-            unread: notifications.filter((item) => item.read_at === null).length,
-            loan: notifications.filter((item) =>
-                isLoanRequestNotification(item.data),
-            ).length,
-            account: notifications.filter((item) =>
-                isAccountAccessNotification(item.data),
-            ).length,
-        }),
-        [notifications],
-    );
-
-    const handleNotificationSelect = useCallback(
-        async (notification: NotificationItem) => {
-            const destination = resolveNotificationDestination(notification.data);
-
-            if (notification.read_at === null) {
-                try {
-                    const result = await notificationsApi.markAsRead(
-                        notification.id,
-                    );
-
-                    setNotifications((current) =>
-                        current.map((item) =>
-                            item.id === result.notification.id
-                                ? result.notification
-                                : item,
-                        ),
-                    );
-                    setUnreadCount(result.unreadCount);
-                } catch {
-                    return;
-                }
-            }
-
-            if (destination) {
-                router.visit(destination);
-            }
+            return groups;
         },
-        [],
+        {
+            today: [] as NotificationItem[],
+            yesterday: [] as NotificationItem[],
+            older: [] as NotificationItem[],
+        },
     );
 
-    const handleMarkAllAsRead = useCallback(async () => {
+    const filterCounts = {
+        all: notifications.length,
+        unread: notifications.filter((item) => item.read_at === null).length,
+        loan: notifications.filter((item) =>
+            isLoanRequestNotification(item.data),
+        ).length,
+        account: notifications.filter((item) =>
+            isAccountAccessNotification(item.data),
+        ).length,
+    };
+
+    const handleNotificationSelect = async (notification: NotificationItem) => {
+        const destination = resolveNotificationDestination(notification.data);
+
+        if (notification.read_at === null) {
+            try {
+                const result = await notificationsApi.markAsRead(
+                    notification.id,
+                );
+
+                setNotifications((current) =>
+                    current.map((item) =>
+                        item.id === result.notification.id
+                            ? result.notification
+                            : item,
+                    ),
+                );
+                setUnreadCount(result.unreadCount);
+            } catch {
+                return;
+            }
+        }
+
+        if (destination) {
+            router.visit(destination);
+        }
+    };
+
+    const handleMarkAllAsRead = async () => {
         if (!hasUnread) {
             return;
         }
@@ -429,7 +426,7 @@ export default function NotificationsPage() {
         } catch {
             return;
         }
-    }, [hasUnread]);
+    };
 
     const showLoadingState = loading && notifications.length === 0;
     const showErrorState = error !== null && notifications.length === 0;
@@ -485,34 +482,40 @@ export default function NotificationsPage() {
                     }
                 />
 
-                <SurfaceCard variant="default" padding="none" className="overflow-hidden">
+                <SurfaceCard
+                    variant="default"
+                    padding="none"
+                    className="overflow-hidden"
+                >
                     <div className="border-b border-border/50 px-4 py-3">
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
                                 <Filter className="size-3.5" />
                                 Filters:
                             </span>
-                            {(Object.keys(filterLabels) as NotificationFilter[]).map(
-                                (filter) => (
-                                    <Button
-                                        key={filter}
-                                        type="button"
-                                        size="sm"
-                                        variant={
-                                            activeFilter === filter
-                                                ? 'secondary'
-                                                : 'ghost'
-                                        }
-                                        onClick={() => setActiveFilter(filter)}
-                                        className="h-8 rounded-full px-3 text-xs"
-                                    >
-                                        {filterLabels[filter]}
-                                        <span className="ml-1 text-muted-foreground">
-                                            ({filterCounts[filter]})
-                                        </span>
-                                    </Button>
-                                ),
-                            )}
+                            {(
+                                Object.keys(
+                                    filterLabels,
+                                ) as NotificationFilter[]
+                            ).map((filter) => (
+                                <Button
+                                    key={filter}
+                                    type="button"
+                                    size="sm"
+                                    variant={
+                                        activeFilter === filter
+                                            ? 'secondary'
+                                            : 'ghost'
+                                    }
+                                    onClick={() => setActiveFilter(filter)}
+                                    className="h-8 rounded-full px-3 text-xs"
+                                >
+                                    {filterLabels[filter]}
+                                    <span className="ml-1 text-muted-foreground">
+                                        ({filterCounts[filter]})
+                                    </span>
+                                </Button>
+                            ))}
                         </div>
                     </div>
 
@@ -564,51 +567,53 @@ export default function NotificationsPage() {
                     !showErrorState &&
                     filteredNotifications.length > 0 ? (
                         <div className="space-y-4 p-3">
-                            {(Object.keys(groupLabels) as NotificationGroupKey[]).map(
-                                (groupKey) => {
-                                    const items = groupedNotifications[groupKey];
+                            {(
+                                Object.keys(
+                                    groupLabels,
+                                ) as NotificationGroupKey[]
+                            ).map((groupKey) => {
+                                const items = groupedNotifications[groupKey];
 
-                                    if (items.length === 0) {
-                                        return null;
-                                    }
+                                if (items.length === 0) {
+                                    return null;
+                                }
 
-                                    return (
-                                        <section
-                                            key={groupKey}
-                                            className="space-y-2"
-                                            aria-labelledby={`notifications-group-${groupKey}`}
-                                        >
-                                            <div className="flex items-center gap-2 px-1">
-                                                <h2
-                                                    id={`notifications-group-${groupKey}`}
-                                                    className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase"
-                                                >
-                                                    {groupLabels[groupKey]}
-                                                </h2>
-                                                <Badge
-                                                    variant="outline"
-                                                    className="rounded-full px-1.5 py-0 text-[10px] text-muted-foreground"
-                                                >
-                                                    {items.length}
-                                                </Badge>
-                                            </div>
-                                            <div className="space-y-2">
-                                                {items.map((notification) => (
-                                                    <NotificationCard
-                                                        key={notification.id}
-                                                        notification={notification}
-                                                        onSelect={(item) =>
-                                                            void handleNotificationSelect(
-                                                                item,
-                                                            )
-                                                        }
-                                                    />
-                                                ))}
-                                            </div>
-                                        </section>
-                                    );
-                                },
-                            )}
+                                return (
+                                    <section
+                                        key={groupKey}
+                                        className="space-y-2"
+                                        aria-labelledby={`notifications-group-${groupKey}`}
+                                    >
+                                        <div className="flex items-center gap-2 px-1">
+                                            <h2
+                                                id={`notifications-group-${groupKey}`}
+                                                className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase"
+                                            >
+                                                {groupLabels[groupKey]}
+                                            </h2>
+                                            <Badge
+                                                variant="outline"
+                                                className="rounded-full px-1.5 py-0 text-[10px] text-muted-foreground"
+                                            >
+                                                {items.length}
+                                            </Badge>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {items.map((notification) => (
+                                                <NotificationCard
+                                                    key={notification.id}
+                                                    notification={notification}
+                                                    onSelect={(item) =>
+                                                        void handleNotificationSelect(
+                                                            item,
+                                                        )
+                                                    }
+                                                />
+                                            ))}
+                                        </div>
+                                    </section>
+                                );
+                            })}
                         </div>
                     ) : null}
                 </SurfaceCard>

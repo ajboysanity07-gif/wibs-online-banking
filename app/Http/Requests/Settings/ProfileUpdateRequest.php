@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Settings;
 
 use App\Concerns\ProfileValidationRules;
+use App\LoanPaydayOption;
 use App\LoanReleaseMethod;
 use App\Models\MemberApplicationProfile;
 use App\Models\MemberDependentProfile;
@@ -18,15 +19,6 @@ use Illuminate\Validation\Rule;
 class ProfileUpdateRequest extends FormRequest
 {
     use ProfileValidationRules;
-
-    private const PAYDAY_OPTIONS = [
-        'Weekly',
-        '15th',
-        '30th',
-        '15th & 30th',
-        'Bi-Weekly',
-        'Monthly',
-    ];
 
     protected function prepareForValidation(): void
     {
@@ -357,7 +349,7 @@ class ProfileUpdateRequest extends FormRequest
             'payday' => [
                 $memberRequirement('payday'),
                 'string',
-                Rule::in(self::PAYDAY_OPTIONS),
+                Rule::in(LoanPaydayOption::values()),
             ],
             'payout_bank_name' => [
                 $memberRequirement('payout_bank_name'),

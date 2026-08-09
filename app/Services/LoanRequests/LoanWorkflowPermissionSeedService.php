@@ -94,18 +94,6 @@ class LoanWorkflowPermissionSeedService
 
         $roleIdsByName = Role::query()->pluck('id', 'name');
 
-        $adminRoleId = $roleIdsByName->get(Role::ADMIN);
-        if (is_numeric($adminRoleId)) {
-            $this->attachRoleToUsers(
-                (int) $adminRoleId,
-                DB::table('admin_profiles')
-                    ->orderBy('user_id')
-                    ->pluck('user_id')
-                    ->map(static fn (mixed $value): int => (int) $value)
-                    ->all(),
-            );
-        }
-
         $superadminRoleId = $roleIdsByName->get(Role::SUPERADMIN);
         if (is_numeric($superadminRoleId)) {
             $this->attachRoleToUsers(

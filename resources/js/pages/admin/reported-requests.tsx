@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
     LoanRequestPageHero,
     LoanRequestSearchBox,
@@ -96,8 +96,7 @@ const columns: ColumnDef<RequestPreview>[] = [
     {
         accessorKey: 'latest_correction_report_issue',
         header: 'Reported issue',
-        cell: ({ row }) =>
-            row.original.latest_correction_report_issue ?? '--',
+        cell: ({ row }) => row.original.latest_correction_report_issue ?? '--',
     },
     {
         accessorKey: 'latest_correction_report_correct_information',
@@ -109,9 +108,7 @@ const columns: ColumnDef<RequestPreview>[] = [
         accessorKey: 'latest_correction_report_reported_at',
         header: 'Reported at',
         cell: ({ row }) =>
-            formatReportedAt(
-                row.original.latest_correction_report_reported_at,
-            ),
+            formatReportedAt(row.original.latest_correction_report_reported_at),
     },
     {
         id: 'action',
@@ -159,44 +156,38 @@ export default function ReportedRequestsPage() {
     });
     const showSkeleton = loading && items.length === 0;
     const totalResults = meta.total;
-    const pageStart =
-        totalResults > 0 ? (meta.page - 1) * meta.perPage + 1 : 0;
+    const pageStart = totalResults > 0 ? (meta.page - 1) * meta.perPage + 1 : 0;
     const pageEnd =
-        totalResults > 0
-            ? Math.min(meta.page * meta.perPage, totalResults)
-            : 0;
+        totalResults > 0 ? Math.min(meta.page * meta.perPage, totalResults) : 0;
     const resultsLabel = warning
         ? warning
         : totalResults > 0
-            ? `Showing ${pageStart}-${pageEnd} of ${formatCountLabel(
-                  totalResults,
-                  'reported request',
-              )}`
-            : 'No reported requests';
+          ? `Showing ${pageStart}-${pageEnd} of ${formatCountLabel(
+                totalResults,
+                'reported request',
+            )}`
+          : 'No reported requests';
     const emptyMessage = warning
         ? warning
         : searchValue !== ''
-            ? 'No reported requests match the current search.'
-            : 'No reported requests';
-    const oldestPendingReportedAt = useMemo(() => {
-        if (items.length === 0) {
-            return '--';
-        }
+          ? 'No reported requests match the current search.'
+          : 'No reported requests';
+    let oldestPendingReportedAt = '--';
 
+    if (items.length > 0) {
         const timestamps = items
             .map((item) => item.latest_correction_report_reported_at)
             .filter((value): value is string => Boolean(value))
             .map((value) => new Date(value).getTime())
             .filter((value) => Number.isFinite(value));
 
-        if (timestamps.length === 0) {
-            return '--';
+        if (timestamps.length > 0) {
+            const oldest = Math.min(...timestamps);
+            oldestPendingReportedAt = formatReportedAt(
+                new Date(oldest).toISOString(),
+            );
         }
-
-        const oldest = Math.min(...timestamps);
-
-        return formatReportedAt(new Date(oldest).toISOString());
-    }, [items]);
+    }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -262,7 +253,9 @@ export default function ReportedRequestsPage() {
 
                 {error ? (
                     <Alert variant="destructive">
-                        <AlertTitle>Unable to load reported requests</AlertTitle>
+                        <AlertTitle>
+                            Unable to load reported requests
+                        </AlertTitle>
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 ) : null}
@@ -300,7 +293,7 @@ export default function ReportedRequestsPage() {
 
                         <div className="md:hidden">
                             {showSkeleton ? (
-                                <div className="space-y-3 px-2 pb-3 pt-4">
+                                <div className="space-y-3 px-2 pt-4 pb-3">
                                     {Array.from({ length: 3 }).map(
                                         (_, index) => (
                                             <div
@@ -324,7 +317,7 @@ export default function ReportedRequestsPage() {
                                     )}
                                 </div>
                             ) : items.length > 0 ? (
-                                <div className="space-y-3 px-2 pb-3 pt-4">
+                                <div className="space-y-3 px-2 pt-4 pb-3">
                                     {items.map((item, index) => (
                                         <div
                                             key={
@@ -339,7 +332,8 @@ export default function ReportedRequestsPage() {
                                                         {item.reference ?? '--'}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {item.member_name ?? '--'}
+                                                        {item.member_name ??
+                                                            '--'}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
                                                         Acct:{' '}
@@ -413,7 +407,7 @@ export default function ReportedRequestsPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="px-4 pb-6 pt-6 text-center">
+                                <div className="px-4 pt-6 pb-6 text-center">
                                     <p className="text-sm font-medium text-foreground">
                                         {warning
                                             ? 'Reported requests unavailable'

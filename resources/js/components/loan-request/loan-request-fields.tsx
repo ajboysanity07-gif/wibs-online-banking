@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { BirthdateInput } from '@/components/loan-request/birthdate-input';
 import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
@@ -165,16 +165,11 @@ export function LoanRequestPersonalFields({
 }: PersonalFieldsProps) {
     const educationalAttainment = values.educational_attainment;
 
-    const educationalAttainmentOptions = useMemo(() => {
-        if (
-            educationalAttainment !== '' &&
-            !EDUCATIONAL_ATTAINMENT_OPTIONS.includes(educationalAttainment)
-        ) {
-            return [educationalAttainment, ...EDUCATIONAL_ATTAINMENT_OPTIONS];
-        }
-
-        return EDUCATIONAL_ATTAINMENT_OPTIONS;
-    }, [educationalAttainment]);
+    const educationalAttainmentOptions =
+        educationalAttainment !== '' &&
+        !EDUCATIONAL_ATTAINMENT_OPTIONS.includes(educationalAttainment)
+            ? [educationalAttainment, ...EDUCATIONAL_ATTAINMENT_OPTIONS]
+            : EDUCATIONAL_ATTAINMENT_OPTIONS;
 
     const isReadOnly = (field: string) => Boolean(readOnly?.[field]);
     const hasReadOnlyFields = Object.values(readOnly ?? {}).some(Boolean);
@@ -1013,21 +1008,16 @@ export function LoanRequestWorkFields({
     const employmentType = values.employment_type;
     const isPensioner = employmentType === PENSIONER_EMPLOYMENT_TYPE;
 
-    const employmentTypeOptions = useMemo(() => {
-        if (
-            employmentType !== '' &&
-            !EMPLOYMENT_TYPE_OPTIONS.some(
-                (option) => option.value === employmentType,
-            )
-        ) {
-            return [
-                { value: employmentType, label: employmentType },
-                ...EMPLOYMENT_TYPE_OPTIONS,
-            ];
-        }
-
-        return EMPLOYMENT_TYPE_OPTIONS;
-    }, [employmentType]);
+    const employmentTypeOptions =
+        employmentType !== '' &&
+        !EMPLOYMENT_TYPE_OPTIONS.some(
+            (option) => option.value === employmentType,
+        )
+            ? [
+                  { value: employmentType, label: employmentType },
+                  ...EMPLOYMENT_TYPE_OPTIONS,
+              ]
+            : EMPLOYMENT_TYPE_OPTIONS;
     const employerProvinceSearch = useLocationSearch({
         initialQuery: values.employer_business_address3,
         searchUrl: provinces.url(),

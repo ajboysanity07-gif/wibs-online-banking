@@ -34,7 +34,7 @@ export type MemberRegistrationFilter = MemberRegistrationStatus | 'all';
 
 export type MemberSort = 'newest' | 'oldest';
 
-export type AdminAccessLevel = 'member' | 'admin' | 'superadmin';
+export type AdminAccessLevel = 'member' | 'superadmin';
 
 export type RequestPreview = {
     id: number | null;
@@ -152,6 +152,7 @@ export type MemberDetail = {
     is_admin: boolean;
     is_superadmin: boolean;
     admin_access_level: AdminAccessLevel | null;
+    admin_access_revocable: boolean;
     created_at: string | null;
     avatar_url: string | null;
 };

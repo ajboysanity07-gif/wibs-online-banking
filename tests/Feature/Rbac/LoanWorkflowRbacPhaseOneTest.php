@@ -90,7 +90,7 @@ test('phase one workflow field migration rolls back and reapplies all workflow c
     }
 });
 
-test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, and member roles safely', function () {
+test('loan workflow rbac seeder is idempotent and backfills superadmin and member roles safely, leaving unmigrated legacy admin profiles roleless', function () {
     $adminOnly = AppUser::factory()->create(['acctno' => null]);
     AdminProfile::factory()->admin()->create([
         'user_id' => $adminOnly->user_id,
@@ -122,7 +122,6 @@ test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, a
     $this->seed(LoanWorkflowRbacSeeder::class);
 
     expect(Role::query()->pluck('name')->sort()->values()->all())->toBe([
-        Role::ADMIN,
         Role::LOAN_MANAGER,
         Role::LOAN_PROCESSOR,
         Role::MEMBER,
@@ -130,19 +129,11 @@ test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, a
     ]);
     expect(Permission::query()->count())->toBe(count(Permission::defaults()));
 
-    $adminRole = Role::query()->where('name', Role::ADMIN)->firstOrFail();
     $memberRole = Role::query()->where('name', Role::MEMBER)->firstOrFail();
     $loanOfficerRole = Role::query()->where('name', Role::LOAN_PROCESSOR)->firstOrFail();
     $loanManagerRole = Role::query()->where('name', Role::LOAN_MANAGER)->firstOrFail();
     $superadminRole = Role::query()->where('name', Role::SUPERADMIN)->firstOrFail();
 
-    expect($adminRole->permissions()->pluck('name')->sort()->values()->all())->toBe([
-        Permission::LOAN_VIEW,
-        Permission::MEMBER_CREATE,
-        Permission::MEMBER_UPDATE,
-        Permission::MEMBER_VIEW,
-        Permission::PAYMENT_CREATE,
-    ]);
     expect($memberRole->permissions()->pluck('name')->sort()->values()->all())->toBe([
         Permission::LOAN_CREATE,
         Permission::LOAN_VIEW,
@@ -186,13 +177,10 @@ test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, a
         ['display_name' => 'Convert approved requests to loans'],
     );
 
-    $adminRole->permissions()->syncWithoutDetaching([$legacyConversionPermission->id]);
     $loanManagerRole->permissions()->syncWithoutDetaching([$legacyConversionPermission->id]);
 
     $this->seed(LoanWorkflowRbacSeeder::class);
 
-    expect($adminRole->fresh()->permissions()->pluck('name')->all())
-        ->not->toContain(Permission::LOAN_CONVERT_TO_LOAN);
     expect($loanManagerRole->fresh()->permissions()->pluck('name')->all())
         ->not->toContain(Permission::LOAN_CONVERT_TO_LOAN);
 
@@ -202,23 +190,19 @@ test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, a
     $legacySuperadmin->load('roles.permissions', 'adminProfile');
     $unknownUser->load('roles.permissions');
 
-    expect($adminOnly->hasRole(Role::ADMIN))->toBeTrue();
-    expect($adminOnly->hasRole(Role::MEMBER))->toBeFalse();
-    expect($adminOnly->hasPermission(Permission::PAYMENT_CREATE))->toBeTrue();
-    expect($adminOnly->hasPermission(Permission::LOAN_CONVERT_TO_LOAN))->toBeFalse();
-    expect($adminOnly->hasPermission(Permission::LOAN_REVIEW))->toBeFalse();
-    expect($adminOnly->hasPermission(Permission::LOAN_APPROVE))->toBeFalse();
-    expect($adminOnly->roles()->count())->toBe(1);
+    // Legacy admin_profiles.access_level = 'admin' is a retired tier: the
+    // seeder no longer backfills any RBAC role for it, so these users are
+    // left roleless (surfaced instead by the preflight legacy-admin-drift
+    // check) until an operator migrates them to superadmin.
+    expect($adminOnly->roles()->count())->toBe(0);
+    expect($adminOnly->hasPermission(Permission::PAYMENT_CREATE))->toBeFalse();
 
-    expect($hybridAdmin->hasRole(Role::ADMIN))->toBeTrue();
     expect($hybridAdmin->hasRole(Role::MEMBER))->toBeTrue();
     expect($hybridAdmin->hasAnyRole([Role::LOAN_MANAGER, Role::MEMBER]))->toBeTrue();
     expect($hybridAdmin->hasPermission(Permission::LOAN_CREATE))->toBeTrue();
-    expect($hybridAdmin->hasPermission(Permission::LOAN_CONVERT_TO_LOAN))->toBeFalse();
-    expect($hybridAdmin->hasPermission(Permission::MEMBER_UPDATE))->toBeTrue();
+    expect($hybridAdmin->hasPermission(Permission::MEMBER_UPDATE))->toBeFalse();
 
     expect($member->hasRole(Role::MEMBER))->toBeTrue();
-    expect($member->hasRole(Role::ADMIN))->toBeFalse();
     expect($member->hasPermission(Permission::LOAN_VIEW))->toBeTrue();
     expect($member->hasPermission(Permission::PAYMENT_CREATE))->toBeFalse();
 
@@ -230,7 +214,7 @@ test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, a
     expect($legacySuperadmin->hasPermission(Permission::LOAN_APPROVE))->toBeFalse();
 
     expect($unknownUser->roles()->count())->toBe(0);
-    expect($unknownUser->hasAnyRole([Role::ADMIN, Role::MEMBER]))->toBeFalse();
+    expect($unknownUser->hasAnyRole([Role::MEMBER]))->toBeFalse();
 });
 
 test('app user recognizes explicit and legacy superadmin access', function () {
@@ -325,7 +309,7 @@ test('database seeder wires the loan workflow rbac seeder into the default seed 
 
     $admin->load('roles.permissions', 'adminProfile');
 
-    expect($admin->adminProfile?->access_level)->toBe(AdminProfile::ACCESS_LEVEL_ADMIN);
-    expect($admin->hasRole(Role::ADMIN))->toBeTrue();
+    expect($admin->adminProfile?->access_level)->toBe(AdminProfile::ACCESS_LEVEL_SUPERADMIN);
+    expect($admin->hasRole(Role::SUPERADMIN))->toBeTrue();
     expect($admin->hasPermission(Permission::PAYMENT_CREATE))->toBeTrue();
 });

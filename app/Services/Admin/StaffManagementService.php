@@ -976,15 +976,6 @@ class StaffManagementService
             return;
         }
 
-        if ($user->hasRole(Role::ADMIN)) {
-            $user->adminProfile()->update([
-                'fullname' => $user->adminProfile?->fullname ?? $this->resolveAdminFullName($user),
-                'access_level' => AdminProfile::ACCESS_LEVEL_ADMIN,
-            ]);
-
-            return;
-        }
-
         $user->adminProfile()->delete();
         $user->unsetRelation('adminProfile');
     }

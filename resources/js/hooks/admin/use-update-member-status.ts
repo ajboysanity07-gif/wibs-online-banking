@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import type { MemberDetail, MemberStatusAction } from '@/types/admin';
@@ -22,32 +22,26 @@ export function useUpdateMemberStatus(options?: StatusOptions) {
         {},
     );
 
-    const updateStatus = useCallback(
-        async (userId: number, action: MemberStatusAction) => {
-            setProcessingIds((current) => ({ ...current, [userId]: true }));
-            const toastId = `member-status-${action}-${userId}`;
+    const updateStatus = async (userId: number, action: MemberStatusAction) => {
+        setProcessingIds((current) => ({ ...current, [userId]: true }));
+        const toastId = `member-status-${action}-${userId}`;
 
-            try {
-                const member = await adminApi.updateMemberStatus(
-                    userId,
-                    action,
-                );
-                showSuccessToast(successCopy[action], { id: toastId });
-                options?.onUpdated?.(member, action);
-                return member;
-            } catch (error) {
-                showErrorToast(error, errorCopy[action], { id: toastId });
-                return null;
-            } finally {
-                setProcessingIds((current) => {
-                    const next = { ...current };
-                    delete next[userId];
-                    return next;
-                });
-            }
-        },
-        [options],
-    );
+        try {
+            const member = await adminApi.updateMemberStatus(userId, action);
+            showSuccessToast(successCopy[action], { id: toastId });
+            options?.onUpdated?.(member, action);
+            return member;
+        } catch (error) {
+            showErrorToast(error, errorCopy[action], { id: toastId });
+            return null;
+        } finally {
+            setProcessingIds((current) => {
+                const next = { ...current };
+                delete next[userId];
+                return next;
+            });
+        }
+    };
 
     return {
         updateStatus,

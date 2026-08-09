@@ -61,7 +61,9 @@ function LoansAndLoanSecuritySummarySection() {
     } = useMemberAccounts();
 
     const loansHref = memberKey ? memberLoans(memberKey).url : undefined;
-    const loanSecurityHref = memberKey ? memberSavings(memberKey).url : undefined;
+    const loanSecurityHref = memberKey
+        ? memberSavings(memberKey).url
+        : undefined;
     const actionDisabled = !acctno || !memberKey;
 
     return (
@@ -98,11 +100,7 @@ function RecentAccountActionsCard() {
     } = useMemberAccounts();
 
     const resolveActionHref = (action: MemberRecentAccountAction) => {
-        if (
-            !memberKey ||
-            action.source !== 'LOAN' ||
-            action.number === null
-        ) {
+        if (!memberKey || action.source !== 'LOAN' || action.number === null) {
             return null;
         }
 
@@ -182,23 +180,18 @@ export default function MemberProfile({
     const adminAccessLabel =
         adminAccessLevel === 'superadmin'
             ? 'Superadmin'
-            : adminAccessLevel === 'admin'
-              ? 'Admin'
-              : adminAccessLevel === 'member'
-                ? 'Member'
-                : 'Unregistered';
+            : adminAccessLevel === 'member'
+              ? 'Member'
+              : 'Unregistered';
     const adminAccessVariant =
-        adminAccessLevel === 'superadmin'
-            ? 'secondary'
-            : adminAccessLevel === 'admin'
-              ? 'default'
-              : 'outline';
+        adminAccessLevel === 'superadmin' ? 'secondary' : 'outline';
     const canManageAdminAccess =
         isSuperadmin && currentMember.user_id !== null && !isSelf;
-    const canGrantAdmin =
-        canManageAdminAccess && adminAccessLevel === 'member';
+    const canGrantAdmin = canManageAdminAccess && adminAccessLevel === 'member';
     const canRevokeAdmin =
-        canManageAdminAccess && adminAccessLevel === 'admin';
+        canManageAdminAccess &&
+        adminAccessLevel === 'superadmin' &&
+        currentMember.admin_access_revocable === true;
     const isAdminAccessProcessing =
         processingKeys[currentMember.member_id] ?? false;
     const portalAccessCard = (
@@ -361,17 +354,23 @@ export default function MemberProfile({
                     statusBadge={
                         <Badge
                             variant={registrationVariant}
-                            className="text-[0.65rem] uppercase tracking-[0.2em]"
+                            className="text-[0.65rem] tracking-[0.2em] uppercase"
                         >
                             {registrationLabel}
                         </Badge>
                     }
                     meta={
                         <>
-                            <Badge variant="outline" className="bg-background/60">
+                            <Badge
+                                variant="outline"
+                                className="bg-background/60"
+                            >
                                 Account No: {currentMember.acctno ?? '--'}
                             </Badge>
-                            <Badge variant="outline" className="bg-background/60">
+                            <Badge
+                                variant="outline"
+                                className="bg-background/60"
+                            >
                                 Portal username:{' '}
                                 {currentMember.username ?? '--'}
                             </Badge>

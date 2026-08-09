@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests\Client;
 
+use App\LoanCivilStatus;
+use App\LoanPaydayOption;
 use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
+use App\LoanSex;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Rules\ValidPostalCode;
@@ -19,24 +22,6 @@ use Illuminate\Validation\Rule;
 class LoanRequestStoreRequest extends FormRequest
 {
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
-
-    private const CIVIL_STATUS_OPTIONS = [
-        'Single',
-        'Married',
-        'Separated',
-        'Widowed',
-    ];
-
-    private const PAYDAY_OPTIONS = [
-        'Weekly',
-        '15th',
-        '30th',
-        '15th & 30th',
-        'Bi-Weekly',
-        'Monthly',
-    ];
-
-    private const SEX_OPTIONS = ['Male', 'Female'];
 
     /**
      * GLAPI (Generali) 17-item health questionnaire field keys. Not required
@@ -539,7 +524,7 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.payday" => [
                 'required',
                 'string',
-                Rule::in(self::PAYDAY_OPTIONS),
+                Rule::in(LoanPaydayOption::values()),
             ],
         ];
 
@@ -556,13 +541,13 @@ class LoanRequestStoreRequest extends FormRequest
             $rules["{$prefix}.civil_status"] = [
                 'required',
                 'string',
-                Rule::in(self::CIVIL_STATUS_OPTIONS),
+                Rule::in(LoanCivilStatus::values()),
             ];
             $rules["{$prefix}.sex"] = [
                 'sometimes',
                 'nullable',
                 'string',
-                Rule::in(self::SEX_OPTIONS),
+                Rule::in(LoanSex::values()),
             ];
         }
 

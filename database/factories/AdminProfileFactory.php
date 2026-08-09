@@ -17,12 +17,11 @@ class AdminProfileFactory extends Factory
         return $this->afterCreating(function (AdminProfile $adminProfile): void {
             $adminProfile->loadMissing('appUser');
 
-            if ($adminProfile->appUser instanceof AppUser) {
-                Role::attachNamedRole($adminProfile->appUser, Role::ADMIN);
-
-                if ($adminProfile->access_level === AdminProfile::ACCESS_LEVEL_SUPERADMIN) {
-                    Role::attachNamedRole($adminProfile->appUser, Role::SUPERADMIN);
-                }
+            if (
+                $adminProfile->appUser instanceof AppUser
+                && $adminProfile->access_level === AdminProfile::ACCESS_LEVEL_SUPERADMIN
+            ) {
+                Role::attachNamedRole($adminProfile->appUser, Role::SUPERADMIN);
             }
         });
     }
@@ -37,13 +36,20 @@ class AdminProfileFactory extends Factory
         return [
             'user_id' => AppUser::factory(),
             'fullname' => fake()->name(),
-            'access_level' => AdminProfile::ACCESS_LEVEL_ADMIN,
+            'access_level' => AdminProfile::ACCESS_LEVEL_SUPERADMIN,
             'profile_pic_path' => null,
             'reviewed_by' => null,
             'reviewed_at' => null,
         ];
     }
 
+    /**
+     * Retired legacy tier, kept only so tests can simulate un-migrated
+     * legacy data (e.g. the preflight drift check). Also the factory's
+     * default state -- tests that don't care about tier and sync their
+     * own RBAC role afterward must NOT get an implicit `isLegacySuperadmin()`
+     * bypass from a default of ACCESS_LEVEL_SUPERADMIN.
+     */
     public function admin(): static
     {
         return $this->state(fn () => [

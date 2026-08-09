@@ -1,13 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import {
-    type FormEvent,
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-} from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -110,68 +103,56 @@ export default function Register({ memberName }: Props) {
         });
     };
 
-    const availabilityLabel = useMemo(() => {
-        if (shownAvailability === 'checking') {
-            return 'Checking...';
-        }
+    const availabilityLabel =
+        shownAvailability === 'checking'
+            ? 'Checking...'
+            : shownAvailability === 'available'
+              ? 'Available'
+              : shownAvailability === 'taken'
+                ? 'Not available'
+                : null;
 
-        if (shownAvailability === 'available') {
-            return 'Available';
-        }
-
-        if (shownAvailability === 'taken') {
-            return 'Not available';
-        }
-
-        return null;
-    }, [shownAvailability]);
-
-    const availabilityClassName = useMemo(() => {
-        if (shownAvailability === 'available') {
-            return 'text-xs text-emerald-600';
-        }
-
-        if (shownAvailability === 'taken') {
-            return 'text-xs text-red-600';
-        }
-
-        return 'text-xs text-muted-foreground';
-    }, [shownAvailability]);
+    const availabilityClassName =
+        shownAvailability === 'available'
+            ? 'text-xs text-emerald-600'
+            : shownAvailability === 'taken'
+              ? 'text-xs text-red-600'
+              : 'text-xs text-muted-foreground';
 
     const shouldShowSuggestions =
         hasMemberName &&
         shownSuggestions.length > 0 &&
         (hasFocused || usernameValue !== '' || shownAvailability === 'taken');
 
-    const requestSuggestions = useCallback(
-        async (currentValue: string, signal: AbortSignal): Promise<void> => {
-            if (signal.aborted) {
-                return;
-            }
+    const requestSuggestions = async (
+        currentValue: string,
+        signal: AbortSignal,
+    ): Promise<void> => {
+        if (signal.aborted) {
+            return;
+        }
 
-            if (currentValue !== '') {
-                setAvailability('checking');
-            } else {
-                setAvailability('unknown');
-            }
+        if (currentValue !== '') {
+            setAvailability('checking');
+        } else {
+            setAvailability('unknown');
+        }
 
-            const data = await fetchSuggestions(currentValue, signal);
+        const data = await fetchSuggestions(currentValue, signal);
 
-            setSuggestions(data.suggestions ?? []);
+        setSuggestions(data.suggestions ?? []);
 
-            if (currentValue === '') {
-                setAvailability('unknown');
-                return;
-            }
+        if (currentValue === '') {
+            setAvailability('unknown');
+            return;
+        }
 
-            if (data.current?.available) {
-                setAvailability('available');
-            } else {
-                setAvailability('taken');
-            }
-        },
-        [],
-    );
+        if (data.current?.available) {
+            setAvailability('available');
+        } else {
+            setAvailability('taken');
+        }
+    };
 
     useEffect(() => {
         if (!hasMemberName) {

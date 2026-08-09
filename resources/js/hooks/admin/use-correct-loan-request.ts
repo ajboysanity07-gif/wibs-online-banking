@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import type {
@@ -47,48 +47,45 @@ export function useCorrectLoanRequest(options?: LoanRequestCorrectionOptions) {
     );
     const [errors, setErrors] = useState<ValidationErrors>({});
 
-    const clearErrors = useCallback(() => setErrors({}), []);
+    const clearErrors = () => setErrors({});
 
-    const correctLoanRequest = useCallback(
-        async (
-            loanRequestId: number,
-            payload: LoanRequestCorrectionPayload,
-        ) => {
-            setProcessingIds((current) => ({
-                ...current,
-                [loanRequestId]: true,
-            }));
-            setErrors({});
+    const correctLoanRequest = async (
+        loanRequestId: number,
+        payload: LoanRequestCorrectionPayload,
+    ) => {
+        setProcessingIds((current) => ({
+            ...current,
+            [loanRequestId]: true,
+        }));
+        setErrors({});
 
-            const toastId = `loan-request-correction-${loanRequestId}`;
+        const toastId = `loan-request-correction-${loanRequestId}`;
 
-            try {
-                const result = await adminApi.correctLoanRequest(
-                    loanRequestId,
-                    payload,
-                );
+        try {
+            const result = await adminApi.correctLoanRequest(
+                loanRequestId,
+                payload,
+            );
 
-                showSuccessToast('Loan request details updated.', {
-                    id: toastId,
-                });
-                options?.onUpdated?.(result);
-                return result;
-            } catch (error) {
-                setErrors(normalizeValidationErrors(error));
-                showErrorToast(error, 'Failed to correct loan request details.', {
-                    id: toastId,
-                });
-                return null;
-            } finally {
-                setProcessingIds((current) => {
-                    const next = { ...current };
-                    delete next[loanRequestId];
-                    return next;
-                });
-            }
-        },
-        [options],
-    );
+            showSuccessToast('Loan request details updated.', {
+                id: toastId,
+            });
+            options?.onUpdated?.(result);
+            return result;
+        } catch (error) {
+            setErrors(normalizeValidationErrors(error));
+            showErrorToast(error, 'Failed to correct loan request details.', {
+                id: toastId,
+            });
+            return null;
+        } finally {
+            setProcessingIds((current) => {
+                const next = { ...current };
+                delete next[loanRequestId];
+                return next;
+            });
+        }
+    };
 
     return {
         correctLoanRequest,

@@ -130,7 +130,7 @@ test('admin dashboard exposes admin navigation context', function () {
     $user = User::factory()->create([
         'acctno' => null,
     ]);
-    AdminProfile::factory()->admin()->create([
+    AdminProfile::factory()->superadmin()->create([
         'user_id' => $user->user_id,
     ]);
 
@@ -142,10 +142,9 @@ test('admin dashboard exposes admin navigation context', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('auth.isAdmin', true)
-            ->where('auth.isSuperadmin', false)
+            ->where('auth.isSuperadmin', true)
             ->where('auth.hasMemberAccess', false)
-            ->where('auth.isAdminOnly', true)
             ->where('auth.isHybrid', false)
-            ->where('auth.experience', 'admin-only')
+            ->where('auth.experience', 'superadmin')
         );
 });

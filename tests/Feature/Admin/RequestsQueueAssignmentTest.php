@@ -16,7 +16,7 @@ function createRequestsQueueActor(string $roleName, string $acctno): AppUser
         'acctno' => $acctno,
     ]);
 
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->admin()->create([
         'user_id' => $user->user_id,
     ]);
 

@@ -1,5 +1,5 @@
 import { Baby, Heart, UserRound, UsersRound, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { ComponentType } from 'react';
 
 import InputError from '@/components/input-error';
@@ -122,7 +122,8 @@ export function DependentCategorySection({
     showCycleFields?: boolean;
     onChange: (field: string, value: string | number | boolean | null) => void;
 }) {
-    const initialVisibleSlots = useMemo(() => {
+    // Lazy initializer runs once on mount -- subsequent add/remove clicks own the count.
+    const [visibleSlots, setVisibleSlots] = useState(() => {
         let count = 1;
 
         for (let slot = category.cap; slot >= 1; slot -= 1) {
@@ -133,11 +134,7 @@ export function DependentCategorySection({
         }
 
         return count;
-        // Only computed once on mount -- subsequent add/remove clicks own the count.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const [visibleSlots, setVisibleSlots] = useState(initialVisibleSlots);
+    });
 
     const handleRemoveSlot = (slot: number) => {
         DEPENDENT_SLOT_ATTRIBUTES.forEach((attribute) => {

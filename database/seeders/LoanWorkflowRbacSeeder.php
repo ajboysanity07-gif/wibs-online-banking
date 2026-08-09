@@ -38,12 +38,9 @@ class LoanWorkflowRbacSeeder extends Seeder
         }
 
         $this->command?->info(sprintf(
-            'Loan workflow RBAC seeded: %d roles, %d permissions, %d admin backfills, %d superadmin backfills, %d member backfills.',
+            'Loan workflow RBAC seeded: %d roles, %d permissions, %d superadmin backfills, %d member backfills.',
             Role::query()->count(),
             Permission::query()->count(),
-            AppUser::query()->whereHas('roles', function ($query): void {
-                $query->where('name', Role::ADMIN);
-            })->count(),
             AppUser::query()->whereHas('roles', function ($query): void {
                 $query->where('name', Role::SUPERADMIN);
             })->count(),

@@ -11,7 +11,7 @@ import {
     UserCog,
     UserPlus,
 } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { AssignOfficerDialog } from '@/components/loan-request/assign-officer-dialog';
 import {
     LoanRequestPageHero,
@@ -282,21 +282,16 @@ export function LoanRequestQueuePage({
         officerOptions: LoanRequestAssignmentOfficerOption[];
     } | null>(null);
 
-    const toggleSort = useCallback(
-        (column: string) => {
-            if (sortBy === column) {
-                setSortDirection((current) =>
-                    current === 'asc' ? 'desc' : 'asc',
-                );
-            } else {
-                setSortBy(column);
-                setSortDirection('desc');
-            }
+    const toggleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortBy(column);
+            setSortDirection('desc');
+        }
 
-            setPage(1);
-        },
-        [sortBy],
-    );
+        setPage(1);
+    };
 
     const searchValue = search.trim();
     const minAmountValue = parseAmount(minAmount);
@@ -330,6 +325,8 @@ export function LoanRequestQueuePage({
         onUpdated: () => refetch(),
     });
 
+    // TanStack Table recreates its internal instance when the columns array
+    // identity changes, so this must stay memoized.
     const columns = useMemo<ColumnDef<RequestPreview>[]>(
         () => [
             {
@@ -526,27 +523,28 @@ export function LoanRequestQueuePage({
         maxAmountValue,
     ].filter((value) => value !== null && value !== undefined).length;
     const hasFilters = filterCount > 0;
-    const summaryCounts = useMemo(() => {
-        const byStatus = meta.statusCounts ?? {};
-        const countFor = (...statuses: string[]) =>
-            statuses.reduce((sum, status) => sum + (byStatus[status] ?? 0), 0);
+    const summaryCountsByStatus = meta.statusCounts ?? {};
+    const summaryCountFor = (...statuses: string[]) =>
+        statuses.reduce(
+            (sum, status) => sum + (summaryCountsByStatus[status] ?? 0),
+            0,
+        );
 
-        return {
-            total: totalResults,
-            pendingReview: countFor(
-                'pending_review',
-                'submitted',
-                'pending_co_maker_signatures',
-            ),
-            underReview: countFor('under_review'),
-            needsRevision: countFor('needs_revision'),
-            recommended: countFor('recommended_for_approval'),
-            approved: countFor('approved'),
-            converted: countFor('converted_to_loan'),
-            declinedOrRejected: countFor('declined', 'rejected'),
-            reported: meta.openCorrectionReports ?? 0,
-        };
-    }, [meta.openCorrectionReports, meta.statusCounts, totalResults]);
+    const summaryCounts = {
+        total: totalResults,
+        pendingReview: summaryCountFor(
+            'pending_review',
+            'submitted',
+            'pending_co_maker_signatures',
+        ),
+        underReview: summaryCountFor('under_review'),
+        needsRevision: summaryCountFor('needs_revision'),
+        recommended: summaryCountFor('recommended_for_approval'),
+        approved: summaryCountFor('approved'),
+        converted: summaryCountFor('converted_to_loan'),
+        declinedOrRejected: summaryCountFor('declined', 'rejected'),
+        reported: meta.openCorrectionReports ?? 0,
+    };
     const summaryItems = [
         { label: 'Total', value: summaryCounts.total },
         {

@@ -116,6 +116,8 @@ export function MemberLoanScheduleSections({
         calendarApi.changeView(isMobile ? 'listMonth' : 'dayGridMonth');
     }, [isMobile]);
 
+    // FullCalendar's React wrapper does its own reference-equality check on
+    // `events`; a new array identity every render causes it to re-diff/flicker.
     const events = useMemo(
         () =>
             items

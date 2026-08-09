@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Workflow;
 
+use App\LoanPaydayOption;
 use App\Models\AppUser;
 use App\Models\LoanRequestChange;
 use App\Rules\ValidPostalCode;
@@ -35,21 +36,6 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             $content,
         );
     }
-
-    /**
-     * Canonical payment-frequency values, mirrors the frontend's
-     * PAYDAY_OPTIONS in resources/js/components/loan-request/loan-request-fields.tsx.
-     *
-     * @var array<int, string>
-     */
-    private const PAYDAY_OPTIONS = [
-        'Weekly',
-        '15th',
-        '30th',
-        '15th & 30th',
-        'Bi-Weekly',
-        'Monthly',
-    ];
 
     public function authorize(): bool
     {
@@ -201,7 +187,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'recommended_amount' => ['sometimes', 'nullable', 'numeric', 'min:1'],
             'recommended_term' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:360'],
             'recommended_interest_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
-            'recommended_payment_frequency' => ['sometimes', 'nullable', 'string', Rule::in(self::PAYDAY_OPTIONS)],
+            'recommended_payment_frequency' => ['sometimes', 'nullable', 'string', Rule::in(LoanPaydayOption::values())],
         ];
     }
 

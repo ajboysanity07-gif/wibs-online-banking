@@ -1,5 +1,5 @@
 import type { AxiosResponse } from 'axios';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import client from '@/lib/api/client';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import type { LoanRequestMemberActionResolutionResult } from '@/types/loan-requests';
@@ -39,53 +39,53 @@ export function useResolveMemberLoanRequestAction(
         {},
     );
 
-    const resolveAction = useCallback(
-        async (
-            loanRequestId: number,
-            payload: ResolveMemberActionPayload,
-            successMessage: string,
-        ) => {
-            setProcessingIds((current) => ({
-                ...current,
-                [loanRequestId]: true,
-            }));
+    const resolveAction = async (
+        loanRequestId: number,
+        payload: ResolveMemberActionPayload,
+        successMessage: string,
+    ) => {
+        setProcessingIds((current) => ({
+            ...current,
+            [loanRequestId]: true,
+        }));
 
-            const toastId = `member-loan-request-action-${loanRequestId}`;
+        const toastId = `member-loan-request-action-${loanRequestId}`;
 
-            try {
-                const response = await client.patch<
-                    ApiResponse<LoanRequestMemberActionResolutionResult>
-                >(`/client/loans/requests/${loanRequestId}/resolve-action`, payload);
+        try {
+            const response = await client.patch<
+                ApiResponse<LoanRequestMemberActionResolutionResult>
+            >(
+                `/client/loans/requests/${loanRequestId}/resolve-action`,
+                payload,
+            );
 
-                const result = unwrap(response);
+            const result = unwrap(response);
 
-                showSuccessToast(successMessage, {
+            showSuccessToast(successMessage, {
+                id: toastId,
+            });
+            options?.onUpdated?.(result);
+
+            return result;
+        } catch (error) {
+            showErrorToast(
+                error,
+                'Failed to complete the requested loan-request action.',
+                {
                     id: toastId,
-                });
-                options?.onUpdated?.(result);
+                },
+            );
 
-                return result;
-            } catch (error) {
-                showErrorToast(
-                    error,
-                    'Failed to complete the requested loan-request action.',
-                    {
-                        id: toastId,
-                    },
-                );
+            return null;
+        } finally {
+            setProcessingIds((current) => {
+                const next = { ...current };
+                delete next[loanRequestId];
 
-                return null;
-            } finally {
-                setProcessingIds((current) => {
-                    const next = { ...current };
-                    delete next[loanRequestId];
-
-                    return next;
-                });
-            }
-        },
-        [options],
-    );
+                return next;
+            });
+        }
+    };
 
     return {
         resolveAction,

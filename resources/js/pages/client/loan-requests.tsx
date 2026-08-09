@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
     LoanRequestPageHero,
     LoanRequestSearchBox,
@@ -109,68 +109,62 @@ export default function LoanRequestsPage({
 }: Props) {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const items = useMemo(() => loanRequests?.items ?? [], [loanRequests]);
+    const items = loanRequests?.items ?? [];
     const isRequestsLoading =
         loanRequests === null && loanRequestsError === null;
     const normalizedSearch = searchQuery.trim().toLowerCase();
 
-    const summaryCounts = useMemo(
-        () => ({
-            total: items.length,
-            draft: items.filter(
-                (item) => normalizeStatus(item.status) === 'draft',
-            ).length,
-            pendingReview: items.filter(
-                (item) => normalizeStatus(item.status) === 'pending_review',
-            ).length,
-            underReview: items.filter(
-                (item) => normalizeStatus(item.status) === 'under_review',
-            ).length,
-            needsRevision: items.filter(
-                (item) => normalizeStatus(item.status) === 'needs_revision',
-            ).length,
-            awaitingMemberAction: items.filter((item) =>
-                [
-                    'awaiting_member_information',
-                    'awaiting_member_acceptance',
-                ].includes(normalizeStatus(item.status) ?? ''),
-            ).length,
-            approvedOrConverted: items.filter((item) =>
-                ['approved', 'converted_to_loan'].includes(
-                    normalizeStatus(item.status) ?? '',
-                ),
-            ).length,
-            closed: items.filter((item) =>
-                ['declined', 'rejected', 'cancelled'].includes(
-                    normalizeStatus(item.status) ?? '',
-                ),
-            ).length,
-        }),
-        [items],
-    );
+    const summaryCounts = {
+        total: items.length,
+        draft: items.filter((item) => normalizeStatus(item.status) === 'draft')
+            .length,
+        pendingReview: items.filter(
+            (item) => normalizeStatus(item.status) === 'pending_review',
+        ).length,
+        underReview: items.filter(
+            (item) => normalizeStatus(item.status) === 'under_review',
+        ).length,
+        needsRevision: items.filter(
+            (item) => normalizeStatus(item.status) === 'needs_revision',
+        ).length,
+        awaitingMemberAction: items.filter((item) =>
+            [
+                'awaiting_member_information',
+                'awaiting_member_acceptance',
+            ].includes(normalizeStatus(item.status) ?? ''),
+        ).length,
+        approvedOrConverted: items.filter((item) =>
+            ['approved', 'converted_to_loan'].includes(
+                normalizeStatus(item.status) ?? '',
+            ),
+        ).length,
+        closed: items.filter((item) =>
+            ['declined', 'rejected', 'cancelled'].includes(
+                normalizeStatus(item.status) ?? '',
+            ),
+        ).length,
+    };
 
-    const filteredItems = useMemo(() => {
-        return items.filter((request) => {
-            if (!matchesStatusFilter(request, statusFilter)) {
-                return false;
-            }
+    const filteredItems = items.filter((request) => {
+        if (!matchesStatusFilter(request, statusFilter)) {
+            return false;
+        }
 
-            if (normalizedSearch === '') {
-                return true;
-            }
+        if (normalizedSearch === '') {
+            return true;
+        }
 
-            const searchableValues = [
-                request.reference ?? '',
-                request.loan_type_label_snapshot ?? '',
-                request.typecode ?? '',
-                resolveStatusLabel(request.status),
-            ]
-                .join(' ')
-                .toLowerCase();
+        const searchableValues = [
+            request.reference ?? '',
+            request.loan_type_label_snapshot ?? '',
+            request.typecode ?? '',
+            resolveStatusLabel(request.status),
+        ]
+            .join(' ')
+            .toLowerCase();
 
-            return searchableValues.includes(normalizedSearch);
-        });
-    }, [items, normalizedSearch, statusFilter]);
+        return searchableValues.includes(normalizedSearch);
+    });
 
     const hasFilterState =
         statusFilter !== 'all' || normalizedSearch.length > 0;

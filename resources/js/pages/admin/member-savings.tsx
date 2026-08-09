@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { Clock, PiggyBank } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { MemberDetailPageHeader } from '@/components/member-detail-page-header';
 import {
     MemberDetailPrimaryCard,
@@ -61,19 +61,17 @@ export default function MemberSavings({ member, summary, savings }: Props) {
         },
     );
 
-    const savingsNumbers = useMemo(() => {
-        const uniqueNumbers = new Set<string>();
+    const uniqueSavingsNumbers = new Set<string>();
 
-        items.forEach((item) => {
-            if (item.svnumber === null || item.svnumber === '') {
-                return;
-            }
+    items.forEach((item) => {
+        if (item.svnumber === null || item.svnumber === '') {
+            return;
+        }
 
-            uniqueNumbers.add(String(item.svnumber));
-        });
+        uniqueSavingsNumbers.add(String(item.svnumber));
+    });
 
-        return Array.from(uniqueNumbers);
-    }, [items]);
+    const savingsNumbers = Array.from(uniqueSavingsNumbers);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Members', href: membersIndex().url },

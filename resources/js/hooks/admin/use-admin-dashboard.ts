@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import type { DashboardSummary } from '@/types/admin';
 
@@ -26,7 +26,7 @@ export function useAdminDashboard(initial?: DashboardSummary) {
         error: null,
     });
 
-    const refresh = useCallback(async () => {
+    const refresh = async () => {
         setState((current) => ({ ...current, loading: true, error: null }));
 
         try {
@@ -41,11 +41,11 @@ export function useAdminDashboard(initial?: DashboardSummary) {
             }));
             return null;
         }
-    }, []);
+    };
 
-    const setSummary = useCallback((summary: DashboardSummary) => {
+    const setSummary = (summary: DashboardSummary) => {
         setState({ summary, loading: false, error: null });
-    }, []);
+    };
 
     return {
         summary: state.summary,

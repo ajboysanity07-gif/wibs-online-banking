@@ -2,9 +2,12 @@
 
 namespace App\Http\Requests\Client;
 
+use App\LoanCivilStatus;
+use App\LoanPaydayOption;
 use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
 use App\LoanRequestStatus;
+use App\LoanSex;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Support\LocationComposer;
@@ -15,24 +18,6 @@ use Illuminate\Validation\Rule;
 class SaveDraftRequest extends FormRequest
 {
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
-
-    private const CIVIL_STATUS_OPTIONS = [
-        'Single',
-        'Married',
-        'Separated',
-        'Widowed',
-    ];
-
-    private const PAYDAY_OPTIONS = [
-        'Weekly',
-        '15th',
-        '30th',
-        '15th & 30th',
-        'Bi-Weekly',
-        'Monthly',
-    ];
-
-    private const SEX_OPTIONS = ['Male', 'Female'];
 
     /**
      * GLAPI (Generali) 17-item health questionnaire field keys. See
@@ -479,7 +464,7 @@ class SaveDraftRequest extends FormRequest
                 'sometimes',
                 'nullable',
                 'string',
-                Rule::in(self::PAYDAY_OPTIONS),
+                Rule::in(LoanPaydayOption::values()),
             ],
         ];
 
@@ -498,13 +483,13 @@ class SaveDraftRequest extends FormRequest
                 'sometimes',
                 'nullable',
                 'string',
-                Rule::in(self::CIVIL_STATUS_OPTIONS),
+                Rule::in(LoanCivilStatus::values()),
             ];
             $rules["{$prefix}.sex"] = [
                 'sometimes',
                 'nullable',
                 'string',
-                Rule::in(self::SEX_OPTIONS),
+                Rule::in(LoanSex::values()),
             ];
         }
 

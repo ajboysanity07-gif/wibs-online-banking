@@ -2,7 +2,7 @@ import { Transition } from '@headlessui/react';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -187,81 +187,50 @@ export default function ForgotPassword({ recovery, status }: Props) {
         }
     }, [recovery, status]);
 
-    const currentStep = useMemo<WizardStep>(
-        () =>
-            resolvePasswordRecoveryWizardStep({
-                recoveryStep: recoveryState.step,
-                emailConfirmationVisible,
-                stepOverride,
-            }),
-        [emailConfirmationVisible, recoveryState.step, stepOverride],
-    );
+    const currentStep: WizardStep = resolvePasswordRecoveryWizardStep({
+        recoveryStep: recoveryState.step,
+        emailConfirmationVisible,
+        stepOverride,
+    });
 
-    const progressItems = useMemo(
-        () => getPasswordRecoveryProgressItems(currentStep),
-        [currentStep],
-    );
+    const progressItems = getPasswordRecoveryProgressItems(currentStep);
 
-    const selectedOption = useMemo<RecoveryOption | null>(() => {
-        const inferredMethod =
-            selectedMethod ??
-            (currentStep === PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_VERIFY ||
-            currentStep === PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_RESET
-                ? 'phone'
-                : null);
+    const inferredMethod =
+        selectedMethod ??
+        (currentStep === PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_VERIFY ||
+        currentStep === PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_RESET
+            ? 'phone'
+            : null);
 
-        if (inferredMethod === null) {
-            return null;
-        }
+    const matchedOption =
+        inferredMethod === null
+            ? null
+            : (recoveryState.options.find(
+                  (option) => option.type === inferredMethod,
+              ) ?? null);
 
-        const matchedOption =
-            recoveryState.options.find(
-                (option) => option.type === inferredMethod,
-            ) ?? null;
+    const selectedOption: RecoveryOption | null =
+        matchedOption !== null
+            ? matchedOption
+            : inferredMethod === 'phone' && recoveryState.phone !== null
+              ? {
+                    type: 'phone',
+                    label: 'Send code',
+                    masked_value: recoveryState.phone.masked_value,
+                }
+              : null;
 
-        if (matchedOption !== null) {
-            return matchedOption;
-        }
+    const stepDetails = getPasswordRecoveryStepContent({
+        wizardStep: currentStep,
+        selectedOptionMaskedValue: selectedOption?.masked_value ?? null,
+        phoneMaskedValue: recoveryState.phone?.masked_value ?? null,
+        otpLength: OTP_MAX_LENGTH,
+    });
 
-        if (inferredMethod === 'phone' && recoveryState.phone !== null) {
-            return {
-                type: 'phone',
-                label: 'Send code',
-                masked_value: recoveryState.phone.masked_value,
-            };
-        }
-
-        return null;
-    }, [
-        currentStep,
-        recoveryState.options,
-        recoveryState.phone,
-        selectedMethod,
-    ]);
-
-    const stepDetails = useMemo(
-        () =>
-            getPasswordRecoveryStepContent({
-                wizardStep: currentStep,
-                selectedOptionMaskedValue: selectedOption?.masked_value ?? null,
-                phoneMaskedValue: recoveryState.phone?.masked_value ?? null,
-                otpLength: OTP_MAX_LENGTH,
-            }),
-        [
-            currentStep,
-            recoveryState.phone?.masked_value,
-            selectedOption?.masked_value,
-        ],
-    );
-
-    const transitionDirection = useMemo(
-        () =>
-            resolvePasswordRecoveryTransitionDirection({
-                previousStep: previousStepRef.current,
-                nextStep: currentStep,
-            }),
-        [currentStep],
-    );
+    const transitionDirection = resolvePasswordRecoveryTransitionDirection({
+        previousStep: previousStepRef.current,
+        nextStep: currentStep,
+    });
 
     useEffect(() => {
         previousStepRef.current = currentStep;

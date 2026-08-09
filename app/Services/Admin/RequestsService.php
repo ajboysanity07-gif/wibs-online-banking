@@ -6,7 +6,6 @@ use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
-use App\Models\Role;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
 use App\Services\LoanRequests\LoanWorkflowWorkspaceService;
 use Illuminate\Database\Eloquent\Builder;
@@ -697,7 +696,7 @@ class RequestsService
         $query = LoanRequestCorrectionReport::query()
             ->where('status', LoanRequestCorrectionReport::STATUS_OPEN);
 
-        if ($user instanceof AppUser && ! $user->hasRole(Role::ADMIN)) {
+        if ($user instanceof AppUser && ! $user->isSuperadmin()) {
             $visibleLoanRequests = LoanRequest::query()->select('id');
             $this->workspaceService->applyVisibleScope(
                 $visibleLoanRequests,

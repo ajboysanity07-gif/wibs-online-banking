@@ -2,9 +2,12 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanCivilStatus;
+use App\LoanPaydayOption;
 use App\LoanRequestDocumentReadinessStatus;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
+use App\LoanSex;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
@@ -18,27 +21,6 @@ use Illuminate\Support\Str;
 
 class LoanRequestPayloadSerializer
 {
-    private const CIVIL_STATUS_OPTIONS = [
-        'Single',
-        'Married',
-        'Separated',
-        'Widowed',
-    ];
-
-    private const SEX_OPTIONS = [
-        'Male',
-        'Female',
-    ];
-
-    private const PAYDAY_OPTIONS = [
-        'Weekly',
-        '15th',
-        '30th',
-        '15th & 30th',
-        'Bi-Weekly',
-        'Monthly',
-    ];
-
     private const AUDIT_ACTION_LABELS = [
         'submitted' => 'Submitted',
         LoanRequestChange::ACTION_START_REVIEW => 'Review Started',
@@ -1354,7 +1336,7 @@ class LoanRequestPayloadSerializer
             return null;
         }
 
-        return in_array($resolved, self::CIVIL_STATUS_OPTIONS, true)
+        return in_array($resolved, LoanCivilStatus::values(), true)
             ? $resolved
             : null;
     }
@@ -1377,7 +1359,7 @@ class LoanRequestPayloadSerializer
             default => null,
         };
 
-        return $resolved !== null && in_array($resolved, self::SEX_OPTIONS, true)
+        return $resolved !== null && in_array($resolved, LoanSex::values(), true)
             ? $resolved
             : null;
     }
@@ -1394,7 +1376,7 @@ class LoanRequestPayloadSerializer
             return null;
         }
 
-        if (in_array($trimmed, self::PAYDAY_OPTIONS, true)) {
+        if (in_array($trimmed, LoanPaydayOption::values(), true)) {
             return $trimmed;
         }
 

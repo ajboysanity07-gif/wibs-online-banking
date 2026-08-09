@@ -2,16 +2,18 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanCivilStatus;
+use App\LoanPaydayOption;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
+use App\LoanSex;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
-use App\Models\Wlntype;
 use App\Notifications\LoanRequestAdminCorrectedCreatedNotification;
 use App\Notifications\LoanRequestSubmittedNotification;
 use App\Services\Notifications\NotificationRecipientService;
@@ -20,34 +22,12 @@ use App\Support\SchemaCapabilities;
 use DateTimeInterface;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class LoanRequestService
 {
-    private const CIVIL_STATUS_OPTIONS = [
-        'Single',
-        'Married',
-        'Separated',
-        'Widowed',
-    ];
-
-    private const SEX_OPTIONS = [
-        'Male',
-        'Female',
-    ];
-
-    private const PAYDAY_OPTIONS = [
-        'Weekly',
-        '15th',
-        '30th',
-        '15th & 30th',
-        'Bi-Weekly',
-        'Monthly',
-    ];
-
     public function __construct(
         private SchemaCapabilities $schemaCapabilities,
         private NotificationRecipientService $notificationRecipients,
@@ -56,6 +36,7 @@ class LoanRequestService
         private DependentsProfileSyncService $dependentsSync,
         private SavedCoMakersService $savedCoMakers,
         private LoanDeclarationAutoFillService $declarationAutoFillService,
+        private LoanRequestLookupService $lookupService,
     ) {}
 
     /**
@@ -947,45 +928,7 @@ class LoanRequestService
      */
     public function getLoanTypes(): Collection
     {
-        return collect($this->getCachedLoanTypes());
-    }
-
-    /**
-     * @return list<array{typecode: string, label: string}>
-     */
-    private function getCachedLoanTypes(): array
-    {
-        $hasLoanTypesTable = $this->schemaCapabilities->hasTable('wlntype');
-        $hasLabelColumn = $this->schemaCapabilities->hasColumn('wlntype', 'lntype');
-
-        if (! $hasLoanTypesTable || ! $hasLabelColumn) {
-            return [];
-        }
-
-        $hasTypecode = $this->schemaCapabilities->hasColumn('wlntype', 'typecode');
-        $columns = $hasTypecode ? ['typecode', 'lntype'] : ['lntype'];
-
-        return Cache::remember(
-            $this->loanTypesCacheKey(),
-            now()->addMinutes(30),
-            function () use ($columns, $hasTypecode): array {
-                return Wlntype::query()
-                    ->select($columns)
-                    ->orderBy('lntype')
-                    ->get()
-                    ->map(function (Wlntype $type) use ($hasTypecode): array {
-                        $label = (string) $type->lntype;
-                        $typecode = $hasTypecode ? (string) $type->typecode : $label;
-
-                        return [
-                            'typecode' => $typecode,
-                            'label' => $label,
-                        ];
-                    })
-                    ->values()
-                    ->all();
-            },
-        );
+        return $this->lookupService->getLoanTypes();
     }
 
     /**
@@ -1003,118 +946,7 @@ class LoanRequestService
      */
     public function getMemberRequestSummaries(AppUser $user, int $limit = 10): array
     {
-        if (! $this->schemaCapabilities->hasTable('loan_requests')) {
-            return [];
-        }
-
-        $limit = max(1, min($limit, 50));
-
-        return LoanRequest::query()
-            ->where('user_id', $user->user_id)
-            ->with('assignedOfficer.adminProfile')
-            ->orderByDesc('updated_at')
-            ->orderByDesc('created_at')
-            ->limit($limit)
-            ->get([
-                'id',
-                'typecode',
-                'loan_type_label_snapshot',
-                'requested_amount',
-                'requested_term',
-                'status',
-                'submitted_at',
-                'updated_at',
-                'assigned_officer_id',
-            ])
-            ->map(fn (LoanRequest $request): array => $this->serializeRequestSummary($request))
-            ->all();
-    }
-
-    private function resolveLoanTypeLabel(string $typecode): string
-    {
-        $labels = $this->getLoanTypeLabelLookup();
-
-        if (array_key_exists($typecode, $labels)) {
-            return $labels[$typecode];
-        }
-
-        return $typecode;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function getLoanTypeLabelLookup(): array
-    {
-        $hasLoanTypesTable = $this->schemaCapabilities->hasTable('wlntype');
-        $hasLabelColumn = $this->schemaCapabilities->hasColumn('wlntype', 'lntype');
-
-        if (! $hasLoanTypesTable || ! $hasLabelColumn) {
-            return [];
-        }
-
-        return Cache::remember(
-            $this->loanTypeLabelsCacheKey(),
-            now()->addMinutes(30),
-            function (): array {
-                $labels = [];
-
-                foreach ($this->getCachedLoanTypes() as $type) {
-                    $labels[$type['typecode']] = $type['label'];
-                }
-
-                return $labels;
-            },
-        );
-    }
-
-    private function loanTypesCacheKey(): string
-    {
-        return 'loan_requests.loan_types';
-    }
-
-    private function loanTypeLabelsCacheKey(): string
-    {
-        return 'loan_requests.loan_type_labels';
-    }
-
-    /**
-     * @return array{
-     *     id: int,
-     *     status: string,
-     *     typecode: string|null,
-     *     loan_type_label_snapshot: string|null,
-     *     requested_amount: string|float|int|null,
-     *     requested_term: int|string|null,
-     *     submitted_at: string|null,
-     *     updated_at: string|null,
-     *     assigned_officer: array{user_id: int, name: string, display_code: string|null}|null
-     * }
-     */
-    private function serializeRequestSummary(LoanRequest $loanRequest): array
-    {
-        $status = LoanRequestStatus::memberVisibleValue($loanRequest->status)
-            ?? (string) $loanRequest->status;
-
-        return [
-            'id' => $loanRequest->id,
-            'reference' => $loanRequest->reference,
-            'status' => $status,
-            'typecode' => $loanRequest->typecode,
-            'loan_type_label_snapshot' => $loanRequest->loan_type_label_snapshot,
-            'requested_amount' => $loanRequest->requested_amount,
-            'requested_term' => $loanRequest->requested_term,
-            'submitted_at' => $loanRequest->submitted_at?->toDateTimeString(),
-            'updated_at' => $loanRequest->updated_at?->toDateTimeString(),
-            'assigned_officer' => $loanRequest->assignedOfficer
-                ? [
-                    'user_id' => $loanRequest->assignedOfficer->user_id,
-                    'name' => $loanRequest->assignedOfficer->adminProfile?->fullname
-                        ?? $loanRequest->assignedOfficer->name,
-                    'display_code' => $loanRequest->assignedOfficer->display_code,
-                ]
-                : null,
-        ];
+        return $this->lookupService->getMemberRequestSummaries($user, $limit);
     }
 
     /**
@@ -1214,7 +1046,7 @@ class LoanRequestService
         $typecode = (string) ($payload['typecode'] ?? '');
 
         $loanRequest->typecode = $typecode;
-        $loanRequest->loan_type_label_snapshot = $this->resolveLoanTypeLabel($typecode);
+        $loanRequest->loan_type_label_snapshot = $this->lookupService->resolveLoanTypeLabel($typecode);
         $loanRequest->requested_amount = $this->normalizeDecimal($payload['requested_amount'] ?? null) ?? '0';
         $loanRequest->requested_term = (int) ($payload['requested_term'] ?? 0);
         $loanRequest->loan_purpose = (string) ($payload['loan_purpose'] ?? '');
@@ -1690,7 +1522,7 @@ class LoanRequestService
             return null;
         }
 
-        return in_array($resolved, self::CIVIL_STATUS_OPTIONS, true)
+        return in_array($resolved, LoanCivilStatus::values(), true)
             ? $resolved
             : null;
     }
@@ -1713,7 +1545,7 @@ class LoanRequestService
             default => null,
         };
 
-        return $resolved !== null && in_array($resolved, self::SEX_OPTIONS, true)
+        return $resolved !== null && in_array($resolved, LoanSex::values(), true)
             ? $resolved
             : null;
     }
@@ -1730,7 +1562,7 @@ class LoanRequestService
             return null;
         }
 
-        if (in_array($trimmed, self::PAYDAY_OPTIONS, true)) {
+        if (in_array($trimmed, LoanPaydayOption::values(), true)) {
             return $trimmed;
         }
 

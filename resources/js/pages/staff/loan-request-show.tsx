@@ -1,6 +1,6 @@
 ﻿import { Head, router, usePage } from '@inertiajs/react';
 import { Bell, CheckCircle2, Clock, HeartPulse } from 'lucide-react';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import {
     LoanRequestApplicantCard,
@@ -505,54 +505,47 @@ export default function StaffLoanRequestShow({
     };
     const normalizedAssignedProcessorId = normalizeId(assignedProcessorId);
     const normalizedActorUserId = normalizeId(actorUserId);
-    const documentResultSummary = useMemo(() => {
-        if (lastDocumentResults === null) {
-            return [];
-        }
+    const documentResultSummary =
+        lastDocumentResults === null
+            ? []
+            : documentResultStatusOrder
+                  .map((status) => {
+                      const matches = lastDocumentResults.filter(
+                          (document) => document.status === status,
+                      );
 
-        return documentResultStatusOrder
-            .map((status) => {
-                const matches = lastDocumentResults.filter(
-                    (document) => document.status === status,
-                );
+                      if (matches.length === 0) {
+                          return null;
+                      }
 
-                if (matches.length === 0) {
-                    return null;
-                }
-
-                return {
-                    status,
-                    count: matches.length,
-                    label: matches[0]?.status_label ?? status,
-                };
-            })
-            .filter(
-                (
-                    item,
-                ): item is {
-                    status: (typeof documentResultStatusOrder)[number];
-                    count: number;
-                    label: string;
-                } => item !== null,
-            );
-    }, [lastDocumentResults]);
-    const workflowHealthIssues = useMemo(
-        () => ({
-            processingAge:
-                currentWorkflowHealth.processing_age_days !== null &&
-                currentWorkflowHealth.processing_age_days >=
-                    PROCESSING_AGE_ISSUE_THRESHOLD_DAYS,
-            pendingMemberAction: currentWorkflowHealth.pending_member_action,
-            staleDocuments: currentWorkflowHealth.stale_document_count > 0,
-            failedDocuments: currentWorkflowHealth.failed_document_count > 0,
-            legacyBlockers: currentWorkflowHealth.legacy_blocker_count > 0,
-            notificationFailures:
-                currentWorkflowHealth.notification_failure_count > 0,
-            workflowFailedJobs:
-                currentWorkflowHealth.workflow_failed_job_count > 0,
-        }),
-        [currentWorkflowHealth],
-    );
+                      return {
+                          status,
+                          count: matches.length,
+                          label: matches[0]?.status_label ?? status,
+                      };
+                  })
+                  .filter(
+                      (
+                          item,
+                      ): item is {
+                          status: (typeof documentResultStatusOrder)[number];
+                          count: number;
+                          label: string;
+                      } => item !== null,
+                  );
+    const workflowHealthIssues = {
+        processingAge:
+            currentWorkflowHealth.processing_age_days !== null &&
+            currentWorkflowHealth.processing_age_days >=
+                PROCESSING_AGE_ISSUE_THRESHOLD_DAYS,
+        pendingMemberAction: currentWorkflowHealth.pending_member_action,
+        staleDocuments: currentWorkflowHealth.stale_document_count > 0,
+        failedDocuments: currentWorkflowHealth.failed_document_count > 0,
+        legacyBlockers: currentWorkflowHealth.legacy_blocker_count > 0,
+        notificationFailures:
+            currentWorkflowHealth.notification_failure_count > 0,
+        workflowFailedJobs: currentWorkflowHealth.workflow_failed_job_count > 0,
+    };
     const workflowHealthIssueCount =
         Object.values(workflowHealthIssues).filter(Boolean).length;
     const isV2Workflow =
@@ -676,55 +669,58 @@ export default function StaffLoanRequestShow({
         ].includes(currentRequest.status ?? '');
     const isWorkflowProcessing =
         workflowProcessingIds[currentRequest.id] ?? false;
-    const memberFieldDefinitions = useMemo(
-        () =>
-            Object.entries(dataSectionDefinitions).flatMap(
-                ([sectionKey, section]) =>
-                    Object.entries(section.fields)
-                        .filter(([, field]) => field.owner === 'member')
-                        .map(([fieldKey, field]) => ({
-                            fieldKey,
-                            sectionKey,
-                            field,
-                        })),
-            ),
-        [dataSectionDefinitions],
+    const memberFieldDefinitions = Object.entries(
+        dataSectionDefinitions,
+    ).flatMap(([sectionKey, section]) =>
+        Object.entries(section.fields)
+            .filter(([, field]) => field.owner === 'member')
+            .map(([fieldKey, field]) => ({
+                fieldKey,
+                sectionKey,
+                field,
+            })),
     );
-    const memberFieldGroups = useMemo(() => {
-        const grouped = new Map<string, typeof memberFieldDefinitions>();
+    const memberFieldGroupsMap = new Map<
+        string,
+        typeof memberFieldDefinitions
+    >();
 
-        memberFieldDefinitions.forEach((item) => {
-            // 'health' and 'health_glapi' render as a single merged "Health
-            // Insurance Questionnaire" group — there is no separate
-            // "Health declarations" concept.
-            const sectionKey =
-                item.sectionKey === 'health' ? 'health_glapi' : item.sectionKey;
-            const existing = grouped.get(sectionKey) ?? [];
-            existing.push(item);
-            grouped.set(sectionKey, existing);
-        });
+    memberFieldDefinitions.forEach((item) => {
+        // 'health' and 'health_glapi' render as a single merged "Health
+        // Insurance Questionnaire" group — there is no separate
+        // "Health declarations" concept.
+        const sectionKey =
+            item.sectionKey === 'health' ? 'health_glapi' : item.sectionKey;
+        const existing = memberFieldGroupsMap.get(sectionKey) ?? [];
+        existing.push(item);
+        memberFieldGroupsMap.set(sectionKey, existing);
+    });
 
-        const priorityOrder = [
-            'insurance',
-            'health_glapi',
-            'banking',
-            'barangay',
-        ];
-        const priorityKeys = priorityOrder.filter((key) => grouped.has(key));
-        const remainingKeys = Array.from(grouped.keys())
-            .filter((key) => !priorityOrder.includes(key))
-            .sort((a, b) =>
-                (dataSectionDefinitions[a]?.label ?? a).localeCompare(
-                    dataSectionDefinitions[b]?.label ?? b,
-                ),
-            );
+    const memberFieldPriorityOrder = [
+        'insurance',
+        'health_glapi',
+        'banking',
+        'barangay',
+    ];
+    const memberFieldPriorityKeys = memberFieldPriorityOrder.filter((key) =>
+        memberFieldGroupsMap.has(key),
+    );
+    const memberFieldRemainingKeys = Array.from(memberFieldGroupsMap.keys())
+        .filter((key) => !memberFieldPriorityOrder.includes(key))
+        .sort((a, b) =>
+            (dataSectionDefinitions[a]?.label ?? a).localeCompare(
+                dataSectionDefinitions[b]?.label ?? b,
+            ),
+        );
 
-        return [...priorityKeys, ...remainingKeys].map((sectionKey) => ({
-            sectionKey,
-            label: dataSectionDefinitions[sectionKey]?.label ?? sectionKey,
-            items: grouped.get(sectionKey) ?? [],
-        }));
-    }, [memberFieldDefinitions, dataSectionDefinitions]);
+    const memberFieldGroups = [
+        ...memberFieldPriorityKeys,
+        ...memberFieldRemainingKeys,
+    ].map((sectionKey) => ({
+        sectionKey,
+        label: dataSectionDefinitions[sectionKey]?.label ?? sectionKey,
+        items: memberFieldGroupsMap.get(sectionKey) ?? [],
+    }));
 
     const updateCorrectionPersonField =
         (personKey: 'applicant' | 'co_maker_1' | 'co_maker_2') =>
