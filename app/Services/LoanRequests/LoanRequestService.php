@@ -140,8 +140,6 @@ class LoanRequestService
         );
 
         return [
-            'loanPrerequisitesMet' => $user->memberApplicationProfile?->hasLoanPrerequisiteFields() ?? false,
-            'loanPrerequisiteProfile' => $this->loanPrerequisiteProfileValues($user->memberApplicationProfile),
             'loanTypes' => $this->getLoanTypes()->values()->all(),
             'applicant' => $applicant,
             'coMakerOne' => $coMakerOne,
@@ -162,58 +160,6 @@ class LoanRequestService
             'bankingPrefilledFromProfile' => $bankingPrefilledFromProfile,
             'insurancePrefilledFromProfile' => $insurancePrefilledFromProfile,
             'dependentsPrefilledFromProfile' => $dependentsPrefilledFromProfile,
-        ];
-    }
-
-    /**
-     * Current Bank & Payout + Source of Fund / Government ID values from the
-     * member's profile, used to prefill the loan-request prerequisite modal.
-     *
-     * @return array<string, mixed>
-     */
-    private function loanPrerequisiteProfileValues(?MemberApplicationProfile $profile): array
-    {
-        $fields = [
-            ...MemberApplicationProfile::payoutBankFields(),
-            ...MemberApplicationProfile::sourceOfFundAndIdFields(),
-            ...MemberApplicationProfile::physicalDetailsFields(),
-        ];
-
-        $values = [];
-
-        foreach ($fields as $field) {
-            $values[$field] = $profile?->getAttribute($field);
-        }
-
-        return $values;
-    }
-
-    /**
-     * Save the Bank & Payout + Source of Fund / Government ID prerequisite
-     * checkpoint data (entry-point modal or submit-time safety net) directly
-     * to the member's application profile.
-     *
-     * @param  array<string, mixed>  $data
-     * @return array{met: bool, profile: array<string, mixed>}
-     */
-    public function saveLoanPrerequisites(AppUser $user, array $data): array
-    {
-        $profileData = Arr::only($data, [
-            ...MemberApplicationProfile::payoutBankFields(),
-            ...MemberApplicationProfile::sourceOfFundAndIdFields(),
-            ...MemberApplicationProfile::physicalDetailsFields(),
-        ]);
-
-        $profile = $user->memberApplicationProfile()->firstOrNew();
-        $profile->fill($profileData);
-        $profile->save();
-
-        $user->setRelation('memberApplicationProfile', $profile);
-        $user->syncMemberApplicationProfileCompletion($profile);
-
-        return [
-            'met' => $profile->hasLoanPrerequisiteFields(),
-            'profile' => $this->loanPrerequisiteProfileValues($profile),
         ];
     }
 

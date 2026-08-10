@@ -3,10 +3,6 @@ import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
-import {
-    LoanRequestPrerequisiteModal,
-    type LoanPrerequisiteProfile,
-} from '@/components/loan-request/loan-request-prerequisite-modal';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import {
@@ -86,8 +82,6 @@ type Props = {
     bankingPrefilledFromProfile: boolean;
     insurancePrefilledFromProfile: boolean;
     dependentsPrefilledFromProfile: boolean;
-    loanPrerequisitesMet: boolean;
-    loanPrerequisiteProfile: LoanPrerequisiteProfile;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -411,14 +405,7 @@ export default function LoanRequestPage({
     bankingPrefilledFromProfile,
     insurancePrefilledFromProfile,
     dependentsPrefilledFromProfile,
-    loanPrerequisitesMet,
-    loanPrerequisiteProfile,
 }: Props) {
-    const [prerequisitesMet, setPrerequisitesMet] =
-        useState(loanPrerequisitesMet);
-    const [prerequisiteProfile, setPrerequisiteProfile] = useState(
-        loanPrerequisiteProfile,
-    );
     const [currentStep, setCurrentStep] = useState(initialStep);
     const [highestStepReached, setHighestStepReached] = useState(initialStep);
     const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>(
@@ -618,23 +605,6 @@ export default function LoanRequestPage({
             }));
         };
 
-    const handlePrerequisitesSaved = (profile: LoanPrerequisiteProfile) => {
-        setPrerequisiteProfile(profile);
-        setPrerequisitesMet(true);
-        setBankAccountConfirmed(true);
-        form.setData('banking', {
-            ...form.data.banking,
-            payout_bank_name: profile.payout_bank_name ?? '',
-            payout_account_name: profile.payout_account_name ?? '',
-            payout_account_number: profile.payout_account_number ?? '',
-            payout_account_type: profile.payout_account_type ?? '',
-            release_method: profile.release_method ?? '',
-            payout_atm_number: profile.payout_atm_number ?? '',
-            payout_bank_branch: profile.payout_bank_branch ?? '',
-            payout_atm_holder_name: profile.payout_atm_holder_name ?? '',
-        });
-    };
-
     const handleSaveDraft = async () => {
         setActiveAction('draft');
 
@@ -672,7 +642,6 @@ export default function LoanRequestPage({
             },
             onError: (errors) => {
                 if (errors.loan_prerequisites) {
-                    setPrerequisitesMet(false);
                     showErrorToast(
                         errors.loan_prerequisites,
                         errors.loan_prerequisites,
@@ -710,12 +679,6 @@ export default function LoanRequestPage({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            <LoanRequestPrerequisiteModal
-                open={!prerequisitesMet}
-                profile={prerequisiteProfile}
-                applicantFullName={member.name}
-                onSaved={handlePrerequisitesSaved}
-            />
             <PageShell size="wide" className="gap-9 pt-8">
                 <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">

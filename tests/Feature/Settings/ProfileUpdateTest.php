@@ -871,6 +871,57 @@ test('profile information can be updated with payout bank details', function () 
     expect($memberProfile->payout_atm_holder_name)->toBe('Test User');
 });
 
+test('profile information can be updated with height and weight', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'employer_business_address1' => 'Acme Street',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('client.dashboard'));
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile)->not->toBeNull();
+    expect($memberProfile->height_cm)->toBe('165');
+    expect($memberProfile->weight_kg)->toBe('68');
+});
+
 test('profile page exposes source of fund and government id fields', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([

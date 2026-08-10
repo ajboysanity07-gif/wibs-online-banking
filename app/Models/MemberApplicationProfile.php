@@ -20,6 +20,30 @@ class MemberApplicationProfile extends Model
     public const ID_TYPE_OPTIONS = ['SSS', 'GSIS', 'TIN', 'Phil ID', 'Others'];
 
     /**
+     * Legacy WMASTER placeholder values that mean "no data", not real values.
+     */
+    private const BLANK_PLACEHOLDER_VALUES = ['na', 'n/a'];
+
+    /**
+     * Whether $value should be treated as missing: null, blank, or a legacy
+     * WMASTER placeholder like "NA"/"N/A".
+     */
+    private static function isBlankOrPlaceholder(mixed $value): bool
+    {
+        if ($value === null) {
+            return true;
+        }
+
+        if (! is_string($value)) {
+            return false;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' || in_array(strtolower($trimmed), self::BLANK_PLACEHOLDER_VALUES, true);
+    }
+
+    /**
      * @var list<string>
      */
     protected $fillable = [
@@ -319,7 +343,7 @@ class MemberApplicationProfile extends Model
         ] as $field) {
             $value = $this->getAttribute($field);
 
-            if ($value === null || (is_string($value) && trim($value) === '')) {
+            if (self::isBlankOrPlaceholder($value)) {
                 $missing[] = $field;
             }
         }
@@ -447,13 +471,7 @@ class MemberApplicationProfile extends Model
                 ? $wmasterOverrides[$field]
                 : $this->getAttribute($field);
 
-            if ($value === null) {
-                $missing[] = $field;
-
-                continue;
-            }
-
-            if (is_string($value) && trim($value) === '') {
+            if (self::isBlankOrPlaceholder($value)) {
                 $missing[] = $field;
             }
         }

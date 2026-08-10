@@ -153,3 +153,26 @@ test('payout bank branch is never required', function () use ($baseAttributes) {
         expect($profile->missingRequiredFields())->not->toContain('payout_bank_branch');
     }
 });
+
+test('legacy WMASTER "NA" placeholder values are treated as missing, not present', function () use ($baseAttributes) {
+    $profile = new MemberApplicationProfile([
+        ...$baseAttributes,
+        'payout_bank_name' => 'NA',
+        'payout_account_name' => 'N/A',
+        'payout_account_number' => 'na',
+        'payout_account_type' => 'n/a',
+        'release_method' => 'Cash',
+    ]);
+
+    expect($profile->missingRequiredFields())
+        ->toContain('payout_bank_name')
+        ->toContain('payout_account_name')
+        ->toContain('payout_account_number')
+        ->toContain('payout_account_type');
+
+    expect($profile->missingLoanPrerequisiteFields())
+        ->toContain('payout_bank_name')
+        ->toContain('payout_account_name')
+        ->toContain('payout_account_number')
+        ->toContain('payout_account_type');
+});

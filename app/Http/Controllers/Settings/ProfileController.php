@@ -87,6 +87,7 @@ class ProfileController extends Controller
                 ...Arr::only($validated, MemberApplicationProfile::fields()),
                 ...Arr::only($validated, MemberApplicationProfile::payoutBankFields()),
                 ...Arr::only($validated, MemberApplicationProfile::sourceOfFundAndIdFields()),
+                ...Arr::only($validated, MemberApplicationProfile::physicalDetailsFields()),
             ];
 
             $memberProfile = $user->memberApplicationProfile()->firstOrNew();

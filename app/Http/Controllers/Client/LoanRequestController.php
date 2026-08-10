@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Client\LoanRequestCancelRequest;
 use App\Http\Requests\Client\LoanRequestDraftRequest;
-use App\Http\Requests\Client\LoanRequestPrerequisiteRequest;
 use App\Http\Requests\Client\LoanRequestResolveActionRequest;
 use App\Http\Requests\Client\LoanRequestStoreRequest;
 use App\Http\Requests\Client\SaveDraftRequest;
@@ -55,27 +54,6 @@ class LoanRequestController extends Controller
         $payload = $this->sanitizePayload($service->getFormData($user));
 
         return Inertia::render('client/loan-request', $payload);
-    }
-
-    public function savePrerequisites(
-        LoanRequestPrerequisiteRequest $request,
-        LoanRequestService $service,
-    ): JsonResponse {
-        $user = $request->user();
-
-        if (! $user instanceof AppUser) {
-            abort(403);
-        }
-
-        $result = $service->saveLoanPrerequisites($user, $request->validated());
-
-        return response()->json([
-            'ok' => true,
-            'data' => [
-                'loanPrerequisitesMet' => $result['met'],
-                'loanPrerequisiteProfile' => $result['profile'],
-            ],
-        ]);
     }
 
     public function store(

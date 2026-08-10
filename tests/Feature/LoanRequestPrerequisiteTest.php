@@ -9,7 +9,6 @@ use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
     Role::ensureWorkflowDefaults();
@@ -61,7 +60,15 @@ function prerequisiteTestMember(string $acctno, bool $withLoanPrerequisites): Ap
         $factory = $factory->withLoanPrerequisites();
     }
 
-    $factory->create(['user_id' => $member->user_id]);
+    $factory->create([
+        'user_id' => $member->user_id,
+        'home_address1' => 'Prerequisite Street',
+        'home_address_barangay' => 'Aglipay',
+        'home_address2' => 'Batac City',
+        'home_address3' => 'Ilocos Norte',
+        'housing_status' => 'OWNED',
+        'employer_business_address_barangay' => 'Aglipay',
+    ]);
 
     DB::table('wmaster')->updateOrInsert(
         ['acctno' => $acctno],
@@ -221,176 +228,6 @@ function prerequisiteTestStorePayload(): array
     ];
 }
 
-test('entry point flags missing loan prerequisites without blocking onboarding', function (): void {
-    $member = prerequisiteTestMember('700001', withLoanPrerequisites: false);
-
-    $this
-        ->actingAs($member)
-        ->get(route('client.loan-requests.create'))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('loanPrerequisitesMet', false)
-        );
-});
-
-test('entry point reports prerequisites met when profile already has the data', function (): void {
-    $member = prerequisiteTestMember('700002', withLoanPrerequisites: true);
-
-    $this
-        ->actingAs($member)
-        ->get(route('client.loan-requests.create'))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('loanPrerequisitesMet', true)
-        );
-});
-
-test('saving prerequisites via the entry-point modal endpoint marks them met', function (): void {
-    $member = prerequisiteTestMember('700003', withLoanPrerequisites: false);
-
-    $response = $this
-        ->actingAs($member)
-        ->postJson(route('client.loan-requests.prerequisites'), [
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'release_method' => 'ATM',
-            'payout_atm_number' => '4109123456789',
-            'payout_bank_branch' => 'Makati Branch',
-            'payout_atm_holder_name' => 'Test Member',
-            'source_of_fund_wealth' => 'Salary',
-            'id_type' => 'TIN',
-            'id_type_other' => null,
-            'id_number' => '123-456-789',
-            'height_cm' => '165',
-            'weight_kg' => '68',
-        ]);
-
-    $response
-        ->assertOk()
-        ->assertJsonPath('data.loanPrerequisitesMet', true)
-        ->assertJsonPath('data.loanPrerequisiteProfile.payout_bank_name', 'BDO')
-        ->assertJsonPath('data.loanPrerequisiteProfile.payout_atm_number', '4109123456789')
-        ->assertJsonPath('data.loanPrerequisiteProfile.payout_bank_branch', 'Makati Branch')
-        ->assertJsonPath('data.loanPrerequisiteProfile.payout_atm_holder_name', 'Test Member')
-        ->assertJsonPath('data.loanPrerequisiteProfile.id_type', 'TIN');
-
-    $member->refresh()->loadMissing('memberApplicationProfile');
-    expect($member->memberApplicationProfile->hasLoanPrerequisiteFields())->toBeTrue();
-    expect($member->memberApplicationProfile->payout_atm_number)->toBe('4109123456789');
-    expect($member->memberApplicationProfile->payout_bank_branch)->toBe('Makati Branch');
-    expect($member->memberApplicationProfile->payout_atm_holder_name)->toBe('Test Member');
-});
-
-test('prerequisite modal endpoint requires id type other when id type is Others', function (): void {
-    $member = prerequisiteTestMember('700004', withLoanPrerequisites: false);
-
-    $this
-        ->actingAs($member)
-        ->postJson(route('client.loan-requests.prerequisites'), [
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'release_method' => 'Bank Transfer',
-            'source_of_fund_wealth' => 'Salary',
-            'id_type' => 'Others',
-            'id_type_other' => '',
-            'id_number' => '123-456-789',
-            'height_cm' => '165',
-            'weight_kg' => '68',
-        ])
-        ->assertStatus(422)
-        ->assertJsonValidationErrors(['id_type_other']);
-});
-
-test('prerequisite modal endpoint requires ATM card number and holder name when release method is ATM', function (): void {
-    $member = prerequisiteTestMember('700008', withLoanPrerequisites: false);
-
-    $this
-        ->actingAs($member)
-        ->postJson(route('client.loan-requests.prerequisites'), [
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'release_method' => 'ATM',
-            'source_of_fund_wealth' => 'Salary',
-            'id_type' => 'TIN',
-            'id_type_other' => null,
-            'id_number' => '123-456-789',
-            'height_cm' => '165',
-            'weight_kg' => '68',
-        ])
-        ->assertStatus(422)
-        ->assertJsonValidationErrors(['payout_atm_number', 'payout_atm_holder_name']);
-});
-
-test('prerequisite modal endpoint requires a release bank name and account number when using a different release account', function (): void {
-    $member = prerequisiteTestMember('700009', withLoanPrerequisites: false);
-
-    $this
-        ->actingAs($member)
-        ->postJson(route('client.loan-requests.prerequisites'), [
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'release_method' => 'Bank Transfer',
-            'release_uses_payout_account' => false,
-            'source_of_fund_wealth' => 'Salary',
-            'id_type' => 'TIN',
-            'id_type_other' => null,
-            'id_number' => '123-456-789',
-            'height_cm' => '165',
-            'weight_kg' => '68',
-        ])
-        ->assertStatus(422)
-        ->assertJsonValidationErrors(['release_bank_name', 'release_account_name', 'release_account_number', 'release_account_type']);
-
-    $response = $this
-        ->actingAs($member)
-        ->postJson(route('client.loan-requests.prerequisites'), [
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'release_method' => 'Bank Transfer',
-            'release_uses_payout_account' => false,
-            'release_bank_name' => 'Metro City Bank',
-            'release_account_name' => 'Test Member',
-            'release_account_number' => '5544332211',
-            'release_account_type' => 'Savings',
-            'source_of_fund_wealth' => 'Salary',
-            'id_type' => 'TIN',
-            'id_type_other' => null,
-            'id_number' => '123-456-789',
-            'height_cm' => '165',
-            'weight_kg' => '68',
-        ]);
-
-    $response
-        ->assertOk()
-        ->assertJsonPath('data.loanPrerequisiteProfile.release_bank_name', 'Metro City Bank')
-        ->assertJsonPath('data.loanPrerequisiteProfile.release_account_number', '5544332211');
-
-    $member->refresh()->loadMissing('memberApplicationProfile');
-    expect($member->memberApplicationProfile->release_uses_payout_account)->toBeFalse();
-    expect($member->memberApplicationProfile->release_bank_name)->toBe('Metro City Bank');
-});
-
-test('submitting a loan request is blocked by the safety net when prerequisites are missing', function (): void {
-    $member = prerequisiteTestMember('700005', withLoanPrerequisites: false);
-
-    $response = $this
-        ->actingAs($member)
-        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload());
-
-    $response->assertSessionHasErrors(['loan_prerequisites']);
-    expect(LoanRequest::query()->count())->toBe(0);
-});
-
 test('submitting a loan request succeeds once prerequisites are on file', function (): void {
     $member = prerequisiteTestMember('700006', withLoanPrerequisites: true);
 
@@ -405,10 +242,43 @@ test('submitting a loan request succeeds once prerequisites are on file', functi
     expect($loanRequest->status)->toBe(LoanRequestStatus::PendingReview);
 });
 
+/**
+ * source_of_fund_wealth/id_type/id_number/height_cm/weight_kg are checked by
+ * hasLoanPrerequisiteFields() but are NOT part of completionRequiredFields(),
+ * so the `member-profile-complete` route middleware lets a profile missing
+ * only these fields through -- this is the scenario the submit()-level
+ * safety net still needs to catch on its own.
+ */
+test('submission blocked when loan-only prerequisites (not covered by profile completion) are missing', function (): void {
+    $member = prerequisiteTestMember('700005', withLoanPrerequisites: true);
+
+    $member->memberApplicationProfile->update(['source_of_fund_wealth' => null]);
+
+    $response = $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload());
+
+    $response->assertSessionHasErrors(['loan_prerequisites']);
+    expect(LoanRequest::query()->count())->toBe(0);
+});
+
 test('submission blocked mid-session when prerequisites were cleared after the profile was saved', function (): void {
     $member = prerequisiteTestMember('700007', withLoanPrerequisites: true);
 
-    $member->memberApplicationProfile->update(['payout_bank_name' => null]);
+    $member->memberApplicationProfile->update(['source_of_fund_wealth' => null]);
+
+    $response = $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload());
+
+    $response->assertSessionHasErrors(['loan_prerequisites']);
+    expect(LoanRequest::query()->count())->toBe(0);
+});
+
+test('submission blocked when prerequisites are legacy WMASTER "NA" placeholder values', function (): void {
+    $member = prerequisiteTestMember('700010', withLoanPrerequisites: true);
+
+    $member->memberApplicationProfile->update(['source_of_fund_wealth' => 'NA']);
 
     $response = $this
         ->actingAs($member)
