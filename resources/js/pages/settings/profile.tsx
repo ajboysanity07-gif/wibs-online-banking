@@ -98,7 +98,6 @@ export default function Profile({
     const memberMiddleName = memberRecord?.mname?.trim() ?? '';
     const memberLastName = memberRecord?.lname?.trim() ?? '';
     const memberAge = calculateAge(memberRecord?.birthday ?? null);
-    const memberBirthplace = memberRecord?.birthplace?.trim() ?? '';
     const memberBirthplaceCity = memberRecord?.birthplace_city?.trim() ?? '';
     const memberBirthplaceProvince =
         memberRecord?.birthplace_province?.trim() ?? '';
@@ -120,7 +119,6 @@ export default function Profile({
         memberCurrentPosition !== '' ? memberCurrentPosition : memberOccupation;
     const isCurrentPositionFromWmaster =
         memberCurrentPosition === '' && hasWmasterValue(memberOccupation);
-    const isBirthplaceLocked = hasWmasterValue(memberBirthplace);
     const isSpouseNameLocked = hasWmasterValue(memberRecord?.spouse_name);
     const isCivilStatusLocked = hasWmasterValue(memberCivilStatus);
     const isHousingStatusLocked = hasWmasterValue(memberRecord?.housing_status);
@@ -150,6 +148,8 @@ export default function Profile({
     const initialBirthplaceProvince =
         memberApplicationProfile?.birthplace_province?.trim() ||
         memberBirthplaceProvince;
+    const initialBirthplaceBarangay =
+        memberApplicationProfile?.birthplace_barangay?.trim() ?? '';
     const birthplaceProvinceSearch = useLocationSearch({
         initialQuery: initialBirthplaceProvince,
         searchUrl: provinces.url(),
@@ -158,6 +158,16 @@ export default function Profile({
         initialQuery: initialBirthplaceCity,
         searchUrl: cities.url(),
         params: {
+            province: birthplaceProvinceSearch.query || undefined,
+        },
+        clientFilter: true,
+        limit: 500,
+    });
+    const birthplaceBarangaySearch = useLocationSearch({
+        initialQuery: initialBirthplaceBarangay,
+        searchUrl: barangays.url(),
+        params: {
+            municipality: birthplaceCitySearch.selectedValue || undefined,
             province: birthplaceProvinceSearch.query || undefined,
         },
         clientFilter: true,
@@ -799,20 +809,8 @@ export default function Profile({
                                                         memberDisplayName
                                                     }
                                                     memberAge={memberAge}
-                                                    memberBirthplace={
-                                                        memberBirthplace
-                                                    }
-                                                    memberBirthplaceCity={
-                                                        memberBirthplaceCity
-                                                    }
-                                                    memberBirthplaceProvince={
-                                                        memberBirthplaceProvince
-                                                    }
                                                     memberCivilStatus={
                                                         memberCivilStatus
-                                                    }
-                                                    isBirthplaceLocked={
-                                                        isBirthplaceLocked
                                                     }
                                                     isCivilStatusLocked={
                                                         isCivilStatusLocked
@@ -832,6 +830,9 @@ export default function Profile({
                                                     }
                                                     birthplaceCitySearch={
                                                         birthplaceCitySearch
+                                                    }
+                                                    birthplaceBarangaySearch={
+                                                        birthplaceBarangaySearch
                                                     }
                                                     homeProvinceSearch={
                                                         homeProvinceSearch

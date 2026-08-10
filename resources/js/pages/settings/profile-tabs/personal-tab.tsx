@@ -39,11 +39,7 @@ type Props = {
     memberMiddleName: string;
     memberDisplayName: string;
     memberAge: number | null;
-    memberBirthplace: string;
-    memberBirthplaceCity: string;
-    memberBirthplaceProvince: string;
     memberCivilStatus: string;
-    isBirthplaceLocked: boolean;
     isCivilStatusLocked: boolean;
     isHousingStatusLocked: boolean;
     isSpouseNameLocked: boolean;
@@ -51,6 +47,7 @@ type Props = {
     numberOfChildrenValue: string | number;
     birthplaceProvinceSearch: LocationSearchState;
     birthplaceCitySearch: LocationSearchState;
+    birthplaceBarangaySearch: LocationSearchState;
     homeProvinceSearch: LocationSearchState;
     homeCitySearch: LocationSearchState;
     homeBarangaySearch: LocationSearchState;
@@ -84,11 +81,7 @@ export function PersonalTab({
     memberMiddleName,
     memberDisplayName,
     memberAge,
-    memberBirthplace,
-    memberBirthplaceCity,
-    memberBirthplaceProvince,
     memberCivilStatus,
-    isBirthplaceLocked,
     isCivilStatusLocked,
     isHousingStatusLocked,
     isSpouseNameLocked,
@@ -96,6 +89,7 @@ export function PersonalTab({
     numberOfChildrenValue,
     birthplaceProvinceSearch,
     birthplaceCitySearch,
+    birthplaceBarangaySearch,
     homeProvinceSearch,
     homeCitySearch,
     homeBarangaySearch,
@@ -256,100 +250,104 @@ export function PersonalTab({
                             />
                         </div>
 
-                        {isBirthplaceLocked ? (
-                            <div className="grid gap-2 md:col-span-2">
-                                <Label htmlFor="birthplace">Birthplace</Label>
-                                <Input
-                                    id="birthplace"
-                                    className={cn(
-                                        'mt-1 block w-full',
-                                        WMASTER_VALUE_CLASS,
-                                    )}
-                                    defaultValue={memberBirthplace}
-                                    placeholder="Not available"
-                                    disabled
-                                />
-                                <input
-                                    type="hidden"
-                                    name="birthplace_city"
-                                    value={memberBirthplaceCity}
-                                />
-                                <input
-                                    type="hidden"
-                                    name="birthplace_province"
-                                    value={memberBirthplaceProvince}
-                                />
-                            </div>
-                        ) : (
-                            <>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="birthplace_province">
-                                        Birthplace province
-                                    </Label>
-                                    <LocationCombobox
-                                        id="birthplace_province"
-                                        name="birthplace_province"
-                                        search={birthplaceProvinceSearch}
-                                        placeholder="Select province"
-                                        required
-                                        inputClassName={cn(
-                                            'mt-1 block w-full',
-                                            isFieldMissing(
-                                                'birthplace_province',
-                                            ) && MISSING_FIELD_CLASS,
-                                        )}
-                                        loadingMessage="Searching province suggestions..."
-                                        errorMessage="Province suggestions are temporarily unavailable."
-                                        promptMessage="Type at least 2 characters to search provinces."
-                                        onSelect={() => {
-                                            birthplaceCitySearch.setSelectedValue(
-                                                '',
-                                            );
-                                        }}
-                                    />
+                        <div className="grid gap-2">
+                            <Label htmlFor="birthplace_province">
+                                Birthplace province
+                            </Label>
+                            <LocationCombobox
+                                id="birthplace_province"
+                                name="birthplace_province"
+                                search={birthplaceProvinceSearch}
+                                placeholder="Select province"
+                                required
+                                inputClassName={cn(
+                                    'mt-1 block w-full',
+                                    isFieldMissing('birthplace_province') &&
+                                        MISSING_FIELD_CLASS,
+                                )}
+                                loadingMessage="Searching province suggestions..."
+                                errorMessage="Province suggestions are temporarily unavailable."
+                                promptMessage="Type at least 2 characters to search provinces."
+                                onSelect={() => {
+                                    birthplaceCitySearch.setSelectedValue('');
+                                    birthplaceBarangaySearch.setSelectedValue(
+                                        '',
+                                    );
+                                }}
+                            />
 
-                                    <InputError
-                                        className="mt-2"
-                                        message={formErrors.birthplace_province}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="birthplace_city">
-                                        Birthplace city/municipality
-                                    </Label>
-                                    <LocationCombobox
-                                        id="birthplace_city"
-                                        name="birthplace_city"
-                                        search={birthplaceCitySearch}
-                                        placeholder="Select city or municipality"
-                                        required
-                                        disabled={
-                                            !birthplaceProvinceSearch.selectedValue
-                                        }
-                                        inputClassName={cn(
-                                            'mt-1 block w-full',
-                                            isFieldMissing('birthplace_city') &&
-                                                MISSING_FIELD_CLASS,
-                                        )}
-                                        loadingMessage="Searching city suggestions..."
-                                        errorMessage="City suggestions are temporarily unavailable."
-                                        promptMessage="Select a province first."
-                                        onSelect={(suggestion) => {
-                                            if (suggestion.province) {
-                                                birthplaceProvinceSearch.setSelectedValue(
-                                                    suggestion.province,
-                                                );
-                                            }
-                                        }}
-                                    />
+                            <InputError
+                                className="mt-2"
+                                message={formErrors.birthplace_province}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="birthplace_city">
+                                Birthplace city/municipality
+                            </Label>
+                            <LocationCombobox
+                                id="birthplace_city"
+                                name="birthplace_city"
+                                search={birthplaceCitySearch}
+                                placeholder="Select city or municipality"
+                                required
+                                disabled={
+                                    !birthplaceProvinceSearch.selectedValue
+                                }
+                                inputClassName={cn(
+                                    'mt-1 block w-full',
+                                    isFieldMissing('birthplace_city') &&
+                                        MISSING_FIELD_CLASS,
+                                )}
+                                loadingMessage="Searching city suggestions..."
+                                errorMessage="City suggestions are temporarily unavailable."
+                                promptMessage="Select a province first."
+                                onSelect={(suggestion) => {
+                                    if (suggestion.province) {
+                                        birthplaceProvinceSearch.setSelectedValue(
+                                            suggestion.province,
+                                        );
+                                    }
 
-                                    <InputError
-                                        className="mt-2"
-                                        message={formErrors.birthplace_city}
-                                    />
-                                </div>
-                            </>
-                        )}
+                                    birthplaceBarangaySearch.setSelectedValue(
+                                        '',
+                                    );
+                                }}
+                            />
+
+                            <InputError
+                                className="mt-2"
+                                message={formErrors.birthplace_city}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="birthplace_barangay">
+                                Birthplace barangay{' '}
+                                <span className="text-xs text-muted-foreground">
+                                    (optional)
+                                </span>
+                            </Label>
+                            <LocationCombobox
+                                id="birthplace_barangay"
+                                name="birthplace_barangay"
+                                search={birthplaceBarangaySearch}
+                                placeholder="Select barangay"
+                                disabled={!birthplaceCitySearch.selectedValue}
+                                inputClassName={cn(
+                                    'mt-1 block w-full',
+                                    isFieldMissing('birthplace_barangay') &&
+                                        MISSING_FIELD_CLASS,
+                                )}
+                                loadingMessage="Loading barangays..."
+                                errorMessage="Barangay suggestions are temporarily unavailable."
+                                promptMessage="Select a city or municipality first."
+                            />
+
+                            <InputError
+                                className="mt-2"
+                                message={formErrors.birthplace_barangay}
+                            />
+                        </div>
 
                         <div className="grid gap-2">
                             <Label htmlFor="member_age">Age</Label>

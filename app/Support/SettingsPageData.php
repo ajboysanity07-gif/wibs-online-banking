@@ -163,6 +163,7 @@ class SettingsPageData
                 'birthplace' => $memberApplicationProfile->birthplace,
                 'birthplace_city' => $profileBirthplaceCity,
                 'birthplace_province' => $profileBirthplaceProvince,
+                'birthplace_barangay' => $memberApplicationProfile->birthplace_barangay,
                 'educational_attainment' => $memberApplicationProfile->educational_attainment,
                 'length_of_stay' => $memberApplicationProfile->length_of_stay,
                 'home_address' => $memberApplicationProfile->home_address,

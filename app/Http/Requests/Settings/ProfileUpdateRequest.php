@@ -37,6 +37,9 @@ class ProfileUpdateRequest extends FormRequest
         $birthplaceProvince = $this->normalizeOptionalString(
             $this->input('birthplace_province'),
         );
+        $birthplaceBarangay = $this->normalizeOptionalString(
+            $this->input('birthplace_barangay'),
+        );
         $legacyBirthplace = $this->normalizeOptionalString(
             $this->input('birthplace'),
         );
@@ -51,6 +54,7 @@ class ProfileUpdateRequest extends FormRequest
             $this->merge([
                 'birthplace_city' => $birthplaceCity,
                 'birthplace_province' => $birthplaceProvince,
+                'birthplace_barangay' => $birthplaceBarangay,
                 'birthplace' => LocationComposer::composeBirthplace(
                     $birthplaceCity,
                     $birthplaceProvince,
@@ -196,6 +200,12 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 'max:255',
                 new ValidPsgcProvince,
+            ],
+            'birthplace_barangay' => [
+                'nullable',
+                'string',
+                'max:255',
+                new ValidPsgcBarangay($this->input('birthplace_city'), $this->input('birthplace_province')),
             ],
             'birthplace' => [
                 'nullable',
@@ -525,6 +535,7 @@ class ProfileUpdateRequest extends FormRequest
             'gross_monthly_income' => 'gross monthly income',
             'birthplace_city' => 'birthplace city',
             'birthplace_province' => 'birthplace province',
+            'birthplace_barangay' => 'birthplace barangay',
             'employer_business_address1' => 'employer or business address',
             'home_address1' => 'home address',
             'home_address_barangay' => 'home address barangay',

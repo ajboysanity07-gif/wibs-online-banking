@@ -51,6 +51,7 @@ export type MemberApplicationProfileData = {
     birthplace: string | null;
     birthplace_city: string | null;
     birthplace_province: string | null;
+    birthplace_barangay: string | null;
     length_of_stay: string | null;
     home_address: string | null;
     home_address1: string | null;
