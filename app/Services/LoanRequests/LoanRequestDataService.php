@@ -2,6 +2,7 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanReleaseMethod;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestDataChange;
@@ -684,46 +685,6 @@ class LoanRequestDataService
         ],
         'payout_atm_holder_name' => [
             'label' => 'ATM card holder name (if not the borrower)',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'release_uses_payout_account' => [
-            'label' => 'Releases funds to the payout account',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'banking',
-            'type' => 'boolean',
-        ],
-        'release_bank_name' => [
-            'label' => 'Release bank name',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'release_account_name' => [
-            'label' => 'Release account name',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'release_account_number' => [
-            'label' => 'Release account number',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'release_account_type' => [
-            'label' => 'Release account type',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
             'required_on_submit' => false,
@@ -1712,6 +1673,13 @@ class LoanRequestDataService
     /**
      * @return list<string>
      */
+    private const PAYOUT_BANK_ACCOUNT_FIELDS = [
+        'payout_bank_name',
+        'payout_account_name',
+        'payout_account_number',
+        'payout_account_type',
+    ];
+
     public function missingRequiredMemberFields(LoanRequest $loanRequest): array
     {
         $flatValues = $this->loadFlatValues($loanRequest);
@@ -1721,6 +1689,16 @@ class LoanRequestDataService
             if (
                 $definition['owner'] !== self::OWNER_MEMBER
                 || ! $definition['required_on_submit']
+            ) {
+                continue;
+            }
+
+            // The base payout account fields only matter once the member
+            // has actually chosen Bank Transfer -- Cash/Check/ATM don't
+            // need a bank account on file.
+            if (
+                in_array($fieldKey, self::PAYOUT_BANK_ACCOUNT_FIELDS, true)
+                && ($flatValues['release_method'] ?? null) !== LoanReleaseMethod::BankTransfer->value
             ) {
                 continue;
             }

@@ -109,9 +109,6 @@ class LoanRequestDocumentCatalog
                 'payout_account_number',
                 'payout_atm_number',
                 'payout_bank_branch',
-                'release_uses_payout_account',
-                'release_bank_name',
-                'release_account_number',
                 'guaranteed_net_take_home_pay',
             ],
             'source_paths' => [

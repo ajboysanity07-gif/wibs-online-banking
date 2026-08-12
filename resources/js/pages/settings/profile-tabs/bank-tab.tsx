@@ -1,7 +1,13 @@
+import { useState } from 'react';
 import InputError from '@/components/input-error';
-import { ReleaseAccountFields } from '@/components/loan-request/release-account-fields';
 import { SurfaceCard } from '@/components/surface-card';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -33,21 +39,122 @@ type Props = {
     setIsOwnAtmCard: (value: boolean) => void;
     atmHolderName: string;
     setAtmHolderName: (value: string) => void;
-    useSameReleaseAccount: boolean;
-    setUseSameReleaseAccount: (value: boolean) => void;
-    releaseBankName: string;
-    setReleaseBankName: (value: string) => void;
-    releaseAccountName: string;
-    setReleaseAccountName: (value: string) => void;
-    releaseAccountNumber: string;
-    setReleaseAccountNumber: (value: string) => void;
-    releaseAccountType: string;
-    setReleaseAccountType: (value: string) => void;
     idTypeSelection: string;
     setIdTypeSelection: (value: string) => void;
     idTypeOther: string;
     setIdTypeOther: (value: string) => void;
 };
+
+// The 4 base payout account fields, shared between the required Bank
+// Transfer block and the optional "add bank details for later" disclosure
+// shown for the other release methods -- same fields either way, just
+// different requiredness depending on release_method (see
+// ProfileUpdateRequest::rules()).
+function PayoutBankAccountFields({
+    formErrors,
+    memberApplicationProfile,
+    isFieldMissing,
+}: {
+    formErrors: Record<string, string>;
+    memberApplicationProfile: MemberApplicationProfileData | null;
+    isFieldMissing: (field: string) => boolean;
+}) {
+    return (
+        <>
+            <div className="grid gap-2">
+                <Label htmlFor="payout_bank_name">Bank name</Label>
+
+                <Input
+                    id="payout_bank_name"
+                    className={cn(
+                        'mt-1 block w-full',
+                        isFieldMissing('payout_bank_name') &&
+                            MISSING_FIELD_CLASS,
+                    )}
+                    defaultValue={
+                        memberApplicationProfile?.payout_bank_name ?? ''
+                    }
+                    name="payout_bank_name"
+                    placeholder="Bank name"
+                />
+
+                <InputError
+                    className="mt-2"
+                    message={formErrors.payout_bank_name}
+                />
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="payout_account_name">Account name</Label>
+
+                <Input
+                    id="payout_account_name"
+                    className={cn(
+                        'mt-1 block w-full',
+                        isFieldMissing('payout_account_name') &&
+                            MISSING_FIELD_CLASS,
+                    )}
+                    defaultValue={
+                        memberApplicationProfile?.payout_account_name ?? ''
+                    }
+                    name="payout_account_name"
+                    placeholder="Account name"
+                />
+
+                <InputError
+                    className="mt-2"
+                    message={formErrors.payout_account_name}
+                />
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="payout_account_number">Account number</Label>
+
+                <Input
+                    id="payout_account_number"
+                    className={cn(
+                        'mt-1 block w-full',
+                        isFieldMissing('payout_account_number') &&
+                            MISSING_FIELD_CLASS,
+                    )}
+                    defaultValue={
+                        memberApplicationProfile?.payout_account_number ?? ''
+                    }
+                    name="payout_account_number"
+                    placeholder="Account number"
+                />
+
+                <InputError
+                    className="mt-2"
+                    message={formErrors.payout_account_number}
+                />
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="payout_account_type">Account type</Label>
+
+                <Input
+                    id="payout_account_type"
+                    className={cn(
+                        'mt-1 block w-full',
+                        isFieldMissing('payout_account_type') &&
+                            MISSING_FIELD_CLASS,
+                    )}
+                    defaultValue={
+                        memberApplicationProfile?.payout_account_type ?? ''
+                    }
+                    name="payout_account_type"
+                    placeholder="e.g. Savings"
+                />
+
+                <InputError
+                    className="mt-2"
+                    message={formErrors.payout_account_type}
+                />
+            </div>
+        </>
+    );
+}
 
 export function BankTab({
     formErrors,
@@ -60,180 +167,74 @@ export function BankTab({
     setIsOwnAtmCard,
     atmHolderName,
     setAtmHolderName,
-    useSameReleaseAccount,
-    setUseSameReleaseAccount,
-    releaseBankName,
-    setReleaseBankName,
-    releaseAccountName,
-    setReleaseAccountName,
-    releaseAccountNumber,
-    setReleaseAccountNumber,
-    releaseAccountType,
-    setReleaseAccountType,
     idTypeSelection,
     setIdTypeSelection,
     idTypeOther,
     setIdTypeOther,
 }: Props) {
+    const hasSavedBankDetails = Boolean(
+        memberApplicationProfile?.payout_bank_name ||
+        memberApplicationProfile?.payout_account_name ||
+        memberApplicationProfile?.payout_account_number ||
+        memberApplicationProfile?.payout_account_type,
+    );
+    const [showOptionalBankDetails, setShowOptionalBankDetails] =
+        useState(hasSavedBankDetails);
+
     return (
         <TabsContent value="bank" forceMount className="mt-0">
             <SurfaceCard variant="muted" padding="md" className="space-y-6">
                 <div className="space-y-6">
                     <div className="space-y-1">
                         <h3 className="text-base font-semibold">
-                            Bank &amp; Payout
+                            Release Method
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                            Bank name, account name, account number, account
-                            type, and release method are required before you can
-                            start a loan request.
+                            Choose how you'd like to receive your loan. Bank
+                            account details are required only for Bank Transfer.
                         </p>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div className="grid gap-2">
-                            <Label htmlFor="payout_bank_name">Bank name</Label>
+                    <div className="grid gap-2">
+                        <Label htmlFor="release_method">Release method</Label>
 
-                            <Input
-                                id="payout_bank_name"
+                        <Select
+                            value={releaseMethod || undefined}
+                            onValueChange={(value) => {
+                                setReleaseMethod(value);
+                            }}
+                        >
+                            <SelectTrigger
+                                id="release_method"
                                 className={cn(
-                                    'mt-1 block w-full',
-                                    isFieldMissing('payout_bank_name') &&
+                                    'mt-1 w-full',
+                                    isFieldMissing('release_method') &&
                                         MISSING_FIELD_CLASS,
                                 )}
-                                defaultValue={
-                                    memberApplicationProfile?.payout_bank_name ??
-                                    ''
-                                }
-                                name="payout_bank_name"
-                                placeholder="Bank name"
-                            />
-
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.payout_bank_name}
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="payout_account_name">
-                                Account name
-                            </Label>
-
-                            <Input
-                                id="payout_account_name"
-                                className={cn(
-                                    'mt-1 block w-full',
-                                    isFieldMissing('payout_account_name') &&
-                                        MISSING_FIELD_CLASS,
-                                )}
-                                defaultValue={
-                                    memberApplicationProfile?.payout_account_name ??
-                                    ''
-                                }
-                                name="payout_account_name"
-                                placeholder="Account name"
-                            />
-
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.payout_account_name}
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="payout_account_number">
-                                Account number
-                            </Label>
-
-                            <Input
-                                id="payout_account_number"
-                                className={cn(
-                                    'mt-1 block w-full',
-                                    isFieldMissing('payout_account_number') &&
-                                        MISSING_FIELD_CLASS,
-                                )}
-                                defaultValue={
-                                    memberApplicationProfile?.payout_account_number ??
-                                    ''
-                                }
-                                name="payout_account_number"
-                                placeholder="Account number"
-                            />
-
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.payout_account_number}
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="payout_account_type">
-                                Account type
-                            </Label>
-
-                            <Input
-                                id="payout_account_type"
-                                className={cn(
-                                    'mt-1 block w-full',
-                                    isFieldMissing('payout_account_type') &&
-                                        MISSING_FIELD_CLASS,
-                                )}
-                                defaultValue={
-                                    memberApplicationProfile?.payout_account_type ??
-                                    ''
-                                }
-                                name="payout_account_type"
-                                placeholder="e.g. Savings"
-                            />
-
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.payout_account_type}
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="release_method">
-                                Release method
-                            </Label>
-
-                            <Select
-                                value={releaseMethod || undefined}
-                                onValueChange={(value) => {
-                                    setReleaseMethod(value);
-                                }}
                             >
-                                <SelectTrigger
-                                    id="release_method"
-                                    className={cn(
-                                        'mt-1 w-full',
-                                        isFieldMissing('release_method') &&
-                                            MISSING_FIELD_CLASS,
-                                    )}
-                                >
-                                    <SelectValue placeholder="Select release method" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {RELEASE_METHOD_OPTIONS.map((option) => (
-                                        <SelectItem key={option} value={option}>
-                                            {option}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <input
-                                type="hidden"
-                                name="release_method"
-                                value={releaseMethod}
-                            />
+                                <SelectValue placeholder="Select release method" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {RELEASE_METHOD_OPTIONS.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                        {option}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <input
+                            type="hidden"
+                            name="release_method"
+                            value={releaseMethod}
+                        />
 
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.release_method}
-                            />
-                        </div>
+                        <InputError
+                            className="mt-2"
+                            message={formErrors.release_method}
+                        />
+                    </div>
 
+                    <div className="grid gap-4 md:grid-cols-2">
                         {releaseMethod === 'ATM' ? (
                             <>
                                 <div className="grid gap-2">
@@ -354,81 +355,48 @@ export function BankTab({
                         ) : null}
 
                         {releaseMethod === 'Bank Transfer' ? (
-                            <>
-                                <input
-                                    type="hidden"
-                                    name="release_uses_payout_account"
-                                    value={useSameReleaseAccount ? '1' : '0'}
-                                />
-                                <input
-                                    type="hidden"
-                                    name="release_bank_name"
-                                    value={releaseBankName}
-                                />
-                                <input
-                                    type="hidden"
-                                    name="release_account_name"
-                                    value={releaseAccountName}
-                                />
-                                <input
-                                    type="hidden"
-                                    name="release_account_number"
-                                    value={releaseAccountNumber}
-                                />
-                                <input
-                                    type="hidden"
-                                    name="release_account_type"
-                                    value={releaseAccountType}
-                                />
-                                <ReleaseAccountFields
-                                    idPrefix="release_account"
-                                    useSameAccount={useSameReleaseAccount}
-                                    onToggleSameAccount={
-                                        setUseSameReleaseAccount
-                                    }
-                                    values={{
-                                        bank_name: releaseBankName,
-                                        account_name: releaseAccountName,
-                                        account_number: releaseAccountNumber,
-                                        account_type: releaseAccountType,
-                                    }}
-                                    errors={{
-                                        bank_name: formErrors.release_bank_name,
-                                        account_name:
-                                            formErrors.release_account_name,
-                                        account_number:
-                                            formErrors.release_account_number,
-                                        account_type:
-                                            formErrors.release_account_type,
-                                    }}
-                                    missingFields={{
-                                        bank_name:
-                                            isFieldMissing('release_bank_name'),
-                                        account_name: isFieldMissing(
-                                            'release_account_name',
-                                        ),
-                                        account_number: isFieldMissing(
-                                            'release_account_number',
-                                        ),
-                                        account_type: isFieldMissing(
-                                            'release_account_type',
-                                        ),
-                                    }}
-                                    missingFieldClassName={MISSING_FIELD_CLASS}
-                                    onChange={(field, value) => {
-                                        if (field === 'bank_name')
-                                            setReleaseBankName(value);
-                                        if (field === 'account_name')
-                                            setReleaseAccountName(value);
-                                        if (field === 'account_number')
-                                            setReleaseAccountNumber(value);
-                                        if (field === 'account_type')
-                                            setReleaseAccountType(value);
-                                    }}
-                                />
-                            </>
+                            <PayoutBankAccountFields
+                                formErrors={formErrors}
+                                memberApplicationProfile={
+                                    memberApplicationProfile
+                                }
+                                isFieldMissing={isFieldMissing}
+                            />
                         ) : null}
                     </div>
+
+                    {releaseMethod && releaseMethod !== 'Bank Transfer' ? (
+                        <Collapsible
+                            open={showOptionalBankDetails}
+                            onOpenChange={setShowOptionalBankDetails}
+                        >
+                            {!showOptionalBankDetails ? (
+                                <CollapsibleTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="link"
+                                        className="h-auto p-0 text-sm"
+                                    >
+                                        + Add bank account details (optional)
+                                    </Button>
+                                </CollapsibleTrigger>
+                            ) : null}
+                            <CollapsibleContent className="grid gap-4 pt-4 md:grid-cols-2">
+                                <p className="text-xs text-muted-foreground md:col-span-2">
+                                    Optional -- add a bank account on file for
+                                    future use. Not required while your release
+                                    method is {releaseMethod}.
+                                </p>
+                                <PayoutBankAccountFields
+                                    formErrors={formErrors}
+                                    memberApplicationProfile={
+                                        memberApplicationProfile
+                                    }
+                                    isFieldMissing={isFieldMissing}
+                                />
+                            </CollapsibleContent>
+                        </Collapsible>
+                    ) : null}
                 </div>
 
                 <Separator />

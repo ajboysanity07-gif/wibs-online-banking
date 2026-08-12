@@ -664,7 +664,7 @@ class PsgcService
                 'type' => $birthplace['type'],
                 'province' => $birthplace['province'],
                 'region' => $birthplace['region'],
-                'label' => $birthplace['label'],
+                'label' => $birthplace['name'],
                 'value' => $birthplace['name'],
             ]];
         }

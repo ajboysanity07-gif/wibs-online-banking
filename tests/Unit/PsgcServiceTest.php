@@ -38,7 +38,7 @@ test('psgc service includes province details for city suggestions', function () 
 
     expect($result['available'])->toBeTrue();
     expect($result['results'])->toHaveCount(1);
-    expect($result['results'][0]['label'])->toBe('Adams, Ilocos Norte');
+    expect($result['results'][0]['label'])->toBe('Adams');
     expect($result['results'][0]['value'])->toBe('Adams');
     expect($result['results'][0]['province'])->toBe('Ilocos Norte');
     expect($result['results'][0]['type'])->toBe('municipality');

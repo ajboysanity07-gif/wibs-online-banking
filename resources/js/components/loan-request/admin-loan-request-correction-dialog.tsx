@@ -285,11 +285,6 @@ const dataSectionFieldLabels: Record<string, Record<string, string>> = {
         release_method: 'Release method',
         payment_option: 'Payment option',
         payout_atm_number: 'ATM number',
-        release_uses_payout_account: 'Releases funds to the payout account',
-        release_bank_name: 'Release bank name',
-        release_account_name: 'Release account name',
-        release_account_number: 'Release account number',
-        release_account_type: 'Release account type',
     },
     barangay: {
         barangay_official_designation: 'Barangay official designation',

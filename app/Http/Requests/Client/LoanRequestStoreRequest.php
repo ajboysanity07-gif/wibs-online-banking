@@ -395,11 +395,23 @@ class LoanRequestStoreRequest extends FormRequest
             'health.health_smoking_status' => ['required', 'string', Rule::in(['none', 'light', 'heavy'])],
             'health.health_hypertension' => ['required', 'boolean'],
             ...$this->healthGlapiRules(),
-            'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number,payout_bank_branch,payout_atm_holder_name,release_uses_payout_account,release_bank_name,release_account_name,release_account_number,release_account_type'],
-            'banking.payout_bank_name' => ['required', 'string', 'max:255'],
-            'banking.payout_account_name' => ['required', 'string', 'max:255'],
-            'banking.payout_account_number' => ['required', 'string', 'max:255'],
-            'banking.payout_account_type' => ['required', 'string', 'max:255'],
+            'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number,payout_bank_branch,payout_atm_holder_name'],
+            'banking.payout_bank_name' => [
+                Rule::requiredIf(fn () => $this->input('banking.release_method') === LoanReleaseMethod::BankTransfer->value),
+                'nullable', 'string', 'max:255',
+            ],
+            'banking.payout_account_name' => [
+                Rule::requiredIf(fn () => $this->input('banking.release_method') === LoanReleaseMethod::BankTransfer->value),
+                'nullable', 'string', 'max:255',
+            ],
+            'banking.payout_account_number' => [
+                Rule::requiredIf(fn () => $this->input('banking.release_method') === LoanReleaseMethod::BankTransfer->value),
+                'nullable', 'string', 'max:255',
+            ],
+            'banking.payout_account_type' => [
+                Rule::requiredIf(fn () => $this->input('banking.release_method') === LoanReleaseMethod::BankTransfer->value),
+                'nullable', 'string', 'max:255',
+            ],
             'banking.release_method' => ['required', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))],
             'banking.payment_option' => ['required', 'string', 'max:255', Rule::in(array_column(LoanPaymentOption::cases(), 'value'))],
             'banking.payout_atm_number' => [
@@ -409,23 +421,6 @@ class LoanRequestStoreRequest extends FormRequest
             'banking.payout_bank_branch' => ['nullable', 'string', 'max:255'],
             'banking.payout_atm_holder_name' => [
                 Rule::requiredIf(fn () => $this->input('banking.release_method') === LoanReleaseMethod::Atm->value),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.release_uses_payout_account' => ['nullable', 'boolean'],
-            'banking.release_bank_name' => [
-                Rule::requiredIf(fn () => $this->input('banking.release_method') === 'Bank Transfer' && ! $this->boolean('banking.release_uses_payout_account', true)),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.release_account_name' => [
-                Rule::requiredIf(fn () => $this->input('banking.release_method') === 'Bank Transfer' && ! $this->boolean('banking.release_uses_payout_account', true)),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.release_account_number' => [
-                Rule::requiredIf(fn () => $this->input('banking.release_method') === 'Bank Transfer' && ! $this->boolean('banking.release_uses_payout_account', true)),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.release_account_type' => [
-                Rule::requiredIf(fn () => $this->input('banking.release_method') === 'Bank Transfer' && ! $this->boolean('banking.release_uses_payout_account', true)),
                 'nullable', 'string', 'max:255',
             ],
             'barangay' => ['required', 'array:barangay_official_designation,barangay_agency_name,barangay_agency_address'],

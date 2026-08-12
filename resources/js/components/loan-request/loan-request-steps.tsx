@@ -24,7 +24,6 @@ import {
     CurrencyInput,
     MonthsInput,
 } from '@/components/loan-request/numeric-adorned-inputs';
-import { ReleaseAccountFields } from '@/components/loan-request/release-account-fields';
 import { SmokingStatusField } from '@/components/loan-request/smoking-status-field';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -763,20 +762,13 @@ export function LoanRequestDataSectionStep({
                         return null;
                     }
 
-                    // The release-account fields render together as a single
-                    // group anchored on release_uses_payout_account (see
-                    // below), not as individual generic fields in this grid.
+                    // Base payout account details only matter for Bank
+                    // Transfer -- Cash/Check/ATM don't need a bank account.
                     if (
-                        fieldKey === 'release_bank_name' ||
-                        fieldKey === 'release_account_name' ||
-                        fieldKey === 'release_account_number' ||
-                        fieldKey === 'release_account_type'
-                    ) {
-                        return null;
-                    }
-
-                    if (
-                        fieldKey === 'release_uses_payout_account' &&
+                        (fieldKey === 'payout_bank_name' ||
+                            fieldKey === 'payout_account_name' ||
+                            fieldKey === 'payout_account_number' ||
+                            fieldKey === 'payout_account_type') &&
                         values.release_method !== 'Bank Transfer'
                     ) {
                         return null;
@@ -930,71 +922,6 @@ export function LoanRequestDataSectionStep({
                                 onChange={(nextValue) =>
                                     onChange(fieldKey, nextValue)
                                 }
-                            />
-                        );
-                    }
-
-                    if (fieldKey === 'release_uses_payout_account') {
-                        const releaseBankName = values.release_bank_name;
-                        const releaseAccountName = values.release_account_name;
-                        const releaseAccountNumber =
-                            values.release_account_number;
-                        const releaseAccountType = values.release_account_type;
-
-                        return (
-                            <ReleaseAccountFields
-                                key={fieldKey}
-                                idPrefix={`${sectionKey}_release_account`}
-                                useSameAccount={value !== false}
-                                onToggleSameAccount={(useSameAccount) =>
-                                    onChange(fieldKey, useSameAccount)
-                                }
-                                values={{
-                                    bank_name: releaseBankName
-                                        ? `${releaseBankName}`
-                                        : '',
-                                    account_name: releaseAccountName
-                                        ? `${releaseAccountName}`
-                                        : '',
-                                    account_number: releaseAccountNumber
-                                        ? `${releaseAccountNumber}`
-                                        : '',
-                                    account_type: releaseAccountType
-                                        ? `${releaseAccountType}`
-                                        : '',
-                                }}
-                                errors={{
-                                    bank_name:
-                                        errors[
-                                            `${sectionKey}.release_bank_name`
-                                        ],
-                                    account_name:
-                                        errors[
-                                            `${sectionKey}.release_account_name`
-                                        ],
-                                    account_number:
-                                        errors[
-                                            `${sectionKey}.release_account_number`
-                                        ],
-                                    account_type:
-                                        errors[
-                                            `${sectionKey}.release_account_type`
-                                        ],
-                                }}
-                                onChange={(releaseField, releaseValue) => {
-                                    const fieldMap = {
-                                        bank_name: 'release_bank_name',
-                                        account_name: 'release_account_name',
-                                        account_number:
-                                            'release_account_number',
-                                        account_type: 'release_account_type',
-                                    } as const;
-
-                                    onChange(
-                                        fieldMap[releaseField],
-                                        releaseValue,
-                                    );
-                                }}
                             />
                         );
                     }
@@ -2260,6 +2187,37 @@ export function LoanRequestReviewStep({
         { label: 'Payday', value: formatPayday(person.payday) },
     ];
 
+    // Mirrors the edit step's ATM/Bank-Transfer field visibility (see
+    // LoanRequestDataSectionStep above) so the review card doesn't list
+    // fields that don't apply to the chosen release method as "--".
+    const isBankingFieldApplicable = (
+        fieldKey: string,
+        releaseMethod: string,
+    ): boolean => {
+        if (fieldKey === 'release_method') {
+            return false;
+        }
+
+        if (
+            fieldKey === 'payout_bank_branch' ||
+            fieldKey === 'payout_atm_number' ||
+            fieldKey === 'payout_atm_holder_name'
+        ) {
+            return releaseMethod === 'ATM';
+        }
+
+        if (
+            fieldKey === 'payout_bank_name' ||
+            fieldKey === 'payout_account_name' ||
+            fieldKey === 'payout_account_number' ||
+            fieldKey === 'payout_account_type'
+        ) {
+            return releaseMethod === 'Bank Transfer';
+        }
+
+        return true;
+    };
+
     const buildSectionItems = (
         sectionKey:
             | 'insurance'
@@ -2269,12 +2227,19 @@ export function LoanRequestReviewStep({
             | 'barangay'
             | 'declarations',
     ) =>
-        Object.entries(sectionDefinitions[sectionKey]?.fields ?? {}).map(
-            ([fieldKey, field]) => ({
+        Object.entries(sectionDefinitions[sectionKey]?.fields ?? {})
+            .filter(
+                ([fieldKey]) =>
+                    sectionKey !== 'banking' ||
+                    isBankingFieldApplicable(
+                        fieldKey,
+                        `${data.banking.release_method ?? ''}`,
+                    ),
+            )
+            .map(([fieldKey, field]) => ({
                 label: field.label,
                 value: displaySectionValue(data[sectionKey][fieldKey], field),
-            }),
-        );
+            }));
 
     // 'health' and 'health_glapi' render as a single merged "Health Insurance
     // Questionnaire" card — there is no separate "Health declarations" concept.
@@ -2355,6 +2320,20 @@ export function LoanRequestReviewStep({
                     title={section.title}
                     description="Review the member-provided document details."
                 >
+                    {section.key === 'banking' ? (
+                        <div className="mb-4 flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                                Release method:
+                            </span>
+                            <Badge variant="secondary">
+                                {displayText(
+                                    data.banking.release_method
+                                        ? `${data.banking.release_method}`
+                                        : null,
+                                )}
+                            </Badge>
+                        </div>
+                    ) : null}
                     <SummaryGrid items={section.items} />
                 </SummaryCard>
             ))}

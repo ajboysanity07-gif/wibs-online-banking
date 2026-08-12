@@ -350,21 +350,6 @@ export default function Profile({
         initialAtmHolderName === '' ||
             initialAtmHolderName === memberDisplayName.trim(),
     );
-    const [useSameReleaseAccount, setUseSameReleaseAccount] = useState<boolean>(
-        memberApplicationProfile?.release_uses_payout_account ?? true,
-    );
-    const [releaseBankName, setReleaseBankName] = useState<string>(
-        memberApplicationProfile?.release_bank_name ?? '',
-    );
-    const [releaseAccountName, setReleaseAccountName] = useState<string>(
-        memberApplicationProfile?.release_account_name ?? '',
-    );
-    const [releaseAccountNumber, setReleaseAccountNumber] = useState<string>(
-        memberApplicationProfile?.release_account_number ?? '',
-    );
-    const [releaseAccountType, setReleaseAccountType] = useState<string>(
-        memberApplicationProfile?.release_account_type ?? '',
-    );
     const resolvedNatureOfBusiness =
         natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE
             ? natureOfBusinessOther.trim()
@@ -741,8 +726,7 @@ export default function Profile({
                                                                 Finances
                                                             </TabsTrigger>
                                                             <TabsTrigger value="bank">
-                                                                Bank &amp;
-                                                                Payout
+                                                                Release Method
                                                             </TabsTrigger>
                                                             <TabsTrigger value="dependents">
                                                                 Dependents
@@ -996,36 +980,6 @@ export default function Profile({
                                                     }
                                                     setAtmHolderName={
                                                         setAtmHolderName
-                                                    }
-                                                    useSameReleaseAccount={
-                                                        useSameReleaseAccount
-                                                    }
-                                                    setUseSameReleaseAccount={
-                                                        setUseSameReleaseAccount
-                                                    }
-                                                    releaseBankName={
-                                                        releaseBankName
-                                                    }
-                                                    setReleaseBankName={
-                                                        setReleaseBankName
-                                                    }
-                                                    releaseAccountName={
-                                                        releaseAccountName
-                                                    }
-                                                    setReleaseAccountName={
-                                                        setReleaseAccountName
-                                                    }
-                                                    releaseAccountNumber={
-                                                        releaseAccountNumber
-                                                    }
-                                                    setReleaseAccountNumber={
-                                                        setReleaseAccountNumber
-                                                    }
-                                                    releaseAccountType={
-                                                        releaseAccountType
-                                                    }
-                                                    setReleaseAccountType={
-                                                        setReleaseAccountType
                                                     }
                                                     idTypeSelection={
                                                         idTypeSelection

@@ -90,11 +90,6 @@ class MemberApplicationProfile extends Model
         'payout_atm_number',
         'payout_bank_branch',
         'payout_atm_holder_name',
-        'release_uses_payout_account',
-        'release_bank_name',
-        'release_account_name',
-        'release_account_number',
-        'release_account_type',
         'beneficiary_primary_name',
         'beneficiary_primary_relationship',
         'beneficiary_primary_birthdate',
@@ -236,11 +231,6 @@ class MemberApplicationProfile extends Model
             'payout_atm_number',
             'payout_bank_branch',
             'payout_atm_holder_name',
-            'release_uses_payout_account',
-            'release_bank_name',
-            'release_account_name',
-            'release_account_number',
-            'release_account_type',
         ];
     }
 
@@ -297,20 +287,17 @@ class MemberApplicationProfile extends Model
     }
 
     /**
-     * Bank & Payout fields that gate starting/submitting a loan request.
-     * Deliberately a subset of payoutBankFields() -- the ATM number, bank
-     * branch, and ATM holder name stay optional secondary details even at
-     * this checkpoint.
+     * Bank & Payout fields that always gate starting/submitting a loan
+     * request, regardless of release_method. Everything else -- the base
+     * payout account fields, ATM number, and release account fields -- is
+     * only required once it's actually relevant, see
+     * conditionallyRequiredBankFields().
      *
      * @return list<string>
      */
     public static function loanPrerequisiteBankFields(): array
     {
         return [
-            'payout_bank_name',
-            'payout_account_name',
-            'payout_account_number',
-            'payout_account_type',
             'release_method',
         ];
     }
@@ -335,6 +322,7 @@ class MemberApplicationProfile extends Model
 
         foreach ([
             ...self::loanPrerequisiteBankFields(),
+            ...$this->conditionallyRequiredBankFields(),
             'source_of_fund_wealth',
             'id_type',
             'id_number',
@@ -402,13 +390,13 @@ class MemberApplicationProfile extends Model
             $required[] = 'payout_atm_holder_name';
         }
 
-        if ($releaseMethod === LoanReleaseMethod::BankTransfer->value && ! $this->release_uses_payout_account) {
+        if ($releaseMethod === LoanReleaseMethod::BankTransfer->value) {
             array_push(
                 $required,
-                'release_bank_name',
-                'release_account_name',
-                'release_account_number',
-                'release_account_type',
+                'payout_bank_name',
+                'payout_account_name',
+                'payout_account_number',
+                'payout_account_type',
             );
         }
 
@@ -509,10 +497,6 @@ class MemberApplicationProfile extends Model
             'release_method' => 'Release method',
             'payout_atm_number' => 'ATM card number',
             'payout_atm_holder_name' => 'ATM card holder name',
-            'release_bank_name' => 'Release bank name',
-            'release_account_name' => 'Release account name',
-            'release_account_number' => 'Release account number',
-            'release_account_type' => 'Release account type',
         ];
     }
 
@@ -541,7 +525,6 @@ class MemberApplicationProfile extends Model
             'beneficiary_secondary_birthdate' => 'date',
             'spouse_birthdate' => 'date',
             'profile_completed_at' => 'datetime',
-            'release_uses_payout_account' => 'boolean',
         ];
     }
 }

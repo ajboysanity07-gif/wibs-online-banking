@@ -63,7 +63,7 @@ class LoanRequestCorrectionRequest extends LoanRequestStoreRequest
         $rules['health_glapi'] = ['sometimes', 'array:applicant_pep_status,applicant_pep_status_details'];
         $rules['health_glapi.applicant_pep_status'] = ['sometimes', 'nullable', 'boolean'];
         $rules['health_glapi.applicant_pep_status_details'] = ['sometimes', 'nullable', 'string', 'max:1000'];
-        $rules['banking'] = ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number,release_uses_payout_account,release_bank_name,release_account_name,release_account_number,release_account_type'];
+        $rules['banking'] = ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number'];
         $rules['banking.release_method'] = ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))];
         $rules['banking.payment_option'] = ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanPaymentOption::cases(), 'value'))];
         $rules['banking.payout_bank_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
@@ -71,11 +71,6 @@ class LoanRequestCorrectionRequest extends LoanRequestStoreRequest
         $rules['banking.payout_account_number'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['banking.payout_account_type'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['banking.payout_atm_number'] = ['sometimes', 'nullable', 'string', 'max:255'];
-        $rules['banking.release_uses_payout_account'] = ['sometimes', 'nullable', 'boolean'];
-        $rules['banking.release_bank_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
-        $rules['banking.release_account_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
-        $rules['banking.release_account_number'] = ['sometimes', 'nullable', 'string', 'max:255'];
-        $rules['banking.release_account_type'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['barangay'] = ['sometimes', 'array:barangay_official_designation,barangay_agency_name,barangay_agency_address'];
         $rules['barangay.barangay_official_designation'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['barangay.barangay_agency_name'] = ['sometimes', 'nullable', 'string', 'max:255'];

@@ -88,11 +88,6 @@ export type MemberApplicationProfileData = {
     payout_atm_number: string | null;
     payout_bank_branch: string | null;
     payout_atm_holder_name: string | null;
-    release_uses_payout_account: boolean | null;
-    release_bank_name: string | null;
-    release_account_name: string | null;
-    release_account_number: string | null;
-    release_account_type: string | null;
     source_of_fund_wealth: string | null;
     id_type: string | null;
     id_type_other: string | null;
@@ -271,11 +266,6 @@ export const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'payout_atm_number',
         'payout_bank_branch',
         'payout_atm_holder_name',
-        'release_uses_payout_account',
-        'release_bank_name',
-        'release_account_name',
-        'release_account_number',
-        'release_account_type',
         'source_of_fund_wealth',
         'id_type',
         'id_type_other',
