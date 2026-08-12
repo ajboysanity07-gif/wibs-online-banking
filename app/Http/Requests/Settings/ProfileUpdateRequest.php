@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Settings;
 
 use App\Concerns\ProfileValidationRules;
+use App\LoanCivilStatus;
 use App\LoanPaydayOption;
 use App\LoanReleaseMethod;
 use App\Models\MemberApplicationProfile;
@@ -553,7 +554,7 @@ class ProfileUpdateRequest extends FormRequest
 
         if (
             in_array($field, MemberApplicationProfile::spouseFieldsOptionalWhenSingle(), true)
-            && $this->effectiveCivilStatusIsSingle()
+            && $this->effectiveCivilStatusHasNoSpouse()
         ) {
             return 'nullable';
         }
@@ -572,16 +573,22 @@ class ProfileUpdateRequest extends FormRequest
 
     /**
      * The spouse section is hidden (and its fields never submitted) once
-     * civil status resolves to Single -- either from wmaster, when locked,
-     * or from the submitted input, when self-reported.
+     * civil status resolves to Single, Widowed, or Separated -- either from
+     * wmaster, when locked, or from the submitted input, when self-reported.
      */
-    private function effectiveCivilStatusIsSingle(): bool
+    private function effectiveCivilStatusHasNoSpouse(): bool
     {
         $value = $this->wmasterFieldHasValue('civilstat')
             ? $this->user()?->wmaster?->civilstat
             : $this->input('civil_status');
 
-        return strtoupper(trim((string) $value)) === 'SINGLE';
+        $normalized = strtoupper(trim((string) $value));
+
+        return in_array(
+            $normalized,
+            array_map('strtoupper', LoanCivilStatus::spouseNotApplicableValues()),
+            true,
+        );
     }
 
     private function normalizeOptionalString(mixed $value): ?string

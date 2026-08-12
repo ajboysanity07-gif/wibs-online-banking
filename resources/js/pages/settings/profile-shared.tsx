@@ -417,6 +417,13 @@ export const normalizeCivilStatusValue = (value?: string | null): string => {
     return '';
 };
 
+/** Civil statuses with no active spouse -- spouse fields are hidden and optional for these. */
+export const SPOUSE_NOT_APPLICABLE_STATUSES = [
+    'Single',
+    'Widowed',
+    'Separated',
+];
+
 export const normalizePaydayValue = (value?: string | null): string => {
     const trimmed = value?.trim() ?? '';
 

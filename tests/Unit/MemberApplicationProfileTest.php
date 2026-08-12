@@ -20,6 +20,30 @@ $baseAttributes = [
     'payday' => '15th',
 ];
 
+test('spouse name and birthdate are not required when civil status is Single, Widowed, or Separated', function () use ($baseAttributes) {
+    foreach (['Single', 'Widowed', 'Separated'] as $civilStatus) {
+        $profile = new MemberApplicationProfile([
+            ...$baseAttributes,
+            'civil_status' => $civilStatus,
+        ]);
+
+        expect($profile->missingRequiredFields())
+            ->not->toContain('spouse_name')
+            ->not->toContain('spouse_birthdate');
+    }
+});
+
+test('spouse name and birthdate are required when civil status is Married', function () use ($baseAttributes) {
+    $profile = new MemberApplicationProfile([
+        ...$baseAttributes,
+        'civil_status' => 'Married',
+    ]);
+
+    expect($profile->missingRequiredFields())
+        ->toContain('spouse_name')
+        ->toContain('spouse_birthdate');
+});
+
 test('only release method is unconditionally included in completion required fields', function () {
     expect(MemberApplicationProfile::completionRequiredFields())
         ->toContain('release_method')

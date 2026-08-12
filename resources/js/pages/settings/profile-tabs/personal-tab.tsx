@@ -43,7 +43,7 @@ type Props = {
     isCivilStatusLocked: boolean;
     isHousingStatusLocked: boolean;
     isSpouseNameLocked: boolean;
-    isSingle: boolean;
+    spouseFieldsHidden: boolean;
     numberOfChildrenValue: string | number;
     birthplaceProvinceSearch: LocationSearchState;
     birthplaceCitySearch: LocationSearchState;
@@ -85,7 +85,7 @@ export function PersonalTab({
     isCivilStatusLocked,
     isHousingStatusLocked,
     isSpouseNameLocked,
-    isSingle,
+    spouseFieldsHidden,
     numberOfChildrenValue,
     birthplaceProvinceSearch,
     birthplaceCitySearch,
@@ -772,7 +772,7 @@ export function PersonalTab({
                             />
                         </div>
 
-                        {!isSingle && (
+                        {!spouseFieldsHidden && (
                             <>
                                 <div className="grid gap-2">
                                     <Label htmlFor="member_record_spouse_name">

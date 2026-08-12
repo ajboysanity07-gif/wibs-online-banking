@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\LoanCivilStatus;
 use App\LoanReleaseMethod;
 use App\Support\LocationComposer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -443,11 +444,11 @@ class MemberApplicationProfile extends Model
         $missing = [];
         $isPensioner = trim((string) ($this->employment_type ?? '')) === self::PENSIONER_EMPLOYMENT_TYPE;
         $effectiveCivilStatus = trim((string) ($wmasterOverrides['civil_status'] ?? $this->civil_status ?? ''));
-        $isSingle = $effectiveCivilStatus === 'Single';
+        $spouseNotApplicable = in_array($effectiveCivilStatus, LoanCivilStatus::spouseNotApplicableValues(), true);
 
         $optional = [
             ...($isPensioner ? self::pensionerOptionalFields() : []),
-            ...($isSingle ? self::spouseFieldsOptionalWhenSingle() : []),
+            ...($spouseNotApplicable ? self::spouseFieldsOptionalWhenSingle() : []),
         ];
 
         foreach ([...self::completionRequiredFields(), ...$this->conditionallyRequiredBankFields()] as $field) {

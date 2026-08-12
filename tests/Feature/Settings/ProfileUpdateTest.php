@@ -1957,6 +1957,48 @@ test('spouse name and birthdate are not required when civil status is Single', f
     expect($memberProfile->spouse_birthdate)->toBeNull();
 });
 
+test('spouse name and birthdate validation is not required when civil status is Widowed or Separated', function () {
+    foreach (['Widowed', 'Separated'] as $civilStatus) {
+        $user = User::factory()->create();
+        UserProfile::factory()->approved()->create([
+            'user_id' => $user->user_id,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->patch(route('profile.update'), [
+                'username' => 'TestUser',
+                'email' => 'test@example.com',
+                'phoneno' => '09123456789',
+                'birthplace_city' => 'City of Batac',
+                'birthplace_province' => 'Ilocos Norte',
+                'educational_attainment' => 'High School',
+                'length_of_stay' => '2 years',
+                'home_address1' => '123 Main Street',
+                'home_address_barangay' => 'Aglipay',
+                'home_address2' => 'Batac City',
+                'home_address3' => 'Ilocos Norte',
+                'civil_status' => $civilStatus,
+                'housing_status' => 'OWNED',
+                'employment_type' => 'Regular',
+                'employer_business_name' => 'Acme Corp',
+                'employer_business_address_barangay' => 'Aglipay',
+                'employer_business_address2' => 'Batac City',
+                'employer_business_address3' => 'Ilocos Norte',
+                'current_position' => 'Analyst',
+                'gross_monthly_income' => '35000.00',
+                'payday' => '15th',
+                'payout_bank_name' => 'BDO',
+                'payout_account_name' => 'Test User',
+                'payout_account_number' => '1234567890',
+                'payout_account_type' => 'Savings',
+                'release_method' => 'Cash',
+            ]);
+
+        $response->assertSessionDoesntHaveErrors(['spouse_name', 'spouse_birthdate']);
+    }
+});
+
 test('spouse name and birthdate are required when civil status is not Single', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([

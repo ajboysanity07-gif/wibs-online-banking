@@ -45,6 +45,7 @@ import {
     PROFILE_PHOTO_OUTPUT_QUALITY,
     PROFILE_PHOTO_OUTPUT_SIZE,
     PROFILE_TAB_ORDER,
+    SPOUSE_NOT_APPLICABLE_STATUSES,
     tabForField,
     type ProfileTab,
     type Props,
@@ -293,7 +294,8 @@ export default function Profile({
     const effectiveCivilStatus = normalizeCivilStatusValue(
         isCivilStatusLocked ? memberCivilStatus : civilStatusValue,
     );
-    const isSingle = effectiveCivilStatus === 'Single';
+    const spouseFieldsHidden =
+        SPOUSE_NOT_APPLICABLE_STATUSES.includes(effectiveCivilStatus);
     const educationalAttainmentOptions =
         educationalAttainment !== '' &&
         !EDUCATIONAL_ATTAINMENT_OPTIONS.includes(educationalAttainment)
@@ -805,7 +807,9 @@ export default function Profile({
                                                     isSpouseNameLocked={
                                                         isSpouseNameLocked
                                                     }
-                                                    isSingle={isSingle}
+                                                    spouseFieldsHidden={
+                                                        spouseFieldsHidden
+                                                    }
                                                     numberOfChildrenValue={
                                                         numberOfChildrenValue
                                                     }
