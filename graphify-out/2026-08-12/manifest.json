@@ -735,7 +735,7 @@
     "semantic_hash": "58b33239167751eb5dfb62f81f4f41da"
   },
   "app/Http/Requests/Settings/ProfileUpdateRequest.php": {
-    "mtime": 1786520135.9976015,
+    "mtime": 1786523113.7807143,
     "ast_hash": "533cfc38bc7e1d4fa1f2c83049a383b0",
     "semantic_hash": ""
   },
@@ -1095,8 +1095,8 @@
     "semantic_hash": "f07ff8dd9f4c3421e6e0a815526994d9"
   },
   "app/Models/MemberApplicationProfile.php": {
-    "mtime": 1786520135.9986129,
-    "ast_hash": "55eadc9a0ea4ca6db04e7b57c64b67c0",
+    "mtime": 1786523431.318325,
+    "ast_hash": "66b8d8e1f60e89bada411c58f6a4f34f",
     "semantic_hash": ""
   },
   "app/Models/MemberDependent.php": {
@@ -3890,8 +3890,8 @@
     "semantic_hash": "cdd68cfafaa25bc3796d30cc125f56cb"
   },
   "tests/Feature/Settings/ProfileUpdateTest.php": {
-    "mtime": 1786520136.0230858,
-    "ast_hash": "aa41005202a22a5ecb34dc4839570062",
+    "mtime": 1786523472.385207,
+    "ast_hash": "09943c4516ecabf6447597821a1b1c0b",
     "semantic_hash": ""
   },
   "tests/Feature/Settings/TwoFactorAuthenticationTest.php": {
@@ -6745,7 +6745,7 @@
     "semantic_hash": ""
   },
   "resources/js/pages/settings/profile-tabs/bank-tab.tsx": {
-    "mtime": 1786520136.0210092,
+    "mtime": 1786523113.8026896,
     "ast_hash": "bf8b7f2eed1b4b8c3132ed0a925d535e",
     "semantic_hash": ""
   },
