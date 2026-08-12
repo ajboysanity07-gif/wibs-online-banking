@@ -22,6 +22,7 @@ beforeEach(function () {
             $table->date('birthday')->nullable();
             $table->string('birthplace')->nullable();
             $table->string('address')->nullable();
+            $table->string('address1')->nullable();
             $table->string('address2')->nullable();
             $table->string('address3')->nullable();
             $table->string('address4')->nullable();
@@ -175,6 +176,11 @@ test('profile update accepts a real birthplace city and province', function () {
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response->assertSessionHasNoErrors();
@@ -219,6 +225,11 @@ test('profile update accepts an optional real birthplace barangay', function () 
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response->assertSessionHasNoErrors();
@@ -294,6 +305,11 @@ test('profile update leaves birthplace barangay blank without error', function (
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response->assertSessionHasNoErrors();
@@ -376,7 +392,7 @@ test('profile page loads member record information from wmaster', function () {
         'birthday' => '1991-04-12',
         'birthplace' => 'Quezon City',
         'address' => 'Legacy Address',
-        'address2' => '123 Mabini Street',
+        'address1' => '123 Mabini Street',
         'address3' => 'Manila',
         'address4' => 'Metro Manila',
         'zone_number' => '1000',
@@ -405,12 +421,12 @@ test('profile page loads member record information from wmaster', function () {
             ->where('memberRecord.birthday', '1991-04-12')
             ->where('memberRecord.address', 'Legacy Address')
             ->where('memberRecord.address1', '123 Mabini Street')
-            ->where('memberRecord.address2', 'Manila')
+            ->where('memberRecord.address2', 'City of Manila')
             ->where('memberRecord.address3', 'Metro Manila')
             ->where('memberRecord.zip_code', '1000')
             ->where(
                 'memberRecord.display_address',
-                '123 Mabini Street, Manila, Metro Manila',
+                '123 Mabini Street, City of Manila, Metro Manila',
             )
             ->where('memberRecord.civilstat', 'Single')
             ->where('memberRecord.occupation', 'Analyst')
@@ -577,6 +593,11 @@ test('profile can be saved when spouse name is locked by wmaster and civil statu
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response->assertSessionHasNoErrors()->assertRedirect(route('client.dashboard'));
@@ -841,6 +862,9 @@ test('profile information can be updated with payout bank details', function () 
             'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => '15th',
@@ -852,6 +876,11 @@ test('profile information can be updated with payout bank details', function () 
             'payout_atm_number' => '5555444433332222',
             'payout_bank_branch' => 'Tagum City',
             'payout_atm_holder_name' => 'Test User',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response
@@ -905,6 +934,11 @@ test('optional bank details can be saved even when release method is not bank tr
             'payout_account_name' => 'Test User',
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response->assertSessionHasNoErrors();
@@ -957,6 +991,9 @@ test('profile information can be updated with height and weight', function () {
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response
@@ -1023,9 +1060,15 @@ test('profile information can be updated with source of fund and government id d
             'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => '15th',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
             'source_of_fund_wealth' => 'Business income',
             'id_type' => 'Others',
             'id_type_other' => 'Voter\'s ID',
@@ -1171,11 +1214,27 @@ test('profile information can be updated with dependent name and birthdate only'
             'birthplace_province' => 'Cebu',
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
             'dependent_sibling_1_name' => 'Updated Sibling',
             'dependent_sibling_1_birthdate' => '1998-05-20',
             'dependent_parent_1_name' => 'Updated Parent',
@@ -1253,11 +1312,27 @@ test('updating dependent name via settings preserves cycle status/number set by 
             'birthplace_province' => 'Cebu',
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
             'dependent_sibling_1_name' => 'Settings-Renamed Sibling',
             'dependent_sibling_1_birthdate' => '1996-02-14',
         ]);
@@ -1311,11 +1386,27 @@ test('removing a dependent in settings deletes the saved row and its cycle data'
             'birthplace_province' => 'Cebu',
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
             'dependent_sibling_1_name' => null,
         ]);
 
@@ -1440,9 +1531,9 @@ test('profile information can be updated', function () {
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
             'employer_business_address1' => 'Acme Plaza',
-            'employer_business_address_barangay' => 'Barangay Poblacion',
-            'employer_business_address2' => 'Tagum City',
-            'employer_business_address3' => 'Davao del Norte',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
             'employer_business_address_zip' => '8100',
             'telephone_no' => '02-123-4567',
             'current_position' => 'Analyst',
@@ -1451,6 +1542,16 @@ test('profile information can be updated', function () {
             'payday' => '15th',
             'years_in_work_business' => '5 years',
             'spouse_cell_no' => '09123456780',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response
@@ -1482,12 +1583,12 @@ test('profile information can be updated', function () {
     expect($memberProfile->employment_type)->toBe('Regular');
     expect($memberProfile->employer_business_name)->toBe('Acme Corp');
     expect($memberProfile->employer_business_address)->toBe(
-        'Acme Plaza, Barangay Poblacion, Tagum City, Davao del Norte',
+        'Acme Plaza, Aglipay, Batac City, Ilocos Norte',
     );
     expect($memberProfile->employer_business_address1)->toBe('Acme Plaza');
-    expect($memberProfile->employer_business_address_barangay)->toBe('Barangay Poblacion');
-    expect($memberProfile->employer_business_address2)->toBe('Tagum City');
-    expect($memberProfile->employer_business_address3)->toBe('Davao del Norte');
+    expect($memberProfile->employer_business_address_barangay)->toBe('Aglipay');
+    expect($memberProfile->employer_business_address2)->toBe('Batac City');
+    expect($memberProfile->employer_business_address3)->toBe('Ilocos Norte');
     expect($memberProfile->employer_business_address_zip)->toBe('8100');
     expect($memberProfile->telephone_no)->toBe('02-123-4567');
     expect($memberProfile->current_position)->toBe('Analyst');
@@ -1527,13 +1628,27 @@ test('profile information can be updated with other nature of business', functio
             'birthplace_province' => 'Cebu',
             'educational_attainment' => 'College',
             'length_of_stay' => '3 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '45000.00',
             'payday' => '15th',
             'nature_of_business' => 'Other',
             'nature_of_business_other' => 'Logistics',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response
@@ -1610,11 +1725,26 @@ test('hybrid members can update member profile fields', function () {
             'birthplace_province' => 'Cebu',
             'educational_attainment' => 'College',
             'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '45000.00',
             'payday' => '15th',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response
@@ -1671,11 +1801,26 @@ test('member profile information can be updated with a profile photo', function 
             'birthplace_province' => 'Cebu',
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => '15th',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
             'profile_photo' => UploadedFile::fake()->image('member-avatar.jpg'),
         ]);
 
@@ -1720,11 +1865,26 @@ test('member profile photo replacements remove the old file', function () {
             'birthplace_province' => 'Davao del Sur',
             'educational_attainment' => 'College',
             'length_of_stay' => '3 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '45000.00',
             'payday' => '30th',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
             'profile_photo' => UploadedFile::fake()->image('member-avatar.jpg'),
         ]);
 
@@ -1771,11 +1931,25 @@ test('email verification status is unchanged when the email address is unchanged
             'birthplace_province' => 'Cebu',
             'educational_attainment' => 'College',
             'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.50',
             'payday' => '15th',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response
@@ -1844,6 +2018,11 @@ test('civil status and housing status are self-reportable when wmaster has no va
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response->assertSessionHasNoErrors();
@@ -1898,6 +2077,11 @@ test('civil status and housing status stay locked once wmaster has a value', fun
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     // civil_status/housing_status weren't submitted (disabled inputs aren't
@@ -1946,6 +2130,11 @@ test('spouse name and birthdate are not required when civil status is Single', f
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response->assertSessionHasNoErrors()->assertRedirect(route('client.dashboard'));
@@ -2071,6 +2260,11 @@ test('spouse birthdate persists on the member application profile', function () 
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
         ]);
 
     $response->assertSessionHasNoErrors();
@@ -2122,7 +2316,7 @@ test('correct password must be provided to delete account', function () {
 
 test('profile page submits atm card holder name via hidden input when using own card', function () {
     $contents = file_get_contents(
-        base_path('resources/js/pages/settings/profile.tsx'),
+        base_path('resources/js/pages/settings/profile-tabs/bank-tab.tsx'),
     );
 
     expect($contents)->toContain('name="payout_atm_holder_name"');

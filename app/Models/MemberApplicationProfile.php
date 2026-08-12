@@ -465,6 +465,13 @@ class MemberApplicationProfile extends Model
             }
         }
 
+        if (
+            trim((string) ($this->id_type ?? '')) === 'Others'
+            && trim((string) ($this->id_type_other ?? '')) === ''
+        ) {
+            $missing[] = 'id_type_other';
+        }
+
         return $missing;
     }
 
@@ -498,6 +505,12 @@ class MemberApplicationProfile extends Model
             'release_method' => 'Release method',
             'payout_atm_number' => 'ATM card number',
             'payout_atm_holder_name' => 'ATM card holder name',
+            'source_of_fund_wealth' => 'Source of fund / wealth',
+            'id_type' => 'Government ID type',
+            'id_type_other' => 'Government ID type (specify)',
+            'id_number' => 'ID number',
+            'height_cm' => 'Height',
+            'weight_kg' => 'Weight',
         ];
     }
 

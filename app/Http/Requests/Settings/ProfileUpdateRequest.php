@@ -410,12 +410,12 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
             ],
             'source_of_fund_wealth' => [
-                'nullable',
+                $memberRequirement('source_of_fund_wealth'),
                 'string',
                 'max:255',
             ],
             'id_type' => [
-                'nullable',
+                $memberRequirement('id_type'),
                 'string',
                 Rule::in(MemberApplicationProfile::ID_TYPE_OPTIONS),
             ],
@@ -426,17 +426,17 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
             ],
             'id_number' => [
-                'nullable',
+                $memberRequirement('id_number'),
                 'string',
                 'max:100',
             ],
             'height_cm' => [
-                'nullable',
+                $memberRequirement('height_cm'),
                 'string',
                 'max:255',
             ],
             'weight_kg' => [
-                'nullable',
+                $memberRequirement('weight_kg'),
                 'string',
                 'max:255',
             ],

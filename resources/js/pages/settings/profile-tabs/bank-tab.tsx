@@ -419,7 +419,11 @@ export function BankTab({
 
                             <Input
                                 id="source_of_fund_wealth"
-                                className="mt-1 block w-full"
+                                className={cn(
+                                    'mt-1 block w-full',
+                                    isFieldMissing('source_of_fund_wealth') &&
+                                        MISSING_FIELD_CLASS,
+                                )}
                                 defaultValue={
                                     memberApplicationProfile?.source_of_fund_wealth ??
                                     ''
@@ -449,7 +453,11 @@ export function BankTab({
                             >
                                 <SelectTrigger
                                     id="id_type"
-                                    className="mt-1 w-full"
+                                    className={cn(
+                                        'mt-1 w-full',
+                                        isFieldMissing('id_type') &&
+                                            MISSING_FIELD_CLASS,
+                                    )}
                                 >
                                     <SelectValue placeholder="Select ID type" />
                                 </SelectTrigger>
@@ -503,7 +511,11 @@ export function BankTab({
 
                             <Input
                                 id="id_number"
-                                className="mt-1 block w-full"
+                                className={cn(
+                                    'mt-1 block w-full',
+                                    isFieldMissing('id_number') &&
+                                        MISSING_FIELD_CLASS,
+                                )}
                                 defaultValue={
                                     memberApplicationProfile?.id_number ?? ''
                                 }
@@ -538,7 +550,11 @@ export function BankTab({
                             <div className="relative">
                                 <Input
                                     id="height_cm"
-                                    className="mt-1 block w-full pr-10"
+                                    className={cn(
+                                        'mt-1 block w-full pr-10',
+                                        isFieldMissing('height_cm') &&
+                                            MISSING_FIELD_CLASS,
+                                    )}
                                     defaultValue={
                                         memberApplicationProfile?.height_cm ??
                                         ''
@@ -565,7 +581,11 @@ export function BankTab({
                             <div className="relative">
                                 <Input
                                     id="weight_kg"
-                                    className="mt-1 block w-full pr-10"
+                                    className={cn(
+                                        'mt-1 block w-full pr-10',
+                                        isFieldMissing('weight_kg') &&
+                                            MISSING_FIELD_CLASS,
+                                    )}
                                     defaultValue={
                                         memberApplicationProfile?.weight_kg ??
                                         ''
