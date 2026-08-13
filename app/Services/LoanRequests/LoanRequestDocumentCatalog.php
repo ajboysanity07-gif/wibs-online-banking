@@ -290,12 +290,9 @@ class LoanRequestDocumentCatalog
                 'guaranteed_net_take_home_pay',
             ],
             'source_fields' => [
-                // barangay_official_designation/agency_name/agency_address are no longer
-                // read for PDF *content* (the field map sources that from applicant.*,
-                // covered by the 'applicant.' source_paths wildcard below) but they and
-                // the applicant's employer name still drive *applicability* -- see
-                // barangayApplicable() -- so a change to any of them must still mark this
-                // document stale.
+                // barangay_official_designation/agency_name/agency_address are staff-entered
+                // (processing section) and feed the PDF's official_designation/agency_name/
+                // agency_address content directly -- see ApprovedLoanDocumentDataBuilder.
                 'guaranteed_net_take_home_pay',
                 'barangay_official_designation',
                 'barangay_agency_name',
@@ -941,22 +938,13 @@ class LoanRequestDocumentCatalog
      * True when the borrower's income is disbursed through a barangay LGU -- the
      * only case the Undertaking-Barangay document (MRDINC's guaranteed net
      * take-home-pay commitment for barangay-payroll borrowers) applies to. Signalled
-     * by the member's own "barangay information" wizard fields, by the applicant's
-     * employer/business name obviously naming a barangay, or -- for the shorter
-     * "brgy"/"bgy" abbreviations, which are too ambiguous to trust on their own --
-     * by the same abbreviations once Employment=Government + Nature of
-     * Business=Government confirms the applicant works in the government sector.
+     * by the applicant's employer/business name obviously naming a barangay, or --
+     * for the shorter "brgy"/"bgy" abbreviations, which are too ambiguous to trust
+     * on their own -- by the same abbreviations once Employment=Government + Nature
+     * of Business=Government confirms the applicant works in the government sector.
      */
     private function barangayApplicable(LoanRequest $loanRequest, array $flatValues): bool
     {
-        if ($this->hasAnyValue($flatValues, [
-            'barangay_official_designation',
-            'barangay_agency_name',
-            'barangay_agency_address',
-        ])) {
-            return true;
-        }
-
         $applicant = $loanRequest->applicant;
         $employer = $applicant?->employer_business_name;
 
@@ -1060,26 +1048,6 @@ class LoanRequestDocumentCatalog
         return ! $this->pensionerApplicable($loanRequest, $flatValues)
             && ! $this->depedEmployeeApplicable($loanRequest, $flatValues)
             && $this->authorityToDeductCategory($loanRequest, $flatValues) === null;
-    }
-
-    /**
-     * @param  list<string>  $fieldKeys
-     */
-    private function hasAnyValue(array $flatValues, array $fieldKeys): bool
-    {
-        foreach ($fieldKeys as $fieldKey) {
-            $value = $flatValues[$fieldKey] ?? null;
-
-            if (is_bool($value)) {
-                return true;
-            }
-
-            if ($value !== null && trim((string) $value) !== '') {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

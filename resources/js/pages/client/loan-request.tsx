@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, ChevronDown } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
@@ -30,11 +30,6 @@ import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import client from '@/lib/api/client';
@@ -43,7 +38,6 @@ import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { dashboard as clientDashboard } from '@/routes/client';
 import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
-import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem } from '@/types';
 import type {
     AutoFilledDeclarations,
@@ -356,17 +350,14 @@ const resolveStepFromErrors = (
 
         if (key.startsWith('health_glapi.')) {
             const field = key.replace('health_glapi.', '');
-            const itemNumber = parseGlapiItem(field)?.number;
-            const chunkIndex =
-                itemNumber !== undefined
-                    ? glapiItemNumberToStepOffset[itemNumber]
-                    : undefined;
+            const itemNumber = parseGlapiItem(field)?.number ?? field;
+            const chunkIndex = glapiItemNumberToStepOffset[itemNumber];
 
             stepMatches.push(GLAPI_STEP_START + (chunkIndex ?? 0));
             return;
         }
 
-        if (key.startsWith('banking.') || key.startsWith('barangay.')) {
+        if (key.startsWith('banking.')) {
             stepMatches.push(STEP_INDEX['banking']);
             return;
         }
@@ -420,7 +411,6 @@ export default function LoanRequestPage({
     const [dependentsConfirmed, setDependentsConfirmed] = useState(
         !dependentsPrefilledFromProfile,
     );
-    const [barangaySectionOpen, setBarangaySectionOpen] = useState(false);
     const [activeAction, setActiveAction] = useState<'draft' | 'submit' | null>(
         null,
     );
@@ -474,9 +464,6 @@ export default function LoanRequestPage({
         },
         banking: {
             ...dataSections.banking,
-        },
-        barangay: {
-            ...dataSections.barangay,
         },
         declarations: {
             ...dataSections.declarations,
@@ -590,7 +577,6 @@ export default function LoanRequestPage({
                 | 'health'
                 | 'health_glapi'
                 | 'banking'
-                | 'barangay'
                 | 'declarations'
                 | 'dependents'
             >,
@@ -759,6 +745,8 @@ export default function LoanRequestPage({
                                         (currentStep ===
                                             STEP_INDEX['banking'] &&
                                             bankingPrefilledFromProfile &&
+                                            form.data.banking.release_method ===
+                                                'Bank Transfer' &&
                                             !bankAccountConfirmed) ||
                                         (currentStep ===
                                             STEP_INDEX['dependents'] &&
@@ -882,13 +870,6 @@ export default function LoanRequestPage({
                                             hasExistingProfileData={
                                                 dependentsPrefilledFromProfile
                                             }
-                                            editInSettingsHref={editProfile.url(
-                                                {
-                                                    query: {
-                                                        tab: 'dependents',
-                                                    },
-                                                },
-                                            )}
                                         />
 
                                         {dependentsPrefilledFromProfile ? (
@@ -1290,7 +1271,9 @@ export default function LoanRequestPage({
                                             applicantFullName={member.name}
                                         />
 
-                                        {bankingPrefilledFromProfile ? (
+                                        {bankingPrefilledFromProfile &&
+                                        form.data.banking.release_method ===
+                                            'Bank Transfer' ? (
                                             <LoanRequestSectionCard
                                                 title="Confirm bank details"
                                                 description="These details were pre-filled from your member profile."
@@ -1317,56 +1300,6 @@ export default function LoanRequestPage({
                                                 </div>
                                             </LoanRequestSectionCard>
                                         ) : null}
-
-                                        <Collapsible
-                                            open={barangaySectionOpen}
-                                            onOpenChange={
-                                                setBarangaySectionOpen
-                                            }
-                                        >
-                                            <CollapsibleTrigger asChild>
-                                                <button
-                                                    type="button"
-                                                    className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-muted/10 px-4 py-3 text-left"
-                                                >
-                                                    <span className="space-y-0.5">
-                                                        <span className="block text-sm font-medium">
-                                                            Barangay information
-                                                            (optional)
-                                                        </span>
-                                                        <span className="block text-xs text-muted-foreground">
-                                                            Only needed if a
-                                                            barangay official is
-                                                            involved in this
-                                                            request.
-                                                        </span>
-                                                    </span>
-                                                    <ChevronDown
-                                                        className={cn(
-                                                            'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
-                                                            barangaySectionOpen
-                                                                ? 'rotate-180'
-                                                                : '',
-                                                        )}
-                                                    />
-                                                </button>
-                                            </CollapsibleTrigger>
-                                            <CollapsibleContent className="pt-4">
-                                                <LoanRequestDataSectionStep
-                                                    sectionKey="barangay"
-                                                    title="Barangay information"
-                                                    description="Provide the barangay details required for the supporting documents. This section is optional."
-                                                    values={form.data.barangay}
-                                                    definition={
-                                                        dataSectionDefinitions.barangay
-                                                    }
-                                                    errors={form.errors}
-                                                    onChange={updateDataSection(
-                                                        'barangay',
-                                                    )}
-                                                />
-                                            </CollapsibleContent>
-                                        </Collapsible>
                                     </div>
                                 </LoanRequestAnimatedStep>
 

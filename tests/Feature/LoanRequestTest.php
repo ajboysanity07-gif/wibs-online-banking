@@ -4040,7 +4040,7 @@ test('admin can correct under review loan request details and people snapshots',
     );
 });
 
-test('admin correction persists health, health_glapi, dependents, insurance, banking, and barangay edits', function () {
+test('admin correction persists health, health_glapi, dependents, insurance, and banking edits', function () {
     $admin = User::factory()->create([
         'acctno' => '000523',
     ]);
@@ -4079,9 +4079,6 @@ test('admin correction persists health, health_glapi, dependents, insurance, ban
                 'banking' => [
                     'payout_bank_name' => 'Corrected Bank',
                 ],
-                'barangay' => [
-                    'barangay_official_designation' => 'Councilor',
-                ],
                 'dependents' => [
                     'applicant_cycle_status' => 'Old',
                     'applicant_cycle_number' => 3,
@@ -4101,7 +4098,6 @@ test('admin correction persists health, health_glapi, dependents, insurance, ban
         ->and($flatValues['applicant_pep_status'])->toBeTrue()
         ->and($flatValues['applicant_pep_status_details'])->toBe('Barangay Councilor, since 2020')
         ->and($flatValues['payout_bank_name'])->toBe('Corrected Bank')
-        ->and($flatValues['barangay_official_designation'])->toBe('Councilor')
         ->and($flatValues['applicant_cycle_status'])->toBe('Old')
         ->and((int) $flatValues['applicant_cycle_number'])->toBe(3);
 

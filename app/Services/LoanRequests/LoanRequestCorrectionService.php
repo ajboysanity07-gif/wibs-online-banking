@@ -27,7 +27,6 @@ class LoanRequestCorrectionService
         'health',
         'health_glapi',
         'banking',
-        'barangay',
         'dependents',
     ];
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import {
     ApplicantCycleSection,
@@ -542,12 +542,7 @@ const SummaryCard = ({ title, description, children }: SummaryCardProps) => (
 type DataSectionStepProps = {
     sectionKey: keyof Pick<
         LoanRequestFormData,
-        | 'insurance'
-        | 'health'
-        | 'health_glapi'
-        | 'banking'
-        | 'barangay'
-        | 'declarations'
+        'insurance' | 'health' | 'health_glapi' | 'banking' | 'declarations'
     >;
     title: string;
     description: string;
@@ -1779,7 +1774,6 @@ type DependentsStepProps = {
     crossSectionValues: Record<string, LoanRequestDataFieldValue>;
     onChange: (field: string, value: string | number | boolean | null) => void;
     hasExistingProfileData: boolean;
-    editInSettingsHref: string;
 };
 
 function isDependentCategoryVisible(
@@ -1837,8 +1831,8 @@ export function LoanRequestDependentsStep({
     crossSectionValues,
     onChange,
     hasExistingProfileData,
-    editInSettingsHref,
 }: DependentsStepProps) {
+    const [forceEditable, setForceEditable] = useState(false);
     const visibleCategories = DEPENDENT_CATEGORIES.filter((category) =>
         isDependentCategoryVisible(category, definition, crossSectionValues),
     );
@@ -1850,7 +1844,7 @@ export function LoanRequestDependentsStep({
     const spouseCycleNumber = values[SPOUSE_CYCLE_NUMBER_KEY];
     const hasSpouseCycleData = spouseVisible && Boolean(spouseCycleStatus);
 
-    if (hasExistingProfileData) {
+    if (hasExistingProfileData && !forceEditable) {
         const summaries = summarizeDependents(visibleCategories, values);
         const summaryCounts = summaries.map(({ category, count }) => {
             const label =
@@ -1915,12 +1909,13 @@ export function LoanRequestDependentsStep({
                                 ? 'is'
                                 : 'are'}{' '}
                             missing a group life coverage status (New/Old).{' '}
-                            <a
-                                href={editInSettingsHref}
+                            <button
+                                type="button"
+                                onClick={() => setForceEditable(true)}
                                 className="font-medium underline underline-offset-2"
                             >
-                                Edit in Settings
-                            </a>{' '}
+                                Edit here
+                            </button>{' '}
                             to complete it before submitting.
                         </AlertDescription>
                     </Alert>
@@ -1976,8 +1971,13 @@ export function LoanRequestDependentsStep({
                             </Card>
                         ))}
                     </div>
-                    <Button type="button" variant="outline" size="sm" asChild>
-                        <a href={editInSettingsHref}>Edit in Settings</a>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setForceEditable(true)}
+                    >
+                        Edit here
                     </Button>
                 </div>
             </LoanRequestSectionCard>
@@ -2224,7 +2224,6 @@ export function LoanRequestReviewStep({
             | 'health'
             | 'health_glapi'
             | 'banking'
-            | 'barangay'
             | 'declarations',
     ) =>
         Object.entries(sectionDefinitions[sectionKey]?.fields ?? {})
@@ -2248,7 +2247,6 @@ export function LoanRequestReviewStep({
             ['insurance'],
             ['health', 'health_glapi'],
             ['banking'],
-            ['barangay'],
             ['declarations'],
         ] as const
     ).map((sectionKeys) => ({

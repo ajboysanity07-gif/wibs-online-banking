@@ -67,8 +67,14 @@ test('undertaking barangay is not applicable when the borrower has no barangay-e
     expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest, []))->toBeFalse();
 });
 
-test('undertaking barangay becomes applicable once the member declares barangay information', function (): void {
+test('undertaking barangay becomes applicable once staff enter the barangay agency details for a barangay-employer applicant', function (): void {
     $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employer_business_name' => 'Barangay San Isidro']);
+
     $catalog = app(LoanRequestDocumentCatalog::class);
 
     applicabilityPersistDataEntries($loanRequest, [
@@ -77,7 +83,7 @@ test('undertaking barangay becomes applicable once the member declares barangay 
 
     $flatValues = app(LoanRequestDataService::class)->loadFlatValues($loanRequest);
 
-    expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest, $flatValues))->toBeTrue();
+    expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest->fresh(), $flatValues))->toBeTrue();
 });
 
 test('undertaking barangay becomes applicable when the applicant employer name contains "barangay"', function (): void {
@@ -178,11 +184,16 @@ test('undertaking barangay surfaces incomplete when applicable but its required 
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
     ]);
 
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employer_business_name' => 'Barangay San Isidro']);
+
     applicabilityPersistDataEntries($loanRequest, [
         'barangay_agency_name' => ['string', 'Barangay San Isidro'],
     ]);
 
-    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::UndertakingBarangay);
+    $entry = applicabilityChecklistEntry($loanRequest->fresh(), LoanRequestDocumentKey::UndertakingBarangay);
 
     expect($entry['is_applicable'])->toBeTrue()
         ->and($entry['status'])->not->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
@@ -195,12 +206,17 @@ test('undertaking barangay becomes ready to generate once applicable and its req
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
     ]);
 
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employer_business_name' => 'Barangay San Isidro']);
+
     applicabilityPersistDataEntries($loanRequest, [
         'barangay_agency_name' => ['string', 'Barangay San Isidro'],
         'guaranteed_net_take_home_pay' => ['number', 15000],
     ]);
 
-    $barangay = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::UndertakingBarangay);
+    $barangay = applicabilityChecklistEntry($loanRequest->fresh(), LoanRequestDocumentKey::UndertakingBarangay);
 
     expect($barangay['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value);
 });

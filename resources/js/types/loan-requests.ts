@@ -569,7 +569,6 @@ export type LoanRequestFormData = {
     health: LoanRequestDataSectionValues;
     health_glapi: LoanRequestDataSectionValues;
     banking: LoanRequestDataSectionValues;
-    barangay: LoanRequestDataSectionValues;
     declarations: LoanRequestDataSectionValues;
     dependents: LoanRequestDataSectionValues;
 };
@@ -592,7 +591,6 @@ export type LoanRequestCorrectionPayload = Pick<
             | 'health'
             | 'health_glapi'
             | 'banking'
-            | 'barangay'
             | 'declarations'
             | 'dependents'
         >

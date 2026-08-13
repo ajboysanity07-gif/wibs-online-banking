@@ -148,6 +148,9 @@ const SNAPSHOT_HIDDEN_FIELDS = new Set(['witness_two_id']);
 const SNAPSHOT_BARANGAY_FIELDS = [
     'barangay_official_name',
     'barangay_official_title',
+    'barangay_official_designation',
+    'barangay_agency_name',
+    'barangay_agency_address',
 ];
 
 const SNAPSHOT_AUTHORITY_TO_DEDUCT_FIELDS = [
@@ -1134,6 +1137,15 @@ export function ProcessingDetailsPanel({
                                     )}
                                     {renderProcessingField(
                                         'barangay_official_title',
+                                    )}
+                                    {renderProcessingField(
+                                        'barangay_official_designation',
+                                    )}
+                                    {renderProcessingField(
+                                        'barangay_agency_name',
+                                    )}
+                                    {renderProcessingField(
+                                        'barangay_agency_address',
                                     )}
                                 </>
                             )}

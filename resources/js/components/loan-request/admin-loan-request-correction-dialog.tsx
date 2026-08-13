@@ -164,8 +164,7 @@ const WIZARD_STEPS: Array<LoanRequestWizardStep & { id: WizardStepId }> = [
     {
         id: 'banking',
         title: 'Banking & payout',
-        description:
-            'Review bank account and payout details. Barangay info is optional.',
+        description: 'Review bank account and payout details.',
         group: 'banking',
     },
     {
@@ -285,11 +284,6 @@ const dataSectionFieldLabels: Record<string, Record<string, string>> = {
         release_method: 'Release method',
         payment_option: 'Payment option',
         payout_atm_number: 'ATM number',
-    },
-    barangay: {
-        barangay_official_designation: 'Barangay official designation',
-        barangay_agency_name: 'Barangay agency name',
-        barangay_agency_address: 'Barangay agency address',
     },
 };
 
@@ -575,7 +569,6 @@ const buildInitialFormData = (
     health: dataSections.health ?? {},
     health_glapi: dataSections.health_glapi ?? {},
     banking: dataSections.banking ?? {},
-    barangay: dataSections.barangay ?? {},
     declarations: dataSections.declarations ?? {},
     dependents: dataSections.dependents ?? {},
     change_reason: correctionReportContext
@@ -1258,13 +1251,6 @@ function CorrectionDialogForm({
             dataSectionFieldLabels.banking,
         );
 
-        const barangayChanges = buildDataSectionChanges(
-            'barangay',
-            initialFormData.barangay ?? {},
-            formData.barangay,
-            dataSectionFieldLabels.barangay,
-        );
-
         const dependentsChanges = buildDataSectionChanges(
             'dependents',
             initialFormData.dependents ?? {},
@@ -1336,8 +1322,8 @@ function CorrectionDialogForm({
             {
                 id: 'banking',
                 title: 'Banking & payout',
-                description: 'Bank account and barangay details.',
-                changes: [...bankingChanges, ...barangayChanges],
+                description: 'Bank account details.',
+                changes: [...bankingChanges],
             },
         ];
     })();
@@ -1420,7 +1406,6 @@ function CorrectionDialogForm({
                 | 'health'
                 | 'health_glapi'
                 | 'banking'
-                | 'barangay'
                 | 'dependents',
         ) =>
         (field: string, value: string | number | boolean | null) => {
@@ -1517,7 +1502,6 @@ function CorrectionDialogForm({
                     formData.health_glapi.applicant_pep_status_details,
             },
             banking: formData.banking,
-            barangay: formData.barangay,
             change_reason: formData.change_reason.trim(),
         });
     };
@@ -1730,7 +1714,6 @@ function CorrectionDialogForm({
                                     }}
                                     onChange={updateDataSection('dependents')}
                                     hasExistingProfileData={false}
-                                    editInSettingsHref=""
                                 />
                             </div>
                         </LoanRequestAnimatedStep>
@@ -1778,23 +1761,6 @@ function CorrectionDialogForm({
                                     onChange={updateDataSection('banking')}
                                     applicantFullName={`${applicant?.first_name ?? ''} ${applicant?.last_name ?? ''}`.trim()}
                                 />
-
-                                <LoanRequestSectionCard
-                                    title="Barangay information (optional)"
-                                    description="Required only if barangay certification is part of the loan documentation."
-                                >
-                                    <LoanRequestDataSectionStep
-                                        sectionKey="barangay"
-                                        title="Barangay details"
-                                        description="Provide barangay official and agency information if required."
-                                        values={formData.barangay}
-                                        definition={
-                                            dataSectionDefinitions.barangay
-                                        }
-                                        errors={mergedErrors}
-                                        onChange={updateDataSection('barangay')}
-                                    />
-                                </LoanRequestSectionCard>
                             </div>
                         </LoanRequestAnimatedStep>
 
