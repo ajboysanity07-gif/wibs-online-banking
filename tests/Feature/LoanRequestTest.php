@@ -1481,6 +1481,197 @@ test('applicant date employed is stored and co-makers do not require it', functi
     expect($applicant->employer_date_employed->toDateString())->toBe('2019-06-01');
 });
 
+test('applicant legacy location values need not be selected from the PSGC suggestions', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create(['acctno' => '000760']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Legacy',
+        'fname' => 'Legacy',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Legacy Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
+        'user_id' => $user->user_id,
+        'home_address1' => 'Legacy Street',
+        'home_address_barangay' => 'Aglipay',
+        'home_address2' => 'Batac City',
+        'home_address3' => 'Ilocos Norte',
+        'housing_status' => 'OWNED',
+        'employer_business_address_barangay' => 'Aglipay',
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-LGC',
+        'lntype' => 'Legacy Loan',
+    ]);
+
+    $coMakerPayload = [
+        'first_name' => 'Co',
+        'last_name' => 'Maker',
+        'middle_name' => null,
+        'nickname' => null,
+        'birthdate' => '1985-06-20',
+        'birthplace_city' => 'Cebu',
+        'birthplace_province' => 'Cebu',
+        'address1' => 'Co Street',
+        'address2' => 'Cebu City',
+        'address3' => 'Cebu',
+        'length_of_stay' => '5 years',
+        'housing_status' => 'RENT',
+        'cell_no' => '09222222222',
+        'civil_status' => 'Single',
+        'educational_attainment' => 'College',
+        'employment_type' => 'Government',
+        'employer_business_name' => 'GSIS Office',
+        'employer_business_address1' => 'GSIS Plaza',
+        'employer_business_address2' => 'Cebu City',
+        'employer_business_address3' => 'Cebu',
+        'telephone_no' => null,
+        'current_position' => 'Clerk',
+        'nature_of_business' => 'Government',
+        'years_in_work_business' => '10 years',
+        'gross_monthly_income' => 18000,
+        'payday' => '30th',
+    ];
+
+    $payload = [
+        'typecode' => 'LN-LGC',
+        'requested_amount' => 10000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Personal',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
+        'applicant' => [
+            'first_name' => 'Legacy',
+            'last_name' => 'Member',
+            'middle_name' => 'L',
+            'nickname' => null,
+            'birthdate' => '1990-04-10',
+            'birthplace_city' => 'Old City',
+            'birthplace_province' => 'Old Province',
+            'address1' => 'Legacy Street',
+            'address_barangay' => 'Old Barangay',
+            'address2' => 'Old City',
+            'address3' => 'Old Province',
+            'length_of_stay' => '5 years',
+            'housing_status' => 'OWNED',
+            'cell_no' => '09123456789',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'College',
+            'number_of_children' => 2,
+            'employment_type' => 'Private',
+            'employer_business_name' => 'Legacy Company',
+            'employer_business_address1' => 'Legacy Center',
+            'employer_business_address_barangay' => 'Old Barangay',
+            'employer_business_address2' => 'Old City',
+            'employer_business_address3' => 'Old Province',
+            'telephone_no' => null,
+            'current_position' => 'Analyst',
+            'nature_of_business' => 'Finance',
+            'years_in_work_business' => '5 years',
+            'employer_date_employed' => '2018-03-15',
+            'gross_monthly_income' => 30000,
+            'payday' => '15th & 30th',
+        ],
+        'co_maker_1' => $coMakerPayload,
+        'co_maker_2' => array_merge($coMakerPayload, [
+            'first_name' => 'Second',
+            'last_name' => 'Maker',
+            'cell_no' => '09333333333',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
+            'housing_status' => 'OWNED',
+        ]),
+    ];
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $loanRequest = LoanRequest::query()->first();
+
+    $response->assertSessionHasNoErrors();
+    expect($loanRequest)->not->toBeNull();
+    expect($loanRequest->status)->toBe(LoanRequestStatus::PendingReview);
+});
+
+test('co-maker birthplace must still be selected from the PSGC suggestions', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create(['acctno' => '000761']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Strict',
+        'fname' => 'Strict',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Strict Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
+        'user_id' => $user->user_id,
+        'home_address1' => 'Strict Street',
+        'home_address_barangay' => 'Aglipay',
+        'home_address2' => 'Batac City',
+        'home_address3' => 'Ilocos Norte',
+        'housing_status' => 'OWNED',
+        'employer_business_address_barangay' => 'Aglipay',
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-STR',
+        'lntype' => 'Strict Loan',
+    ]);
+
+    $payload = [
+        'typecode' => 'LN-STR',
+        'requested_amount' => 10000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Personal',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
+        'applicant' => pensionerPersonPayload(),
+        'co_maker_1' => array_merge(pensionerPersonPayload(), [
+            'first_name' => 'Co',
+            'last_name' => 'Maker',
+            'cell_no' => '09222222222',
+            'birthplace_city' => 'Old City',
+            'birthplace_province' => 'Old Province',
+            'address2' => 'Cebu City',
+            'address3' => 'Cebu',
+            'housing_status' => 'RENT',
+            'gross_monthly_income' => 18000,
+        ]),
+        'co_maker_2' => array_merge(pensionerPersonPayload(), [
+            'first_name' => 'Second',
+            'last_name' => 'Maker',
+            'cell_no' => '09333333333',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
+            'housing_status' => 'OWNED',
+            'gross_monthly_income' => 16000,
+        ]),
+    ];
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $response->assertSessionHasErrors(['co_maker_1.birthplace_city']);
+});
+
 test('legacy applicant signature payload is ignored when signatures are collected physically', function () {
     Storage::fake('public');
 
