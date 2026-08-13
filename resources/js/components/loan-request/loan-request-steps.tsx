@@ -598,124 +598,6 @@ const displaySectionValue = (
     return displayText(`${value}`);
 };
 
-const EXISTING_LOAN_ROW_SLOTS = [1, 2, 3] as const;
-
-type ExistingLoansTableProps = {
-    sectionKey: string;
-    values: LoanRequestDataSectionValues;
-    errors: Record<string, string | undefined>;
-    onChange: (field: string, value: string | number | boolean | null) => void;
-};
-
-// Existing/previous loan detail rows (GLAPI section 1.1 table). Fixed 3-slot
-// table matching the PDF's printed row capacity -- same fixed-slot pattern
-// as Dependents/Beneficiaries (see LoanRequestDataService::FIELD_DEFINITIONS
-// comment). Rendered only while declaration_existing_loans === true.
-function ExistingLoansTable({
-    sectionKey,
-    values,
-    errors,
-    onChange,
-}: ExistingLoansTableProps) {
-    return (
-        <div className="mt-2 overflow-x-auto rounded-md border border-border/50">
-            <table className="w-full text-sm">
-                <thead>
-                    <tr className="border-b border-border/50 bg-muted/20">
-                        <th className="p-2 text-left font-medium">
-                            Date of loan
-                        </th>
-                        <th className="p-2 text-left font-medium">
-                            Type of loan
-                        </th>
-                        <th className="p-2 text-left font-medium">
-                            Amount of loan
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {EXISTING_LOAN_ROW_SLOTS.map((slot) => {
-                        const dateKey = `existing_loan_${slot}_date`;
-                        const typeKey = `existing_loan_${slot}_type`;
-                        const amountKey = `existing_loan_${slot}_amount`;
-                        const dateValue = values[dateKey];
-                        const typeValue = values[typeKey];
-                        const amountValue = values[amountKey];
-
-                        return (
-                            <tr
-                                key={slot}
-                                className="border-b border-border/30 last:border-b-0"
-                            >
-                                <td className="p-2 align-top">
-                                    <Input
-                                        id={`${sectionKey}_${dateKey}`}
-                                        type="date"
-                                        aria-label={`Existing loan ${slot} date`}
-                                        value={dateValue ? `${dateValue}` : ''}
-                                        onChange={(event) =>
-                                            onChange(
-                                                dateKey,
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError
-                                        message={
-                                            errors[`${sectionKey}.${dateKey}`]
-                                        }
-                                    />
-                                </td>
-                                <td className="p-2 align-top">
-                                    <Input
-                                        id={`${sectionKey}_${typeKey}`}
-                                        type="text"
-                                        aria-label={`Existing loan ${slot} type`}
-                                        value={typeValue ? `${typeValue}` : ''}
-                                        onChange={(event) =>
-                                            onChange(
-                                                typeKey,
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError
-                                        message={
-                                            errors[`${sectionKey}.${typeKey}`]
-                                        }
-                                    />
-                                </td>
-                                <td className="p-2 align-top">
-                                    <Input
-                                        id={`${sectionKey}_${amountKey}`}
-                                        type="number"
-                                        step="0.01"
-                                        aria-label={`Existing loan ${slot} amount`}
-                                        value={
-                                            amountValue ? `${amountValue}` : ''
-                                        }
-                                        onChange={(event) =>
-                                            onChange(
-                                                amountKey,
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError
-                                        message={
-                                            errors[`${sectionKey}.${amountKey}`]
-                                        }
-                                    />
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
-    );
-}
-
 export function LoanRequestDataSectionStep({
     sectionKey,
     title,
@@ -739,9 +621,9 @@ export function LoanRequestDataSectionStep({
                     const isNotesField = fieldKey.includes('notes');
                     const consentCopy = CONSENT_CHECKBOX_COPY[fieldKey];
 
-                    // Existing-loan detail rows render together as a table
-                    // right after declaration_existing_loans (see below),
-                    // not as individual generic fields in this grid.
+                    // Existing-loan detail fields are auto-filled from
+                    // account records and feed the GLAPI PDF, but are not
+                    // shown to the member in the wizard.
                     if (fieldKey.startsWith('existing_loan_')) {
                         return null;
                     }
@@ -793,14 +675,6 @@ export function LoanRequestDataSectionStep({
                                     records.
                                 </p>
                                 <InputError message={errors[errorKey]} />
-                                {value === true && (
-                                    <ExistingLoansTable
-                                        sectionKey={sectionKey}
-                                        values={values}
-                                        errors={errors}
-                                        onChange={onChange}
-                                    />
-                                )}
                             </div>
                         );
                     }
