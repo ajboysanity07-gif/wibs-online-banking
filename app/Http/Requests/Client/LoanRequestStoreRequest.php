@@ -410,7 +410,7 @@ class LoanRequestStoreRequest extends FormRequest
             ],
             'banking.payout_account_type' => [
                 Rule::requiredIf(fn () => in_array($this->input('banking.release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
-                'nullable', 'string', 'max:255',
+                'nullable', 'string', Rule::in(['Savings', 'Checking']),
             ],
             'banking.release_method' => ['required', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))],
             'banking.payment_option' => ['required', 'string', 'max:255', Rule::in(array_column(LoanPaymentOption::cases(), 'value'))],
@@ -437,7 +437,7 @@ class LoanRequestStoreRequest extends FormRequest
             ],
             'banking.payment_account_type' => [
                 Rule::requiredIf(fn () => $this->input('banking.payment_option') === LoanPaymentOption::AtmDeduction->value),
-                'nullable', 'string', 'max:255',
+                'nullable', 'string', Rule::in(['Savings', 'Checking']),
             ],
             'banking.payment_atm_number' => [
                 Rule::requiredIf(fn () => $this->input('banking.payment_option') === LoanPaymentOption::AtmDeduction->value),

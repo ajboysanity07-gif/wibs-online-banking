@@ -77,6 +77,7 @@ const PAYMENT_OPTION_OPTIONS = [
     'Check',
     'Cash',
 ] as const;
+const ACCOUNT_TYPE_OPTIONS = ['Savings', 'Checking'] as const;
 
 type LoanDetailField =
     | 'typecode'
@@ -758,9 +759,45 @@ function BankingSectionFields({
                                 v,
                             ),
                         )}
-                        {textField('payout_account_type', (v) =>
-                            handleReleaseFieldChange('payout_account_type', v),
-                        )}
+                        <div className="grid gap-2">
+                            <Label
+                                htmlFor={`${sectionKey}_payout_account_type`}
+                            >
+                                {definition.fields.payout_account_type?.label ??
+                                    'Account type'}
+                            </Label>
+                            <Select
+                                value={
+                                    values.payout_account_type
+                                        ? `${values.payout_account_type}`
+                                        : undefined
+                                }
+                                onValueChange={(nextValue) =>
+                                    handleReleaseFieldChange(
+                                        'payout_account_type',
+                                        nextValue,
+                                    )
+                                }
+                            >
+                                <SelectTrigger
+                                    id={`${sectionKey}_payout_account_type`}
+                                >
+                                    <SelectValue placeholder="Select account type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={
+                                    errors[`${sectionKey}.payout_account_type`]
+                                }
+                            />
+                        </div>
                     </div>
                 )}
 
@@ -872,11 +909,51 @@ function BankingSectionFields({
                                 (v) => onChange('payment_account_number', v),
                                 useSameDetails,
                             )}
-                            {textField(
-                                'payment_account_type',
-                                (v) => onChange('payment_account_type', v),
-                                useSameDetails,
-                            )}
+                            <div className="grid gap-2">
+                                <Label
+                                    htmlFor={`${sectionKey}_payment_account_type`}
+                                >
+                                    {definition.fields.payment_account_type
+                                        ?.label ?? 'Account type'}
+                                </Label>
+                                <Select
+                                    value={
+                                        values.payment_account_type
+                                            ? `${values.payment_account_type}`
+                                            : undefined
+                                    }
+                                    disabled={useSameDetails}
+                                    onValueChange={(nextValue) =>
+                                        onChange(
+                                            'payment_account_type',
+                                            nextValue,
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id={`${sectionKey}_payment_account_type`}
+                                    >
+                                        <SelectValue placeholder="Select account type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                                            <SelectItem
+                                                key={option}
+                                                value={option}
+                                            >
+                                                {option}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <InputError
+                                    message={
+                                        errors[
+                                            `${sectionKey}.payment_account_type`
+                                        ]
+                                    }
+                                />
+                            </div>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">
                             {textField(

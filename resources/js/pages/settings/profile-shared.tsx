@@ -194,6 +194,7 @@ export const RELEASE_METHOD_OPTIONS = [
     'Check',
     'Cash',
 ] as const;
+export const ACCOUNT_TYPE_OPTIONS = ['Savings', 'Checking'] as const;
 export const PAYMENT_OPTION_OPTIONS = [
     'Salary Deduction',
     'ATM Deduction',

@@ -385,7 +385,7 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::requiredIf(fn () => in_array($this->input('release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
                 'nullable',
                 'string',
-                'max:255',
+                Rule::in(['Savings', 'Checking']),
             ],
             'release_method' => [
                 $memberRequirement('release_method'),
@@ -438,7 +438,7 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::requiredIf(fn () => $this->input('payment_option') === LoanPaymentOption::AtmDeduction->value),
                 'nullable',
                 'string',
-                'max:255',
+                Rule::in(['Savings', 'Checking']),
             ],
             'payment_atm_number' => [
                 Rule::requiredIf(fn () => $this->input('payment_option') === LoanPaymentOption::AtmDeduction->value),

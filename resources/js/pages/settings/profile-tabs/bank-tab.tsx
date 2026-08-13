@@ -22,6 +22,7 @@ import { TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import type { MemberApplicationProfileData } from '../profile-shared';
 import {
+    ACCOUNT_TYPE_OPTIONS,
     ID_TYPE_OPTIONS,
     ID_TYPE_OTHER_VALUE,
     MISSING_FIELD_CLASS,
@@ -136,12 +137,9 @@ function BankAccountFields({
             label: 'Account number',
             placeholder: 'Account number',
         },
-        {
-            key: `${prefix}_account_type`,
-            label: 'Account type',
-            placeholder: 'e.g. Savings',
-        },
     ] as const;
+
+    const accountTypeKey = `${prefix}_account_type`;
 
     return (
         <>
@@ -158,6 +156,42 @@ function BankAccountFields({
                     readOnly={readOnly}
                 />
             ))}
+
+            <div className="grid gap-2">
+                <Label htmlFor={accountTypeKey}>Account type</Label>
+
+                <Select
+                    value={bankingValues[accountTypeKey] || undefined}
+                    onValueChange={(value) =>
+                        setBankingValue(accountTypeKey, value)
+                    }
+                    disabled={readOnly}
+                >
+                    <SelectTrigger
+                        id={accountTypeKey}
+                        className={cn(
+                            'mt-1 w-full',
+                            isFieldMissing(accountTypeKey) &&
+                                MISSING_FIELD_CLASS,
+                            readOnly && 'bg-muted/50',
+                        )}
+                    >
+                        <SelectValue placeholder="Select account type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={option}>
+                                {option}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                <InputError
+                    className="mt-2"
+                    message={formErrors[accountTypeKey]}
+                />
+            </div>
         </>
     );
 }
