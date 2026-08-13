@@ -10,6 +10,7 @@ type Props = {
     value: string;
     applicantFullName: string;
     error?: string;
+    disabled?: boolean;
     onChange: (value: string) => void;
 };
 
@@ -24,6 +25,7 @@ export function AtmHolderCheckboxField({
     value,
     applicantFullName,
     error,
+    disabled = false,
     onChange,
 }: Props) {
     const [isOwnCard, setIsOwnCard] = useState(
@@ -37,6 +39,7 @@ export function AtmHolderCheckboxField({
                 <Checkbox
                     id={`${id}_is_own`}
                     checked={isOwnCard}
+                    disabled={disabled}
                     onCheckedChange={(checked) => {
                         const next = checked === true;
                         setIsOwnCard(next);
@@ -50,7 +53,7 @@ export function AtmHolderCheckboxField({
             <Input
                 id={id}
                 value={value}
-                disabled={isOwnCard}
+                disabled={disabled || isOwnCard}
                 onChange={(event) => onChange(event.target.value)}
             />
             <InputError message={error} />

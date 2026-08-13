@@ -139,6 +139,13 @@ function fullLoanRequestSubmitPayload(): array
             'payout_atm_number' => '9876543210',
             'payout_bank_branch' => 'Main Branch',
             'payout_atm_holder_name' => null,
+            'payment_bank_name' => 'WIBS Cooperative Bank',
+            'payment_account_name' => 'Loan Member',
+            'payment_account_number' => '1234567890',
+            'payment_account_type' => 'Savings',
+            'payment_atm_number' => '9876543210',
+            'payment_bank_branch' => 'Main Branch',
+            'payment_atm_holder_name' => null,
         ],
         'barangay' => [
             'barangay_official_designation' => null,

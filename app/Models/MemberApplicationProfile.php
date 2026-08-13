@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\LoanCivilStatus;
+use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
 use App\Support\LocationComposer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -91,6 +92,14 @@ class MemberApplicationProfile extends Model
         'payout_atm_number',
         'payout_bank_branch',
         'payout_atm_holder_name',
+        'payment_option',
+        'payment_bank_name',
+        'payment_account_name',
+        'payment_account_number',
+        'payment_account_type',
+        'payment_atm_number',
+        'payment_bank_branch',
+        'payment_atm_holder_name',
         'beneficiary_primary_name',
         'beneficiary_primary_relationship',
         'beneficiary_primary_birthdate',
@@ -216,8 +225,9 @@ class MemberApplicationProfile extends Model
     }
 
     /**
-     * Payout bank fields reused to pre-fill the loan-request wizard's
-     * "Bank & payout" step and written back on validated loan submission.
+     * Release (disbursement) and payment (repayment) fields reused to
+     * pre-fill the loan-request wizard's "Loan Disbursement & Repayment"
+     * step and written back on validated loan submission.
      *
      * @return list<string>
      */
@@ -232,6 +242,14 @@ class MemberApplicationProfile extends Model
             'payout_atm_number',
             'payout_bank_branch',
             'payout_atm_holder_name',
+            'payment_option',
+            'payment_bank_name',
+            'payment_account_name',
+            'payment_account_number',
+            'payment_account_type',
+            'payment_atm_number',
+            'payment_bank_branch',
+            'payment_atm_holder_name',
         ];
     }
 
@@ -384,20 +402,36 @@ class MemberApplicationProfile extends Model
     private function conditionallyRequiredBankFields(): array
     {
         $releaseMethod = trim((string) ($this->release_method ?? ''));
+        $paymentOption = trim((string) ($this->payment_option ?? ''));
         $required = [];
 
-        if ($releaseMethod === LoanReleaseMethod::Atm->value) {
-            $required[] = 'payout_atm_number';
-            $required[] = 'payout_atm_holder_name';
-        }
-
-        if ($releaseMethod === LoanReleaseMethod::BankTransfer->value) {
+        // An ATM card is backed by a bank account, so ATM release/payment
+        // also requires the underlying bank account fields, not just the
+        // card number.
+        if (in_array($releaseMethod, [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)) {
             array_push(
                 $required,
                 'payout_bank_name',
                 'payout_account_name',
                 'payout_account_number',
                 'payout_account_type',
+            );
+        }
+
+        if ($releaseMethod === LoanReleaseMethod::Atm->value) {
+            $required[] = 'payout_atm_number';
+            $required[] = 'payout_atm_holder_name';
+        }
+
+        if (in_array($paymentOption, [LoanPaymentOption::AtmDeduction->value], true)) {
+            array_push(
+                $required,
+                'payment_bank_name',
+                'payment_account_name',
+                'payment_account_number',
+                'payment_account_type',
+                'payment_atm_number',
+                'payment_atm_holder_name',
             );
         }
 
@@ -506,6 +540,13 @@ class MemberApplicationProfile extends Model
             'release_method' => 'Release method',
             'payout_atm_number' => 'ATM card number',
             'payout_atm_holder_name' => 'ATM card holder name',
+            'payment_option' => 'Payment option',
+            'payment_bank_name' => 'Repayment bank name',
+            'payment_account_name' => 'Repayment account name',
+            'payment_account_number' => 'Repayment account number',
+            'payment_account_type' => 'Repayment account type',
+            'payment_atm_number' => 'Repayment ATM card number',
+            'payment_atm_holder_name' => 'Repayment ATM card holder name',
             'source_of_fund_wealth' => 'Source of fund / wealth',
             'id_type' => 'Government ID type',
             'id_type_other' => 'Government ID type (specify)',

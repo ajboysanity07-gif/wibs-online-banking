@@ -88,6 +88,14 @@ export type MemberApplicationProfileData = {
     payout_atm_number: string | null;
     payout_bank_branch: string | null;
     payout_atm_holder_name: string | null;
+    payment_option: string | null;
+    payment_bank_name: string | null;
+    payment_account_name: string | null;
+    payment_account_number: string | null;
+    payment_account_type: string | null;
+    payment_atm_number: string | null;
+    payment_bank_branch: string | null;
+    payment_atm_holder_name: string | null;
     source_of_fund_wealth: string | null;
     id_type: string | null;
     id_type_other: string | null;
@@ -186,6 +194,12 @@ export const RELEASE_METHOD_OPTIONS = [
     'Check',
     'Cash',
 ] as const;
+export const PAYMENT_OPTION_OPTIONS = [
+    'Salary Deduction',
+    'ATM Deduction',
+    'Check',
+    'Cash',
+] as const;
 export const NATURE_OF_BUSINESS_OTHER_VALUE = 'Other';
 export const NATURE_OF_BUSINESS_OPTIONS = [
     'Retail',
@@ -266,6 +280,14 @@ export const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'payout_atm_number',
         'payout_bank_branch',
         'payout_atm_holder_name',
+        'payment_option',
+        'payment_bank_name',
+        'payment_account_name',
+        'payment_account_number',
+        'payment_account_type',
+        'payment_atm_number',
+        'payment_bank_branch',
+        'payment_atm_holder_name',
         'source_of_fund_wealth',
         'id_type',
         'id_type_other',

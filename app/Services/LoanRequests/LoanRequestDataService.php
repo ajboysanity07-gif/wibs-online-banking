@@ -2,6 +2,7 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
@@ -685,6 +686,62 @@ class LoanRequestDataService
         ],
         'payout_atm_holder_name' => [
             'label' => 'ATM card holder name (if not the borrower)',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'banking',
+            'type' => 'string',
+        ],
+        'payment_bank_name' => [
+            'label' => 'Repayment bank name',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => true,
+            'section' => 'banking',
+            'type' => 'string',
+        ],
+        'payment_account_name' => [
+            'label' => 'Repayment account name',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => true,
+            'section' => 'banking',
+            'type' => 'string',
+        ],
+        'payment_account_number' => [
+            'label' => 'Repayment account number',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => true,
+            'section' => 'banking',
+            'type' => 'string',
+        ],
+        'payment_account_type' => [
+            'label' => 'Repayment account type',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => true,
+            'section' => 'banking',
+            'type' => 'string',
+        ],
+        'payment_atm_number' => [
+            'label' => 'Repayment ATM card number',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'banking',
+            'type' => 'string',
+        ],
+        'payment_bank_branch' => [
+            'label' => 'Repayment bank branch',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'banking',
+            'type' => 'string',
+        ],
+        'payment_atm_holder_name' => [
+            'label' => 'Repayment ATM card holder name (if not the borrower)',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
             'required_on_submit' => false,
@@ -1679,6 +1736,16 @@ class LoanRequestDataService
         'payout_account_type',
     ];
 
+    /**
+     * @return list<string>
+     */
+    private const PAYMENT_BANK_ACCOUNT_FIELDS = [
+        'payment_bank_name',
+        'payment_account_name',
+        'payment_account_number',
+        'payment_account_type',
+    ];
+
     public function missingRequiredMemberFields(LoanRequest $loanRequest): array
     {
         $flatValues = $this->loadFlatValues($loanRequest);
@@ -1692,12 +1759,25 @@ class LoanRequestDataService
                 continue;
             }
 
-            // The base payout account fields only matter once the member
-            // has actually chosen Bank Transfer -- Cash/Check/ATM don't
-            // need a bank account on file.
+            // The base payout account fields matter once the member has
+            // chosen Bank Transfer or ATM -- an ATM card is backed by a
+            // bank account. Cash/Check don't need one on file.
             if (
                 in_array($fieldKey, self::PAYOUT_BANK_ACCOUNT_FIELDS, true)
-                && ($flatValues['release_method'] ?? null) !== LoanReleaseMethod::BankTransfer->value
+                && ! in_array(
+                    $flatValues['release_method'] ?? null,
+                    [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value],
+                    true,
+                )
+            ) {
+                continue;
+            }
+
+            // Repayment bank account fields only matter once the member has
+            // chosen ATM Deduction as their payment option.
+            if (
+                in_array($fieldKey, self::PAYMENT_BANK_ACCOUNT_FIELDS, true)
+                && ($flatValues['payment_option'] ?? null) !== LoanPaymentOption::AtmDeduction->value
             ) {
                 continue;
             }

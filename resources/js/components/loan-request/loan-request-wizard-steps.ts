@@ -159,10 +159,11 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
     },
     {
         id: 'banking',
-        title: 'Bank & payout',
+        title: 'Loan Disbursement & Repayment',
         description:
-            'Provide the payout bank and account information. Barangay details are optional.',
+            "Tell us how you'd like to receive your loan and how you'll repay it. Barangay details are optional.",
         group: 'bank-payout',
+        sidebarLabel: 'Disbursement & Repayment',
     },
     {
         id: 'declarations',

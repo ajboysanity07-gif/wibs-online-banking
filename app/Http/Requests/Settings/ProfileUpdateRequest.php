@@ -5,6 +5,7 @@ namespace App\Http\Requests\Settings;
 use App\Concerns\ProfileValidationRules;
 use App\LoanCivilStatus;
 use App\LoanPaydayOption;
+use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
 use App\Models\MemberApplicationProfile;
 use App\Models\MemberDependentProfile;
@@ -363,25 +364,25 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::in(LoanPaydayOption::values()),
             ],
             'payout_bank_name' => [
-                Rule::requiredIf(fn () => $this->input('release_method') === LoanReleaseMethod::BankTransfer->value),
+                Rule::requiredIf(fn () => in_array($this->input('release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
                 'nullable',
                 'string',
                 'max:255',
             ],
             'payout_account_name' => [
-                Rule::requiredIf(fn () => $this->input('release_method') === LoanReleaseMethod::BankTransfer->value),
+                Rule::requiredIf(fn () => in_array($this->input('release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
                 'nullable',
                 'string',
                 'max:255',
             ],
             'payout_account_number' => [
-                Rule::requiredIf(fn () => $this->input('release_method') === LoanReleaseMethod::BankTransfer->value),
+                Rule::requiredIf(fn () => in_array($this->input('release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
                 'nullable',
                 'string',
                 'max:255',
             ],
             'payout_account_type' => [
-                Rule::requiredIf(fn () => $this->input('release_method') === LoanReleaseMethod::BankTransfer->value),
+                Rule::requiredIf(fn () => in_array($this->input('release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
                 'nullable',
                 'string',
                 'max:255',
@@ -405,6 +406,53 @@ class ProfileUpdateRequest extends FormRequest
             ],
             'payout_atm_holder_name' => [
                 Rule::requiredIf(fn () => $this->input('release_method') === LoanReleaseMethod::Atm->value),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'payment_option' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::in(array_column(LoanPaymentOption::cases(), 'value')),
+            ],
+            'payment_bank_name' => [
+                Rule::requiredIf(fn () => $this->input('payment_option') === LoanPaymentOption::AtmDeduction->value),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'payment_account_name' => [
+                Rule::requiredIf(fn () => $this->input('payment_option') === LoanPaymentOption::AtmDeduction->value),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'payment_account_number' => [
+                Rule::requiredIf(fn () => $this->input('payment_option') === LoanPaymentOption::AtmDeduction->value),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'payment_account_type' => [
+                Rule::requiredIf(fn () => $this->input('payment_option') === LoanPaymentOption::AtmDeduction->value),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'payment_atm_number' => [
+                Rule::requiredIf(fn () => $this->input('payment_option') === LoanPaymentOption::AtmDeduction->value),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'payment_bank_branch' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'payment_atm_holder_name' => [
+                Rule::requiredIf(fn () => $this->input('payment_option') === LoanPaymentOption::AtmDeduction->value),
                 'nullable',
                 'string',
                 'max:255',

@@ -598,6 +598,327 @@ const displaySectionValue = (
     return displayText(`${value}`);
 };
 
+// Payout (release) field -> its payment (repayment) counterpart, used by
+// the "use the same details" checkbox to mirror values live while checked.
+const PAYOUT_TO_PAYMENT_MIRROR_FIELDS: [string, string][] = [
+    ['payout_bank_name', 'payment_bank_name'],
+    ['payout_account_name', 'payment_account_name'],
+    ['payout_account_number', 'payment_account_number'],
+    ['payout_account_type', 'payment_account_type'],
+    ['payout_atm_number', 'payment_atm_number'],
+    ['payout_bank_branch', 'payment_bank_branch'],
+    ['payout_atm_holder_name', 'payment_atm_holder_name'],
+];
+
+type BankingSectionFieldsProps = {
+    sectionKey: string;
+    definition: LoanRequestDataSectionDefinition;
+    values: LoanRequestDataSectionValues;
+    errors: Record<string, string | undefined>;
+    onChange: (field: string, value: string | number | boolean | null) => void;
+    applicantFullName?: string;
+};
+
+// Two full-width, clearly headed subsections -- Loan Disbursement (release
+// method) and Repayment Method (payment option) -- each with its own
+// conditional bank/ATM detail fields. Kept separate from the generic
+// per-field grid below since it needs cross-field behavior (the "use same
+// details" checkbox) that a flat field map can't express.
+function BankingSectionFields({
+    sectionKey,
+    definition,
+    values,
+    errors,
+    onChange,
+    applicantFullName,
+}: BankingSectionFieldsProps) {
+    const releaseMethod = values.release_method
+        ? `${values.release_method}`
+        : '';
+    const paymentOption = values.payment_option
+        ? `${values.payment_option}`
+        : '';
+    const showReleaseBankFields =
+        releaseMethod === 'ATM' || releaseMethod === 'Bank Transfer';
+    const showReleaseAtmFields = releaseMethod === 'ATM';
+    const showPaymentAtmFields = paymentOption === 'ATM Deduction';
+    const canUseSameDetails =
+        releaseMethod === 'ATM' && paymentOption === 'ATM Deduction';
+
+    const [useSameDetailsChecked, setUseSameDetailsChecked] = useState(false);
+    // Derived rather than synced via effect: once the checkbox's
+    // precondition (both channels ATM) stops holding, it should just read
+    // as unchecked again without a render-triggering effect.
+    const useSameDetails = canUseSameDetails && useSameDetailsChecked;
+
+    const handleReleaseFieldChange = (fieldKey: string, value: string) => {
+        onChange(fieldKey, value);
+
+        if (useSameDetails) {
+            const mirror = PAYOUT_TO_PAYMENT_MIRROR_FIELDS.find(
+                ([payoutField]) => payoutField === fieldKey,
+            );
+
+            if (mirror) {
+                onChange(mirror[1], value);
+            }
+        }
+    };
+
+    const handleUseSameDetailsChange = (checked: boolean) => {
+        setUseSameDetailsChecked(checked);
+
+        if (checked) {
+            PAYOUT_TO_PAYMENT_MIRROR_FIELDS.forEach(
+                ([payoutField, paymentField]) => {
+                    onChange(paymentField, values[payoutField] ?? '');
+                },
+            );
+        }
+    };
+
+    const textField = (
+        fieldKey: string,
+        onFieldChange: (value: string) => void,
+        disabled = false,
+    ) => {
+        const field = definition.fields[fieldKey];
+
+        if (!field) {
+            return null;
+        }
+
+        return (
+            <div key={fieldKey} className="grid gap-2">
+                <Label htmlFor={`${sectionKey}_${fieldKey}`}>
+                    {field.label}
+                </Label>
+                <Input
+                    id={`${sectionKey}_${fieldKey}`}
+                    value={values[fieldKey] ? `${values[fieldKey]}` : ''}
+                    disabled={disabled}
+                    onChange={(event) => onFieldChange(event.target.value)}
+                />
+                <InputError message={errors[`${sectionKey}.${fieldKey}`]} />
+            </div>
+        );
+    };
+
+    return (
+        <div className="space-y-8">
+            <div className="space-y-4">
+                <div>
+                    <h4 className="text-sm font-semibold">Loan Disbursement</h4>
+                    <p className="text-xs text-muted-foreground">
+                        How you&apos;ll receive your loan proceeds.
+                    </p>
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${sectionKey}_release_method`}>
+                        {definition.fields.release_method?.label ??
+                            'Release method'}
+                    </Label>
+                    <Select
+                        value={releaseMethod || undefined}
+                        onValueChange={(nextValue) =>
+                            handleReleaseFieldChange(
+                                'release_method',
+                                nextValue,
+                            )
+                        }
+                    >
+                        <SelectTrigger id={`${sectionKey}_release_method`}>
+                            <SelectValue placeholder="Select release method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {RELEASE_METHOD_OPTIONS.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <InputError
+                        message={errors[`${sectionKey}.release_method`]}
+                    />
+                </div>
+
+                {showReleaseBankFields && (
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {textField('payout_bank_name', (v) =>
+                            handleReleaseFieldChange('payout_bank_name', v),
+                        )}
+                        {textField('payout_account_name', (v) =>
+                            handleReleaseFieldChange('payout_account_name', v),
+                        )}
+                        {textField('payout_account_number', (v) =>
+                            handleReleaseFieldChange(
+                                'payout_account_number',
+                                v,
+                            ),
+                        )}
+                        {textField('payout_account_type', (v) =>
+                            handleReleaseFieldChange('payout_account_type', v),
+                        )}
+                    </div>
+                )}
+
+                {showReleaseAtmFields && (
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {textField('payout_bank_branch', (v) =>
+                            handleReleaseFieldChange('payout_bank_branch', v),
+                        )}
+                        {textField('payout_atm_number', (v) =>
+                            handleReleaseFieldChange('payout_atm_number', v),
+                        )}
+                        <AtmHolderCheckboxField
+                            id={`${sectionKey}_payout_atm_holder_name`}
+                            label={
+                                definition.fields.payout_atm_holder_name
+                                    ?.label ?? 'ATM card holder name'
+                            }
+                            value={
+                                values.payout_atm_holder_name
+                                    ? `${values.payout_atm_holder_name}`
+                                    : ''
+                            }
+                            applicantFullName={applicantFullName ?? ''}
+                            error={
+                                errors[`${sectionKey}.payout_atm_holder_name`]
+                            }
+                            onChange={(v) =>
+                                handleReleaseFieldChange(
+                                    'payout_atm_holder_name',
+                                    v,
+                                )
+                            }
+                        />
+                    </div>
+                )}
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+                <div>
+                    <h4 className="text-sm font-semibold">Repayment Method</h4>
+                    <p className="text-xs text-muted-foreground">
+                        How your loan installments will be collected.
+                    </p>
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${sectionKey}_payment_option`}>
+                        {definition.fields.payment_option?.label ??
+                            'Payment option'}
+                    </Label>
+                    <Select
+                        value={paymentOption || undefined}
+                        onValueChange={(nextValue) =>
+                            onChange('payment_option', nextValue)
+                        }
+                    >
+                        <SelectTrigger id={`${sectionKey}_payment_option`}>
+                            <SelectValue placeholder="Select payment option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {PAYMENT_OPTION_OPTIONS.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <InputError
+                        message={errors[`${sectionKey}.payment_option`]}
+                    />
+                </div>
+
+                {canUseSameDetails && (
+                    <div className="flex items-start gap-3 rounded-md border border-border/50 bg-muted/10 p-3">
+                        <Checkbox
+                            id={`${sectionKey}_use_same_payment_details`}
+                            checked={useSameDetails}
+                            onCheckedChange={(checked) =>
+                                handleUseSameDetailsChange(checked === true)
+                            }
+                        />
+                        <Label
+                            htmlFor={`${sectionKey}_use_same_payment_details`}
+                            className="text-sm leading-snug font-normal"
+                        >
+                            Use the same ATM/bank details for repayment as for
+                            release
+                        </Label>
+                    </div>
+                )}
+
+                {showPaymentAtmFields && (
+                    <>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {textField(
+                                'payment_bank_name',
+                                (v) => onChange('payment_bank_name', v),
+                                useSameDetails,
+                            )}
+                            {textField(
+                                'payment_account_name',
+                                (v) => onChange('payment_account_name', v),
+                                useSameDetails,
+                            )}
+                            {textField(
+                                'payment_account_number',
+                                (v) => onChange('payment_account_number', v),
+                                useSameDetails,
+                            )}
+                            {textField(
+                                'payment_account_type',
+                                (v) => onChange('payment_account_type', v),
+                                useSameDetails,
+                            )}
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {textField(
+                                'payment_bank_branch',
+                                (v) => onChange('payment_bank_branch', v),
+                                useSameDetails,
+                            )}
+                            {textField(
+                                'payment_atm_number',
+                                (v) => onChange('payment_atm_number', v),
+                                useSameDetails,
+                            )}
+                            <AtmHolderCheckboxField
+                                id={`${sectionKey}_payment_atm_holder_name`}
+                                label={
+                                    definition.fields.payment_atm_holder_name
+                                        ?.label ?? 'ATM card holder name'
+                                }
+                                value={
+                                    values.payment_atm_holder_name
+                                        ? `${values.payment_atm_holder_name}`
+                                        : ''
+                                }
+                                applicantFullName={applicantFullName ?? ''}
+                                error={
+                                    errors[
+                                        `${sectionKey}.payment_atm_holder_name`
+                                    ]
+                                }
+                                disabled={useSameDetails}
+                                onChange={(v) =>
+                                    onChange('payment_atm_holder_name', v)
+                                }
+                            />
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export function LoanRequestDataSectionStep({
     sectionKey,
     title,
@@ -608,6 +929,32 @@ export function LoanRequestDataSectionStep({
     onChange,
     applicantFullName,
 }: DataSectionStepProps) {
+    if (sectionKey === 'banking') {
+        return (
+            <LoanRequestSectionCard
+                title={title}
+                description={description}
+                contentClassName="space-y-5"
+            >
+                <BankingSectionFields
+                    sectionKey={sectionKey}
+                    definition={definition}
+                    values={values}
+                    errors={errors}
+                    onChange={onChange}
+                    applicantFullName={applicantFullName}
+                />
+                <Alert className="border-border/50 bg-muted/10">
+                    <AlertTitle>Member-provided details</AlertTitle>
+                    <AlertDescription>
+                        Complete the applicable fields in this section before
+                        submitting the request for processing.
+                    </AlertDescription>
+                </Alert>
+            </LoanRequestSectionCard>
+        );
+    }
+
     return (
         <LoanRequestSectionCard
             title={title}
@@ -625,29 +972,6 @@ export function LoanRequestDataSectionStep({
                     // account records and feed the GLAPI PDF, but are not
                     // shown to the member in the wizard.
                     if (fieldKey.startsWith('existing_loan_')) {
-                        return null;
-                    }
-
-                    // ATM-only payout details -- irrelevant once a member
-                    // picks any other release method.
-                    if (
-                        (fieldKey === 'payout_bank_branch' ||
-                            fieldKey === 'payout_atm_number' ||
-                            fieldKey === 'payout_atm_holder_name') &&
-                        values.release_method !== 'ATM'
-                    ) {
-                        return null;
-                    }
-
-                    // Base payout account details only matter for Bank
-                    // Transfer -- Cash/Check/ATM don't need a bank account.
-                    if (
-                        (fieldKey === 'payout_bank_name' ||
-                            fieldKey === 'payout_account_name' ||
-                            fieldKey === 'payout_account_number' ||
-                            fieldKey === 'payout_account_type') &&
-                        values.release_method !== 'Bank Transfer'
-                    ) {
                         return null;
                     }
 
@@ -706,92 +1030,6 @@ export function LoanRequestDataSectionStep({
                                 </div>
                                 <InputError message={errors[errorKey]} />
                             </div>
-                        );
-                    }
-
-                    if (fieldKey === 'release_method') {
-                        return (
-                            <div key={fieldKey} className="grid gap-2">
-                                <Label htmlFor={`${sectionKey}_${fieldKey}`}>
-                                    {field.label}
-                                </Label>
-                                <Select
-                                    value={value ? `${value}` : undefined}
-                                    onValueChange={(nextValue) =>
-                                        onChange(fieldKey, nextValue)
-                                    }
-                                >
-                                    <SelectTrigger
-                                        id={`${sectionKey}_${fieldKey}`}
-                                    >
-                                        <SelectValue placeholder="Select release method" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {RELEASE_METHOD_OPTIONS.map(
-                                            (option) => (
-                                                <SelectItem
-                                                    key={option}
-                                                    value={option}
-                                                >
-                                                    {option}
-                                                </SelectItem>
-                                            ),
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors[errorKey]} />
-                            </div>
-                        );
-                    }
-
-                    if (fieldKey === 'payment_option') {
-                        return (
-                            <div key={fieldKey} className="grid gap-2">
-                                <Label htmlFor={`${sectionKey}_${fieldKey}`}>
-                                    {field.label}
-                                </Label>
-                                <Select
-                                    value={value ? `${value}` : undefined}
-                                    onValueChange={(nextValue) =>
-                                        onChange(fieldKey, nextValue)
-                                    }
-                                >
-                                    <SelectTrigger
-                                        id={`${sectionKey}_${fieldKey}`}
-                                    >
-                                        <SelectValue placeholder="Select payment option" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {PAYMENT_OPTION_OPTIONS.map(
-                                            (option) => (
-                                                <SelectItem
-                                                    key={option}
-                                                    value={option}
-                                                >
-                                                    {option}
-                                                </SelectItem>
-                                            ),
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors[errorKey]} />
-                            </div>
-                        );
-                    }
-
-                    if (fieldKey === 'payout_atm_holder_name') {
-                        return (
-                            <AtmHolderCheckboxField
-                                key={fieldKey}
-                                id={`${sectionKey}_${fieldKey}`}
-                                label={field.label}
-                                value={value ? `${value}` : ''}
-                                applicantFullName={applicantFullName ?? ''}
-                                error={errors[errorKey]}
-                                onChange={(nextValue) =>
-                                    onChange(fieldKey, nextValue)
-                                }
-                            />
                         );
                     }
 
@@ -2062,13 +2300,17 @@ export function LoanRequestReviewStep({
     ];
 
     // Mirrors the edit step's ATM/Bank-Transfer field visibility (see
-    // LoanRequestDataSectionStep above) so the review card doesn't list
-    // fields that don't apply to the chosen release method as "--".
+    // BankingSectionFields above) so the review card doesn't list fields
+    // that don't apply to the chosen release method / payment option as
+    // "--". release_method and payment_option are shown as badges instead
+    // of grid rows (see the banking SummaryCard below), so both are hidden
+    // here.
     const isBankingFieldApplicable = (
         fieldKey: string,
         releaseMethod: string,
+        paymentOption: string,
     ): boolean => {
-        if (fieldKey === 'release_method') {
+        if (fieldKey === 'release_method' || fieldKey === 'payment_option') {
             return false;
         }
 
@@ -2086,7 +2328,19 @@ export function LoanRequestReviewStep({
             fieldKey === 'payout_account_number' ||
             fieldKey === 'payout_account_type'
         ) {
-            return releaseMethod === 'Bank Transfer';
+            return releaseMethod === 'ATM' || releaseMethod === 'Bank Transfer';
+        }
+
+        if (
+            fieldKey === 'payment_bank_name' ||
+            fieldKey === 'payment_account_name' ||
+            fieldKey === 'payment_account_number' ||
+            fieldKey === 'payment_account_type' ||
+            fieldKey === 'payment_bank_branch' ||
+            fieldKey === 'payment_atm_number' ||
+            fieldKey === 'payment_atm_holder_name'
+        ) {
+            return paymentOption === 'ATM Deduction';
         }
 
         return true;
@@ -2107,6 +2361,7 @@ export function LoanRequestReviewStep({
                     isBankingFieldApplicable(
                         fieldKey,
                         `${data.banking.release_method ?? ''}`,
+                        `${data.banking.payment_option ?? ''}`,
                     ),
             )
             .map(([fieldKey, field]) => ({
@@ -2193,17 +2448,31 @@ export function LoanRequestReviewStep({
                     description="Review the member-provided document details."
                 >
                     {section.key === 'banking' ? (
-                        <div className="mb-4 flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">
-                                Release method:
-                            </span>
-                            <Badge variant="secondary">
-                                {displayText(
-                                    data.banking.release_method
-                                        ? `${data.banking.release_method}`
-                                        : null,
-                                )}
-                            </Badge>
+                        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">
+                                    Release method:
+                                </span>
+                                <Badge variant="secondary">
+                                    {displayText(
+                                        data.banking.release_method
+                                            ? `${data.banking.release_method}`
+                                            : null,
+                                    )}
+                                </Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">
+                                    Payment option:
+                                </span>
+                                <Badge variant="secondary">
+                                    {displayText(
+                                        data.banking.payment_option
+                                            ? `${data.banking.payment_option}`
+                                            : null,
+                                    )}
+                                </Badge>
+                            </div>
                         </div>
                     ) : null}
                     <SummaryGrid items={section.items} />

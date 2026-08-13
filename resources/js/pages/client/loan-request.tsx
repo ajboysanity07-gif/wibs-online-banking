@@ -35,7 +35,6 @@ import AppLayout from '@/layouts/app-layout';
 import client from '@/lib/api/client';
 import { formatDateTime, toDateInputValue } from '@/lib/formatters';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
-import { cn } from '@/lib/utils';
 import { dashboard as clientDashboard } from '@/routes/client';
 import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
 import type { BreadcrumbItem } from '@/types';
@@ -745,8 +744,12 @@ export default function LoanRequestPage({
                                         (currentStep ===
                                             STEP_INDEX['banking'] &&
                                             bankingPrefilledFromProfile &&
-                                            form.data.banking.release_method ===
-                                                'Bank Transfer' &&
+                                            (form.data.banking
+                                                .release_method ===
+                                                'Bank Transfer' ||
+                                                form.data.banking
+                                                    .release_method ===
+                                                    'ATM') &&
                                             !bankAccountConfirmed) ||
                                         (currentStep ===
                                             STEP_INDEX['dependents'] &&
@@ -1258,8 +1261,8 @@ export default function LoanRequestPage({
                                     <div className="space-y-5">
                                         <LoanRequestDataSectionStep
                                             sectionKey="banking"
-                                            title="Bank and payout information"
-                                            description="Provide the payout bank account details that staff will use for processing."
+                                            title="Loan Disbursement & Repayment"
+                                            description="Tell us how you'd like to receive your loan and how you'll repay it."
                                             values={form.data.banking}
                                             definition={
                                                 dataSectionDefinitions.banking
@@ -1272,8 +1275,10 @@ export default function LoanRequestPage({
                                         />
 
                                         {bankingPrefilledFromProfile &&
-                                        form.data.banking.release_method ===
-                                            'Bank Transfer' ? (
+                                        (form.data.banking.release_method ===
+                                            'Bank Transfer' ||
+                                            form.data.banking.release_method ===
+                                                'ATM') ? (
                                             <LoanRequestSectionCard
                                                 title="Confirm bank details"
                                                 description="These details were pre-filled from your member profile."

@@ -29,7 +29,10 @@ const GROUP_META: Record<LoanRequestWizardGroupId, GroupMeta> = {
     'about-you': { label: 'About you', icon: User },
     'co-makers': { label: 'Co-makers', icon: Users },
     'insurance-health': { label: 'Insurance & health', icon: HeartPulse },
-    'bank-payout': { label: 'Bank & payout', icon: Building2 },
+    'bank-payout': {
+        label: 'Disbursement & Repayment',
+        icon: Building2,
+    },
     'declarations-review': {
         label: 'Declarations & review',
         icon: ClipboardCheck,

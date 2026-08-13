@@ -163,8 +163,8 @@ const WIZARD_STEPS: Array<LoanRequestWizardStep & { id: WizardStepId }> = [
     },
     {
         id: 'banking',
-        title: 'Banking & payout',
-        description: 'Review bank account and payout details.',
+        title: 'Loan Disbursement & Repayment',
+        description: 'Review disbursement and repayment method details.',
         group: 'banking',
     },
     {
@@ -185,7 +185,7 @@ const WIZARD_STEP_GROUP_META = {
     insurance: { label: 'Insurance & beneficiaries', icon: Shield },
     dependents: { label: 'Dependents', icon: Baby },
     health: { label: 'Health basic info', icon: HeartPulse },
-    banking: { label: 'Banking & payout', icon: Building2 },
+    banking: { label: 'Disbursement & Repayment', icon: Building2 },
     review: { label: 'Review & reason', icon: ClipboardCheck },
 };
 
@@ -284,6 +284,15 @@ const dataSectionFieldLabels: Record<string, Record<string, string>> = {
         release_method: 'Release method',
         payment_option: 'Payment option',
         payout_atm_number: 'ATM number',
+        payout_bank_branch: 'Payout bank branch',
+        payout_atm_holder_name: 'Payout ATM card holder name',
+        payment_bank_name: 'Repayment bank name',
+        payment_account_name: 'Repayment account name',
+        payment_account_number: 'Repayment account number',
+        payment_account_type: 'Repayment account type',
+        payment_atm_number: 'Repayment ATM number',
+        payment_bank_branch: 'Repayment bank branch',
+        payment_atm_holder_name: 'Repayment ATM card holder name',
     },
 };
 
@@ -1745,7 +1754,7 @@ function CorrectionDialogForm({
                             </div>
                         </LoanRequestAnimatedStep>
 
-                        {/* Banking & payout */}
+                        {/* Loan Disbursement & Repayment */}
                         <LoanRequestAnimatedStep
                             show={currentStep === stepIndexOf('banking')}
                             direction={stepDirection}
@@ -1753,8 +1762,8 @@ function CorrectionDialogForm({
                             <div className="space-y-5">
                                 <LoanRequestDataSectionStep
                                     sectionKey="banking"
-                                    title="Bank and payout information"
-                                    description="Review payout bank account details for loan disbursement."
+                                    title="Loan Disbursement & Repayment"
+                                    description="Review disbursement and repayment method details."
                                     values={formData.banking}
                                     definition={dataSectionDefinitions.banking}
                                     errors={mergedErrors}

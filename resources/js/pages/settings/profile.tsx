@@ -352,6 +352,46 @@ export default function Profile({
         initialAtmHolderName === '' ||
             initialAtmHolderName === memberDisplayName.trim(),
     );
+    const [paymentOption, setPaymentOption] = useState<string>(
+        memberApplicationProfile?.payment_option ?? '',
+    );
+    const initialPaymentAtmHolderName =
+        memberApplicationProfile?.payment_atm_holder_name?.trim() ?? '';
+    const [paymentAtmHolderName, setPaymentAtmHolderName] = useState<string>(
+        initialPaymentAtmHolderName,
+    );
+    const [isOwnPaymentAtmCard, setIsOwnPaymentAtmCard] = useState<boolean>(
+        initialPaymentAtmHolderName === '' ||
+            initialPaymentAtmHolderName === memberDisplayName.trim(),
+    );
+    // Bank account + ATM detail fields for both the release side (payout_*)
+    // and the repayment side (payment_*), lifted to controlled state so the
+    // "use the same details for repayment" checkbox can mirror live edits
+    // (a plain uncontrolled/defaultValue input can't be copied from).
+    const [bankingValues, setBankingValues] = useState<Record<string, string>>({
+        payout_bank_name: memberApplicationProfile?.payout_bank_name ?? '',
+        payout_account_name:
+            memberApplicationProfile?.payout_account_name ?? '',
+        payout_account_number:
+            memberApplicationProfile?.payout_account_number ?? '',
+        payout_account_type:
+            memberApplicationProfile?.payout_account_type ?? '',
+        payout_atm_number: memberApplicationProfile?.payout_atm_number ?? '',
+        payout_bank_branch: memberApplicationProfile?.payout_bank_branch ?? '',
+        payment_bank_name: memberApplicationProfile?.payment_bank_name ?? '',
+        payment_account_name:
+            memberApplicationProfile?.payment_account_name ?? '',
+        payment_account_number:
+            memberApplicationProfile?.payment_account_number ?? '',
+        payment_account_type:
+            memberApplicationProfile?.payment_account_type ?? '',
+        payment_atm_number: memberApplicationProfile?.payment_atm_number ?? '',
+        payment_bank_branch:
+            memberApplicationProfile?.payment_bank_branch ?? '',
+    });
+    const setBankingValue = (key: string, value: string) => {
+        setBankingValues((current) => ({ ...current, [key]: value }));
+    };
     const resolvedNatureOfBusiness =
         natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE
             ? natureOfBusinessOther.trim()
@@ -994,6 +1034,30 @@ export default function Profile({
                                                     idTypeOther={idTypeOther}
                                                     setIdTypeOther={
                                                         setIdTypeOther
+                                                    }
+                                                    paymentOption={
+                                                        paymentOption
+                                                    }
+                                                    setPaymentOption={
+                                                        setPaymentOption
+                                                    }
+                                                    isOwnPaymentAtmCard={
+                                                        isOwnPaymentAtmCard
+                                                    }
+                                                    setIsOwnPaymentAtmCard={
+                                                        setIsOwnPaymentAtmCard
+                                                    }
+                                                    paymentAtmHolderName={
+                                                        paymentAtmHolderName
+                                                    }
+                                                    setPaymentAtmHolderName={
+                                                        setPaymentAtmHolderName
+                                                    }
+                                                    bankingValues={
+                                                        bankingValues
+                                                    }
+                                                    setBankingValue={
+                                                        setBankingValue
                                                     }
                                                 />
                                             )}
