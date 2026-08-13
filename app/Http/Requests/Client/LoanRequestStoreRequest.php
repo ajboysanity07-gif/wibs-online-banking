@@ -515,7 +515,9 @@ class LoanRequestStoreRequest extends FormRequest
         bool $requirePsgcLocations = true,
     ): array {
         $isPensioner = trim((string) $this->input("{$prefix}.employment_type", '')) === 'Pensioner';
+        $isSelfEmployed = trim((string) $this->input("{$prefix}.employment_type", '')) === 'Self Employed';
         $employerRule = $isPensioner ? 'nullable' : 'required';
+        $dateEmployedRule = ($isPensioner || $isSelfEmployed) ? 'nullable' : 'required';
 
         $rules = [
             "{$prefix}.first_name" => ['required', 'string', 'max:255'],
@@ -594,7 +596,7 @@ class LoanRequestStoreRequest extends FormRequest
         }
 
         if ($includeDateEmployed) {
-            $rules["{$prefix}.employer_date_employed"] = [$employerRule, 'date'];
+            $rules["{$prefix}.employer_date_employed"] = [$dateEmployedRule, 'date'];
         }
 
         if ($includeCivilHousing) {

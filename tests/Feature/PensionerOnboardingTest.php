@@ -31,7 +31,7 @@ beforeEach(function () {
 // ---------------------------------------------------------------------------
 
 test('PENSIONER_EMPLOYMENT_TYPE constant has the expected value', function () {
-    expect(MemberApplicationProfile::PENSIONER_EMPLOYMENT_TYPE)->toBe('Pensioner / Retired');
+    expect(MemberApplicationProfile::PENSIONER_EMPLOYMENT_TYPE)->toBe('Pensioner');
 });
 
 test('pensionerOptionalFields returns the three employer fields', function () {

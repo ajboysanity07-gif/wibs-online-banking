@@ -1599,6 +1599,67 @@ test('profile information can be updated', function () {
     expect($memberProfile->profile_completed_at)->not->toBeNull();
 });
 
+test('date employed persists from the work tab', function () {
+    $user = User::factory()->create([
+        'acctno' => '000920',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'nickname' => 'Renee',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'number_of_children' => 2,
+            'civil_status' => 'Married',
+            'housing_status' => 'OWNED',
+            'spouse_name' => 'Renee Santos',
+            'spouse_birthdate' => '1992-05-14',
+            'employment_type' => 'Private',
+            'employer_business_name' => 'Acme Corp',
+            'employer_business_address1' => 'Acme Plaza',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
+            'employer_business_address_zip' => '8100',
+            'telephone_no' => '02-123-4567',
+            'current_position' => 'Analyst',
+            'nature_of_business' => 'Finance',
+            'years_in_work_business' => '5 years',
+            'employer_date_employed' => '2019-06-01',
+            'gross_monthly_income' => 'PHP 35,000.50',
+            'payday' => '15th',
+            'spouse_cell_no' => '09123456780',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('client.dashboard'));
+
+    $memberProfile = $user->fresh()->memberApplicationProfile;
+
+    expect($memberProfile)->not->toBeNull();
+    expect($memberProfile->employer_date_employed->toDateString())->toBe('2019-06-01');
+});
+
 test('profile information can be updated with other nature of business', function () {
     $user = User::factory()->create([
         'acctno' => '000904',

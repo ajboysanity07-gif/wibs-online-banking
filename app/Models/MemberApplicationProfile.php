@@ -17,7 +17,9 @@ class MemberApplicationProfile extends Model
     /** @use HasFactory<\Database\Factories\MemberApplicationProfileFactory> */
     use HasFactory;
 
-    public const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner / Retired';
+    public const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner';
+
+    public const SELF_EMPLOYED_EMPLOYMENT_TYPE = 'Self Employed';
 
     public const ID_TYPE_OPTIONS = ['SSS', 'GSIS', 'TIN', 'Phil ID', 'Others'];
 
@@ -82,6 +84,7 @@ class MemberApplicationProfile extends Model
         'current_position',
         'nature_of_business',
         'years_in_work_business',
+        'employer_date_employed',
         'gross_monthly_income',
         'payday',
         'payout_bank_name',
@@ -219,6 +222,7 @@ class MemberApplicationProfile extends Model
             'current_position',
             'nature_of_business',
             'years_in_work_business',
+            'employer_date_employed',
             'gross_monthly_income',
             'payday',
         ];
@@ -580,6 +584,7 @@ class MemberApplicationProfile extends Model
             'beneficiary_primary_birthdate' => 'date',
             'beneficiary_secondary_birthdate' => 'date',
             'spouse_birthdate' => 'date',
+            'employer_date_employed' => 'date',
             'profile_completed_at' => 'datetime',
         ];
     }

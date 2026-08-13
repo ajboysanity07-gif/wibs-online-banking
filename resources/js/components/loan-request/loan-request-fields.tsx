@@ -32,10 +32,11 @@ const EDUCATIONAL_ATTAINMENT_OPTIONS = [
     'Postgraduate',
 ];
 const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner';
+const SELF_EMPLOYED_EMPLOYMENT_TYPE = 'Self Employed';
 const EMPLOYMENT_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
     { value: 'Private', label: 'Private' },
     { value: 'Government', label: 'Government' },
-    { value: 'Self Employed', label: 'Self Employed' },
+    { value: SELF_EMPLOYED_EMPLOYMENT_TYPE, label: 'Self Employed' },
     { value: PENSIONER_EMPLOYMENT_TYPE, label: 'Pensioner / Retired' },
     { value: 'OFW', label: 'OFW' },
 ];
@@ -1007,6 +1008,7 @@ export function LoanRequestWorkFields({
 }: WorkFieldsProps) {
     const employmentType = values.employment_type;
     const isPensioner = employmentType === PENSIONER_EMPLOYMENT_TYPE;
+    const isSelfEmployed = employmentType === SELF_EMPLOYED_EMPLOYMENT_TYPE;
 
     const employmentTypeOptions =
         employmentType !== '' &&
@@ -1502,7 +1504,7 @@ export function LoanRequestWorkFields({
                             />
                         </div>
 
-                        {prefix === 'applicant' ? (
+                        {prefix === 'applicant' && !isSelfEmployed ? (
                             <div className="grid gap-2">
                                 <Label
                                     htmlFor={`${prefix}_employer_date_employed`}

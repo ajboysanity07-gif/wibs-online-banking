@@ -33,6 +33,9 @@ type Props = {
     setEmploymentType: (value: string) => void;
     employmentTypeOptions: string[];
     isPensioner: boolean;
+    showDateEmployed: boolean;
+    employerDateEmployed: string;
+    setEmployerDateEmployed: (value: string) => void;
     isCurrentPositionFromWmaster: boolean;
     resolvedCurrentPosition: string;
     employerBusinessAddress1: string;
@@ -61,6 +64,9 @@ export function WorkTab({
     setEmploymentType,
     employmentTypeOptions,
     isPensioner,
+    showDateEmployed,
+    employerDateEmployed,
+    setEmployerDateEmployed,
     isCurrentPositionFromWmaster,
     resolvedCurrentPosition,
     employerBusinessAddress1,
@@ -458,6 +464,34 @@ export function WorkTab({
                                     message={formErrors.years_in_work_business}
                                 />
                             </div>
+
+                            {showDateEmployed && (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="employer_date_employed">
+                                        Date employed
+                                    </Label>
+
+                                    <Input
+                                        id="employer_date_employed"
+                                        type="date"
+                                        className="mt-1 block w-full"
+                                        value={employerDateEmployed}
+                                        name="employer_date_employed"
+                                        onChange={(event) => {
+                                            setEmployerDateEmployed(
+                                                event.target.value,
+                                            );
+                                        }}
+                                    />
+
+                                    <InputError
+                                        className="mt-2"
+                                        message={
+                                            formErrors.employer_date_employed
+                                        }
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid gap-2">

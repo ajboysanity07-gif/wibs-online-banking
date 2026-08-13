@@ -340,6 +340,12 @@ class LoanRequestService
             ),
         ];
 
+        // A blank (or intentionally hidden, e.g. Self-Employed owners) date
+        // field must never write an empty string into a date column.
+        if (($profileData['employer_date_employed'] ?? null) === '') {
+            $profileData['employer_date_employed'] = null;
+        }
+
         if ($profileData === []) {
             return;
         }
@@ -1694,11 +1700,12 @@ class LoanRequestService
                 $wmaster?->zone_number ?? $profile?->home_address_zip,
             ),
             'length_of_stay' => $profile?->length_of_stay,
-            'housing_status' => $wmaster?->restype !== null
-                ? (string) $wmaster->restype
-                : null,
+            'housing_status' => $this->normalizeHousingStatusValue(
+                $wmaster?->restype ?? $profile?->housing_status,
+            ),
             'cell_no' => $user->phoneno,
-            'civil_status' => $wmaster?->civilstat,
+            'civil_status' => $this->normalizeCivilStatusValue($wmaster?->civilstat)
+                ?? $this->normalizeCivilStatusValue($profile?->civil_status),
             'educational_attainment' => $profile?->educational_attainment,
             'number_of_children' => $numberOfChildren,
             'spouse_name' => $spouseName ?? $profile?->spouse_name,
@@ -1717,6 +1724,7 @@ class LoanRequestService
             'current_position' => $currentPosition,
             'nature_of_business' => $profile?->nature_of_business,
             'years_in_work_business' => $profile?->years_in_work_business,
+            'employer_date_employed' => $profile?->employer_date_employed?->toDateString(),
             'gross_monthly_income' => $profile?->gross_monthly_income !== null
                 ? (string) $profile->gross_monthly_income
                 : null,

@@ -78,6 +78,7 @@ export type MemberApplicationProfileData = {
     current_position: string | null;
     nature_of_business: string | null;
     years_in_work_business: string | null;
+    employer_date_employed: string | null;
     gross_monthly_income: string | null;
     payday: string | null;
     payout_bank_name: string | null;
@@ -154,12 +155,14 @@ export const EDUCATIONAL_ATTAINMENT_OPTIONS = [
     'College',
     'Postgraduate',
 ];
-export const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner / Retired';
+export const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner';
+export const SELF_EMPLOYED_EMPLOYMENT_TYPE = 'Self Employed';
 export const EMPLOYMENT_TYPE_OPTIONS = [
-    'Regular',
-    'Contract',
-    'Self-Employed',
+    'Private',
+    'Government',
+    SELF_EMPLOYED_EMPLOYMENT_TYPE,
     PENSIONER_EMPLOYMENT_TYPE,
+    'OFW',
 ];
 export const CIVIL_STATUS_OPTIONS = [
     'Single',
@@ -269,6 +272,7 @@ export const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'current_position',
         'nature_of_business',
         'years_in_work_business',
+        'employer_date_employed',
         'gross_monthly_income',
         'payday',
     ],

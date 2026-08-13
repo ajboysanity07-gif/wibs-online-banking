@@ -45,6 +45,7 @@ import {
     PROFILE_PHOTO_OUTPUT_QUALITY,
     PROFILE_PHOTO_OUTPUT_SIZE,
     PROFILE_TAB_ORDER,
+    SELF_EMPLOYED_EMPLOYMENT_TYPE,
     SPOUSE_NOT_APPLICABLE_STATUSES,
     tabForField,
     type ProfileTab,
@@ -310,6 +311,12 @@ export default function Profile({
             ? [employmentType, ...EMPLOYMENT_TYPE_OPTIONS]
             : EMPLOYMENT_TYPE_OPTIONS;
     const isPensioner = employmentType === PENSIONER_EMPLOYMENT_TYPE;
+    const isSelfEmployed =
+        employmentType === SELF_EMPLOYED_EMPLOYMENT_TYPE;
+    const showDateEmployed = !isPensioner && !isSelfEmployed;
+    const [employerDateEmployed, setEmployerDateEmployed] = useState<string>(
+        memberApplicationProfile?.employer_date_employed ?? '',
+    );
     const initialNatureOfBusiness =
         memberApplicationProfile?.nature_of_business?.trim() ?? '';
     const hasPresetNatureOfBusiness =
@@ -940,6 +947,15 @@ export default function Profile({
                                                         employmentTypeOptions
                                                     }
                                                     isPensioner={isPensioner}
+                                                    showDateEmployed={
+                                                        showDateEmployed
+                                                    }
+                                                    employerDateEmployed={
+                                                        employerDateEmployed
+                                                    }
+                                                    setEmployerDateEmployed={
+                                                        setEmployerDateEmployed
+                                                    }
                                                     isCurrentPositionFromWmaster={
                                                         isCurrentPositionFromWmaster
                                                     }

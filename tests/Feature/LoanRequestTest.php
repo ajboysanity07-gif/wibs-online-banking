@@ -43,6 +43,7 @@ beforeEach(function () {
             $table->date('birthday')->nullable();
             $table->string('birthplace')->nullable();
             $table->string('address')->nullable();
+            $table->string('address1')->nullable();
             $table->string('address2')->nullable();
             $table->string('address3')->nullable();
             $table->string('address4')->nullable();
@@ -352,7 +353,8 @@ test('loan request form uses structured wmaster names and address parts', functi
         'birthday' => '1990-04-10',
         'birthplace' => 'Makati City',
         'address' => 'Legacy Loan Street',
-        'address2' => '123 Main Street',
+        'address1' => '123 Main Street',
+        'address2' => 'San Lorenzo',
         'address3' => 'Makati',
         'address4' => 'Metro Manila',
         'zone_number' => '1234',
@@ -382,7 +384,7 @@ test('loan request form uses structured wmaster names and address parts', functi
             ->where('applicant.birthplace', 'Makati City')
             ->where('applicant.birthplace_city', 'Makati City')
             ->where('applicant.birthplace_province', null)
-            ->where('applicant.address', '123 Main Street, Makati, Metro Manila')
+            ->where('applicant.address', '123 Main Street, San Lorenzo, Makati, Metro Manila')
             ->where('applicant.address1', '123 Main Street')
             ->where('applicant.address2', 'Makati')
             ->where('applicant.address3', 'Metro Manila')
@@ -497,35 +499,34 @@ test('loan request form falls back to legacy wmaster data when structured data i
         'birthplace' => 'Cebu City',
         'birthplace_city' => 'Cebu City',
         'birthplace_province' => null,
+        'home_address1' => null,
+        'home_address_barangay' => null,
+        'home_address2' => null,
+        'home_address3' => null,
     ]);
     DB::table('wlntype')->insert([
         'typecode' => 'LN-005',
         'lntype' => 'Salary/Pension',
     ]);
 
-    $response = $this
-        ->actingAs($user)
-        ->get(route('client.loan-requests.create'));
+    $service = app(\App\Services\LoanRequests\LoanRequestService::class);
+    $payload = $service->getFormData($user);
 
-    $response
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('client/loan-request')
-            ->where('applicant.first_name', 'Loan')
-            ->where('applicant.middle_name', 'L.')
-            ->where('applicant.last_name', 'Legacy')
-            ->where('applicant.birthplace', 'Cebu City')
-            ->where('applicant.address', 'Legacy Loan Street')
-            ->where('applicant.birthplace_city', 'Cebu City')
-            ->where('applicant.birthplace_province', null)
-            ->where('applicant.address1', 'Legacy Loan Street')
-            ->where('applicant.address2', null)
-            ->where('applicant.address3', null)
-            ->where('applicantReadOnly.address1', true)
-            ->where('applicantReadOnly.address2', false)
-            ->where('applicantReadOnly.address3', false)
-            ->where('applicantReadOnly.birthplace_city', false)
-            ->where('applicantReadOnly.birthplace_province', false));
+    expect($payload['applicant']['first_name'])->toBe('Loan');
+    expect($payload['applicant']['middle_name'])->toBe('L.');
+    expect($payload['applicant']['last_name'])->toBe('Legacy');
+    expect($payload['applicant']['birthplace'])->toBe('Cebu City');
+    expect($payload['applicant']['address'])->toBe('Legacy Loan Street');
+    expect($payload['applicant']['birthplace_city'])->toBe('Cebu City');
+    expect($payload['applicant']['birthplace_province'])->toBeNull();
+    expect($payload['applicant']['address1'])->toBe('Legacy Loan Street');
+    expect($payload['applicant']['address2'])->toBeNull();
+    expect($payload['applicant']['address3'])->toBeNull();
+    expect($payload['applicantReadOnly']['address1'])->toBeTrue();
+    expect($payload['applicantReadOnly']['address2'])->toBeFalse();
+    expect($payload['applicantReadOnly']['address3'])->toBeFalse();
+    expect($payload['applicantReadOnly']['birthplace_city'])->toBeFalse();
+    expect($payload['applicantReadOnly']['birthplace_province'])->toBeFalse();
 });
 
 test('loan request form preserves member number of children values', function (
@@ -696,6 +697,125 @@ test('loan request form locks spouse name when wmaster spouse exists', function 
             ->where('applicantReadOnly.spouse_name', true));
 });
 
+test('loan request form falls back to profile civil status when wmaster civil status is missing', function () {
+    $user = User::factory()->create([
+        'acctno' => '000726',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => null,
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+        'civil_status' => 'Married',
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-010',
+        'lntype' => 'Personal',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request')
+            ->where('applicant.civil_status', 'Married')
+            ->where('applicantReadOnly.civil_status', false));
+});
+
+test('loan request form falls back to profile housing status when wmaster housing status is missing', function () {
+    $user = User::factory()->create([
+        'acctno' => '000727',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+        'restype' => null,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+        'housing_status' => 'RENT',
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-011',
+        'lntype' => 'Personal',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request')
+            ->where('applicant.housing_status', 'RENT')
+            ->where('applicantReadOnly.housing_status', false));
+});
+
+test('loan request form keeps wmaster civil and housing status over profile values', function () {
+    $user = User::factory()->create([
+        'acctno' => '000728',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+        'restype' => 'OWNED',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+        'civil_status' => 'Married',
+        'housing_status' => 'RENT',
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-012',
+        'lntype' => 'Personal',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request')
+            ->where('applicant.civil_status', 'Single')
+            ->where('applicantReadOnly.civil_status', true)
+            ->where('applicant.housing_status', 'OWNED')
+            ->where('applicantReadOnly.housing_status', true));
+});
+
 test('loan request form normalizes housing status values', function (
     ?string $restype,
     ?string $expected,
@@ -742,7 +862,7 @@ test('loan request form normalizes housing status values', function (
     'rent value' => ['RENT', 'RENT', true],
     'rental value' => ['RENTAL', 'RENT', true],
     'rented label' => ['Rented', 'RENT', true],
-    'missing value' => [null, null, false],
+    'missing value uses profile' => [null, 'OWNED', false],
 ]);
 
 test('clients without completed profiles are redirected away from loan request form', function () {
@@ -1479,6 +1599,106 @@ test('applicant date employed is stored and co-makers do not require it', functi
         ->first();
 
     expect($applicant->employer_date_employed->toDateString())->toBe('2019-06-01');
+});
+
+test('self-employed applicant may submit without a date employed', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create(['acctno' => '000755']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Owner',
+        'fname' => 'Owner',
+        'lname' => 'Member',
+        'birthday' => '1985-06-20',
+        'address' => 'Business Street',
+        'civilstat' => 'Married',
+        'occupation' => 'Owner',
+    ]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create(['user_id' => $user->user_id]);
+    DB::table('wlntype')->insert(['typecode' => 'LN-SE', 'lntype' => 'Self Employed Loan']);
+
+    $payload = [
+        'typecode' => 'LN-SE',
+        'requested_amount' => 10000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Business expansion',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
+        'applicant' => array_merge(pensionerPersonPayload(['employment_type' => 'Self Employed']), [
+            'employer_date_employed' => '',
+            'employer_business_name' => 'Owner Store',
+            'employer_business_address1' => 'Market Street',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
+            'current_position' => 'Owner',
+            'nature_of_business' => 'Retail',
+            'years_in_work_business' => '3 years',
+        ]),
+        'co_maker_1' => array_merge(pensionerPersonPayload(), [
+            'first_name' => 'Co',
+            'last_name' => 'Maker',
+            'cell_no' => '09222222222',
+            'birthplace_city' => 'Cebu',
+            'birthplace_province' => 'Cebu',
+            'address2' => 'Cebu City',
+            'address3' => 'Cebu',
+            'gross_monthly_income' => 18000,
+        ]),
+        'co_maker_2' => array_merge(pensionerPersonPayload(), [
+            'first_name' => 'Second',
+            'last_name' => 'Maker',
+            'cell_no' => '09333333333',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
+            'gross_monthly_income' => 16000,
+        ]),
+    ];
+
+    $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload)
+        ->assertSessionHasNoErrors();
+
+    $loanRequest = LoanRequest::query()->first();
+    $applicant = $loanRequest->people()
+        ->where('role', LoanRequestPersonRole::Applicant->value)
+        ->first();
+
+    expect($applicant->employer_date_employed)->toBeNull();
+    expect($applicant->employment_type)->toBe('Self Employed');
+});
+
+test('loan request form prefills date employed from the member profile', function () {
+    $user = User::factory()->create([
+        'acctno' => '000756',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Private',
+        'fname' => 'Private',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Private Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+        'employer_date_employed' => '2018-02-14',
+    ]);
+
+    $service = app(\App\Services\LoanRequests\LoanRequestService::class);
+    $payload = $service->getFormData($user);
+
+    expect($payload['applicant']['employer_date_employed'])->toBe('2018-02-14');
 });
 
 test('applicant legacy location values need not be selected from the PSGC suggestions', function () {

@@ -190,6 +190,7 @@ class SettingsPageData
                 'current_position' => $memberApplicationProfile->current_position,
                 'nature_of_business' => $memberApplicationProfile->nature_of_business,
                 'years_in_work_business' => $memberApplicationProfile->years_in_work_business,
+                'employer_date_employed' => $memberApplicationProfile->employer_date_employed?->toDateString(),
                 'gross_monthly_income' => $memberApplicationProfile->gross_monthly_income !== null
                     ? (string) $memberApplicationProfile->gross_monthly_income
                     : null,

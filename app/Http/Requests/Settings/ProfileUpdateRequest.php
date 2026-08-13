@@ -353,6 +353,10 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 'max:50',
             ],
+            'employer_date_employed' => [
+                'nullable',
+                'date',
+            ],
             'gross_monthly_income' => [
                 $memberRequirement('gross_monthly_income'),
                 'numeric',
@@ -568,6 +572,7 @@ class ProfileUpdateRequest extends FormRequest
             'home_address3' => 'home address province',
             'home_address_zip' => 'home address ZIP code',
             'years_in_work_business' => 'years in work or business',
+            'employer_date_employed' => 'date employed',
         ];
     }
 
