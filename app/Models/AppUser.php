@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\LoanCivilStatus;
 use App\Services\Locations\PsgcService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -179,7 +180,7 @@ class AppUser extends Authenticatable
         // self-reported for a *different* field wmaster doesn't cover.
         return array_filter(
             [
-                'civil_status' => $wmaster->civilstat,
+                'civil_status' => LoanCivilStatus::normalize($wmaster->civilstat),
                 'housing_status' => $wmaster->restype,
                 'spouse_name' => $wmaster->spouse,
                 'birthplace_city' => $parts['birthplace_city'],

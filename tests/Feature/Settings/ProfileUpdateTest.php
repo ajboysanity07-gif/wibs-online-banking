@@ -2188,6 +2188,67 @@ test('spouse name and birthdate validation is not required when civil status is 
     }
 });
 
+test('spouse name and birthdate are not required when wmaster civil status is Widowed but not cleanly cased', function () {
+    $user = User::factory()->create([
+        'acctno' => '000903',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    // Legacy core-banking data can hold a non-blank but inconsistently
+    // cased/whitespaced civil status. It must still be recognized as
+    // "Widowed" instead of silently falling through to "spouse required".
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'De Gracia, Cecilia',
+        'civilstat' => '  widowed  ',
+        'restype' => 'OWNED',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'City of Batac',
+            'birthplace_province' => 'Ilocos Norte',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Widowed',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
+        ]);
+
+    $response->assertSessionDoesntHaveErrors(['spouse_name', 'spouse_birthdate']);
+    $response->assertSessionHasNoErrors()->assertRedirect(route('client.dashboard'));
+
+    $user->refresh();
+
+    expect($user->memberApplicationProfileHasRequiredFields())->toBeTrue();
+});
+
 test('spouse name and birthdate are required when civil status is not Single', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([

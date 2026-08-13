@@ -578,17 +578,11 @@ class ProfileUpdateRequest extends FormRequest
      */
     private function effectiveCivilStatusHasNoSpouse(): bool
     {
-        $value = $this->wmasterFieldHasValue('civilstat')
-            ? $this->user()?->wmaster?->civilstat
-            : $this->input('civil_status');
+        $normalized = LoanCivilStatus::normalize($this->user()?->wmaster?->civilstat)
+            ?? LoanCivilStatus::normalize($this->input('civil_status'));
 
-        $normalized = strtoupper(trim((string) $value));
-
-        return in_array(
-            $normalized,
-            array_map('strtoupper', LoanCivilStatus::spouseNotApplicableValues()),
-            true,
-        );
+        return $normalized !== null
+            && in_array($normalized, LoanCivilStatus::spouseNotApplicableValues(), true);
     }
 
     private function normalizeOptionalString(mixed $value): ?string

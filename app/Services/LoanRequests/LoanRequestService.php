@@ -1443,34 +1443,7 @@ class LoanRequestService
 
     private function normalizeCivilStatusValue(mixed $value): ?string
     {
-        if ($value === null) {
-            return null;
-        }
-
-        $trimmed = trim((string) $value);
-
-        if ($trimmed === '') {
-            return null;
-        }
-
-        $upper = strtoupper($trimmed);
-
-        $resolved = match ($upper) {
-            'SINGLE' => 'Single',
-            'MARRIED' => 'Married',
-            'SEPARATED' => 'Separated',
-            'WIDOWED' => 'Widowed',
-            'ANNULLED' => null,
-            default => $trimmed,
-        };
-
-        if ($resolved === null) {
-            return null;
-        }
-
-        return in_array($resolved, LoanCivilStatus::values(), true)
-            ? $resolved
-            : null;
+        return LoanCivilStatus::normalize($value);
     }
 
     private function normalizeSexValue(mixed $value): ?string

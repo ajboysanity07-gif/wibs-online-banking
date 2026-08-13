@@ -443,8 +443,9 @@ class MemberApplicationProfile extends Model
     {
         $missing = [];
         $isPensioner = trim((string) ($this->employment_type ?? '')) === self::PENSIONER_EMPLOYMENT_TYPE;
-        $effectiveCivilStatus = trim((string) ($wmasterOverrides['civil_status'] ?? $this->civil_status ?? ''));
-        $spouseNotApplicable = in_array($effectiveCivilStatus, LoanCivilStatus::spouseNotApplicableValues(), true);
+        $effectiveCivilStatus = LoanCivilStatus::normalize($wmasterOverrides['civil_status'] ?? $this->civil_status ?? '');
+        $spouseNotApplicable = $effectiveCivilStatus !== null
+            && in_array($effectiveCivilStatus, LoanCivilStatus::spouseNotApplicableValues(), true);
 
         $optional = [
             ...($isPensioner ? self::pensionerOptionalFields() : []),
