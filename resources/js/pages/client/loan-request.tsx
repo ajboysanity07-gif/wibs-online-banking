@@ -519,10 +519,13 @@ export default function LoanRequestPage({
     const updatePersonField =
         (personKey: 'applicant' | 'co_maker_1' | 'co_maker_2') =>
         (field: keyof LoanRequestPersonFormData, value: string) => {
-            form.setData(personKey, {
-                ...form.data[personKey],
-                [field]: value,
-            });
+            form.setData((previousData) => ({
+                ...previousData,
+                [personKey]: {
+                    ...previousData[personKey],
+                    [field]: value,
+                },
+            }));
         };
 
     // Explicit opt-in only: loading a saved co-maker fills the fields as a
