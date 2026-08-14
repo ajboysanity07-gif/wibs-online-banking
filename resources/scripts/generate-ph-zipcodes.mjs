@@ -16,6 +16,13 @@ const ZIPCODES_PATH = path.join(
     'build',
     'zipcodes.json',
 );
+const PROVINCE_SCOPED_PATH = path.join(
+    ROOT_DIR,
+    'resources',
+    'scripts',
+    'data',
+    'ph-zipcodes-province-scoped.json',
+);
 const DATA_PATH = path.join(ROOT_DIR, 'resources', 'data', 'ph-zipcodes.json');
 const FIXTURE_PATH = path.join(
     ROOT_DIR,
@@ -137,8 +144,22 @@ const pickZip = (groups) => {
     return pickLowest(preferred);
 };
 
-const buildZipcodes = (addresses, entries) => {
+// NCR localities have no province in ph-address.json's `provinces` map (they
+// sit directly under districts/the region); every province-scoped source
+// files them under "Metro Manila".
+const NCR_REGION_CODE = '1300000000';
+
+const resolveProvinceName = (addresses, locality) => {
+    if (locality.region_code === NCR_REGION_CODE) {
+        return 'Metro Manila';
+    }
+
+    return addresses.provinces?.[locality.province_code] ?? null;
+};
+
+const buildZipcodes = (addresses, entries, provinceScoped) => {
     const zipcodes = {};
+    const fallbackUsed = [];
 
     for (const locality of addresses.localities ?? []) {
         const code = String(locality.code || '');
@@ -148,13 +169,28 @@ const buildZipcodes = (addresses, entries) => {
             continue;
         }
 
-        const isCity = String(locality.type || '').toLowerCase() === 'city';
         const base = normalizeName(name);
 
         if (base === '') {
             continue;
         }
 
+        const provinceName = resolveProvinceName(addresses, locality);
+        const provinceKey = provinceName ? normalizeName(provinceName) : null;
+        const scoped = provinceKey ? provinceScoped[provinceKey] : undefined;
+        const scopedZip = scoped ? scoped[base] : undefined;
+
+        if (scopedZip) {
+            zipcodes[code] = scopedZip;
+
+            continue;
+        }
+
+        // No province-scoped match (province not covered by the scraped
+        // source, or the name didn't line up) -- fall back to the old
+        // nationwide name-only match. This is ambiguous for any locality
+        // name that repeats across provinces, so it's logged for review.
+        const isCity = String(locality.type || '').toLowerCase() === 'city';
         const groups = collectMatches(entries, base);
         const prioritized = isCity
             ? {
@@ -171,10 +207,11 @@ const buildZipcodes = (addresses, entries) => {
 
         if (zip !== null) {
             zipcodes[code] = zip;
+            fallbackUsed.push({ code, name, province: provinceName, zip });
         }
     }
 
-    return zipcodes;
+    return { zipcodes, fallbackUsed };
 };
 
 const FIXTURE_LOCALITY_NAMES = [
@@ -207,7 +244,13 @@ const buildFixture = (zipcodes, addresses) => {
 
 const addresses = await loadJson(ADDRESS_PATH);
 const entries = await loadZipcodes();
-const zipcodes = buildZipcodes(addresses, entries);
+const provinceScopedFile = await loadJson(PROVINCE_SCOPED_PATH);
+const provinceScoped = provinceScopedFile.provinces ?? {};
+const { zipcodes, fallbackUsed } = buildZipcodes(
+    addresses,
+    entries,
+    provinceScoped,
+);
 const fixture = buildFixture(zipcodes, addresses);
 
 await writeJson(DATA_PATH, zipcodes);
@@ -217,3 +260,15 @@ console.log(
     `Generated ${DATA_PATH} (${Object.keys(zipcodes).length} localities)`,
 );
 console.log(`Generated ${FIXTURE_PATH}`);
+
+if (fallbackUsed.length > 0) {
+    console.log(
+        `\n${fallbackUsed.length} localities had no province-scoped match and fell back to the ambiguous nationwide name match (still at risk of being wrong for duplicate-named towns):`,
+    );
+
+    for (const entry of fallbackUsed) {
+        console.log(
+            `  ${entry.code}  ${entry.name} (${entry.province ?? 'unknown province'})  -> ${entry.zip}`,
+        );
+    }
+}
