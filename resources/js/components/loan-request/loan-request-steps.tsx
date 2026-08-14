@@ -2649,6 +2649,21 @@ export function LoanRequestReviewStep({
         ...buildSectionData(sectionKeys),
     }));
 
+    const dependentSummaries = summarizeDependents(
+        DEPENDENT_CATEGORIES,
+        data.dependents,
+    );
+    const spouseCycleStatus = data.dependents[SPOUSE_CYCLE_STATUS_KEY];
+    const spouseCycleNumber = data.dependents[SPOUSE_CYCLE_NUMBER_KEY];
+    const spouseCycleLabel =
+        spouseCycleStatus === 'Old' && spouseCycleNumber
+            ? `Old · cycle ${spouseCycleNumber}`
+            : spouseCycleStatus
+              ? `${spouseCycleStatus}`
+              : '';
+    const hasDependentsData =
+        dependentSummaries.length > 0 || Boolean(spouseCycleStatus);
+
     return (
         <LoanRequestSectionCard
             title="Review & undertaking"
@@ -2711,6 +2726,51 @@ export function LoanRequestReviewStep({
                             data.co_maker_2,
                         )}
                     />
+                </AccordionSummaryCard>
+
+                <AccordionSummaryCard
+                    value="dependents"
+                    title="Dependents"
+                    description="Review the dependents on file for this application."
+                >
+                    {hasDependentsData ? (
+                        <div className="space-y-4">
+                            {spouseCycleStatus ? (
+                                <div className="space-y-1">
+                                    <p className="text-sm font-medium">
+                                        Spouse (group life coverage)
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {displayText(spouseCycleLabel)}
+                                    </p>
+                                </div>
+                            ) : null}
+                            {dependentSummaries.map(({ category, rows }) => (
+                                <div key={category.key} className="space-y-2">
+                                    <p className="text-sm font-medium">
+                                        {dependentCategoryPluralLabel(category)}
+                                    </p>
+                                    <ul className="space-y-1">
+                                        {rows.map((row) => (
+                                            <li
+                                                key={row.name}
+                                                className="text-sm text-muted-foreground"
+                                            >
+                                                {row.name}
+                                                {row.cycleStatus
+                                                    ? ` — ${row.cycleStatus}`
+                                                    : ''}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            No dependents added.
+                        </p>
+                    )}
                 </AccordionSummaryCard>
 
                 {dataSectionSummaries.map((section) => (
