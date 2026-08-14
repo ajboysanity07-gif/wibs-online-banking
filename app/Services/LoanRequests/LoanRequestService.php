@@ -102,6 +102,7 @@ class LoanRequestService
             : null;
 
         $applicant = $this->normalizePersonSelectValues($applicant);
+        $applicant = $this->applyApplicantProfileDefaults($applicant, $user);
         $coMakerOne = $coMakerOne !== null
             ? $this->normalizePersonSelectValues($coMakerOne)
             : null;
@@ -1730,6 +1731,55 @@ class LoanRequestService
                 : null,
             'payday' => $profile?->payday,
         ];
+    }
+
+    /**
+     * Fill missing applicant fields (civil status and the fields sharing its
+     * "About you" sync history) from the member's saved application profile,
+     * same precedence as applyBankingProfileDefaults()/applyDependentsProfileDefaults():
+     * only null fields are overwritten so a member's own in-progress draft
+     * edits are never clobbered.
+     *
+     * Without this, an applicant's LoanRequestPerson row created before the
+     * member filled in Profile Settings stays permanently stale — serializePerson()
+     * reads the row verbatim with no fallback to the live profile.
+     *
+     * @param  array<string, mixed>  $applicant
+     * @return array<string, mixed>
+     */
+    private function applyApplicantProfileDefaults(array $applicant, AppUser $user): array
+    {
+        if ($applicant === []) {
+            return $applicant;
+        }
+
+        $snapshot = $this->buildApplicantSnapshot($user);
+
+        $fields = [
+            'civil_status',
+            'housing_status',
+            'length_of_stay',
+            'spouse_name',
+            'spouse_age',
+            'spouse_cell_no',
+            'number_of_children',
+        ];
+
+        foreach ($fields as $field) {
+            if (($applicant[$field] ?? null) !== null) {
+                continue;
+            }
+
+            $snapshotValue = $snapshot[$field] ?? null;
+
+            if ($snapshotValue === null) {
+                continue;
+            }
+
+            $applicant[$field] = $snapshotValue;
+        }
+
+        return $applicant;
     }
 
     /**
