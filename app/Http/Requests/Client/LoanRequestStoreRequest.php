@@ -9,10 +9,12 @@ use App\LoanReleaseMethod;
 use App\LoanSex;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\MemberApplicationProfile;
 use App\Rules\ValidPostalCode;
 use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
 use App\Rules\ValidPsgcProvince;
+use App\Support\DisplayText;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -331,6 +333,25 @@ class LoanRequestStoreRequest extends FormRequest
         return $rules;
     }
 
+    /**
+     * Free-text person fields users routinely type in ALL CAPS. Normalized to
+     * title case on save; enum/dropdown-backed fields (civil_status,
+     * housing_status, employment_type) and PSGC location fields are excluded
+     * since they're already constrained to fixed values.
+     */
+    private const NORMALIZED_PERSON_TEXT_FIELDS = [
+        'first_name',
+        'middle_name',
+        'last_name',
+        'nickname',
+        'spouse_name',
+        'employer_business_name',
+        'current_position',
+        'nature_of_business',
+        'address1',
+        'employer_business_address1',
+    ];
+
     protected function prepareForValidation(): void
     {
         $payload = $this->all();
@@ -342,7 +363,11 @@ class LoanRequestStoreRequest extends FormRequest
                 continue;
             }
 
-            $payload[$key] = $this->normalizePersonLocationFields($person);
+            $person = $this->normalizePersonLocationFields($person);
+            $payload[$key] = DisplayText::normalizeFields(
+                $person,
+                self::NORMALIZED_PERSON_TEXT_FIELDS,
+            );
         }
 
         $this->merge($payload);
@@ -514,8 +539,15 @@ class LoanRequestStoreRequest extends FormRequest
         bool $includeDateEmployed = false,
         bool $requirePsgcLocations = true,
     ): array {
-        $isPensioner = trim((string) $this->input("{$prefix}.employment_type", '')) === 'Pensioner';
-        $isSelfEmployed = trim((string) $this->input("{$prefix}.employment_type", '')) === 'Self Employed';
+        $employmentType = $this->input("{$prefix}.employment_type");
+        $isPensioner = MemberApplicationProfile::employmentTypeMatches(
+            $employmentType,
+            MemberApplicationProfile::PENSIONER_EMPLOYMENT_TYPE,
+        );
+        $isSelfEmployed = MemberApplicationProfile::employmentTypeMatches(
+            $employmentType,
+            MemberApplicationProfile::SELF_EMPLOYED_EMPLOYMENT_TYPE,
+        );
         $employerRule = $isPensioner ? 'nullable' : 'required';
         $dateEmployedRule = ($isPensioner || $isSelfEmployed) ? 'nullable' : 'required';
 

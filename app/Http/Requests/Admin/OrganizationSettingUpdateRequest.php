@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin;
 use App\Rules\ValidPsgcLocality;
 use App\Rules\ValidPsgcProvince;
 use App\Services\OrganizationSettingsService;
+use App\Support\DisplayText;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -196,6 +197,11 @@ class OrganizationSettingUpdateRequest extends FormRequest
                 $this->input('report_value_font_color'),
             ),
         ]);
+
+        $this->merge(DisplayText::normalizeFields(
+            $this->all(),
+            ['company_name', 'portal_label', 'business_address1'],
+        ));
     }
 
     private function normalizeHexColor(?string $value): ?string

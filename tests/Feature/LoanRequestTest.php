@@ -1673,6 +1673,153 @@ test('self-employed applicant may submit without a date employed', function () {
     expect($applicant->employment_type)->toBe('Self Employed');
 });
 
+test('self-employed applicant with hyphenated employment_type may submit without a date employed', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create(['acctno' => '000757']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Owner',
+        'fname' => 'Owner',
+        'lname' => 'Member',
+        'birthday' => '1985-06-20',
+        'address' => 'Business Street',
+        'civilstat' => 'Married',
+        'occupation' => 'Owner',
+    ]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create(['user_id' => $user->user_id]);
+    DB::table('wlntype')->insert(['typecode' => 'LN-SE2', 'lntype' => 'Self Employed Loan Two']);
+
+    $payload = [
+        'typecode' => 'LN-SE2',
+        'requested_amount' => 10000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Business expansion',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
+        'applicant' => array_merge(pensionerPersonPayload(['employment_type' => 'Self-Employed']), [
+            'employer_date_employed' => '',
+            'employer_business_name' => 'Owner Store',
+            'employer_business_address1' => 'Market Street',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
+            'current_position' => 'Owner',
+            'nature_of_business' => 'Retail',
+            'years_in_work_business' => '3 years',
+        ]),
+        'co_maker_1' => array_merge(pensionerPersonPayload(), [
+            'first_name' => 'Co',
+            'last_name' => 'Maker',
+            'cell_no' => '09222222222',
+            'birthplace_city' => 'Cebu',
+            'birthplace_province' => 'Cebu',
+            'address2' => 'Cebu City',
+            'address3' => 'Cebu',
+            'gross_monthly_income' => 18000,
+        ]),
+        'co_maker_2' => array_merge(pensionerPersonPayload(), [
+            'first_name' => 'Second',
+            'last_name' => 'Maker',
+            'cell_no' => '09333333333',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
+            'gross_monthly_income' => 16000,
+        ]),
+    ];
+
+    $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload)
+        ->assertSessionHasNoErrors();
+
+    $loanRequest = LoanRequest::query()->first();
+    $applicant = $loanRequest->people()
+        ->where('role', LoanRequestPersonRole::Applicant->value)
+        ->first();
+
+    expect($applicant->employer_date_employed)->toBeNull();
+});
+
+test('submitting free-text fields in ALL CAPS normalizes them to title case on save', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create(['acctno' => '000758']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Cruz, Juan',
+        'fname' => 'Juan',
+        'lname' => 'Cruz',
+        'birthday' => '1990-01-01',
+        'address' => 'Business Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Owner',
+    ]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create(['user_id' => $user->user_id]);
+    DB::table('wlntype')->insert(['typecode' => 'LN-CAPS', 'lntype' => 'Caps Loan']);
+
+    $payload = [
+        'typecode' => 'LN-CAPS',
+        'requested_amount' => 10000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Business expansion',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
+        'applicant' => array_merge(pensionerPersonPayload(['employment_type' => 'Self Employed']), [
+            'first_name' => 'JUAN',
+            'last_name' => 'DELA CRUZ',
+            'employer_date_employed' => '',
+            'employer_business_name' => "CECIL'S DE GRACIA PHARMACY",
+            'employer_business_address1' => 'MARKET STREET',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
+            'current_position' => 'OWNER',
+            'nature_of_business' => 'Retail',
+            'years_in_work_business' => '3 years',
+        ]),
+        'co_maker_1' => array_merge(pensionerPersonPayload(), [
+            'first_name' => 'Co',
+            'last_name' => 'Maker',
+            'cell_no' => '09222222222',
+            'birthplace_city' => 'Cebu',
+            'birthplace_province' => 'Cebu',
+            'address2' => 'Cebu City',
+            'address3' => 'Cebu',
+            'gross_monthly_income' => 18000,
+        ]),
+        'co_maker_2' => array_merge(pensionerPersonPayload(), [
+            'first_name' => 'Second',
+            'last_name' => 'Maker',
+            'cell_no' => '09333333333',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
+            'gross_monthly_income' => 16000,
+        ]),
+    ];
+
+    $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload)
+        ->assertSessionHasNoErrors();
+
+    $loanRequest = LoanRequest::query()->first();
+    $applicant = $loanRequest->people()
+        ->where('role', LoanRequestPersonRole::Applicant->value)
+        ->first();
+
+    expect($applicant->first_name)->toBe('Juan');
+    expect($applicant->last_name)->toBe('Dela Cruz');
+    expect($applicant->employer_business_name)->toBe("Cecil'S De Gracia Pharmacy");
+    expect($applicant->current_position)->toBe('Owner');
+});
+
 test('loan request form prefills date employed from the member profile', function () {
     $user = User::factory()->create([
         'acctno' => '000756',

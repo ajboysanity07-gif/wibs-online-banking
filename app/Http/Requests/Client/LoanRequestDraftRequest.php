@@ -9,6 +9,7 @@ use App\LoanReleaseMethod;
 use App\LoanSex;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Support\DisplayText;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -299,6 +300,25 @@ class LoanRequestDraftRequest extends FormRequest
         return $rules;
     }
 
+    /**
+     * Free-text person fields users routinely type in ALL CAPS. Normalized to
+     * title case on save; enum/dropdown-backed fields (civil_status,
+     * housing_status, employment_type) and PSGC location fields are excluded
+     * since they're already constrained to fixed values.
+     */
+    private const NORMALIZED_PERSON_TEXT_FIELDS = [
+        'first_name',
+        'middle_name',
+        'last_name',
+        'nickname',
+        'spouse_name',
+        'employer_business_name',
+        'current_position',
+        'nature_of_business',
+        'address1',
+        'employer_business_address1',
+    ];
+
     protected function prepareForValidation(): void
     {
         $payload = $this->all();
@@ -310,7 +330,11 @@ class LoanRequestDraftRequest extends FormRequest
                 continue;
             }
 
-            $payload[$key] = $this->normalizePersonLocationFields($person);
+            $person = $this->normalizePersonLocationFields($person);
+            $payload[$key] = DisplayText::normalizeFields(
+                $person,
+                self::NORMALIZED_PERSON_TEXT_FIELDS,
+            );
         }
 
         $this->merge($payload);

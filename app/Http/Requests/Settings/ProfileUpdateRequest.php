@@ -13,6 +13,7 @@ use App\Rules\ValidPostalCode;
 use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
 use App\Rules\ValidPsgcProvince;
+use App\Support\DisplayText;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -160,7 +161,28 @@ class ProfileUpdateRequest extends FormRequest
                 'gross_monthly_income' => $normalizedIncome !== '' ? $normalizedIncome : null,
             ]);
         }
+
+        $this->merge(DisplayText::normalizeFields(
+            $this->all(),
+            self::NORMALIZED_TEXT_FIELDS,
+        ));
     }
+
+    /**
+     * Free-text fields members routinely type in ALL CAPS. Normalized to
+     * title case on save; enum/dropdown-backed fields (civil_status,
+     * housing_status, employment_type) and PSGC location fields are excluded
+     * since they're already constrained to fixed values.
+     */
+    private const NORMALIZED_TEXT_FIELDS = [
+        'nickname',
+        'spouse_name',
+        'employer_business_name',
+        'current_position',
+        'nature_of_business',
+        'home_address1',
+        'employer_business_address1',
+    ];
 
     /**
      * Get the validation rules that apply to the request.
@@ -582,7 +604,10 @@ class ProfileUpdateRequest extends FormRequest
             return 'nullable';
         }
 
-        $isPensioner = trim((string) $this->input('employment_type', '')) === MemberApplicationProfile::PENSIONER_EMPLOYMENT_TYPE;
+        $isPensioner = MemberApplicationProfile::employmentTypeMatches(
+            $this->input('employment_type'),
+            MemberApplicationProfile::PENSIONER_EMPLOYMENT_TYPE,
+        );
 
         if ($isPensioner && in_array($field, MemberApplicationProfile::pensionerOptionalFields(), true)) {
             return 'nullable';

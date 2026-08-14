@@ -24,6 +24,21 @@ class MemberApplicationProfile extends Model
     public const ID_TYPE_OPTIONS = ['SSS', 'GSIS', 'TIN', 'Phil ID', 'Others'];
 
     /**
+     * Compares an `employment_type` value against a canonical option
+     * (self-employed/pensioner) tolerating real-world variants like
+     * "Self-Employed" (hyphen) or stray whitespace that a strict `===`
+     * check would silently reject.
+     */
+    public static function employmentTypeMatches(?string $value, string $canonical): bool
+    {
+        $normalize = static fn (string $text): string => strtolower(
+            (string) preg_replace('/[\s-]+/', ' ', trim($text)),
+        );
+
+        return $normalize((string) $value) === $normalize($canonical);
+    }
+
+    /**
      * Legacy WMASTER placeholder values that mean "no data", not real values.
      */
     private const BLANK_PLACEHOLDER_VALUES = ['na', 'n/a'];
@@ -480,7 +495,7 @@ class MemberApplicationProfile extends Model
     public function missingRequiredFields(array $wmasterOverrides = []): array
     {
         $missing = [];
-        $isPensioner = trim((string) ($this->employment_type ?? '')) === self::PENSIONER_EMPLOYMENT_TYPE;
+        $isPensioner = self::employmentTypeMatches($this->employment_type, self::PENSIONER_EMPLOYMENT_TYPE);
         $effectiveCivilStatus = LoanCivilStatus::normalize($wmasterOverrides['civil_status'] ?? $this->civil_status ?? '');
         $spouseNotApplicable = $effectiveCivilStatus !== null
             && in_array($effectiveCivilStatus, LoanCivilStatus::spouseNotApplicableValues(), true);

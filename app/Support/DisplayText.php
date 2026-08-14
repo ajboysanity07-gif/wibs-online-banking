@@ -35,4 +35,27 @@ class DisplayText
 
         return $normalized ?? $trimmed;
     }
+
+    /**
+     * Applies normalize() to the given keys of an associative array,
+     * leaving non-string/missing values untouched. Used to convert
+     * free-text ALL CAPS input (names, employer names, addresses, etc.)
+     * to title case before it is persisted.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  list<string>  $fields
+     * @return array<string, mixed>
+     */
+    public static function normalizeFields(array $data, array $fields): array
+    {
+        foreach ($fields as $field) {
+            if (! array_key_exists($field, $data) || ! is_string($data[$field])) {
+                continue;
+            }
+
+            $data[$field] = self::normalize($data[$field]);
+        }
+
+        return $data;
+    }
 }

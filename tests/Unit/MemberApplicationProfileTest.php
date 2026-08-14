@@ -251,3 +251,11 @@ test('legacy WMASTER "NA" placeholder values are treated as missing, not present
         ->toContain('payout_account_number')
         ->toContain('payout_account_type');
 });
+
+test('employmentTypeMatches recognizes real-world casing/hyphen variants of the canonical value', function () {
+    expect(MemberApplicationProfile::employmentTypeMatches('Self Employed', MemberApplicationProfile::SELF_EMPLOYED_EMPLOYMENT_TYPE))->toBeTrue();
+    expect(MemberApplicationProfile::employmentTypeMatches('Self-Employed', MemberApplicationProfile::SELF_EMPLOYED_EMPLOYMENT_TYPE))->toBeTrue();
+    expect(MemberApplicationProfile::employmentTypeMatches('  self   employed ', MemberApplicationProfile::SELF_EMPLOYED_EMPLOYMENT_TYPE))->toBeTrue();
+    expect(MemberApplicationProfile::employmentTypeMatches('Private', MemberApplicationProfile::SELF_EMPLOYED_EMPLOYMENT_TYPE))->toBeFalse();
+    expect(MemberApplicationProfile::employmentTypeMatches(null, MemberApplicationProfile::SELF_EMPLOYED_EMPLOYMENT_TYPE))->toBeFalse();
+});
