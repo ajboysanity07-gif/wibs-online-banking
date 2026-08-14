@@ -151,6 +151,32 @@ test('already-staff member can receive additional role without duplication', fun
         ->and($member->hasRole(Role::LOAN_PROCESSOR))->toBeTrue();
 });
 
+test('promoting a member who already holds a different editable role is rejected', function (): void {
+    $actor = createSuperadminActor();
+    $member = createMemberForPromotion('003008');
+
+    $this->actingAs($actor)
+        ->postJson(route('spa.superadmin.staff.promote'), [
+            'account_number' => '003008',
+            'role' => 'loan_processor',
+            'reason' => 'Initial role assignment.',
+        ])
+        ->assertCreated();
+
+    $this->actingAs($actor)
+        ->postJson(route('spa.superadmin.staff.promote'), [
+            'account_number' => '003008',
+            'role' => 'loan_manager',
+            'reason' => 'Attempting to add a second editable role.',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['role']);
+
+    $member->refresh()->load('roles');
+    expect($member->hasRole(Role::LOAN_PROCESSOR))->toBeTrue();
+    expect($member->hasRole(Role::LOAN_MANAGER))->toBeFalse();
+});
+
 test('user with acctno but without member role returns 422 on promote', function (): void {
     $actor = createSuperadminActor();
 

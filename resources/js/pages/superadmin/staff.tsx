@@ -1,7 +1,16 @@
 import { Head } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import axios from 'axios';
-import { Copy, History, MoreHorizontal, Search, ShieldCheck, ShieldOff, UserPlus, Users } from 'lucide-react';
+import {
+    Copy,
+    History,
+    MoreHorizontal,
+    Search,
+    ShieldCheck,
+    ShieldOff,
+    UserPlus,
+    Users,
+} from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
@@ -12,7 +21,6 @@ import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import {
     DataTablePagination,
@@ -98,19 +106,26 @@ const editableRoleOptions: Array<{
     {
         value: 'superadmin',
         label: 'Superadmin',
-        description: 'Manage staff, monitor loan applications, and access existing Superadmin pages.',
+        description:
+            'Manage staff, monitor loan applications, and access existing Superadmin pages.',
     },
     {
         value: 'loan_processor',
         label: 'Loan Processor',
-        description: 'Review applications, request revisions, reject, and recommend approval.',
+        description:
+            'Review applications, request revisions, reject, and recommend approval.',
     },
     {
         value: 'loan_manager',
         label: 'Loan Manager',
-        description: 'Approve or decline applications after officer recommendation.',
+        description:
+            'Approve or decline applications after officer recommendation.',
     },
 ];
+
+const getAssignableRoleOptions = (
+    assignedEditableRoles: Array<{ name: string }>,
+) => (assignedEditableRoles.length > 0 ? [] : editableRoleOptions);
 
 const formatDateTime = (value?: string | null): string => {
     if (!value) {
@@ -314,18 +329,15 @@ function MobileStaffCard({
     onOpenResetPassword: (staff: StaffAccount) => void;
 }) {
     const assignedEditableRoles = staff.roles.filter((role) => role.editable);
-    const assignableRoles = editableRoleOptions.filter(
-        (role) =>
-            !assignedEditableRoles.some(
-                (assignedRole) => assignedRole.name === role.value,
-            ),
-    );
+    const assignableRoles = getAssignableRoleOptions(assignedEditableRoles);
 
     return (
         <SurfaceCard variant="default" padding="sm">
             <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
-                    <p className="text-sm font-semibold">{staff.display_name}</p>
+                    <p className="text-sm font-semibold">
+                        {staff.display_name}
+                    </p>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span>{staff.display_code}</span>
                         {staff.username ? <span>{staff.username}</span> : null}
@@ -370,7 +382,9 @@ function MobileStaffCard({
                     <span className="text-muted-foreground">
                         Last role or access change
                     </span>
-                    <p className="text-sm font-medium">{describeLastChange(staff)}</p>
+                    <p className="text-sm font-medium">
+                        {describeLastChange(staff)}
+                    </p>
                 </div>
             </div>
 
@@ -396,7 +410,9 @@ function MobileStaffCard({
                         <DropdownMenuLabel>Manage roles</DropdownMenuLabel>
                         {assignableRoles.length === 0 ? (
                             <DropdownMenuItem disabled>
-                                All editable roles assigned
+                                {assignedEditableRoles.length > 0
+                                    ? 'Remove the current role to assign a different one'
+                                    : 'No editable roles available'}
                             </DropdownMenuItem>
                         ) : (
                             assignableRoles.map((role) => (
@@ -417,7 +433,9 @@ function MobileStaffCard({
                         {assignedEditableRoles.length > 0 ? (
                             <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuLabel>Remove roles</DropdownMenuLabel>
+                                <DropdownMenuLabel>
+                                    Remove roles
+                                </DropdownMenuLabel>
                                 {assignedEditableRoles.map((role) => (
                                     <DropdownMenuItem
                                         key={`remove-${staff.user_id}-${role.name}`}
@@ -483,9 +501,9 @@ function MobileStaffCard({
 
 export default function SuperadminStaffPage() {
     const [search, setSearch] = useState('');
-    const [roleFilter, setRoleFilter] = useState<
-        EditableStaffRoleName | 'all'
-    >('all');
+    const [roleFilter, setRoleFilter] = useState<EditableStaffRoleName | 'all'>(
+        'all',
+    );
     const [accessFilter, setAccessFilter] = useState<
         'all' | 'active' | 'suspended'
     >('all');
@@ -506,9 +524,7 @@ export default function SuperadminStaffPage() {
         useState<StaffAccessMutationState>(initialAccessMutationState);
 
     const [resetPasswordMutation, setResetPasswordMutation] =
-        useState<ResetPasswordMutationState>(
-            initialResetPasswordMutationState,
-        );
+        useState<ResetPasswordMutationState>(initialResetPasswordMutationState);
     const [resetPasswordResult, setResetPasswordResult] =
         useState<ResetPasswordResult | null>(null);
 
@@ -555,10 +571,7 @@ export default function SuperadminStaffPage() {
 
                 setHistoryLoading(false);
                 setHistoryError('Unable to load staff history right now.');
-                showErrorToast(
-                    requestError,
-                    'Failed to load staff history.',
-                );
+                showErrorToast(requestError, 'Failed to load staff history.');
             });
 
         return () => {
@@ -578,26 +591,36 @@ export default function SuperadminStaffPage() {
             return { ...current, searchLoading: true, searchError: null };
         });
 
-        const timer = setTimeout(async () => {
-            try {
-                const members = await adminApi.searchMembers(query, controller.signal);
+        const timer = setTimeout(
+            async () => {
+                try {
+                    const members = await adminApi.searchMembers(
+                        query,
+                        controller.signal,
+                    );
 
-                if (!controller.signal.aborted) {
-                    setPromoteDialog((current) => {
-                        if (current.step === 2) return current;
-                        return { ...current, searchLoading: false, searchResults: members };
-                    });
+                    if (!controller.signal.aborted) {
+                        setPromoteDialog((current) => {
+                            if (current.step === 2) return current;
+                            return {
+                                ...current,
+                                searchLoading: false,
+                                searchResults: members,
+                            };
+                        });
+                    }
+                } catch {
+                    if (!controller.signal.aborted) {
+                        setPromoteDialog((current) => ({
+                            ...current,
+                            searchLoading: false,
+                            searchError: 'Unable to load members right now.',
+                        }));
+                    }
                 }
-            } catch {
-                if (!controller.signal.aborted) {
-                    setPromoteDialog((current) => ({
-                        ...current,
-                        searchLoading: false,
-                        searchError: 'Unable to load members right now.',
-                    }));
-                }
-            }
-        }, query === '' ? 0 : 300);
+            },
+            query === '' ? 0 : 300,
+        );
 
         return () => {
             clearTimeout(timer);
@@ -613,12 +636,9 @@ export default function SuperadminStaffPage() {
         accessFilter !== 'all',
     ].filter(Boolean).length;
     const totalResults = meta.total;
-    const pageStart =
-        totalResults > 0 ? (meta.page - 1) * meta.perPage + 1 : 0;
+    const pageStart = totalResults > 0 ? (meta.page - 1) * meta.perPage + 1 : 0;
     const pageEnd =
-        totalResults > 0
-            ? Math.min(meta.page * meta.perPage, totalResults)
-            : 0;
+        totalResults > 0 ? Math.min(meta.page * meta.perPage, totalResults) : 0;
     const resultsLabel =
         totalResults > 0
             ? `Showing ${pageStart}-${pageEnd} of ${totalResults} staff accounts`
@@ -688,22 +708,15 @@ export default function SuperadminStaffPage() {
         }
     };
 
-    const handleCreateRoleToggle = (
-        role: EditableStaffRoleName,
-        checked: boolean,
-    ) => {
+    const handleCreateRoleSelect = (role: EditableStaffRoleName) => {
         setCreateForm((current) => ({
             ...current,
-            roles: checked
-                ? Array.from(new Set([...current.roles, role]))
-                : current.roles.filter((currentRole) => currentRole !== role),
+            roles: current.roles.includes(role) ? [] : [role],
         }));
         setCreateErrors((current) => ({ ...current, roles: '' }));
     };
 
-    const handleCreateStaff = async (
-        event: FormEvent<HTMLFormElement>,
-    ) => {
+    const handleCreateStaff = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setCreateProcessing(true);
         setCreateErrors({});
@@ -723,8 +736,7 @@ export default function SuperadminStaffPage() {
             });
 
             showSuccessToast(
-                response.message ??
-                    'Staff account created successfully.',
+                response.message ?? 'Staff account created successfully.',
             );
             resetCreateDialog();
             setPage(1);
@@ -739,10 +751,7 @@ export default function SuperadminStaffPage() {
                 );
             }
 
-            showErrorToast(
-                requestError,
-                'Failed to create the staff account.',
-            );
+            showErrorToast(requestError, 'Failed to create the staff account.');
             setCreateProcessing(false);
         }
     };
@@ -763,9 +772,7 @@ export default function SuperadminStaffPage() {
         });
     };
 
-    const handleRoleMutation = async (
-        event: FormEvent<HTMLFormElement>,
-    ) => {
+    const handleRoleMutation = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         if (!roleMutation.user) {
@@ -834,9 +841,7 @@ export default function SuperadminStaffPage() {
         });
     };
 
-    const handleAccessMutation = async (
-        event: FormEvent<HTMLFormElement>,
-    ) => {
+    const handleAccessMutation = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         if (!accessMutation.user) {
@@ -905,9 +910,7 @@ export default function SuperadminStaffPage() {
         });
     };
 
-    const handleResetPassword = async (
-        event: FormEvent<HTMLFormElement>,
-    ) => {
+    const handleResetPassword = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         if (!resetPasswordMutation.user) {
@@ -1046,35 +1049,34 @@ export default function SuperadminStaffPage() {
                 const assignedEditableRoles = staff.roles.filter(
                     (role) => role.editable,
                 );
-                const assignableRoles = editableRoleOptions.filter(
-                    (role) =>
-                        !assignedEditableRoles.some(
-                            (assignedRole) =>
-                                assignedRole.name === role.value,
-                        ),
+                const assignableRoles = getAssignableRoleOptions(
+                    assignedEditableRoles,
                 );
 
                 return (
                     <div className="flex justify-end">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button type="button" variant="ghost" size="icon">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                >
                                     <MoreHorizontal className="h-4 w-4" />
                                     <span className="sr-only">
                                         Manage staff
                                     </span>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                align="end"
-                                className="w-56"
-                            >
+                            <DropdownMenuContent align="end" className="w-56">
                                 <DropdownMenuLabel>
                                     Manage roles
                                 </DropdownMenuLabel>
                                 {assignableRoles.length === 0 ? (
                                     <DropdownMenuItem disabled>
-                                        All editable roles assigned
+                                        {assignedEditableRoles.length > 0
+                                            ? 'Remove the current role to assign a different one'
+                                            : 'No editable roles available'}
                                     </DropdownMenuItem>
                                 ) : (
                                     assignableRoles.map((role) => (
@@ -1146,9 +1148,7 @@ export default function SuperadminStaffPage() {
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                             onSelect={() =>
-                                                openResetPasswordMutation(
-                                                    staff,
-                                                )
+                                                openResetPasswordMutation(staff)
                                             }
                                         >
                                             Reset password
@@ -1258,7 +1258,9 @@ export default function SuperadminStaffPage() {
                                     value={roleFilter}
                                     onValueChange={(value) => {
                                         setRoleFilter(
-                                            value as EditableStaffRoleName | 'all',
+                                            value as
+                                                | EditableStaffRoleName
+                                                | 'all',
                                         );
                                         setPage(1);
                                     }}
@@ -1351,21 +1353,23 @@ export default function SuperadminStaffPage() {
                         {showSkeleton ? (
                             <>
                                 <div
-                                    className="space-y-3 px-2 pb-3 pt-4 md:hidden"
+                                    className="space-y-3 px-2 pt-4 pb-3 md:hidden"
                                     aria-busy="true"
                                 >
-                                    {Array.from({ length: 4 }).map((_, index) => (
-                                        <SurfaceCard
-                                            key={`staff-mobile-skeleton-${index}`}
-                                            variant="default"
-                                            padding="sm"
-                                            className="space-y-3"
-                                        >
-                                            <div className="h-4 w-36 animate-pulse rounded bg-muted" />
-                                            <div className="h-16 animate-pulse rounded-xl bg-muted/70" />
-                                            <div className="h-8 w-28 animate-pulse rounded bg-muted" />
-                                        </SurfaceCard>
-                                    ))}
+                                    {Array.from({ length: 4 }).map(
+                                        (_, index) => (
+                                            <SurfaceCard
+                                                key={`staff-mobile-skeleton-${index}`}
+                                                variant="default"
+                                                padding="sm"
+                                                className="space-y-3"
+                                            >
+                                                <div className="h-4 w-36 animate-pulse rounded bg-muted" />
+                                                <div className="h-16 animate-pulse rounded-xl bg-muted/70" />
+                                                <div className="h-8 w-28 animate-pulse rounded bg-muted" />
+                                            </SurfaceCard>
+                                        ),
+                                    )}
                                 </div>
                                 <div
                                     className="hidden md:block"
@@ -1381,7 +1385,7 @@ export default function SuperadminStaffPage() {
                             </>
                         ) : (
                             <>
-                                <div className="space-y-3 px-2 pb-3 pt-4 md:hidden">
+                                <div className="space-y-3 px-2 pt-4 pb-3 md:hidden">
                                     {items.length === 0 ? (
                                         <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                                             No staff accounts found.
@@ -1468,9 +1472,7 @@ export default function SuperadminStaffPage() {
                                         }))
                                     }
                                 />
-                                <InputError
-                                    message={createErrors.username}
-                                />
+                                <InputError message={createErrors.username} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="create-staff-email">
@@ -1520,9 +1522,7 @@ export default function SuperadminStaffPage() {
                                         }))
                                     }
                                 />
-                                <InputError
-                                    message={createErrors.password}
-                                />
+                                <InputError message={createErrors.password} />
                             </div>
                             <div className="space-y-2 md:col-span-2">
                                 <Label htmlFor="create-staff-password-confirmation">
@@ -1540,9 +1540,7 @@ export default function SuperadminStaffPage() {
                                     }
                                 />
                                 <InputError
-                                    message={
-                                        createErrors.password_confirmation
-                                    }
+                                    message={createErrors.password_confirmation}
                                 />
                             </div>
                         </div>
@@ -1551,12 +1549,15 @@ export default function SuperadminStaffPage() {
                             <div className="space-y-1">
                                 <Label>Staff roles</Label>
                                 <p className="text-sm text-muted-foreground">
-                                    Multiple staff roles are allowed. Member is
-                                    visible in the directory when present, but it
-                                    is never assigned or removed from this page.
+                                    Select exactly one staff role. Member access
+                                    is granted separately and is never assigned
+                                    or removed from this page.
                                 </p>
                             </div>
-                            <div className="grid gap-3 md:grid-cols-3">
+                            <div
+                                className="grid gap-3 md:grid-cols-3"
+                                role="radiogroup"
+                            >
                                 {editableRoleOptions.map((role) => {
                                     const checked = createForm.roles.includes(
                                         role.value,
@@ -1572,14 +1573,18 @@ export default function SuperadminStaffPage() {
                                                     : 'hover:border-border',
                                             )}
                                         >
-                                            <Checkbox
+                                            <input
+                                                type="radio"
+                                                role="radio"
+                                                name="create-staff-role"
+                                                aria-checked={checked}
                                                 checked={checked}
-                                                onCheckedChange={(value) =>
-                                                    handleCreateRoleToggle(
+                                                onChange={() =>
+                                                    handleCreateRoleSelect(
                                                         role.value,
-                                                        value === true,
                                                     )
                                                 }
+                                                className="mt-1 h-4 w-4 accent-primary"
                                             />
                                             <div className="space-y-1">
                                                 <p className="text-sm font-medium">
@@ -1597,9 +1602,7 @@ export default function SuperadminStaffPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="create-staff-reason">
-                                Reason
-                            </Label>
+                            <Label htmlFor="create-staff-reason">Reason</Label>
                             <textarea
                                 id="create-staff-reason"
                                 className={textareaClassName}
@@ -1656,10 +1659,7 @@ export default function SuperadminStaffPage() {
                                 : 'Confirm the requested staff role update.'}
                         </DialogDescription>
                     </DialogHeader>
-                    <form
-                        className="space-y-4"
-                        onSubmit={handleRoleMutation}
-                    >
+                    <form className="space-y-4" onSubmit={handleRoleMutation}>
                         <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm">
                             <p className="font-medium">
                                 {editableRoleOptions.find(
@@ -1673,9 +1673,7 @@ export default function SuperadminStaffPage() {
                             </p>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="role-mutation-reason">
-                                Reason
-                            </Label>
+                            <Label htmlFor="role-mutation-reason">Reason</Label>
                             <textarea
                                 id="role-mutation-reason"
                                 className={textareaClassName}
@@ -1748,10 +1746,7 @@ export default function SuperadminStaffPage() {
                                 : 'Confirm the requested staff access update.'}
                         </DialogDescription>
                     </DialogHeader>
-                    <form
-                        className="space-y-4"
-                        onSubmit={handleAccessMutation}
-                    >
+                    <form className="space-y-4" onSubmit={handleAccessMutation}>
                         <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm">
                             <div className="flex items-center gap-2 font-medium">
                                 {accessMutation.action === 'suspend' ? (
@@ -1767,9 +1762,7 @@ export default function SuperadminStaffPage() {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="staff-access-reason">
-                                Reason
-                            </Label>
+                            <Label htmlFor="staff-access-reason">Reason</Label>
                             <textarea
                                 id="staff-access-reason"
                                 className={textareaClassName}
@@ -1840,15 +1833,11 @@ export default function SuperadminStaffPage() {
                                 : 'Confirm the requested password reset.'}
                         </DialogDescription>
                     </DialogHeader>
-                    <form
-                        className="space-y-4"
-                        onSubmit={handleResetPassword}
-                    >
+                    <form className="space-y-4" onSubmit={handleResetPassword}>
                         <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm text-muted-foreground">
                             A random temporary password will be generated and
-                            shown once. You will not be able to view it
-                            again, so relay it to the staff member right
-                            away.
+                            shown once. You will not be able to view it again,
+                            so relay it to the staff member right away.
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="reset-password-reason">
@@ -1915,7 +1904,7 @@ export default function SuperadminStaffPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-muted/30 p-3">
-                        <code className="flex-1 break-all font-mono text-sm">
+                        <code className="flex-1 font-mono text-sm break-all">
                             {resetPasswordResult?.temporaryPassword}
                         </code>
                         <Button
@@ -2052,12 +2041,12 @@ export default function SuperadminStaffPage() {
 
                                         <div className="grid gap-3 md:grid-cols-2">
                                             <div className="rounded-xl border border-border/30 bg-muted/20 p-3">
-                                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                                <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                     Before
                                                 </p>
                                                 <div className="mt-2 flex flex-wrap gap-2">
-                                                    {entry.before_roles.length ===
-                                                    0 ? (
+                                                    {entry.before_roles
+                                                        .length === 0 ? (
                                                         <Badge variant="outline">
                                                             No visible roles
                                                         </Badge>
@@ -2084,12 +2073,12 @@ export default function SuperadminStaffPage() {
                                                 </p>
                                             </div>
                                             <div className="rounded-xl border border-border/30 bg-muted/20 p-3">
-                                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                                <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                     After
                                                 </p>
                                                 <div className="mt-2 flex flex-wrap gap-2">
-                                                    {entry.after_roles.length ===
-                                                    0 ? (
+                                                    {entry.after_roles
+                                                        .length === 0 ? (
                                                         <Badge variant="outline">
                                                             No visible roles
                                                         </Badge>
@@ -2118,7 +2107,7 @@ export default function SuperadminStaffPage() {
                                         </div>
 
                                         <div className="space-y-1 rounded-xl border border-border/30 bg-background/60 p-3">
-                                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                            <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                 Reason
                                             </p>
                                             <p className="text-sm">
@@ -2171,287 +2160,413 @@ export default function SuperadminStaffPage() {
                     <div
                         key={promoteDialog.step}
                         className={cn(
-                            'overflow-y-auto pr-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200',
+                            'overflow-y-auto pr-1 motion-safe:animate-in motion-safe:duration-200 motion-safe:fade-in-0',
                             promoteDialog.stepDirection === 'forward'
                                 ? 'motion-safe:slide-in-from-right-2'
                                 : 'motion-safe:slide-in-from-left-2',
                         )}
                     >
-                    {promoteDialog.step === 1 ? (() => {
-                        const searchQuery = promoteDialog.query.trim();
-                        const memberCount = promoteDialog.searchResults.length;
-                        const countLabel = promoteDialog.searchLoading
-                            ? (searchQuery === '' ? 'Loading members…' : 'Searching…')
-                            : searchQuery !== ''
-                                ? `Showing results for “${searchQuery}”`
-                                : `${memberCount} registered member${memberCount !== 1 ? 's' : ''}`;
+                        {promoteDialog.step === 1 ? (
+                            (() => {
+                                const searchQuery = promoteDialog.query.trim();
+                                const memberCount =
+                                    promoteDialog.searchResults.length;
+                                const countLabel = promoteDialog.searchLoading
+                                    ? searchQuery === ''
+                                        ? 'Loading members…'
+                                        : 'Searching…'
+                                    : searchQuery !== ''
+                                      ? `Showing results for “${searchQuery}”`
+                                      : `${memberCount} registered member${memberCount !== 1 ? 's' : ''}`;
 
-                        return (
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="promote-search-query">
-                                        Filter members
-                                    </Label>
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                                        <Input
-                                            id="promote-search-query"
-                                            value={promoteDialog.query}
-                                            placeholder="Name, email, or account number"
-                                            className="pl-9"
-                                            autoFocus
-                                            onChange={(event) =>
-                                                setPromoteDialog((current) => ({
-                                                    ...current,
-                                                    query: event.target.value,
-                                                    searchError: null,
-                                                }))
-                                            }
-                                        />
-                                    </div>
-                                    {promoteDialog.searchError ? (
-                                        <InputError message={promoteDialog.searchError} />
-                                    ) : null}
-                                </div>
+                                return (
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="promote-search-query">
+                                                Filter members
+                                            </Label>
+                                            <div className="relative">
+                                                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                                <Input
+                                                    id="promote-search-query"
+                                                    value={promoteDialog.query}
+                                                    placeholder="Name, email, or account number"
+                                                    className="pl-9"
+                                                    autoFocus
+                                                    onChange={(event) =>
+                                                        setPromoteDialog(
+                                                            (current) => ({
+                                                                ...current,
+                                                                query: event
+                                                                    .target
+                                                                    .value,
+                                                                searchError:
+                                                                    null,
+                                                            }),
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                            {promoteDialog.searchError ? (
+                                                <InputError
+                                                    message={
+                                                        promoteDialog.searchError
+                                                    }
+                                                />
+                                            ) : null}
+                                        </div>
 
-                                <p className="text-sm text-muted-foreground">{countLabel}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {countLabel}
+                                        </p>
 
-                                <div className={cn('overflow-x-auto overflow-y-hidden rounded-xl border border-border/40 motion-safe:transition-opacity motion-safe:duration-150', promoteDialog.searchLoading ? 'opacity-60' : 'opacity-100')}>
-                                    <Table>
-                                        <TableHeader className="bg-muted/30">
-                                            <TableRow>
-                                                <TableHead className="min-w-[180px]">Name</TableHead>
-                                                <TableHead className="whitespace-nowrap">Account No</TableHead>
-                                                <TableHead className="min-w-[160px]">Email</TableHead>
-                                                <TableHead className="min-w-[120px]">Current roles</TableHead>
-                                                <TableHead className="whitespace-nowrap text-right">Action</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {promoteDialog.searchLoading ? (
-                                                <TableRow>
-                                                    <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
-                                                        {searchQuery === '' ? 'Loading members…' : 'Searching…'}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ) : promoteDialog.searchResults.length === 0 ? (
-                                                <TableRow>
-                                                    <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
-                                                        {searchQuery === ''
-                                                            ? 'No registered members yet. Members must self-register before they can be promoted to staff.'
-                                                            : 'No members found.'}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ) : (
-                                                promoteDialog.searchResults.map((member) => {
-                                                    const staffRoles = member.roles.filter((r) => r.editable);
-                                                    const displayRoles = member.roles.filter((r) => r.name !== 'member');
-
-                                                    return (
-                                                        <TableRow key={member.user_id}>
-                                                            <TableCell className="min-w-[180px]">
-                                                                <div className="flex flex-wrap items-center gap-2">
-                                                                    <p className="font-medium">{member.display_name}</p>
-                                                                    {staffRoles.length > 0 ? (
-                                                                        <Badge variant="secondary" className="text-xs whitespace-nowrap">
-                                                                            Already a staff member
-                                                                        </Badge>
-                                                                    ) : null}
-                                                                </div>
-                                                            </TableCell>
-                                                            <TableCell className="whitespace-nowrap">{member.acctno ?? '--'}</TableCell>
+                                        <div
+                                            className={cn(
+                                                'overflow-x-auto overflow-y-hidden rounded-xl border border-border/40 motion-safe:transition-opacity motion-safe:duration-150',
+                                                promoteDialog.searchLoading
+                                                    ? 'opacity-60'
+                                                    : 'opacity-100',
+                                            )}
+                                        >
+                                            <Table>
+                                                <TableHeader className="bg-muted/30">
+                                                    <TableRow>
+                                                        <TableHead className="min-w-[180px]">
+                                                            Name
+                                                        </TableHead>
+                                                        <TableHead className="whitespace-nowrap">
+                                                            Account No
+                                                        </TableHead>
+                                                        <TableHead className="min-w-[160px]">
+                                                            Email
+                                                        </TableHead>
+                                                        <TableHead className="min-w-[120px]">
+                                                            Current roles
+                                                        </TableHead>
+                                                        <TableHead className="text-right whitespace-nowrap">
+                                                            Action
+                                                        </TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {promoteDialog.searchLoading ? (
+                                                        <TableRow>
                                                             <TableCell
-                                                                className="max-w-[180px] truncate"
-                                                                title={member.email ?? undefined}
+                                                                colSpan={5}
+                                                                className="h-24 text-center text-sm text-muted-foreground"
                                                             >
-                                                                {member.email ?? '--'}
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                {displayRoles.length === 0 ? (
-                                                                    <span className="text-sm text-muted-foreground">None</span>
-                                                                ) : (
-                                                                    <div className="flex flex-wrap gap-1">
-                                                                        {displayRoles.map((r) => (
-                                                                            <Badge
-                                                                                key={r.name}
-                                                                                variant={roleBadgeVariant(r.name)}
-                                                                                className="text-xs"
-                                                                            >
-                                                                                {r.label}
-                                                                            </Badge>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                            </TableCell>
-                                                            <TableCell className="whitespace-nowrap text-right">
-                                                                <Button
-                                                                    type="button"
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    onClick={() =>
-                                                                        setPromoteDialog((current) => ({
-                                                                            ...current,
-                                                                            step: 2,
-                                                                            stepDirection: 'forward',
-                                                                            selectedMember: member,
-                                                                            role: '',
-                                                                            reason: '',
-                                                                            errors: {},
-                                                                        }))
-                                                                    }
-                                                                >
-                                                                    Select
-                                                                </Button>
+                                                                {searchQuery ===
+                                                                ''
+                                                                    ? 'Loading members…'
+                                                                    : 'Searching…'}
                                                             </TableCell>
                                                         </TableRow>
-                                                    );
-                                                })
-                                            )}
-                                        </TableBody>
-                                    </Table>
+                                                    ) : promoteDialog
+                                                          .searchResults
+                                                          .length === 0 ? (
+                                                        <TableRow>
+                                                            <TableCell
+                                                                colSpan={5}
+                                                                className="h-24 text-center text-sm text-muted-foreground"
+                                                            >
+                                                                {searchQuery ===
+                                                                ''
+                                                                    ? 'No registered members yet. Members must self-register before they can be promoted to staff.'
+                                                                    : 'No members found.'}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ) : (
+                                                        promoteDialog.searchResults.map(
+                                                            (member) => {
+                                                                const staffRoles =
+                                                                    member.roles.filter(
+                                                                        (r) =>
+                                                                            r.editable,
+                                                                    );
+                                                                const displayRoles =
+                                                                    member.roles.filter(
+                                                                        (r) =>
+                                                                            r.name !==
+                                                                            'member',
+                                                                    );
+
+                                                                return (
+                                                                    <TableRow
+                                                                        key={
+                                                                            member.user_id
+                                                                        }
+                                                                    >
+                                                                        <TableCell className="min-w-[180px]">
+                                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                                <p className="font-medium">
+                                                                                    {
+                                                                                        member.display_name
+                                                                                    }
+                                                                                </p>
+                                                                                {staffRoles.length >
+                                                                                0 ? (
+                                                                                    <Badge
+                                                                                        variant="secondary"
+                                                                                        className="text-xs whitespace-nowrap"
+                                                                                    >
+                                                                                        Already
+                                                                                        a
+                                                                                        staff
+                                                                                        member
+                                                                                    </Badge>
+                                                                                ) : null}
+                                                                            </div>
+                                                                        </TableCell>
+                                                                        <TableCell className="whitespace-nowrap">
+                                                                            {member.acctno ??
+                                                                                '--'}
+                                                                        </TableCell>
+                                                                        <TableCell
+                                                                            className="max-w-[180px] truncate"
+                                                                            title={
+                                                                                member.email ??
+                                                                                undefined
+                                                                            }
+                                                                        >
+                                                                            {member.email ??
+                                                                                '--'}
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            {displayRoles.length ===
+                                                                            0 ? (
+                                                                                <span className="text-sm text-muted-foreground">
+                                                                                    None
+                                                                                </span>
+                                                                            ) : (
+                                                                                <div className="flex flex-wrap gap-1">
+                                                                                    {displayRoles.map(
+                                                                                        (
+                                                                                            r,
+                                                                                        ) => (
+                                                                                            <Badge
+                                                                                                key={
+                                                                                                    r.name
+                                                                                                }
+                                                                                                variant={roleBadgeVariant(
+                                                                                                    r.name,
+                                                                                                )}
+                                                                                                className="text-xs"
+                                                                                            >
+                                                                                                {
+                                                                                                    r.label
+                                                                                                }
+                                                                                            </Badge>
+                                                                                        ),
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
+                                                                        </TableCell>
+                                                                        <TableCell className="text-right whitespace-nowrap">
+                                                                            <Button
+                                                                                type="button"
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                onClick={() =>
+                                                                                    setPromoteDialog(
+                                                                                        (
+                                                                                            current,
+                                                                                        ) => ({
+                                                                                            ...current,
+                                                                                            step: 2,
+                                                                                            stepDirection:
+                                                                                                'forward',
+                                                                                            selectedMember:
+                                                                                                member,
+                                                                                            role: '',
+                                                                                            reason: '',
+                                                                                            errors: {},
+                                                                                        }),
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                Select
+                                                                            </Button>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                );
+                                                            },
+                                                        )
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+
+                                        <DialogFooter>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                onClick={resetPromoteDialog}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </DialogFooter>
+                                    </div>
+                                );
+                            })()
+                        ) : (
+                            <form
+                                className="space-y-4"
+                                onSubmit={handlePromoteMember}
+                            >
+                                {promoteDialog.selectedMember ? (
+                                    <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm">
+                                        <p className="font-semibold">
+                                            {
+                                                promoteDialog.selectedMember
+                                                    .display_name
+                                            }
+                                        </p>
+                                        <p className="mt-0.5 text-muted-foreground">
+                                            {promoteDialog.selectedMember
+                                                .email ?? '--'}
+                                        </p>
+                                        <p className="mt-0.5 text-xs text-muted-foreground">
+                                            Account no:{' '}
+                                            {promoteDialog.selectedMember
+                                                .acctno ?? '--'}
+                                        </p>
+                                        {promoteDialog.selectedMember.roles.filter(
+                                            (r) => r.name !== 'member',
+                                        ).length > 0 ? (
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {promoteDialog.selectedMember.roles
+                                                    .filter(
+                                                        (r) =>
+                                                            r.name !== 'member',
+                                                    )
+                                                    .map((r) => (
+                                                        <Badge
+                                                            key={r.name}
+                                                            variant={roleBadgeVariant(
+                                                                r.name,
+                                                            )}
+                                                        >
+                                                            {r.label}
+                                                        </Badge>
+                                                    ))}
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                ) : null}
+
+                                <div className="space-y-3">
+                                    <Label>Staff role to assign</Label>
+                                    <div className="grid gap-3">
+                                        {editableRoleOptions.map((role) => {
+                                            const checked =
+                                                promoteDialog.role ===
+                                                role.value;
+
+                                            return (
+                                                <label
+                                                    key={role.value}
+                                                    className={cn(
+                                                        'flex cursor-pointer items-start gap-3 rounded-xl border border-border/40 bg-card/60 p-4 transition-colors',
+                                                        checked
+                                                            ? 'border-primary/40 bg-primary/5'
+                                                            : 'hover:border-border',
+                                                    )}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        className="mt-0.5"
+                                                        name="promote-role"
+                                                        value={role.value}
+                                                        checked={checked}
+                                                        onChange={() =>
+                                                            setPromoteDialog(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    role: role.value,
+                                                                    errors: {
+                                                                        ...current.errors,
+                                                                        role: '',
+                                                                    },
+                                                                }),
+                                                            )
+                                                        }
+                                                    />
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-medium">
+                                                            {role.label}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {role.description}
+                                                        </p>
+                                                    </div>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    <InputError
+                                        message={promoteDialog.errors.role}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="promote-reason">
+                                        Notes
+                                    </Label>
+                                    <textarea
+                                        id="promote-reason"
+                                        className={textareaClassName}
+                                        value={promoteDialog.reason}
+                                        onChange={(event) =>
+                                            setPromoteDialog((current) => ({
+                                                ...current,
+                                                reason: event.target.value,
+                                            }))
+                                        }
+                                        placeholder="Optional reason for promotion — recorded in the audit trail."
+                                    />
+                                    <InputError
+                                        message={
+                                            promoteDialog.errors.reason ??
+                                            promoteDialog.errors.account_number
+                                        }
+                                    />
                                 </div>
 
                                 <DialogFooter>
-                                    <Button type="button" variant="ghost" onClick={resetPromoteDialog}>
-                                        Cancel
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        disabled={promoteDialog.processing}
+                                        onClick={() =>
+                                            setPromoteDialog((current) => ({
+                                                ...current,
+                                                step: 1,
+                                                stepDirection: 'back',
+                                                selectedMember: null,
+                                                role: '',
+                                                reason: '',
+                                                errors: {},
+                                            }))
+                                        }
+                                    >
+                                        Back
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        disabled={
+                                            promoteDialog.processing ||
+                                            promoteDialog.role === '' ||
+                                            !promoteDialog.selectedMember
+                                                ?.acctno
+                                        }
+                                    >
+                                        {promoteDialog.processing
+                                            ? 'Promoting…'
+                                            : 'Promote member'}
                                     </Button>
                                 </DialogFooter>
-                            </div>
-                        );
-                    })() : (
-                        <form
-                            className="space-y-4"
-                            onSubmit={handlePromoteMember}
-                        >
-                            {promoteDialog.selectedMember ? (
-                                <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm">
-                                    <p className="font-semibold">
-                                        {promoteDialog.selectedMember.display_name}
-                                    </p>
-                                    <p className="mt-0.5 text-muted-foreground">
-                                        {promoteDialog.selectedMember.email ?? '--'}
-                                    </p>
-                                    <p className="mt-0.5 text-xs text-muted-foreground">
-                                        Account no:{' '}
-                                        {promoteDialog.selectedMember.acctno ?? '--'}
-                                    </p>
-                                    {promoteDialog.selectedMember.roles.filter(
-                                        (r) => r.name !== 'member',
-                                    ).length > 0 ? (
-                                        <div className="mt-2 flex flex-wrap gap-2">
-                                            {promoteDialog.selectedMember.roles
-                                                .filter((r) => r.name !== 'member')
-                                                .map((r) => (
-                                                    <Badge
-                                                        key={r.name}
-                                                        variant={roleBadgeVariant(r.name)}
-                                                    >
-                                                        {r.label}
-                                                    </Badge>
-                                                ))}
-                                        </div>
-                                    ) : null}
-                                </div>
-                            ) : null}
-
-                            <div className="space-y-3">
-                                <Label>Staff role to assign</Label>
-                                <div className="grid gap-3">
-                                    {editableRoleOptions.map((role) => {
-                                        const checked = promoteDialog.role === role.value;
-
-                                        return (
-                                            <label
-                                                key={role.value}
-                                                className={cn(
-                                                    'flex cursor-pointer items-start gap-3 rounded-xl border border-border/40 bg-card/60 p-4 transition-colors',
-                                                    checked
-                                                        ? 'border-primary/40 bg-primary/5'
-                                                        : 'hover:border-border',
-                                                )}
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    className="mt-0.5"
-                                                    name="promote-role"
-                                                    value={role.value}
-                                                    checked={checked}
-                                                    onChange={() =>
-                                                        setPromoteDialog((current) => ({
-                                                            ...current,
-                                                            role: role.value,
-                                                            errors: {
-                                                                ...current.errors,
-                                                                role: '',
-                                                            },
-                                                        }))
-                                                    }
-                                                />
-                                                <div className="space-y-1">
-                                                    <p className="text-sm font-medium">{role.label}</p>
-                                                    <p className="text-xs text-muted-foreground">{role.description}</p>
-                                                </div>
-                                            </label>
-                                        );
-                                    })}
-                                </div>
-                                <InputError message={promoteDialog.errors.role} />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="promote-reason">Notes</Label>
-                                <textarea
-                                    id="promote-reason"
-                                    className={textareaClassName}
-                                    value={promoteDialog.reason}
-                                    onChange={(event) =>
-                                        setPromoteDialog((current) => ({
-                                            ...current,
-                                            reason: event.target.value,
-                                        }))
-                                    }
-                                    placeholder="Optional reason for promotion — recorded in the audit trail."
-                                />
-                                <InputError
-                                    message={
-                                        promoteDialog.errors.reason ??
-                                        promoteDialog.errors.account_number
-                                    }
-                                />
-                            </div>
-
-                            <DialogFooter>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    disabled={promoteDialog.processing}
-                                    onClick={() =>
-                                        setPromoteDialog((current) => ({
-                                            ...current,
-                                            step: 1,
-                                            stepDirection: 'back',
-                                            selectedMember: null,
-                                            role: '',
-                                            reason: '',
-                                            errors: {},
-                                        }))
-                                    }
-                                >
-                                    Back
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={
-                                        promoteDialog.processing ||
-                                        promoteDialog.role === '' ||
-                                        !promoteDialog.selectedMember?.acctno
-                                    }
-                                >
-                                    {promoteDialog.processing ? 'Promoting…' : 'Promote member'}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    )}
+                            </form>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>

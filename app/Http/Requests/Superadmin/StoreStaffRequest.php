@@ -31,7 +31,7 @@ class StoreStaffRequest extends FormRequest
             ...$this->profileRules(requirePhone: false),
             'password' => $this->passwordRules(),
             'password_confirmation' => ['required', 'string'],
-            'roles' => ['required', 'array', 'min:1'],
+            'roles' => ['required', 'array', 'min:1', 'max:1'],
             'roles.*' => ['required', 'string', Rule::in(Role::editableStaffNames())],
             'reason' => ['required', 'string', 'max:1000'],
         ];

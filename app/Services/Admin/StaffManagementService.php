@@ -115,8 +115,9 @@ class StaffManagementService
 
         $reason = $this->normalizeReason($payload['reason'] ?? null);
         $roles = $this->normalizeEditableRoles($payload['roles'] ?? []);
+        $role = $roles[0] ?? null;
 
-        return DB::transaction(function () use ($payload, $actor, $reason, $roles): AppUser {
+        return DB::transaction(function () use ($payload, $actor, $reason, $role): AppUser {
             $user = AppUser::query()->create([
                 'username' => trim((string) $payload['username']),
                 'email' => trim((string) $payload['email']),
@@ -133,8 +134,8 @@ class StaffManagementService
                 ],
             );
 
-            foreach ($roles as $roleName) {
-                Role::attachNamedRole($user, $roleName);
+            if ($role !== null) {
+                Role::attachNamedRole($user, $role);
             }
 
             $user = $this->reloadUser($user->user_id);
@@ -180,6 +181,12 @@ class StaffManagementService
 
             if ($this->userAlreadyHasEditableRole($user, $normalizedRole)) {
                 return $this->reloadUser($user->user_id);
+            }
+
+            if ($this->userHoldsAnotherEditableRole($user, $normalizedRole)) {
+                throw ValidationException::withMessages([
+                    'role' => 'This staff member already holds another editable role. Remove it before assigning a new one.',
+                ]);
             }
 
             $beforeRoles = $this->visibleRoleNames($user);
@@ -648,6 +655,15 @@ class StaffManagementService
             $this->lockSupportingRows($user->user_id);
             $isLegacyMigration = $this->isLegacyAdminMigration($user);
 
+            if (
+                ! $this->userAlreadyHasEditableRole($user, $normalizedRole)
+                && $this->userHoldsAnotherEditableRole($user, $normalizedRole)
+            ) {
+                throw ValidationException::withMessages([
+                    'role' => 'This member already holds another editable role. Remove it before assigning a new one.',
+                ]);
+            }
+
             $beforeRoles = $this->visibleRoleNames($user);
             $beforeStatus = $this->auditStaffStatus($user);
 
@@ -958,7 +974,7 @@ class StaffManagementService
 
     private function syncLegacySuperadminProfile(AppUser $user): void
     {
-        if ($this->userAlreadyHasEditableRole($user, Role::SUPERADMIN)) {
+        if ($user->hasRole(Role::SUPERADMIN)) {
             AdminProfile::query()->updateOrCreate(
                 ['user_id' => $user->user_id],
                 [
@@ -1058,6 +1074,16 @@ class StaffManagementService
         }
 
         return $user->hasRole($roleName);
+    }
+
+    private function userHoldsAnotherEditableRole(AppUser $user, string $roleName): bool
+    {
+        $heldEditableRoles = array_intersect(
+            $this->visibleRoleNames($user),
+            Role::editableStaffNames(),
+        );
+
+        return array_diff($heldEditableRoles, [$roleName]) !== [];
     }
 
     private function resolveAdminFullName(AppUser $user): string

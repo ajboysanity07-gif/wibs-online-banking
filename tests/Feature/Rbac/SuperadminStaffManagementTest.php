@@ -160,7 +160,8 @@ test('superadmin can assign and remove editable staff roles while preserving mem
             'operation' => 'assign',
             'reason' => 'Cross-train for management approvals.',
         ])
-        ->assertOk();
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['role']);
 
     $this
         ->actingAs($superadmin)
@@ -168,6 +169,15 @@ test('superadmin can assign and remove editable staff roles while preserving mem
             'role' => Role::LOAN_PROCESSOR,
             'operation' => 'remove',
             'reason' => 'Shift the user back to manager-only duties.',
+        ])
+        ->assertOk();
+
+    $this
+        ->actingAs($superadmin)
+        ->patchJson(route('spa.superadmin.staff.roles.update', $target), [
+            'role' => Role::LOAN_MANAGER,
+            'operation' => 'assign',
+            'reason' => 'Cross-train for management approvals.',
         ])
         ->assertOk();
 
@@ -247,7 +257,7 @@ test('staff-only account creation hashes the password, assigns selected roles, a
             'phoneno' => '09123456789',
             'password' => $rawPassword,
             'password_confirmation' => $rawPassword,
-            'roles' => [Role::SUPERADMIN, Role::LOAN_MANAGER],
+            'roles' => [Role::SUPERADMIN],
             'reason' => 'Provision a dedicated operations staff account.',
         ]);
 
@@ -267,7 +277,7 @@ test('staff-only account creation hashes the password, assigns selected roles, a
 
     expect($staff->acctno)->toBeNull();
     expect($staff->hasRole(Role::SUPERADMIN))->toBeTrue();
-    expect($staff->hasRole(Role::LOAN_MANAGER))->toBeTrue();
+    expect($staff->hasRole(Role::LOAN_MANAGER))->toBeFalse();
     expect($staff->hasRole(Role::MEMBER))->toBeFalse();
     expect($staff->password)->not->toBe($rawPassword);
     expect(password_verify($rawPassword, $staff->password))->toBeTrue();
@@ -487,6 +497,83 @@ test('a staff member with a pending forced password change is redirected until t
         ->actingAs($loanOfficer)
         ->get(route('dashboard'))
         ->assertOk();
+});
+
+test('removing the superadmin role clears the legacy admin profile so it is no longer reported as held', function (): void {
+    $actingSuperadmin = createManagedSuperadmin();
+    $target = AppUser::factory()->create(['acctno' => '400010']);
+
+    $service = app(StaffManagementService::class);
+    $service->assignRole($target, $actingSuperadmin, Role::SUPERADMIN, 'Grant superadmin for regression test.');
+
+    $target = $target->fresh(['roles.permissions', 'adminProfile']);
+    expect($target->isSuperadmin())->toBeTrue();
+    expect($target->adminProfile?->access_level)->toBe(AdminProfile::ACCESS_LEVEL_SUPERADMIN);
+
+    $service->removeRole($target, $actingSuperadmin, Role::SUPERADMIN, 'Removing superadmin for regression test.');
+
+    $target = $target->fresh(['roles.permissions', 'adminProfile']);
+    expect($target->isSuperadmin())->toBeFalse();
+    expect($target->hasRole(Role::SUPERADMIN))->toBeFalse();
+    expect($target->adminProfile)->toBeNull();
+});
+
+test('assigning a role to a staff member who already holds a different editable role is rejected without changing their roles', function (): void {
+    $superadmin = createManagedSuperadmin();
+    $target = createManagedStaffUser([Role::LOAN_PROCESSOR], acctno: '400011');
+
+    $service = app(StaffManagementService::class);
+
+    expect(fn () => $service->assignRole(
+        $target,
+        $superadmin,
+        Role::LOAN_MANAGER,
+        'Attempting to add a second editable role.',
+    ))->toThrow(ValidationException::class);
+
+    $target->refresh()->load('roles');
+    expect($target->hasRole(Role::LOAN_PROCESSOR))->toBeTrue();
+    expect($target->hasRole(Role::LOAN_MANAGER))->toBeFalse();
+});
+
+test('a legacy AdminProfile superadmin with no user_roles row is rejected when assigning a different editable role', function (): void {
+    $superadmin = createManagedSuperadmin();
+    $legacySuperadmin = createLegacyFallbackSuperadmin();
+
+    expect($legacySuperadmin->hasRole(Role::SUPERADMIN))->toBeFalse();
+    expect($legacySuperadmin->isSuperadmin())->toBeTrue();
+
+    $service = app(StaffManagementService::class);
+
+    expect(fn () => $service->assignRole(
+        $legacySuperadmin,
+        $superadmin,
+        Role::LOAN_PROCESSOR,
+        'Attempting to add an editable role to a legacy superadmin.',
+    ))->toThrow(ValidationException::class);
+
+    $legacySuperadmin->refresh()->load('roles');
+    expect($legacySuperadmin->hasRole(Role::LOAN_PROCESSOR))->toBeFalse();
+});
+
+test('creating a staff account with more than one role in the payload is rejected by validation', function (): void {
+    $superadmin = createManagedSuperadmin();
+
+    $this
+        ->actingAs($superadmin)
+        ->postJson(route('spa.superadmin.staff.store'), [
+            'username' => 'rejected.multi.role',
+            'email' => 'rejected.multi.role@example.com',
+            'phoneno' => '09123456780',
+            'password' => 'TempPass123!',
+            'password_confirmation' => 'TempPass123!',
+            'roles' => [Role::SUPERADMIN, Role::LOAN_MANAGER],
+            'reason' => 'Attempting to create a multi-role staff account.',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['roles']);
+
+    expect(AppUser::query()->where('email', 'rejected.multi.role@example.com')->exists())->toBeFalse();
 });
 
 function createManagedSuperadmin(?string $acctno = null): AppUser
