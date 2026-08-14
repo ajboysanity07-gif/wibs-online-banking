@@ -25,6 +25,12 @@ import {
     MonthsInput,
 } from '@/components/loan-request/numeric-adorned-inputs';
 import { SmokingStatusField } from '@/components/loan-request/smoking-status-field';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -538,6 +544,85 @@ const SummaryCard = ({ title, description, children }: SummaryCardProps) => (
         </div>
         <div className="mt-4">{children}</div>
     </div>
+);
+
+type AccordionSummaryCardProps = SummaryCardProps & { value: string };
+
+// Same visual shell as SummaryCard, but as a standalone collapsible
+// AccordionItem so long sections (co-makers, health questionnaire,
+// declarations) don't force the member to scroll past everything to reach
+// submit. Overrides the default AccordionItem's shared-container border
+// styling so each card still reads as its own bordered panel.
+const AccordionSummaryCard = ({
+    value,
+    title,
+    description,
+    children,
+}: AccordionSummaryCardProps) => (
+    <AccordionItem
+        value={value}
+        className="rounded-lg border border-b-0 border-border/50 bg-card/60 px-4"
+    >
+        <AccordionTrigger className="py-4 hover:no-underline">
+            <div className="space-y-1 text-left">
+                <h3 className="text-sm font-semibold">{title}</h3>
+                {description ? (
+                    <p className="text-xs font-normal text-muted-foreground">
+                        {description}
+                    </p>
+                ) : null}
+            </div>
+        </AccordionTrigger>
+        <AccordionContent>{children}</AccordionContent>
+    </AccordionItem>
+);
+
+type QaEntry = {
+    fieldKey: string;
+    label: string;
+    answer: string;
+    children: QaEntry[];
+};
+
+// Renders question/details pairs (identified via each field's `detail_of`
+// metadata -- see LoanRequestHealthQuestionnaireStep above for the same
+// parent/child derivation used during data entry) as a numbered Q&A list
+// instead of a flat label/value grid, so a question stays visually attached
+// to the answer and any conditional follow-up the member gave for it.
+const QuestionAnswerList = ({
+    items,
+    depth = 0,
+}: {
+    items: QaEntry[];
+    depth?: number;
+}) => (
+    <ol className="space-y-4">
+        {items.map((item, index) => (
+            <li key={item.fieldKey} className="space-y-2">
+                <div className="flex items-start gap-2">
+                    <span className="mt-0.5 shrink-0 text-xs font-semibold text-muted-foreground">
+                        {depth === 0 ? `${index + 1}.` : '↳'}
+                    </span>
+                    <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium wrap-break-word">
+                            {item.label}
+                        </p>
+                        <p className="text-sm wrap-break-word text-muted-foreground">
+                            {item.answer}
+                        </p>
+                    </div>
+                </div>
+                {item.children.length > 0 ? (
+                    <div className="ml-4 space-y-3 rounded-md border-l-4 border-primary/25 bg-muted/10 py-3 pl-4">
+                        <QuestionAnswerList
+                            items={item.children}
+                            depth={depth + 1}
+                        />
+                    </div>
+                ) : null}
+            </li>
+        ))}
+    </ol>
 );
 
 type DataSectionStepProps = {
@@ -2338,8 +2423,23 @@ export function LoanRequestReviewStep({
         { label: 'Length of stay', value: displayText(person.length_of_stay) },
         { label: 'Cell no.', value: displayValue(person.cell_no) },
         {
+            label: 'Civil status',
+            value: formatCivilStatus(person.civil_status),
+        },
+        { label: 'Sex', value: displayText(person.sex) },
+        {
             label: 'Educational attainment',
             value: displayText(person.educational_attainment),
+        },
+        {
+            label: 'No. of children',
+            value: displayValue(person.number_of_children),
+        },
+        { label: 'Spouse name', value: displayText(person.spouse_name) },
+        { label: 'Spouse age', value: displayValue(person.spouse_age) },
+        {
+            label: 'Spouse cell no.',
+            value: displayValue(person.spouse_cell_no),
         },
         {
             label: 'Employment type',
@@ -2423,28 +2523,116 @@ export function LoanRequestReviewStep({
         return true;
     };
 
-    const buildSectionItems = (
-        sectionKey:
-            | 'insurance'
-            | 'health'
-            | 'health_glapi'
-            | 'banking'
-            | 'declarations',
-    ) =>
-        Object.entries(sectionDefinitions[sectionKey]?.fields ?? {})
-            .filter(
-                ([fieldKey]) =>
-                    sectionKey !== 'banking' ||
+    type ReviewSectionKey =
+        | 'insurance'
+        | 'health'
+        | 'health_glapi'
+        | 'banking'
+        | 'declarations';
+
+    // Splits a section's fields into a numbered Q&A list (a question paired
+    // with its conditional follow-up, identified the same way as the entry
+    // step's `detail_of` metadata) and a plain grid for fields with no
+    // question/answer shape (beneficiary info, bank account numbers, rate
+    // settings, etc). Merges field definitions/values across sectionKeys
+    // first so a question and a details field stored in different sections
+    // (e.g. health / health_glapi) still pair up.
+    const buildSectionData = (sectionKeys: ReviewSectionKey[]) => {
+        const fields: Record<string, LoanRequestDataFieldDefinition> = {};
+        const values: Record<string, LoanRequestDataFieldValue> = {};
+
+        sectionKeys.forEach((sectionKey) => {
+            Object.assign(fields, sectionDefinitions[sectionKey]?.fields ?? {});
+            Object.assign(values, data[sectionKey]);
+        });
+
+        const applicableFieldKeys = new Set(
+            Object.keys(fields).filter(
+                (fieldKey) =>
+                    !sectionKeys.includes('banking') ||
                     isBankingFieldApplicable(
                         fieldKey,
                         `${data.banking.release_method ?? ''}`,
                         `${data.banking.payment_option ?? ''}`,
                     ),
+            ),
+        );
+
+        const childrenByParent: Record<string, string[]> = {};
+
+        Object.entries(fields).forEach(([fieldKey, field]) => {
+            if (!field.detail_of || !applicableFieldKeys.has(fieldKey)) {
+                return;
+            }
+
+            const parents = Array.isArray(field.detail_of)
+                ? field.detail_of
+                : [field.detail_of];
+
+            parents.forEach((parentKey) => {
+                if (!childrenByParent[parentKey]) {
+                    childrenByParent[parentKey] = [];
+                }
+
+                childrenByParent[parentKey].push(fieldKey);
+            });
+        });
+
+        const buildChildren = (parentKey: string): QaEntry[] =>
+            (childrenByParent[parentKey] ?? [])
+                .map((childKey): QaEntry | null => {
+                    const childField = fields[childKey];
+                    const rawValue = values[childKey];
+
+                    if (
+                        !childField ||
+                        rawValue === null ||
+                        rawValue === undefined ||
+                        rawValue === ''
+                    ) {
+                        return null;
+                    }
+
+                    return {
+                        fieldKey: childKey,
+                        label: childField.label,
+                        answer: displaySectionValue(rawValue, childField),
+                        children: buildChildren(childKey),
+                    };
+                })
+                .filter((entry): entry is QaEntry => entry !== null);
+
+        const questions: QaEntry[] = [];
+        const plainItems: SummaryItem[] = [];
+
+        Object.keys(fields)
+            .filter(
+                (fieldKey) =>
+                    applicableFieldKeys.has(fieldKey) &&
+                    !fields[fieldKey].detail_of,
             )
-            .map(([fieldKey, field]) => ({
-                label: field.label,
-                value: displaySectionValue(data[sectionKey][fieldKey], field),
-            }));
+            .forEach((fieldKey) => {
+                const field = fields[fieldKey];
+                const hasChildren =
+                    (childrenByParent[fieldKey] ?? []).length > 0;
+
+                if (hasChildren || field.type === 'boolean') {
+                    questions.push({
+                        fieldKey,
+                        label: field.label,
+                        answer: displaySectionValue(values[fieldKey], field),
+                        children: buildChildren(fieldKey),
+                    });
+                } else {
+                    plainItems.push({
+                        label: field.label,
+                        value: displaySectionValue(values[fieldKey], field),
+                    });
+                }
+            });
+
+        return { questions, plainItems };
+    };
 
     // 'health' and 'health_glapi' render as a single merged "Health Insurance
     // Questionnaire" card — there is no separate "Health declarations" concept.
@@ -2454,13 +2642,11 @@ export function LoanRequestReviewStep({
             ['health', 'health_glapi'],
             ['banking'],
             ['declarations'],
-        ] as const
+        ] as ReviewSectionKey[][]
     ).map((sectionKeys) => ({
         key: sectionKeys[0],
         title: sectionDefinitions[sectionKeys[0]]?.label ?? sectionKeys[0],
-        items: sectionKeys.flatMap((sectionKey) =>
-            buildSectionItems(sectionKey),
-        ),
+        ...buildSectionData(sectionKeys),
     }));
 
     return (
@@ -2500,61 +2686,77 @@ export function LoanRequestReviewStep({
                 <SummaryGrid items={applicantWork} />
             </SummaryCard>
 
-            <SummaryCard
-                title="Co-maker 1"
-                description="Review the proposed details for your first co-maker."
-            >
-                <SummaryGrid
-                    items={buildCoMakerSummary('Co-maker 1', data.co_maker_1)}
-                />
-            </SummaryCard>
-
-            <SummaryCard
-                title="Co-maker 2"
-                description="Review the proposed details for your second co-maker."
-            >
-                <SummaryGrid
-                    items={buildCoMakerSummary('Co-maker 2', data.co_maker_2)}
-                />
-            </SummaryCard>
-
-            {dataSectionSummaries.map((section) => (
-                <SummaryCard
-                    key={section.key}
-                    title={section.title}
-                    description="Review the member-provided document details."
+            <Accordion type="multiple" className="space-y-3">
+                <AccordionSummaryCard
+                    value="co_maker_1"
+                    title="Co-maker 1"
+                    description="Review the proposed details for your first co-maker."
                 >
-                    {section.key === 'banking' ? (
-                        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground">
-                                    Release method:
-                                </span>
-                                <Badge variant="secondary">
-                                    {displayText(
-                                        data.banking.release_method
-                                            ? `${data.banking.release_method}`
-                                            : null,
-                                    )}
-                                </Badge>
+                    <SummaryGrid
+                        items={buildCoMakerSummary(
+                            'Co-maker 1',
+                            data.co_maker_1,
+                        )}
+                    />
+                </AccordionSummaryCard>
+
+                <AccordionSummaryCard
+                    value="co_maker_2"
+                    title="Co-maker 2"
+                    description="Review the proposed details for your second co-maker."
+                >
+                    <SummaryGrid
+                        items={buildCoMakerSummary(
+                            'Co-maker 2',
+                            data.co_maker_2,
+                        )}
+                    />
+                </AccordionSummaryCard>
+
+                {dataSectionSummaries.map((section) => (
+                    <AccordionSummaryCard
+                        key={section.key}
+                        value={section.key}
+                        title={section.title}
+                        description="Review the member-provided document details."
+                    >
+                        {section.key === 'banking' ? (
+                            <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground">
+                                        Release method:
+                                    </span>
+                                    <Badge variant="secondary">
+                                        {displayText(
+                                            data.banking.release_method
+                                                ? `${data.banking.release_method}`
+                                                : null,
+                                        )}
+                                    </Badge>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground">
+                                        Payment option:
+                                    </span>
+                                    <Badge variant="secondary">
+                                        {displayText(
+                                            data.banking.payment_option
+                                                ? `${data.banking.payment_option}`
+                                                : null,
+                                        )}
+                                    </Badge>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground">
-                                    Payment option:
-                                </span>
-                                <Badge variant="secondary">
-                                    {displayText(
-                                        data.banking.payment_option
-                                            ? `${data.banking.payment_option}`
-                                            : null,
-                                    )}
-                                </Badge>
-                            </div>
-                        </div>
-                    ) : null}
-                    <SummaryGrid items={section.items} />
-                </SummaryCard>
-            ))}
+                        ) : null}
+                        {section.questions.length > 0 ? (
+                            <QuestionAnswerList items={section.questions} />
+                        ) : null}
+                        {section.plainItems.length > 0 ? (
+                            <SummaryGrid items={section.plainItems} />
+                        ) : null}
+                    </AccordionSummaryCard>
+                ))}
+            </Accordion>
 
             <Alert className="border-border/50 bg-muted/10">
                 <AlertTitle>Physical signatures</AlertTitle>
