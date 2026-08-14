@@ -2,8 +2,12 @@
 
 namespace App\Services\LoanRequests\PdfFieldMaps;
 
+use App\Services\LoanRequests\PdfFieldMaps\Concerns\UppercasesFieldValues;
+
 class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
 {
+    use UppercasesFieldValues;
+
     /**
      * Section 2 health questionnaire Yes/No checkbox columns (page 1). These are
      * the top-left corners of the template's checkbox squares on
@@ -717,17 +721,5 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
         }
 
         return 'P'.number_format((float) $clean, 2, '.', ',');
-    }
-
-    private function upper(?string $value): string
-    {
-        return mb_strtoupper(trim((string) $value));
-    }
-
-    private function upperTransform(): callable
-    {
-        return fn (mixed $value): string => $this->upper(
-            is_scalar($value) ? (string) $value : null,
-        );
     }
 }

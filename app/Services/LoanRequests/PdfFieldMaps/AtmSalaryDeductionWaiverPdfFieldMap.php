@@ -2,6 +2,8 @@
 
 namespace App\Services\LoanRequests\PdfFieldMaps;
 
+use App\Services\LoanRequests\PdfFieldMaps\Concerns\UppercasesFieldValues;
+
 /**
  * Placeholder coordinates only -- no real blank PDF template has been supplied
  * for this document yet (unlike PensionDeductionWaiverPdfFieldMap/
@@ -13,6 +15,8 @@ namespace App\Services\LoanRequests\PdfFieldMaps;
  */
 class AtmSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
 {
+    use UppercasesFieldValues;
+
     public function fields(): array
     {
         return [
@@ -142,6 +146,7 @@ class AtmSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'shrink_to_fit' => true,
                 'min_size' => 7.0,
                 'value' => 'applicant.full_name',
+                'transform' => $this->upperTransform(),
             ],
         ];
     }

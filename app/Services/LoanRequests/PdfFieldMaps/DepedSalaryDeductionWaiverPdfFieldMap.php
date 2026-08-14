@@ -2,8 +2,12 @@
 
 namespace App\Services\LoanRequests\PdfFieldMaps;
 
+use App\Services\LoanRequests\PdfFieldMaps\Concerns\UppercasesFieldValues;
+
 class DepedSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
 {
+    use UppercasesFieldValues;
+
     public function fields(): array
     {
         return [
@@ -109,6 +113,7 @@ class DepedSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'shrink_to_fit' => true,
                 'min_size' => 7.0,
                 'value' => 'applicant.full_name',
+                'transform' => $this->upperTransform(),
             ],
             [
                 'page' => 1,
@@ -120,6 +125,7 @@ class DepedSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'shrink_to_fit' => true,
                 'min_size' => 6.0,
                 'value' => 'applicant.full_name',
+                'transform' => $this->upperTransform(),
             ],
             [
                 'page' => 1,
@@ -131,6 +137,7 @@ class DepedSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'shrink_to_fit' => true,
                 'min_size' => 6.0,
                 'value' => 'reviewer.name',
+                'transform' => $this->upperTransform(),
             ],
         ];
     }

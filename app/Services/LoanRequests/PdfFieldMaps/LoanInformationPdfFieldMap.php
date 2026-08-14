@@ -2,8 +2,12 @@
 
 namespace App\Services\LoanRequests\PdfFieldMaps;
 
+use App\Services\LoanRequests\PdfFieldMaps\Concerns\UppercasesFieldValues;
+
 class LoanInformationPdfFieldMap implements ApprovedLoanPdfFieldMap
 {
+    use UppercasesFieldValues;
+
     // Content box x-bounds measured from the artwork's /Artifact BBox divider rules (see
     // LOAN_INFORMATION_FPDI_CONVERSION_PLAN.md §2). Visually calibrated in Phase 2 against
     // the real production artwork (rendered via ApprovedLoanPdfTemplateService and rasterized
@@ -364,6 +368,7 @@ class LoanInformationPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'style' => 'B',
                 'width' => self::LABEL_VALUE_WIDTH,
                 'value' => 'reviewer.witness_one_name',
+                'transform' => $this->upperTransform(),
             ],
             [
                 // "Approved By" -- confirmed intentional reuse of reviewer.name, same value as
@@ -376,6 +381,7 @@ class LoanInformationPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'style' => 'B',
                 'width' => self::LABEL_VALUE_WIDTH,
                 'value' => 'reviewer.name',
+                'transform' => $this->upperTransform(),
             ],
 
             // The two blank Calibri (C2_0) text runs near y=313.11/316.49mm are intentionally

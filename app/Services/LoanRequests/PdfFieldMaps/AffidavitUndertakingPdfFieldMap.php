@@ -2,8 +2,12 @@
 
 namespace App\Services\LoanRequests\PdfFieldMaps;
 
+use App\Services\LoanRequests\PdfFieldMaps\Concerns\UppercasesFieldValues;
+
 class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
 {
+    use UppercasesFieldValues;
+
     public function fields(): array
     {
         return [
@@ -156,6 +160,7 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'shrink_to_fit' => true,
                 'min_size' => 7.0,
                 'value' => 'applicant.full_name',
+                'transform' => $this->upperTransform(),
             ],
             [
                 'page' => 1,
