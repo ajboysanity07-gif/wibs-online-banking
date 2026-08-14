@@ -2,7 +2,10 @@ import type { ChangeEvent } from 'react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { BirthdateInput } from '@/components/loan-request/birthdate-input';
-import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
+import {
+    CurrencyInput,
+    YearsInput,
+} from '@/components/loan-request/numeric-adorned-inputs';
 import { LocationCombobox } from '@/components/location-combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +19,12 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { useLocationSearch } from '@/hooks/use-location-search';
 import api from '@/lib/api';
+import {
+    isPensionerType,
+    isSelfEmployedType,
+    PENSIONER_EMPLOYMENT_TYPE,
+    SELF_EMPLOYED_EMPLOYMENT_TYPE,
+} from '@/lib/employment-type';
 import { normalizeMobileNumberInput } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { barangays, cities, provinces, zip } from '@/routes/api/locations';
@@ -31,8 +40,6 @@ const EDUCATIONAL_ATTAINMENT_OPTIONS = [
     'College',
     'Postgraduate',
 ];
-const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner';
-const SELF_EMPLOYED_EMPLOYMENT_TYPE = 'Self Employed';
 const EMPLOYMENT_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
     { value: 'Private', label: 'Private' },
     { value: 'Government', label: 'Government' },
@@ -662,14 +669,15 @@ export function LoanRequestPersonalFields({
                             htmlFor={`${prefix}_length_of_stay`}
                             label="Length of stay"
                         />
-                        <Input
+                        <YearsInput
                             id={`${prefix}_length_of_stay`}
-                            name={fieldName(prefix, 'length_of_stay')}
                             value={values.length_of_stay}
                             className="mt-1 block w-full"
-                            placeholder="e.g. 2 years"
+                            placeholder="e.g. 2"
                             required
-                            onChange={updateField('length_of_stay')}
+                            onChange={(value) =>
+                                onChange('length_of_stay', value)
+                            }
                         />
                         <InputError
                             message={fieldError(
@@ -1007,8 +1015,8 @@ export function LoanRequestWorkFields({
     onChange,
 }: WorkFieldsProps) {
     const employmentType = values.employment_type;
-    const isPensioner = employmentType === PENSIONER_EMPLOYMENT_TYPE;
-    const isSelfEmployed = employmentType === SELF_EMPLOYED_EMPLOYMENT_TYPE;
+    const isPensioner = isPensionerType(employmentType);
+    const isSelfEmployed = isSelfEmployedType(employmentType);
 
     const employmentTypeOptions =
         employmentType !== '' &&
@@ -1479,20 +1487,13 @@ export function LoanRequestWorkFields({
                             <Label htmlFor={`${prefix}_years_in_work_business`}>
                                 Total years in work/business
                             </Label>
-                            <Input
+                            <YearsInput
                                 id={`${prefix}_years_in_work_business`}
-                                name={fieldName(
-                                    prefix,
-                                    'years_in_work_business',
-                                )}
                                 value={values.years_in_work_business}
                                 className="mt-1 block w-full"
-                                placeholder="e.g. 5 years"
-                                onChange={(event) =>
-                                    onChange(
-                                        'years_in_work_business',
-                                        event.target.value,
-                                    )
+                                placeholder="e.g. 5"
+                                onChange={(value) =>
+                                    onChange('years_in_work_business', value)
                                 }
                             />
                             <InputError

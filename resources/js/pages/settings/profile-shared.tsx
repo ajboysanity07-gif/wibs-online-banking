@@ -3,6 +3,16 @@ import {
     DEPENDENT_CATEGORIES,
     slotFieldKey,
 } from '@/components/dependents/dependent-category-section';
+export {
+    isPensionerType,
+    isSelfEmployedType,
+    PENSIONER_EMPLOYMENT_TYPE,
+    SELF_EMPLOYED_EMPLOYMENT_TYPE,
+} from '@/lib/employment-type';
+import {
+    PENSIONER_EMPLOYMENT_TYPE,
+    SELF_EMPLOYED_EMPLOYMENT_TYPE,
+} from '@/lib/employment-type';
 import { normalizeMobileNumberInput } from '@/lib/phone';
 import { edit } from '@/routes/profile';
 import type { BreadcrumbItem } from '@/types';
@@ -155,8 +165,6 @@ export const EDUCATIONAL_ATTAINMENT_OPTIONS = [
     'College',
     'Postgraduate',
 ];
-export const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner';
-export const SELF_EMPLOYED_EMPLOYMENT_TYPE = 'Self Employed';
 export const EMPLOYMENT_TYPE_OPTIONS = [
     'Private',
     'Government',

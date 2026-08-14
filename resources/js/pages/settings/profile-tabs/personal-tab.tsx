@@ -1,5 +1,6 @@
 import InputError from '@/components/input-error';
 import { BirthdateInput } from '@/components/loan-request/birthdate-input';
+import { YearsInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { LocationCombobox } from '@/components/location-combobox';
 import { SurfaceCard } from '@/components/surface-card';
 import { Input } from '@/components/ui/input';
@@ -62,6 +63,8 @@ type Props = {
     setCivilStatusValue: (value: string) => void;
     housingStatusValue: string;
     setHousingStatusValue: (value: string) => void;
+    lengthOfStay: string;
+    setLengthOfStay: (value: string) => void;
     spouseBirthdateValue: string;
     setSpouseBirthdateValue: (value: string) => void;
     spouseAge: number | null;
@@ -104,6 +107,8 @@ export function PersonalTab({
     setCivilStatusValue,
     housingStatusValue,
     setHousingStatusValue,
+    lengthOfStay,
+    setLengthOfStay,
     spouseBirthdateValue,
     setSpouseBirthdateValue,
     spouseAge,
@@ -530,20 +535,23 @@ export function PersonalTab({
                                 Length of stay
                             </Label>
 
-                            <Input
+                            <YearsInput
                                 id="length_of_stay"
                                 className={cn(
                                     'mt-1 block w-full',
                                     isFieldMissing('length_of_stay') &&
                                         MISSING_FIELD_CLASS,
                                 )}
-                                defaultValue={
-                                    memberApplicationProfile?.length_of_stay ??
-                                    ''
-                                }
-                                name="length_of_stay"
+                                value={lengthOfStay}
+                                onChange={setLengthOfStay}
                                 required
-                                placeholder="e.g. 2 years"
+                                placeholder="e.g. 2"
+                            />
+
+                            <input
+                                type="hidden"
+                                name="length_of_stay"
+                                value={lengthOfStay}
                             />
 
                             <InputError

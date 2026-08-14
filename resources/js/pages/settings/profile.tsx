@@ -35,17 +35,17 @@ import {
     findFirstTabWithErrors,
     focusInvalidField,
     hasWmasterValue,
+    isPensionerType,
+    isSelfEmployedType,
     NATURE_OF_BUSINESS_OPTIONS,
     NATURE_OF_BUSINESS_OTHER_VALUE,
     normalizeCivilStatusValue,
     normalizePaydayValue,
-    PENSIONER_EMPLOYMENT_TYPE,
     PROFILE_PHOTO_ALLOWED_TYPES,
     PROFILE_PHOTO_MAX_BYTES,
     PROFILE_PHOTO_OUTPUT_QUALITY,
     PROFILE_PHOTO_OUTPUT_SIZE,
     PROFILE_TAB_ORDER,
-    SELF_EMPLOYED_EMPLOYMENT_TYPE,
     SPOUSE_NOT_APPLICABLE_STATUSES,
     tabForField,
     type ProfileTab,
@@ -288,6 +288,9 @@ export default function Profile({
     const [housingStatusValue, setHousingStatusValue] = useState<string>(
         memberApplicationProfile?.housing_status?.trim() ?? '',
     );
+    const [lengthOfStay, setLengthOfStay] = useState<string>(
+        memberApplicationProfile?.length_of_stay ?? '',
+    );
     const [spouseBirthdateValue, setSpouseBirthdateValue] = useState<string>(
         memberApplicationProfile?.spouse_birthdate ?? '',
     );
@@ -310,9 +313,8 @@ export default function Profile({
         !EMPLOYMENT_TYPE_OPTIONS.includes(employmentType)
             ? [employmentType, ...EMPLOYMENT_TYPE_OPTIONS]
             : EMPLOYMENT_TYPE_OPTIONS;
-    const isPensioner = employmentType === PENSIONER_EMPLOYMENT_TYPE;
-    const isSelfEmployed =
-        employmentType === SELF_EMPLOYED_EMPLOYMENT_TYPE;
+    const isPensioner = isPensionerType(employmentType);
+    const isSelfEmployed = isSelfEmployedType(employmentType);
     const showDateEmployed = !isPensioner && !isSelfEmployed;
     const [employerDateEmployed, setEmployerDateEmployed] = useState<string>(
         memberApplicationProfile?.employer_date_employed ?? '',
@@ -335,6 +337,9 @@ export default function Profile({
         !hasPresetNatureOfBusiness && initialNatureOfBusiness !== ''
             ? initialNatureOfBusiness
             : '',
+    );
+    const [yearsInWorkBusiness, setYearsInWorkBusiness] = useState<string>(
+        memberApplicationProfile?.years_in_work_business ?? '',
     );
     const [grossMonthlyIncome, setGrossMonthlyIncome] = useState<string>(
         memberApplicationProfile?.gross_monthly_income ?? '',
@@ -909,6 +914,10 @@ export default function Profile({
                                                     setHousingStatusValue={
                                                         setHousingStatusValue
                                                     }
+                                                    lengthOfStay={lengthOfStay}
+                                                    setLengthOfStay={
+                                                        setLengthOfStay
+                                                    }
                                                     spouseBirthdateValue={
                                                         spouseBirthdateValue
                                                     }
@@ -997,6 +1006,12 @@ export default function Profile({
                                                     }
                                                     resolvedNatureOfBusiness={
                                                         resolvedNatureOfBusiness
+                                                    }
+                                                    yearsInWorkBusiness={
+                                                        yearsInWorkBusiness
+                                                    }
+                                                    setYearsInWorkBusiness={
+                                                        setYearsInWorkBusiness
                                                     }
                                                     grossMonthlyIncome={
                                                         grossMonthlyIncome

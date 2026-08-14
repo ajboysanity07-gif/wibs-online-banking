@@ -1,5 +1,8 @@
 import InputError from '@/components/input-error';
-import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
+import {
+    CurrencyInput,
+    YearsInput,
+} from '@/components/loan-request/numeric-adorned-inputs';
 import { LocationCombobox } from '@/components/location-combobox';
 import { SurfaceCard } from '@/components/surface-card';
 import { Input } from '@/components/ui/input';
@@ -50,6 +53,8 @@ type Props = {
     natureOfBusinessOther: string;
     setNatureOfBusinessOther: (value: string) => void;
     resolvedNatureOfBusiness: string;
+    yearsInWorkBusiness: string;
+    setYearsInWorkBusiness: (value: string) => void;
     grossMonthlyIncome: string;
     setGrossMonthlyIncome: (value: string) => void;
     paydaySelection: string;
@@ -81,6 +86,8 @@ export function WorkTab({
     natureOfBusinessOther,
     setNatureOfBusinessOther,
     resolvedNatureOfBusiness,
+    yearsInWorkBusiness,
+    setYearsInWorkBusiness,
     grossMonthlyIncome,
     setGrossMonthlyIncome,
     paydaySelection,
@@ -448,15 +455,18 @@ export function WorkTab({
                                     Years in work or business
                                 </Label>
 
-                                <Input
+                                <YearsInput
                                     id="years_in_work_business"
                                     className="mt-1 block w-full"
-                                    defaultValue={
-                                        memberApplicationProfile?.years_in_work_business ??
-                                        ''
-                                    }
+                                    value={yearsInWorkBusiness}
+                                    onChange={setYearsInWorkBusiness}
+                                    placeholder="e.g. 5"
+                                />
+
+                                <input
+                                    type="hidden"
                                     name="years_in_work_business"
-                                    placeholder="e.g. 5 years"
+                                    value={yearsInWorkBusiness}
                                 />
 
                                 <InputError

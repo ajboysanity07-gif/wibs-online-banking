@@ -160,3 +160,39 @@ export function MonthsInput({
         </div>
     );
 }
+
+type YearsInputProps = MonthsInputProps;
+
+export function YearsInput({
+    id,
+    value,
+    onChange,
+    onBlur,
+    className,
+    placeholder,
+    disabled,
+    required,
+}: YearsInputProps) {
+    return (
+        <div className="relative">
+            <NumericFormat
+                id={id}
+                className={cn('pr-14', className)}
+                value={value}
+                onValueChange={(values) => onChange(values.value)}
+                onBlur={onBlur}
+                decimalScale={0}
+                allowNegative={false}
+                placeholder={placeholder}
+                inputMode="numeric"
+                valueIsNumericString
+                customInput={Input}
+                disabled={disabled}
+                required={required}
+            />
+            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-muted-foreground">
+                years
+            </span>
+        </div>
+    );
+}
