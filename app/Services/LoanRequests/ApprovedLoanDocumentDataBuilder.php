@@ -24,6 +24,16 @@ use Throwable;
  */
 class ApprovedLoanDocumentDataBuilder
 {
+    // Documentary stamp tax under TRAIN is ₱1.50 for every ₱200 (or fractional
+    // part thereof) of the loan amount; 1.5/200 = 0.75% is the institutional
+    // constant recorded on the request, but the amount must follow the banding
+    // rule rather than a flat percentage.
+    private const DOCUMENTARY_STAMP_INSTITUTIONAL_RATE = 0.0075;
+
+    private const DOCUMENTARY_STAMP_PESO_PER_BAND = 1.5;
+
+    private const DOCUMENTARY_STAMP_BAND_SIZE = 200;
+
     public function __construct(
         private LoanRequestDataService $loanRequestDataService,
         private OrganizationSettingsService $organizationSettingsService,
@@ -155,11 +165,11 @@ class ApprovedLoanDocumentDataBuilder
             $overrideLoan['documentary_stamp_rate_raw']
                 ?? $flatValues['documentary_stamp_rate']
                 ?? null,
-            0.015,
+            self::DOCUMENTARY_STAMP_INSTITUTIONAL_RATE,
         );
         $documentaryStampAmountRaw = $this->roundCurrency(
             $approvedAmountRaw !== null && $documentaryStampRateRaw !== null
-                ? $approvedAmountRaw * $documentaryStampRateRaw
+                ? $this->resolveDocumentaryStampAmount($approvedAmountRaw, $documentaryStampRateRaw)
                 : null,
         );
         $notarialFeeRaw = $this->resolveNumericOverride(
@@ -1059,6 +1069,28 @@ class ApprovedLoanDocumentDataBuilder
         );
 
         return $normalized ?? $default;
+    }
+
+    /**
+     * Computes the documentary stamp tax. When the institutional rate is in
+     * effect the client's given formula applies — ₱1.50 for every ₱200 of the
+     * loan amount, with fractional parts rounded up to a full ₱200 band — so
+     * non-multiple-of-₱200 loans still land on the correct BIR figure. An
+     * explicit staff-entered rate (legacy data) is honored as a flat percentage.
+     */
+    private function resolveDocumentaryStampAmount(
+        float|int $approvedAmount,
+        float|int $documentaryStampRate,
+    ): float {
+        if (
+            abs((float) $documentaryStampRate - self::DOCUMENTARY_STAMP_INSTITUTIONAL_RATE)
+            < PHP_FLOAT_EPSILON
+        ) {
+            return ceil((float) $approvedAmount / self::DOCUMENTARY_STAMP_BAND_SIZE)
+                * self::DOCUMENTARY_STAMP_PESO_PER_BAND;
+        }
+
+        return (float) $approvedAmount * (float) $documentaryStampRate;
     }
 
     private function resolveIntegerOverride(

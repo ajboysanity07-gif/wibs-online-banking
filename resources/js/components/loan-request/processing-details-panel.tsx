@@ -191,7 +191,9 @@ const SNAPSHOT_GATED_FIELDS = new Set([
 const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
     loan_security_rate: 0.02,
     savings_rate: 0.02,
-    documentary_stamp_rate: 0.015,
+    // Institutional documentary stamp constant (₱1.50 per ₱200 of loan =
+    // 1.5/200 = 0.75%); the amount itself follows the ₱200 banding rule.
+    documentary_stamp_rate: 0.0075,
 };
 
 // "Lumpsum" is a loan-level payment frequency, not a valid personal payday,
@@ -1030,7 +1032,7 @@ export function ProcessingDetailsPanel({
                                 onBlur: scheduleGnthpRecalculation,
                                 disabled: true,
                                 tooltip:
-                                    'Fixed institutional rate (1.50%), matching the reference workbook. Not editable per loan.',
+                                    'Fixed institutional rate (0.75%) — documentary stamp tax is ₱1.50 per ₱200 of the loan amount (or fraction thereof), so the amount rounds up per band, matching the reference workbook. Not editable per loan.',
                             })}
                             {renderProcessingField('notarial_fee', {
                                 onBlur: scheduleGnthpRecalculation,

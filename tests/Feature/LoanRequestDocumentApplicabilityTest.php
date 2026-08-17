@@ -1325,7 +1325,7 @@ test('Lumpsum payment frequency zeroes loan security, savings, and insurance, an
         ->and($documentData['loan']['lumpsum_months'])->toBe(2);
 });
 
-test('documentary stamp defaults to the 1.50% institutional constant when not set', function (): void {
+test('documentary stamp defaults to the 0.75% institutional constant when not set', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 24000,
@@ -1351,9 +1351,9 @@ test('documentary stamp defaults to the 1.50% institutional constant when not se
 
     $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
 
-    // 24000 * 0.015 = 360.00
-    expect($documentData['loan']['documentary_stamp_rate_raw'])->toBe(0.015)
-        ->and($documentData['loan']['documentary_stamp_amount_raw'])->toBe(360.0);
+    // 24000 * 0.0075 = 180.00
+    expect($documentData['loan']['documentary_stamp_rate_raw'])->toBe(0.0075)
+        ->and($documentData['loan']['documentary_stamp_amount_raw'])->toBe(180.0);
 });
 
 test('notarial fee accepts an arbitrary staff-entered value with no forced default', function (): void {
