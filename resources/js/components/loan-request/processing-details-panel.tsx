@@ -196,6 +196,59 @@ const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
     documentary_stamp_rate: 0.0075,
 };
 
+// Insurer's senior-age insurance rate bands (from the loan processors'
+// reference table). Only these two bands are currently known; applicants
+// outside them keep the existing manual-entry behavior with no default.
+const INSURANCE_RATE_AGE_BANDS: {
+    minAge: number;
+    maxAge: number;
+    rate: number;
+}[] = [
+    { minAge: 66, maxAge: 70, rate: 0.0205 },
+    { minAge: 71, maxAge: 75, rate: 0.0395 },
+];
+
+const calculateAgeFromBirthdate = (birthdate: string | null): number | null => {
+    if (!birthdate) {
+        return null;
+    }
+
+    const parsed = new Date(birthdate);
+
+    if (Number.isNaN(parsed.getTime())) {
+        return null;
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - parsed.getFullYear();
+    const hasNotHadBirthdayThisYear =
+        today.getMonth() < parsed.getMonth() ||
+        (today.getMonth() === parsed.getMonth() &&
+            today.getDate() < parsed.getDate());
+
+    if (hasNotHadBirthdayThisYear) {
+        age -= 1;
+    }
+
+    return age;
+};
+
+const resolveAgeBandedInsuranceRate = (
+    birthdate: string | null,
+): number | null => {
+    const age = calculateAgeFromBirthdate(birthdate);
+
+    if (age === null) {
+        return null;
+    }
+
+    const band = INSURANCE_RATE_AGE_BANDS.find(
+        ({ minAge, maxAge }) => age >= minAge && age <= maxAge,
+    );
+
+    return band?.rate ?? null;
+};
+
 // "Lumpsum" is a loan-level payment frequency, not a valid personal payday,
 // so it is added only for this dropdown rather than to the shared
 // PAYDAY_OPTIONS list (also used by the applicant/co-maker payday pickers).
@@ -204,6 +257,7 @@ const LUMPSUM_MONTHS_OPTIONS = [1, 2] as const;
 
 const withProcessingChargeDefaults = (
     processing: Record<string, string | number | boolean | null>,
+    applicantBirthdate: string | null = null,
 ): Record<string, string | number | boolean | null> => {
     let next = processing;
 
@@ -218,6 +272,20 @@ const withProcessingChargeDefaults = (
 
         if (isBlank) {
             next = { ...next, [key]: defaultValue };
+        }
+    }
+
+    const currentInsuranceRate = next.insurance_rate;
+    const isInsuranceRateBlank =
+        currentInsuranceRate === null ||
+        currentInsuranceRate === undefined ||
+        `${currentInsuranceRate}`.trim() === '';
+
+    if (isInsuranceRateBlank) {
+        const ageBandedRate = resolveAgeBandedInsuranceRate(applicantBirthdate);
+
+        if (ageBandedRate !== null) {
+            next = { ...next, insurance_rate: ageBandedRate };
         }
     }
 
@@ -307,6 +375,7 @@ export function ProcessingDetailsPanel({
                     ),
                     loanRequest.assigned_processor,
                 ),
+                applicant?.birthdate ?? null,
             ),
             recommended_amount: toStringValue(loanRequest.recommended_amount),
             recommended_term: toStringValue(loanRequest.recommended_term),
@@ -348,6 +417,7 @@ export function ProcessingDetailsPanel({
                     ),
                     loanRequest.assigned_processor,
                 ),
+                applicant?.birthdate ?? null,
             ),
             recommended_amount: toStringValue(loanRequest.recommended_amount),
             recommended_term: toStringValue(loanRequest.recommended_term),
@@ -366,6 +436,7 @@ export function ProcessingDetailsPanel({
                 1 || hasSecondOfficerValue(dataSections.processing),
         );
     }, [
+        applicant?.birthdate,
         dataSections.processing,
         loanManagers,
         loanRequest.assigned_processor,
@@ -981,6 +1052,8 @@ export function ProcessingDetailsPanel({
                             })}
                             {renderProcessingField('insurance_rate', {
                                 onBlur: scheduleGnthpRecalculation,
+                                tooltip:
+                                    "Auto-suggested from the applicant's age using the insurer's senior-age bands (66–70 → 2.05%, 71–75 → 3.95%). Outside those bands the rate must be entered manually. Editable in all cases.",
                             })}
                             {renderProcessingField('insurance_term', {
                                 onBlur: scheduleGnthpRecalculation,
