@@ -119,6 +119,9 @@ test('member submit persists existing loan slot 1 and document data includes it'
             'release_method' => 'Bank transfer',
             'payment_option' => 'Salary Deduction',
         ]),
+        'dependents' => array_merge($formData['dataSections']['dependents'], [
+            'applicant_cycle_status' => 'New',
+        ]),
     ];
 
     try {

@@ -340,6 +340,64 @@ test('preview is denied for a user without updateProcessingDetails permission on
         ->assertForbidden();
 });
 
+test('preview accepts Lumpsum frequency with a required lumpsum month count and zeroes loan security/insurance', function (): void {
+    $processor = previewCreateActor([Role::LOAN_PROCESSOR]);
+    $member = previewCreateActor([Role::MEMBER], '950103');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency_lumpsum_months' => 1,
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['gross_monthly_income' => 15000]);
+
+    $response = $this
+        ->actingAs($processor)
+        ->postJson(
+            route('spa.workflow.loan-requests.processing-details.preview', $loanRequest),
+            [
+                ...previewChargesOverridePayload(),
+                'recommended_payment_frequency' => 'Lumpsum',
+                'recommended_payment_frequency_lumpsum_months' => 1,
+            ],
+        )
+        ->assertOk();
+
+    // service charge 25000*0.05=1250, doc stamp 25000*0.0075=187.5, notarial
+    // fee 100 flat; loan security/insurance are forced to 0 for Lumpsum.
+    $this->assertEqualsWithDelta(23462.5, $response->json('data.net_proceeds_raw'), 0.01);
+});
+
+test('preview rejects Lumpsum frequency without the required month count', function (): void {
+    $processor = previewCreateActor([Role::LOAN_PROCESSOR]);
+    $member = previewCreateActor([Role::MEMBER], '950104');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->postJson(
+            route('spa.workflow.loan-requests.processing-details.preview', $loanRequest),
+            [
+                ...previewChargesOverridePayload(),
+                'recommended_payment_frequency' => 'Lumpsum',
+            ],
+        )
+        ->assertInvalid(['recommended_payment_frequency_lumpsum_months']);
+});
+
 /**
  * @param  list<string>  $roles
  */

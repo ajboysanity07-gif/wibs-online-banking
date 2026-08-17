@@ -412,6 +412,8 @@ export type LoanRequestDetail = {
     requested_term: number | string | null;
     loan_purpose: string | null;
     availment_status: string | null;
+    requested_payment_frequency: string | null;
+    requested_payment_frequency_lumpsum_months: number | string | null;
     submitted_at: string | null;
     assigned_officer_id: number | string | null;
     assigned_processor_id: number | string | null;
@@ -427,6 +429,7 @@ export type LoanRequestDetail = {
     recommended_term: number | string | null;
     recommended_interest_rate: number | string | null;
     recommended_payment_frequency: string | null;
+    recommended_payment_frequency_lumpsum_months: number | string | null;
     reviewed_by: LoanRequestReviewer | null;
     reviewed_at: string | null;
     review_decision: string | null;
@@ -505,6 +508,8 @@ export type LoanRequestDraft = {
     requested_term: number | string | null;
     loan_purpose: string | null;
     availment_status: string | null;
+    requested_payment_frequency: string | null;
+    requested_payment_frequency_lumpsum_months: number | string | null;
     submitted_at: string | null;
     updated_at: string | null;
 };
@@ -561,6 +566,8 @@ export type LoanRequestFormData = {
     requested_term: string;
     loan_purpose: string;
     availment_status: string;
+    requested_payment_frequency: string;
+    requested_payment_frequency_lumpsum_months: string;
     undertaking_accepted: boolean;
     applicant: LoanRequestPersonFormData;
     co_maker_1: LoanRequestPersonFormData;

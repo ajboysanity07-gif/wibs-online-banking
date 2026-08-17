@@ -2,6 +2,7 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanPaydayOption;
 use App\LoanPaymentOption;
 use App\LoanRequestDocumentKey;
 use App\Models\AuthorityToDeductInstitutionContact;
@@ -330,7 +331,7 @@ class LoanRequestDocumentCatalog
         ],
         'generali' => [
             'template_version' => 'generali-v1',
-            'applicability' => 'always',
+            'applicability' => 'not_lumpsum',
             'required_fields' => [],
             'source_fields' => [
                 'beneficiary_primary_name',
@@ -513,7 +514,7 @@ class LoanRequestDocumentCatalog
         ],
         'generali_application_form' => [
             'template_version' => 'generali-application-form-v2',
-            'applicability' => 'always',
+            'applicability' => 'not_lumpsum',
             'required_fields' => [
                 'applicant_pep_status',
                 'applicant_cycle_status',
@@ -656,6 +657,7 @@ class LoanRequestDocumentCatalog
                 && ($flatValues['payment_option'] ?? null) === LoanPaymentOption::SalaryDeduction->value,
             'atm_payout_employee' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues),
             'atm_payment_option' => ($flatValues['payment_option'] ?? null) === LoanPaymentOption::AtmDeduction->value,
+            'not_lumpsum' => $loanRequest->recommended_payment_frequency !== LoanPaydayOption::Lumpsum->value,
             default => true,
         };
     }

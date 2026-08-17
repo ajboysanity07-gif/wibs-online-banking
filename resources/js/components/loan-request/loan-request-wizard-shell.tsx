@@ -10,6 +10,7 @@ type Props = {
     onStepClick?: (index: number) => void;
     steps?: LoanRequestWizardStep[];
     groupMeta?: Record<string, GroupMeta>;
+    hiddenStepIds?: ReadonlySet<string>;
     children: React.ReactNode;
     footer?: React.ReactNode;
     sidebarClassName?: string;
@@ -34,6 +35,7 @@ export function LoanRequestWizardShell({
     onStepClick,
     steps,
     groupMeta,
+    hiddenStepIds,
     children,
     footer,
     sidebarClassName,
@@ -52,6 +54,7 @@ export function LoanRequestWizardShell({
                     onStepClick={onStepClick}
                     steps={steps}
                     groupMeta={groupMeta}
+                    hiddenStepIds={hiddenStepIds}
                 />
             </div>
             <div className={cn('min-w-0 flex-1', contentClassName)}>

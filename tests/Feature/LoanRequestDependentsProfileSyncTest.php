@@ -225,6 +225,7 @@ test('submit writes back validated dependent fields to normalized profile tables
             'dependent_child_1_cycle_number' => 1,
             'dependent_parent_1_name' => 'Submitted Parent',
             'dependent_spouse_cycle_status' => 'New',
+            'applicant_cycle_status' => 'New',
         ],
         'applicant' => $person(['sex' => 'Male']),
         'co_maker_1' => $person(),

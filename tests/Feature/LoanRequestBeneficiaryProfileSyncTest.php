@@ -120,6 +120,8 @@ test('submit writes back validated beneficiary fields to the member profile', fu
         'payout_account_number' => '000000000',
         'payout_account_type' => 'Savings',
         'release_method' => 'ATM',
+        'payout_atm_number' => '5555444433332222',
+        'payout_atm_holder_name' => 'Placeholder Holder',
         'source_of_fund_wealth' => 'Salary',
         'id_type' => 'TIN',
         'id_number' => '123-456-789',
@@ -210,6 +212,9 @@ test('submit writes back validated beneficiary fields to the member profile', fu
             'declaration_pending_cases' => false,
             'declaration_truth_confirmation' => true,
             'declaration_data_privacy_consent' => true,
+        ],
+        'dependents' => [
+            'applicant_cycle_status' => 'New',
         ],
         'applicant' => $person(['sex' => 'Male']),
         'co_maker_1' => $person(),

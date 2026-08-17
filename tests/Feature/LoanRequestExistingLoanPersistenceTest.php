@@ -166,6 +166,10 @@ test('member submit preserves existing loan auto-fill through to document data',
     $payload['health_glapi'] = [
         'health_recent_hospitalization' => false,
     ];
+    $payload['dependents'] = array_merge(
+        $formData['dataSections']['dependents'] ?? [],
+        ['applicant_cycle_status' => 'New'],
+    );
 
     try {
         $loanRequest = $service->submit($member, $payload);
@@ -253,6 +257,9 @@ test('existing loan data persists when member manually adds slot 1 in wizard', f
         ],
         'health_glapi' => [
             'health_recent_hospitalization' => false,
+        ],
+        'dependents' => [
+            'applicant_cycle_status' => 'New',
         ],
     ]);
 

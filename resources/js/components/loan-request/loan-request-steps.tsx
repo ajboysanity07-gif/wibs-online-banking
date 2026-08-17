@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import {
     ApplicantCycleSection,
@@ -18,6 +18,7 @@ import { BooleanYesNoField } from '@/components/loan-request/boolean-yes-no-fiel
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
+    PAYDAY_OPTIONS,
 } from '@/components/loan-request/loan-request-fields';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import {
@@ -85,12 +86,21 @@ const PAYMENT_OPTION_OPTIONS = [
 ] as const;
 const ACCOUNT_TYPE_OPTIONS = ['Savings', 'Checking'] as const;
 
+/** wlntype.typecode for "Other Loan" -- the only type eligible for Lumpsum. */
+export const OTHER_LOAN_TYPECODE = '01';
+
+const REPAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Lumpsum'] as const;
+
+const LUMPSUM_MONTHS_OPTIONS = ['1', '2'] as const;
+
 type LoanDetailField =
     | 'typecode'
     | 'requested_amount'
     | 'requested_term'
     | 'loan_purpose'
-    | 'availment_status';
+    | 'availment_status'
+    | 'requested_payment_frequency'
+    | 'requested_payment_frequency_lumpsum_months';
 
 type LoanDetailsProps = {
     data: LoanRequestFormData;
@@ -105,6 +115,28 @@ export function LoanRequestLoanDetailsStep({
     loanTypes,
     onChange,
 }: LoanDetailsProps) {
+    const isOtherLoan = data.typecode === OTHER_LOAN_TYPECODE;
+
+    useEffect(() => {
+        if (!isOtherLoan && data.requested_payment_frequency) {
+            onChange('requested_payment_frequency', '');
+            onChange('requested_payment_frequency_lumpsum_months', '');
+        }
+    }, [isOtherLoan, data.requested_payment_frequency, onChange]);
+
+    useEffect(() => {
+        if (
+            data.requested_payment_frequency !== 'Lumpsum' &&
+            data.requested_payment_frequency_lumpsum_months
+        ) {
+            onChange('requested_payment_frequency_lumpsum_months', '');
+        }
+    }, [
+        data.requested_payment_frequency,
+        data.requested_payment_frequency_lumpsum_months,
+        onChange,
+    ]);
+
     return (
         <LoanRequestSectionCard
             title="Loan details"
@@ -197,6 +229,87 @@ export function LoanRequestLoanDetailsStep({
                     />
                     <InputError message={errors.loan_purpose} />
                 </div>
+
+                {isOtherLoan && (
+                    <div className="grid gap-2">
+                        <Label htmlFor="requested_payment_frequency">
+                            Preferred repayment frequency
+                        </Label>
+                        <Select
+                            value={
+                                data.requested_payment_frequency || undefined
+                            }
+                            onValueChange={(value) =>
+                                onChange('requested_payment_frequency', value)
+                            }
+                        >
+                            <SelectTrigger
+                                id="requested_payment_frequency"
+                                className="mt-1 w-full"
+                            >
+                                <SelectValue placeholder="Select repayment frequency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {REPAYMENT_FREQUENCY_OPTIONS.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                        {option}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError
+                            message={errors.requested_payment_frequency}
+                        />
+                    </div>
+                )}
+
+                {isOtherLoan &&
+                    data.requested_payment_frequency === 'Lumpsum' && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="requested_payment_frequency_lumpsum_months">
+                                Pay in
+                            </Label>
+                            <Select
+                                value={
+                                    data.requested_payment_frequency_lumpsum_months ||
+                                    undefined
+                                }
+                                onValueChange={(value) =>
+                                    onChange(
+                                        'requested_payment_frequency_lumpsum_months',
+                                        value,
+                                    )
+                                }
+                            >
+                                <SelectTrigger
+                                    id="requested_payment_frequency_lumpsum_months"
+                                    className="mt-1 w-full"
+                                >
+                                    <SelectValue placeholder="Select number of months" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {LUMPSUM_MONTHS_OPTIONS.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option} month
+                                            {option === '1' ? '' : 's'}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={
+                                    errors.requested_payment_frequency_lumpsum_months
+                                }
+                            />
+                            {data.requested_payment_frequency_lumpsum_months ===
+                                '1' && (
+                                <p className="text-sm text-muted-foreground">
+                                    Paying in 1 month skips the insurance and
+                                    health questionnaire steps below.
+                                </p>
+                            )}
+                        </div>
+                    )}
             </div>
         </LoanRequestSectionCard>
     );
@@ -2323,6 +2436,17 @@ export function LoanRequestReviewStep({
             value: displayValue(data.availment_status),
         },
         { label: 'Loan purpose', value: displayText(data.loan_purpose) },
+        ...(data.requested_payment_frequency
+            ? [
+                  {
+                      label: 'Requested repayment frequency',
+                      value:
+                          data.requested_payment_frequency === 'Lumpsum'
+                              ? `Lumpsum (${data.requested_payment_frequency_lumpsum_months || '--'} month${data.requested_payment_frequency_lumpsum_months === '1' ? '' : 's'})`
+                              : displayText(data.requested_payment_frequency),
+                  },
+              ]
+            : []),
     ];
 
     const applicantPersonal: SummaryItem[] = [

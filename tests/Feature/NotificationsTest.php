@@ -1064,6 +1064,9 @@ function notificationLoanRequestPayload(): array
             'declaration_truth_confirmation' => true,
             'declaration_data_privacy_consent' => true,
         ],
+        'dependents' => [
+            'applicant_cycle_status' => 'New',
+        ],
         'applicant' => [
             'first_name' => 'Loan',
             'last_name' => 'Member',

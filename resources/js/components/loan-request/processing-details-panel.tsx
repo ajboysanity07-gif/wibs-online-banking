@@ -191,9 +191,14 @@ const SNAPSHOT_GATED_FIELDS = new Set([
 const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
     loan_security_rate: 0.02,
     savings_rate: 0.02,
-    documentary_stamp_rate: 0.0075,
-    notarial_fee: 100.0,
+    documentary_stamp_rate: 0.015,
 };
+
+// "Lumpsum" is a loan-level payment frequency, not a valid personal payday,
+// so it is added only for this dropdown rather than to the shared
+// PAYDAY_OPTIONS list (also used by the applicant/co-maker payday pickers).
+const PAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Lumpsum'] as const;
+const LUMPSUM_MONTHS_OPTIONS = [1, 2] as const;
 
 const withProcessingChargeDefaults = (
     processing: Record<string, string | number | boolean | null>,
@@ -244,6 +249,7 @@ type InlineProcessingFormState = {
     recommended_term: string;
     recommended_interest_rate: string;
     recommended_payment_frequency: string;
+    recommended_payment_frequency_lumpsum_months: string;
     reason: string;
 };
 
@@ -307,6 +313,9 @@ export function ProcessingDetailsPanel({
             ),
             recommended_payment_frequency:
                 loanRequest.recommended_payment_frequency ?? '',
+            recommended_payment_frequency_lumpsum_months: toStringValue(
+                loanRequest.recommended_payment_frequency_lumpsum_months,
+            ),
             reason: '',
         });
     const [recommendationPreview, setRecommendationPreview] =
@@ -345,6 +354,9 @@ export function ProcessingDetailsPanel({
             ),
             recommended_payment_frequency:
                 loanRequest.recommended_payment_frequency ?? '',
+            recommended_payment_frequency_lumpsum_months: toStringValue(
+                loanRequest.recommended_payment_frequency_lumpsum_months,
+            ),
             reason: '',
         });
         setShowSecondOfficer(
@@ -359,6 +371,7 @@ export function ProcessingDetailsPanel({
         loanRequest.recommended_amount,
         loanRequest.recommended_interest_rate,
         loanRequest.recommended_payment_frequency,
+        loanRequest.recommended_payment_frequency_lumpsum_months,
         loanRequest.recommended_term,
     ]);
 
@@ -371,6 +384,21 @@ export function ProcessingDetailsPanel({
             processing: {
                 ...current.processing,
                 [field]: value,
+            },
+        }));
+    };
+
+    // "Loan security" and "savings" are the same rate to staff, but the
+    // backend keeps them as two independent fields (loan_security_rate drives
+    // a one-time proceeds deduction, savings_rate drives the per-installment
+    // amortization contribution) — this input writes one value to both.
+    const updateLoanSecurityRate = (value: string | number | null) => {
+        setProcessingForm((current) => ({
+            ...current,
+            processing: {
+                ...current.processing,
+                loan_security_rate: value,
+                savings_rate: value,
             },
         }));
     };
@@ -392,6 +420,9 @@ export function ProcessingDetailsPanel({
                         processingForm.recommended_interest_rate || null,
                     recommended_payment_frequency:
                         processingForm.recommended_payment_frequency || null,
+                    recommended_payment_frequency_lumpsum_months:
+                        processingForm.recommended_payment_frequency_lumpsum_months ||
+                        null,
                     service_charge_rate: numericProcessingFieldValue(
                         processingForm.processing.service_charge_rate,
                     ),
@@ -548,6 +579,9 @@ export function ProcessingDetailsPanel({
                 processingForm.recommended_interest_rate || null,
             recommended_payment_frequency:
                 processingForm.recommended_payment_frequency || null,
+            recommended_payment_frequency_lumpsum_months:
+                processingForm.recommended_payment_frequency_lumpsum_months ||
+                null,
         });
 
         if (result) {
@@ -849,6 +883,28 @@ export function ProcessingDetailsPanel({
                                             ...current,
                                             recommended_payment_frequency:
                                                 value,
+                                            // Lumpsum forces loan security/savings to 0% and
+                                            // clears the month sub-choice; switching away
+                                            // restores the standard default so staff aren't
+                                            // stuck at 0%.
+                                            recommended_payment_frequency_lumpsum_months:
+                                                value === 'Lumpsum'
+                                                    ? current.recommended_payment_frequency_lumpsum_months
+                                                    : '',
+                                            processing:
+                                                value === 'Lumpsum'
+                                                    ? {
+                                                          ...current.processing,
+                                                          loan_security_rate: 0,
+                                                          savings_rate: 0,
+                                                      }
+                                                    : {
+                                                          ...current.processing,
+                                                          loan_security_rate:
+                                                              PROCESSING_CHARGE_DEFAULTS.loan_security_rate,
+                                                          savings_rate:
+                                                              PROCESSING_CHARGE_DEFAULTS.savings_rate,
+                                                      },
                                         }));
                                         scheduleGnthpRecalculation();
                                     }}
@@ -860,17 +916,61 @@ export function ProcessingDetailsPanel({
                                         <SelectValue placeholder="Select payment frequency" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {PAYDAY_OPTIONS.map((option) => (
-                                            <SelectItem
-                                                key={option}
-                                                value={option}
-                                            >
-                                                {option}
-                                            </SelectItem>
-                                        ))}
+                                        {PAYMENT_FREQUENCY_OPTIONS.map(
+                                            (option) => (
+                                                <SelectItem
+                                                    key={option}
+                                                    value={option}
+                                                >
+                                                    {option}
+                                                </SelectItem>
+                                            ),
+                                        )}
                                     </SelectContent>
                                 </Select>
                             </div>
+                            {processingForm.recommended_payment_frequency ===
+                                'Lumpsum' && (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="inline_lumpsum_months">
+                                        Lumpsum term
+                                    </Label>
+                                    <Select
+                                        value={
+                                            processingForm.recommended_payment_frequency_lumpsum_months ||
+                                            undefined
+                                        }
+                                        onValueChange={(value) => {
+                                            setProcessingForm((current) => ({
+                                                ...current,
+                                                recommended_payment_frequency_lumpsum_months:
+                                                    value,
+                                            }));
+                                            scheduleGnthpRecalculation();
+                                        }}
+                                    >
+                                        <SelectTrigger
+                                            id="inline_lumpsum_months"
+                                            className="w-full"
+                                        >
+                                            <SelectValue placeholder="Select 1 or 2 months" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {LUMPSUM_MONTHS_OPTIONS.map(
+                                                (months) => (
+                                                    <SelectItem
+                                                        key={months}
+                                                        value={`${months}`}
+                                                    >
+                                                        {months} month
+                                                        {months > 1 ? 's' : ''}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
                         </div>
                         {renderProcessingSectionLabel('Charges & fees')}
                         <div className="grid gap-4 sm:grid-cols-2">
@@ -883,29 +983,58 @@ export function ProcessingDetailsPanel({
                             {renderProcessingField('insurance_term', {
                                 onBlur: scheduleGnthpRecalculation,
                             })}
-                            {renderProcessingField('loan_security_rate', {
-                                onBlur: scheduleGnthpRecalculation,
-                                disabled: true,
-                                tooltip:
-                                    'Fixed institutional rate (2%), matching the reference workbook. Not editable per loan.',
-                            })}
-                            {renderProcessingField('savings_rate', {
-                                onBlur: scheduleGnthpRecalculation,
-                                disabled: true,
-                                tooltip:
-                                    'Fixed institutional rate (2%), matching the reference workbook. Not editable per loan.',
-                            })}
+                            {processingForm.recommended_payment_frequency !==
+                                'Lumpsum' && (
+                                <div className="grid gap-2">
+                                    <Label
+                                        htmlFor="inline_processing_loan_security_rate"
+                                        className="inline-flex items-center gap-1.5"
+                                    >
+                                        Loan security / Savings rate
+                                        <TooltipProvider delayDuration={0}>
+                                            <Tooltip>
+                                                <TooltipTrigger>
+                                                    <Info className="size-3.5 text-muted-foreground" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>
+                                                        Fixed institutional rate
+                                                        (2%), matching the
+                                                        reference workbook. Not
+                                                        editable per loan.
+                                                        Zeroed automatically for
+                                                        Lumpsum loans.
+                                                    </p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </Label>
+                                    <PercentInput
+                                        id="inline_processing_loan_security_rate"
+                                        value={
+                                            processingForm.processing
+                                                .loan_security_rate !== null &&
+                                            processingForm.processing
+                                                .loan_security_rate !==
+                                                undefined
+                                                ? `${processingForm.processing.loan_security_rate}`
+                                                : ''
+                                        }
+                                        onValueChange={updateLoanSecurityRate}
+                                        onBlur={scheduleGnthpRecalculation}
+                                        disabled
+                                    />
+                                </div>
+                            )}
                             {renderProcessingField('documentary_stamp_rate', {
                                 onBlur: scheduleGnthpRecalculation,
                                 disabled: true,
                                 tooltip:
-                                    'Fixed institutional rate (0.75%), matching the reference workbook. Not editable per loan.',
+                                    'Fixed institutional rate (1.50%), matching the reference workbook. Not editable per loan.',
                             })}
                             {renderProcessingField('notarial_fee', {
                                 onBlur: scheduleGnthpRecalculation,
-                                disabled: true,
-                                tooltip:
-                                    'Fixed institutional fee (₱100), matching the reference workbook. Not editable per loan.',
+                                placeholder: 'Enter notarial fee',
                             })}
                             {renderProcessingField('other_charges_amount', {
                                 onBlur: scheduleGnthpRecalculation,

@@ -158,6 +158,9 @@ function fullLoanRequestSubmitPayload(): array
             'declaration_truth_confirmation' => true,
             'declaration_data_privacy_consent' => true,
         ],
+        'dependents' => [
+            'applicant_cycle_status' => 'New',
+        ],
         'applicant' => $person(['sex' => 'Male']),
         'co_maker_1' => $person(),
         'co_maker_2' => $person(),
@@ -181,7 +184,10 @@ test('getFormData prefills Bank & payout from the member profile and flags it', 
 });
 
 test('getFormData does not flag prefill when the profile has no banking data', function (): void {
-    $member = createBankingTestMember('003101');
+    // completed() sets release_method unconditionally to simulate a
+    // realistic onboarded profile -- null it back out so this profile
+    // truly has zero banking data, matching what the test asserts.
+    $member = createBankingTestMember('003101', ['release_method' => null]);
 
     $formData = app(LoanRequestService::class)->getFormData($member);
 
@@ -190,8 +196,11 @@ test('getFormData does not flag prefill when the profile has no banking data', f
 });
 
 test('getFormData does not overwrite banking values already saved on the draft', function (): void {
+    // Same as above -- null the factory's default release_method so the
+    // profile only carries the one field this test cares about.
     $member = createBankingTestMember('003102', [
         'payout_bank_name' => 'Profile Bank',
+        'release_method' => null,
     ]);
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([

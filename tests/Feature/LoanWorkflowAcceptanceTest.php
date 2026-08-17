@@ -1046,6 +1046,7 @@ function acceptanceLoanRequestPayload(): array
             'employment_type' => 'Private',
             'employer_business_name' => 'Acme Corp',
             'employer_business_address1' => 'Acme Street',
+            'employer_business_address_barangay' => 'Barangay',
             'employer_business_address2' => 'Manila',
             'employer_business_address3' => 'Metro Manila',
             'telephone_no' => '021234567',

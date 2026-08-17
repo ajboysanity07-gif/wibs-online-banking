@@ -5,10 +5,14 @@ test('loan request location fields wire province autofill', function () {
         base_path('resources/js/components/loan-request/loan-request-fields.tsx'),
     );
 
+    // Prettier may wrap a long onChange(...) call across multiple lines, so
+    // this tolerates whitespace (including newlines) between the opening
+    // paren and the field name -- this test only cares that the wiring
+    // exists, not its formatting.
     expect($contents)->toContain('birthplaceProvinceSearch.setSelectedValue');
-    expect($contents)->toContain("onChange('birthplace_province'");
+    expect($contents)->toMatch("/onChange\(\s*'birthplace_province'/");
     expect($contents)->toContain('addressProvinceSearch.setSelectedValue');
-    expect($contents)->toContain("onChange('address3'");
+    expect($contents)->toMatch("/onChange\(\s*'address3'/");
     expect($contents)->toContain('employerProvinceSearch.setSelectedValue');
-    expect($contents)->toContain("onChange('employer_business_address3'");
+    expect($contents)->toMatch("/onChange\(\s*'employer_business_address3'/");
 });

@@ -2219,7 +2219,7 @@ test('loan request print preview renders blank wet-ink signature areas', functio
     expect($content)->toContain('font-size: 7.8pt;');
     expect($content)->toContain('font-size: 8pt;');
     expect($content)->toContain('line-height: 1.2;');
-    expect($content)->toContain('margin-top: 8px;');
+    expect($content)->toContain('margin-top: 5px;');
     expect($content)->toContain('height: 10px;');
     expect($content)->toContain('font-size: 9pt;');
     expect($content)->toContain('line-height: 1;');
@@ -4425,7 +4425,7 @@ test('admin corrected request can be approved after a saved correction audit exi
     Queue::assertPushed(SendLoanDecisionSmsJob::class);
 });
 
-test('corrected request update rejects an address2/address3 that was never selected from the PSGC dropdown', function () {
+test('corrected request update rejects a co-maker address2/address3 that was never selected from the PSGC dropdown', function () {
     $admin = User::factory()->create([
         'acctno' => '000538',
     ]);
@@ -4450,11 +4450,11 @@ test('corrected request update rejects an address2/address3 that was never selec
         ->patchJson(
             "/spa/admin/requests/{$corrected->id}/corrections",
             validLoanRequestCorrectionPayload([
-                'applicant' => ['address2' => 'Not A Real City'],
+                'co_maker_1' => ['address2' => 'Not A Real City'],
             ]),
         )
         ->assertUnprocessable()
-        ->assertJsonValidationErrors(['applicant.address2']);
+        ->assertJsonValidationErrors(['co_maker_1.address2']);
 });
 
 test('corrected request approval is blocked when correction audit history is unavailable', function () {

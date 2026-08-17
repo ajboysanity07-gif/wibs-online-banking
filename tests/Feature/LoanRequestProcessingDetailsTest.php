@@ -117,6 +117,53 @@ test('processing update rejects a non-canonical recommended_payment_frequency va
         ->assertJsonValidationErrors(['recommended_payment_frequency']);
 });
 
+test('processing update accepts Lumpsum frequency with a lumpsum month count and rejects it without one', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950005');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'requested_amount' => '25000.00',
+        'requested_term' => 12,
+        'loan_purpose' => 'Home improvement',
+        'availment_status' => 'New',
+        'submitted_at' => now(),
+    ]);
+
+    $basePayload = [
+        'reason' => 'Recorded verified processing terms.',
+        'loan_request' => [
+            'requested_amount' => '25000.00',
+            'requested_term' => 12,
+            'loan_purpose' => 'Home improvement',
+            'availment_status' => 'New',
+        ],
+        'recommended_payment_frequency' => 'Lumpsum',
+    ];
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(
+            route('spa.workflow.loan-requests.processing-details', $loanRequest),
+            $basePayload,
+        )
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['recommended_payment_frequency_lumpsum_months']);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(
+            route('spa.workflow.loan-requests.processing-details', $loanRequest),
+            [...$basePayload, 'recommended_payment_frequency_lumpsum_months' => 2],
+        )
+        ->assertOk();
+
+    expect($loanRequest->fresh()->recommended_payment_frequency_lumpsum_months)->toBe(2);
+});
+
 test('processing update rejects the removed doc/page/book/series/valid-id notarization keys', function (): void {
     $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
     $member = createProcessingActor([Role::MEMBER], '950005');

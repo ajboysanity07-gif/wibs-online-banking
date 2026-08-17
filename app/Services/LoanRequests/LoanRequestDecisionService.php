@@ -2,10 +2,12 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanPaydayOption;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
+use App\Models\LoanRequestDataEntry;
 use App\Models\Permission;
 use App\Notifications\LoanRequestCancelledNotification;
 use App\Notifications\LoanRequestDecisionNotification;
@@ -21,6 +23,8 @@ class LoanRequestDecisionService
     private const CORRECTION_REQUIRED_MESSAGE = 'Please review and save the correction before approving this admin-corrected request.';
 
     private const CORRECTION_AUDIT_UNAVAILABLE_MESSAGE = 'Correction audit history is unavailable. Please save the correction before approving this admin-corrected request.';
+
+    private const INSURANCE_DATA_REQUIRED_MESSAGE = 'This request has no insurance/health questionnaire data on file (the member requested a 1-month Lumpsum, which skips that step). Run an admin correction to collect it before approving a non-Lumpsum or multi-month payment frequency.';
 
     public function __construct(
         private LoanRequestCorrectionReportService $correctionReports,
@@ -43,6 +47,7 @@ class LoanRequestDecisionService
     ): LoanRequest {
         Gate::forUser($actor)->authorize('approve', $loanRequest);
         $this->ensureCorrectedRequestReadyForApproval($loanRequest);
+        $this->ensureInsuranceDataReadyForApproval($loanRequest);
 
         $loanRequest->fill([
             'status' => LoanRequestStatus::Approved,
@@ -179,6 +184,51 @@ class LoanRequestDecisionService
         return ! $this->hasSavedCorrectionAfterCreation($loanRequest);
     }
 
+    /**
+     * True when staff have set a payment frequency other than a 1-month
+     * Lumpsum, but the member skipped the insurance/health wizard steps at
+     * submission time (because they had requested a 1-month Lumpsum) --
+     * meaning beneficiary/health data was never collected. See
+     * LoanRequestCorrectionService for how staff backfill it.
+     */
+    public function requiresInsuranceDataBeforeApproval(
+        LoanRequest $loanRequest,
+    ): bool {
+        // Only relevant when the member's own submission skipped insurance
+        // by requesting a 1-month Lumpsum -- unrelated requests were never
+        // exempted from insurance/health at submission time, so missing
+        // data there is out of scope for this guardrail.
+        if (! $this->isOneMonthLumpsum(
+            $loanRequest->requested_payment_frequency,
+            $loanRequest->requested_payment_frequency_lumpsum_months,
+        )) {
+            return false;
+        }
+
+        if ($this->isOneMonthLumpsum(
+            $loanRequest->recommended_payment_frequency,
+            $loanRequest->recommended_payment_frequency_lumpsum_months,
+        )) {
+            return false;
+        }
+
+        return ! $this->hasInsuranceDataOnFile($loanRequest);
+    }
+
+    public function hasInsuranceDataOnFile(LoanRequest $loanRequest): bool
+    {
+        return LoanRequestDataEntry::query()
+            ->where('loan_request_id', $loanRequest->id)
+            ->where('section_key', 'insurance')
+            ->exists();
+    }
+
+    private function isOneMonthLumpsum(?string $frequency, int|string|null $months): bool
+    {
+        return $frequency === LoanPaydayOption::Lumpsum->value
+            && (int) $months === 1;
+    }
+
     public function approvalBlockedMessage(
         LoanRequest $loanRequest,
         AppUser $actor,
@@ -192,6 +242,13 @@ class LoanRequestDecisionService
             && $this->requiresSavedCorrectionBeforeApproval($loanRequest)
         ) {
             return self::CORRECTION_REQUIRED_MESSAGE;
+        }
+
+        if (
+            Gate::forUser($actor)->allows('approve', $loanRequest)
+            && $this->requiresInsuranceDataBeforeApproval($loanRequest)
+        ) {
+            return self::INSURANCE_DATA_REQUIRED_MESSAGE;
         }
 
         return null;
@@ -255,6 +312,16 @@ class LoanRequestDecisionService
         if (! $this->hasSavedCorrectionAfterCreation($loanRequest)) {
             throw ValidationException::withMessages([
                 'approval' => self::CORRECTION_REQUIRED_MESSAGE,
+            ]);
+        }
+    }
+
+    private function ensureInsuranceDataReadyForApproval(
+        LoanRequest $loanRequest,
+    ): void {
+        if ($this->requiresInsuranceDataBeforeApproval($loanRequest)) {
+            throw ValidationException::withMessages([
+                'approval' => self::INSURANCE_DATA_REQUIRED_MESSAGE,
             ]);
         }
     }

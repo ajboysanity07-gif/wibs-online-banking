@@ -1265,3 +1265,123 @@ test('generali application form is ready when PEP true and Old cycle status both
 
     expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value);
 });
+
+test('generali and generali application form are not applicable when payment frequency is Lumpsum', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'recommended_payment_frequency' => 'Lumpsum',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Generali, $loanRequest, []))->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeFalse();
+});
+
+test('generali and generali application form remain applicable for non-Lumpsum frequencies', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'recommended_payment_frequency' => 'Monthly',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Generali, $loanRequest, []))->toBeTrue()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeTrue();
+});
+
+test('Lumpsum payment frequency zeroes loan security, savings, and insurance, and uses the lumpsum month count for amortization', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 24000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 0,
+        'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency_lumpsum_months' => 2,
+        'approved_amount' => 24000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 0],
+        'insurance_rate' => ['number', 1.0],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0.02],
+        'savings_rate' => ['number', 0.02],
+        'documentary_stamp_rate' => ['number', 0],
+        'notarial_fee' => ['number', 0],
+        'penalty_rate_per_month' => ['number', 0],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    expect($documentData['loan']['loan_security_rate_raw'])->toBe(0.0)
+        ->and($documentData['loan']['savings_rate_raw'])->toBe(0.0)
+        ->and($documentData['loan']['loan_security_amount_raw'])->toBe(0.0)
+        ->and($documentData['loan']['insurance_rate_raw'])->toBe(0.0)
+        ->and($documentData['loan']['insurance_term'])->toBe(0)
+        ->and($documentData['loan']['insurance_premium_raw'])->toBe(0.0)
+        ->and($documentData['loan']['amortization_count'])->toBe(2)
+        ->and($documentData['loan']['payment_mode_workbook'])->toBe('LUMPSUM')
+        ->and($documentData['loan']['lumpsum_months'])->toBe(2);
+});
+
+test('documentary stamp defaults to the 1.50% institutional constant when not set', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 24000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 0,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 24000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 0],
+        'insurance_rate' => ['number', 0],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0],
+        'savings_rate' => ['number', 0],
+        'notarial_fee' => ['number', 0],
+        'penalty_rate_per_month' => ['number', 0],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    // 24000 * 0.015 = 360.00
+    expect($documentData['loan']['documentary_stamp_rate_raw'])->toBe(0.015)
+        ->and($documentData['loan']['documentary_stamp_amount_raw'])->toBe(360.0);
+});
+
+test('notarial fee accepts an arbitrary staff-entered value with no forced default', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 24000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 0,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 24000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 0],
+        'insurance_rate' => ['number', 0],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0],
+        'savings_rate' => ['number', 0],
+        'documentary_stamp_rate' => ['number', 0],
+        'notarial_fee' => ['number', 250],
+        'penalty_rate_per_month' => ['number', 0],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    expect($documentData['loan']['notarial_fee_raw'])->toBe(250.0);
+});

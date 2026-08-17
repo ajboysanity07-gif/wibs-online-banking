@@ -106,7 +106,9 @@ test('approved loan can access each approved loan document separately', function
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
+    $loanRequest->applicant()->first()->update([
+        'employer_business_name' => 'Barangay San Isidro',
+    ]);
     $this->actingAs($admin);
 
     foreach (approvedLoanDocumentsRouteDefinitions($loanRequest) as $document) {
@@ -149,7 +151,9 @@ test('each approved loan document pdf route returns a pdf response', function ()
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
+    $loanRequest->applicant()->first()->update([
+        'employer_business_name' => 'Barangay San Isidro',
+    ]);
     $this->actingAs($admin);
 
     foreach (approvedLoanDocumentsPdfRouteDefinitions($loanRequest) as $document) {
@@ -174,7 +178,9 @@ test('approved template-backed pdf routes preserve page counts', function () {
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
+    $loanRequest->applicant()->first()->update([
+        'employer_business_name' => 'Barangay San Isidro',
+    ]);
     $this->actingAs($admin);
 
     foreach (approvedLoanDocumentsTemplateBackedPdfRouteDefinitions($loanRequest) as $document) {
@@ -2260,8 +2266,10 @@ test('undertaking barangay pdf prints age, civil status, and nationality', funct
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $loanRequest->applicant()->first()->update([
+        'employer_business_name' => 'Barangay San Isidro',
+    ]);
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'guaranteed_net_take_home_pay', 'number', 15000);
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
 
     $response = $this
         ->actingAs($admin)
@@ -2280,7 +2288,9 @@ test('undertaking barangay pdf spells out the approved amount in words', functio
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
+    $loanRequest->applicant()->first()->update([
+        'employer_business_name' => 'Barangay San Isidro',
+    ]);
     $loanRequest->update(['approved_amount' => 50000]);
 
     $response = $this
@@ -2659,7 +2669,10 @@ test('missing optional fields do not break approved document generation', functi
             'address1' => null,
             'address2' => null,
             'address3' => null,
-            'employer_business_name' => null,
+            // Non-null and barangay-named so undertaking_barangay stays
+            // applicable (see below) -- everything else here stays null to
+            // exercise that document's robustness to missing applicant data.
+            'employer_business_name' => 'Barangay San Isidro',
             'employer_business_address' => null,
             'employer_business_address1' => null,
             'employer_business_address2' => null,
@@ -2691,10 +2704,6 @@ test('missing optional fields do not break approved document generation', functi
             'address3' => null,
         ]);
 
-    // Keeps undertaking_barangay applicable (it requires a barangay-employment signal,
-    // separate from the "missing optional fields" being exercised here) so this test still
-    // covers that document's own robustness to null applicant/employer data.
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
     // Keeps affidavit_undertaking applicable (it requires ATM Deduction as
     // the payment option) for the same reason.
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payment_option', 'string', \App\LoanPaymentOption::AtmDeduction->value);
@@ -2739,7 +2748,9 @@ test('approved document zip contains all required files and valid generated docu
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
+    $loanRequest->applicant()->first()->update([
+        'employer_business_name' => 'Barangay San Isidro',
+    ]);
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payment_option', 'string', \App\LoanPaymentOption::SalaryDeduction->value);
 
     $response = $this

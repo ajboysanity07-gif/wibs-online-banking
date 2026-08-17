@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
@@ -59,6 +59,20 @@ const STEP_INDEX: Record<string, number> = Object.fromEntries(
     steps.map((step, index) => [step.id, index]),
 );
 
+/**
+ * Steps skipped when the member requests a 1-month Lumpsum repayment --
+ * the insurable risk window is too short to require underwriting. Indices
+ * into `steps` are never renumbered; these ids are only used to hide the
+ * steps from the sidebar and to jump over them during Next/Back navigation.
+ */
+const INSURANCE_HEALTH_STEP_IDS = new Set(
+    steps
+        .filter((step) => step.group === 'insurance-health')
+        .map((step) => step.id),
+);
+
+const EMPTY_SKIPPED_STEP_IDS: ReadonlySet<string> = new Set();
+
 type Props = {
     loanTypes: LoanTypeOption[];
     applicant: LoanRequestPersonData | null;
@@ -88,7 +102,9 @@ type LoanDetailField =
     | 'requested_amount'
     | 'requested_term'
     | 'loan_purpose'
-    | 'availment_status';
+    | 'availment_status'
+    | 'requested_payment_frequency'
+    | 'requested_payment_frequency_lumpsum_months';
 
 const applicantBasicFields = new Set([
     'first_name',
@@ -448,6 +464,10 @@ export default function LoanRequestPage({
         requested_term: toStringValue(draft?.requested_term),
         loan_purpose: draft?.loan_purpose ?? '',
         availment_status: draft?.availment_status ?? '',
+        requested_payment_frequency: draft?.requested_payment_frequency ?? '',
+        requested_payment_frequency_lumpsum_months: toStringValue(
+            draft?.requested_payment_frequency_lumpsum_months,
+        ),
         undertaking_accepted: false,
         applicant: toPersonForm(applicant),
         co_maker_1: toPersonForm(coMakerOne),
@@ -481,9 +501,42 @@ export default function LoanRequestPage({
     const isSubmitting = form.processing && activeAction === 'submit';
     const hasLoanTypes = loanTypes.length > 0;
 
+    const isOneMonthLumpsumRequested =
+        form.data.requested_payment_frequency === 'Lumpsum' &&
+        form.data.requested_payment_frequency_lumpsum_months === '1';
+
+    const skippedStepIds = useMemo(
+        () =>
+            isOneMonthLumpsumRequested
+                ? INSURANCE_HEALTH_STEP_IDS
+                : EMPTY_SKIPPED_STEP_IDS,
+        [isOneMonthLumpsumRequested],
+    );
+
     useEffect(() => {
         setDraftState(draft);
     }, [draft]);
+
+    // If the member skips insurance/health after already having navigated
+    // into that group (or a restored draft lands there), jump forward past
+    // it so a skipped step is never left showing.
+    useEffect(() => {
+        if (!skippedStepIds.has(steps[currentStep]?.id)) {
+            return;
+        }
+
+        let adjusted = currentStep;
+        while (
+            adjusted < steps.length - 1 &&
+            skippedStepIds.has(steps[adjusted].id)
+        ) {
+            adjusted += 1;
+        }
+
+        if (adjusted !== currentStep) {
+            setCurrentStep(adjusted);
+        }
+    }, [skippedStepIds, currentStep]);
 
     const handleStepChange = (step: number) => {
         if (step === currentStep) {
@@ -499,7 +552,14 @@ export default function LoanRequestPage({
             return;
         }
 
-        const nextStep = currentStep + 1;
+        let nextStep = currentStep + 1;
+        while (
+            nextStep < steps.length - 1 &&
+            skippedStepIds.has(steps[nextStep].id)
+        ) {
+            nextStep += 1;
+        }
+
         handleStepChange(nextStep);
         setHighestStepReached((prev) => Math.max(prev, nextStep));
     };
@@ -509,7 +569,12 @@ export default function LoanRequestPage({
             return;
         }
 
-        handleStepChange(currentStep - 1);
+        let prevStep = currentStep - 1;
+        while (prevStep > 0 && skippedStepIds.has(steps[prevStep].id)) {
+            prevStep -= 1;
+        }
+
+        handleStepChange(prevStep);
     };
 
     const handleLoanDetailChange = (field: LoanDetailField, value: string) => {
@@ -726,6 +791,7 @@ export default function LoanRequestPage({
                     <LoanRequestWizardShell
                         currentStep={currentStep}
                         onStepClick={handleStepChange}
+                        hiddenStepIds={skippedStepIds}
                         contentClassName="p-6 sm:p-7 lg:p-8"
                         footer={
                             <div className="mt-8">

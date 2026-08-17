@@ -60,6 +60,12 @@ class ApprovedLoanDocumentDataBuilder
                     : null,
             ) ?? $this->normalizeText($loanRequest->recommended_payment_frequency),
         );
+        $isLumpsum = $paymentMode === 'LUMPSUM';
+        $lumpsumMonths = $this->resolveIntegerOverride(
+            (is_array($overrides['loan'] ?? null) ? $overrides['loan']['lumpsum_months'] ?? null : null)
+                ?? $loanRequest->recommended_payment_frequency_lumpsum_months,
+            null,
+        );
         $officialLoanManager = $this->officialLoanManagerResolver->documentData();
         $overrideLoan = is_array($overrides['loan'] ?? null)
             ? $overrides['loan']
@@ -87,9 +93,10 @@ class ApprovedLoanDocumentDataBuilder
         $amortizationCount = $this->resolveAmortizationCount(
             $approvedTerm,
             $paymentMode,
+            $lumpsumMonths,
         );
         $maturityDate = $this->resolveMaturityDate($documentDate, $approvedTerm);
-        $deductionStartDate = $this->resolveDeductionStartDate($loanRequest, $paymentMode);
+        $deductionStartDate = $this->resolveDeductionStartDate($loanRequest, $paymentMode, $lumpsumMonths);
         $interestRateRaw = $this->resolveNumericOverride(
             $overrideLoan['interest_rate_raw'] ?? null,
             $this->normalizeNumericValue($loanRequest->approved_interest_rate),
@@ -100,13 +107,13 @@ class ApprovedLoanDocumentDataBuilder
                 ?? null,
             null,
         );
-        $insuranceRateRaw = $this->resolveNumericOverride(
+        $insuranceRateRaw = $isLumpsum ? 0.0 : $this->resolveNumericOverride(
             $overrideLoan['insurance_rate_raw']
                 ?? $flatValues['insurance_rate']
                 ?? null,
             0.0,
         );
-        $insuranceTerm = $this->resolveIntegerOverride(
+        $insuranceTerm = $isLumpsum ? 0 : $this->resolveIntegerOverride(
             $overrideLoan['insurance_term']
                 ?? $flatValues['insurance_term']
                 ?? null,
@@ -127,7 +134,7 @@ class ApprovedLoanDocumentDataBuilder
                 ? ($approvedAmountRaw / 1000) * $insuranceTerm * $insuranceRateRaw
                 : null,
         );
-        $loanSecurityRateRaw = $this->resolveNumericOverride(
+        $loanSecurityRateRaw = $isLumpsum ? 0.0 : $this->resolveNumericOverride(
             $overrideLoan['loan_security_rate_raw']
                 ?? $flatValues['loan_security_rate']
                 ?? null,
@@ -138,7 +145,7 @@ class ApprovedLoanDocumentDataBuilder
                 ? $approvedAmountRaw * $loanSecurityRateRaw
                 : null,
         );
-        $savingsRateRaw = $this->resolveNumericOverride(
+        $savingsRateRaw = $isLumpsum ? 0.0 : $this->resolveNumericOverride(
             $overrideLoan['savings_rate_raw']
                 ?? $flatValues['savings_rate']
                 ?? null,
@@ -148,7 +155,7 @@ class ApprovedLoanDocumentDataBuilder
             $overrideLoan['documentary_stamp_rate_raw']
                 ?? $flatValues['documentary_stamp_rate']
                 ?? null,
-            0.0075,
+            0.015,
         );
         $documentaryStampAmountRaw = $this->roundCurrency(
             $approvedAmountRaw !== null && $documentaryStampRateRaw !== null
@@ -312,6 +319,7 @@ class ApprovedLoanDocumentDataBuilder
                     : null,
                 'amortization_count' => $amortizationCount,
                 'payment_mode_workbook' => $paymentMode,
+                'lumpsum_months' => $lumpsumMonths,
                 'purpose' => $this->normalizeText($loanRequest->loan_purpose),
                 'approved_date' => $documentDate?->format('F d, Y'),
                 'approved_date_short' => $documentDate?->format('m/d/Y'),
@@ -1249,7 +1257,7 @@ class ApprovedLoanDocumentDataBuilder
             return null;
         }
 
-        if (in_array($trimmed, ['Weekly', '15th', '30th', '15th & 30th', 'Bi-Weekly', 'Monthly'], true)) {
+        if (in_array($trimmed, ['Weekly', '15th', '30th', '15th & 30th', 'Bi-Weekly', 'Monthly', 'Lumpsum'], true)) {
             return $trimmed;
         }
 
@@ -1278,6 +1286,7 @@ class ApprovedLoanDocumentDataBuilder
             '15th',
             '30th',
             'Monthly' => 'MONTHLY',
+            'Lumpsum' => 'LUMPSUM',
             default => null,
         };
     }
@@ -1290,7 +1299,12 @@ class ApprovedLoanDocumentDataBuilder
     private function resolveAmortizationCount(
         ?int $approvedTerm,
         ?string $paymentMode,
+        ?int $lumpsumMonths = null,
     ): ?int {
+        if ($paymentMode === 'LUMPSUM') {
+            return $lumpsumMonths ?? 1;
+        }
+
         if ($approvedTerm === null || $approvedTerm <= 0) {
             return null;
         }
@@ -1326,6 +1340,7 @@ class ApprovedLoanDocumentDataBuilder
     private function resolveDeductionStartDate(
         LoanRequest $loanRequest,
         ?string $paymentMode,
+        ?int $lumpsumMonths = null,
     ): ?CarbonInterface {
         $releaseDate = $loanRequest->wibs_release_date;
 
@@ -1337,6 +1352,7 @@ class ApprovedLoanDocumentDataBuilder
             'WEEKLY' => $releaseDate->copy()->addDays(7),
             'BI-WEEKLY' => $releaseDate->copy()->addDays(14),
             'SEMI-MONTHLY' => $this->resolveNextSemiMonthlyPayday($releaseDate),
+            'LUMPSUM' => $releaseDate->copy()->addMonthsNoOverflow($lumpsumMonths ?? 1),
             default => $releaseDate->copy()->addMonthNoOverflow(),
         };
     }

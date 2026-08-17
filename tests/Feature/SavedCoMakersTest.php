@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\AppUser;
+use App\Models\LoanRequest;
+use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\MemberCoMaker;
 use App\Models\Role;
@@ -130,14 +132,14 @@ function submitLoanWithCoMakers(AppUser $member, array $coMakerOneOverrides = []
             'payment_option' => 'ATM Deduction',
             'payout_atm_number' => '9876543210',
             'payout_bank_branch' => 'Main Branch',
-            'payout_atm_holder_name' => null,
+            'payout_atm_holder_name' => 'Loan Member',
             'payment_bank_name' => 'WIBS Cooperative Bank',
             'payment_account_name' => 'Loan Member',
             'payment_account_number' => '1234567890',
             'payment_account_type' => 'Savings',
             'payment_atm_number' => '9876543210',
             'payment_bank_branch' => 'Main Branch',
-            'payment_atm_holder_name' => null,
+            'payment_atm_holder_name' => 'Loan Member',
         ],
         'barangay' => [
             'barangay_official_designation' => null,
@@ -149,6 +151,9 @@ function submitLoanWithCoMakers(AppUser $member, array $coMakerOneOverrides = []
             'declaration_pending_cases' => false,
             'declaration_truth_confirmation' => true,
             'declaration_data_privacy_consent' => true,
+        ],
+        'dependents' => [
+            'applicant_cycle_status' => 'New',
         ],
         'applicant' => coMakerPersonPayload(['sex' => 'Male']),
         'co_maker_1' => coMakerPersonPayload($coMakerOneOverrides),

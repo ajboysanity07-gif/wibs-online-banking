@@ -224,6 +224,8 @@ class LoanRequestPayloadSerializer
             'requested_term' => $loanRequest->requested_term,
             'loan_purpose' => $loanRequest->loan_purpose,
             'availment_status' => $loanRequest->availment_status,
+            'requested_payment_frequency' => $loanRequest->requested_payment_frequency,
+            'requested_payment_frequency_lumpsum_months' => $loanRequest->requested_payment_frequency_lumpsum_months,
             'submitted_at' => $loanRequest->submitted_at?->toDateTimeString(),
             'assigned_officer_id' => $loanRequest->assigned_officer_id,
             'assigned_processor_id' => $loanRequest->assigned_officer_id,

@@ -10,6 +10,7 @@ use App\LoanSex;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\MemberApplicationProfile;
+use App\Models\Wlntype;
 use App\Rules\ValidPostalCode;
 use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
@@ -24,6 +25,12 @@ use Illuminate\Validation\Rule;
 class LoanRequestStoreRequest extends FormRequest
 {
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
+
+    /**
+     * wlntype.typecode for "Other Loan" -- the only loan type eligible for a
+     * member-requested Lumpsum payment frequency.
+     */
+    private const OTHER_LOAN_TYPECODE = '01';
 
     /**
      * GLAPI (Generali) 17-item health questionnaire field keys. Not required
@@ -240,6 +247,44 @@ class LoanRequestStoreRequest extends FormRequest
     ];
 
     /**
+     * True when the member requested Lumpsum repayment over a single month --
+     * the only combination that skips the insurance/health wizard steps.
+     */
+    private function isOneMonthLumpsumRequested(): bool
+    {
+        return $this->input('requested_payment_frequency') === LoanPaydayOption::Lumpsum->value
+            && (int) $this->input('requested_payment_frequency_lumpsum_months') === 1;
+    }
+
+    /**
+     * Checks the submitted typecode against wlntype's "Other Loan" row,
+     * falling back to a label match in case typecode differs across
+     * environments (wlntype is external WIBS-desktop-managed data).
+     */
+    private function isOtherLoanType(): bool
+    {
+        $typecode = $this->input('typecode');
+
+        if ($typecode === null) {
+            return false;
+        }
+
+        if ((string) $typecode === self::OTHER_LOAN_TYPECODE) {
+            return true;
+        }
+
+        if (! Schema::hasTable('wlntype')
+            || ! Schema::hasColumn('wlntype', 'typecode')
+            || ! Schema::hasColumn('wlntype', 'lntype')) {
+            return false;
+        }
+
+        $label = Wlntype::query()->where('typecode', $typecode)->value('lntype');
+
+        return $label !== null && strtoupper(trim((string) $label)) === 'OTHER LOAN';
+    }
+
+    /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     private function dependentsRules(): array
@@ -301,7 +346,7 @@ class LoanRequestStoreRequest extends FormRequest
     private function cycleStatusRequiredRule(string $key): array
     {
         if ($key === 'applicant_cycle_status') {
-            return ['required'];
+            return [Rule::requiredIf(! $this->isOneMonthLumpsumRequested())];
         }
 
         if ($key === 'dependent_spouse_cycle_status') {
@@ -398,6 +443,8 @@ class LoanRequestStoreRequest extends FormRequest
             }
         }
 
+        $insuranceRequired = $this->isOneMonthLumpsumRequested() ? 'sometimes' : 'required';
+
         return [
             'typecode' => $loanTypeRules,
             'requested_amount' => ['required', 'numeric', 'min:1'],
@@ -409,16 +456,32 @@ class LoanRequestStoreRequest extends FormRequest
                 Rule::in(['New', 'Re-Loan', 'Restructured']),
             ],
             'undertaking_accepted' => ['accepted'],
-            'insurance' => ['required', 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship,beneficiary_secondary_birthdate'],
-            'insurance.beneficiary_primary_name' => ['required', 'string', 'max:255'],
-            'insurance.beneficiary_primary_relationship' => ['required', 'string', 'max:255'],
-            'insurance.beneficiary_primary_birthdate' => ['required', 'date'],
+            'requested_payment_frequency' => [
+                'nullable',
+                'string',
+                Rule::in(LoanPaydayOption::values()),
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === LoanPaydayOption::Lumpsum->value && ! $this->isOtherLoanType()) {
+                        $fail('Lumpsum payment frequency is only available for Other Loan applications.');
+                    }
+                },
+            ],
+            'requested_payment_frequency_lumpsum_months' => [
+                Rule::requiredIf(fn () => $this->input('requested_payment_frequency') === LoanPaydayOption::Lumpsum->value),
+                'nullable',
+                'integer',
+                Rule::in([1, 2]),
+            ],
+            'insurance' => [$insuranceRequired, 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship,beneficiary_secondary_birthdate'],
+            'insurance.beneficiary_primary_name' => [$insuranceRequired, 'string', 'max:255'],
+            'insurance.beneficiary_primary_relationship' => [$insuranceRequired, 'string', 'max:255'],
+            'insurance.beneficiary_primary_birthdate' => [$insuranceRequired, 'date'],
             'insurance.beneficiary_secondary_name' => ['nullable', 'string', 'max:255'],
             'insurance.beneficiary_secondary_relationship' => ['nullable', 'string', 'max:255'],
             'insurance.beneficiary_secondary_birthdate' => ['nullable', 'date'],
-            'health' => ['required', 'array:health_smoking_status,health_hypertension'],
-            'health.health_smoking_status' => ['required', 'string', Rule::in(['none', 'light', 'heavy'])],
-            'health.health_hypertension' => ['required', 'boolean'],
+            'health' => [$insuranceRequired, 'array:health_smoking_status,health_hypertension'],
+            'health.health_smoking_status' => [$insuranceRequired, 'string', Rule::in(['none', 'light', 'heavy'])],
+            'health.health_hypertension' => [$insuranceRequired, 'boolean'],
             ...$this->healthGlapiRules(),
             'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number,payout_bank_branch,payout_atm_holder_name,payment_bank_name,payment_account_name,payment_account_number,payment_account_type,payment_atm_number,payment_bank_branch,payment_atm_holder_name'],
             'banking.payout_bank_name' => [

@@ -69,7 +69,9 @@ type LoanDetailField =
     | 'requested_amount'
     | 'requested_term'
     | 'loan_purpose'
-    | 'availment_status';
+    | 'availment_status'
+    | 'requested_payment_frequency'
+    | 'requested_payment_frequency_lumpsum_months';
 
 type PersonSection = 'applicant' | 'co_maker_1' | 'co_maker_2';
 
@@ -212,6 +214,8 @@ const loanFieldLabels: Record<LoanDetailField, string> = {
     requested_term: 'Requested term',
     loan_purpose: 'Loan purpose',
     availment_status: 'Availment status',
+    requested_payment_frequency: 'Requested repayment frequency',
+    requested_payment_frequency_lumpsum_months: 'Requested Lumpsum months',
 };
 
 const personFieldLabels: Record<keyof LoanRequestPersonFormData, string> = {
@@ -570,6 +574,8 @@ const buildInitialFormData = (
     requested_term: toStringValue(loanRequest.requested_term),
     loan_purpose: loanRequest.loan_purpose ?? '',
     availment_status: loanRequest.availment_status ?? '',
+    requested_payment_frequency: '',
+    requested_payment_frequency_lumpsum_months: '',
     undertaking_accepted: false,
     applicant: toPersonForm(applicant),
     co_maker_1: toPersonForm(coMakerOne),

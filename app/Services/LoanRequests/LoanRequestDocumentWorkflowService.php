@@ -382,16 +382,19 @@ class LoanRequestDocumentWorkflowService
         LoanRequest $loanRequest,
         LoanRequestDocumentKey $documentKey,
         AppUser $actor,
+        bool $bypassFinalizedGuard = false,
     ): LoanRequestDocument {
         return $this->withDocumentGenerationLock($loanRequest, $documentKey, function () use (
             $loanRequest,
             $documentKey,
             $actor,
+            $bypassFinalizedGuard,
         ): LoanRequestDocument {
             return $this->generateDocumentInternal(
                 $loanRequest,
                 $documentKey,
                 $actor,
+                $bypassFinalizedGuard,
             );
         });
     }
@@ -400,6 +403,7 @@ class LoanRequestDocumentWorkflowService
         LoanRequest $loanRequest,
         LoanRequestDocumentKey $documentKey,
         AppUser $actor,
+        bool $bypassFinalizedGuard = false,
     ): LoanRequestDocument {
         $document = $this->refreshChecklist($loanRequest)
             ->firstOrFail(
@@ -427,8 +431,12 @@ class LoanRequestDocumentWorkflowService
         // Once approved, a document that is still current (not stale) is the
         // final version handed off for release -- only a document flagged
         // stale by a later data change may be regenerated at that point.
+        // $bypassFinalizedGuard exempts the approval flow's own one-time
+        // "generate the final approved copy" call immediately after status
+        // flips to Approved, which would otherwise trip this same guard.
         if (
-            in_array($status, [LoanRequestStatus::Approved->value, LoanRequestStatus::ConvertedToLoan->value], true)
+            ! $bypassFinalizedGuard
+            && in_array($status, [LoanRequestStatus::Approved->value, LoanRequestStatus::ConvertedToLoan->value], true)
             && $document->readiness_status === LoanRequestDocumentReadinessStatus::GeneratedCurrent
         ) {
             throw ValidationException::withMessages([
@@ -809,6 +817,8 @@ class LoanRequestDocumentWorkflowService
         $workingLoanRequest->approved_interest_rate = $overrideInput['recommended_interest_rate'] ?? null;
         $workingLoanRequest->recommended_payment_frequency = $overrideInput['recommended_payment_frequency']
             ?? $loanRequest->recommended_payment_frequency;
+        $workingLoanRequest->recommended_payment_frequency_lumpsum_months = $overrideInput['recommended_payment_frequency_lumpsum_months']
+            ?? $loanRequest->recommended_payment_frequency_lumpsum_months;
         $workingLoanRequest->reviewed_at = $loanRequest->reviewed_at
             ?? $loanRequest->updated_at
             ?? now();

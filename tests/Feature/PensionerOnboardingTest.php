@@ -34,9 +34,9 @@ test('PENSIONER_EMPLOYMENT_TYPE constant has the expected value', function () {
     expect(MemberApplicationProfile::PENSIONER_EMPLOYMENT_TYPE)->toBe('Pensioner');
 });
 
-test('pensionerOptionalFields returns the three employer fields', function () {
+test('pensionerOptionalFields returns the four employer fields', function () {
     expect(MemberApplicationProfile::pensionerOptionalFields())
-        ->toBe(['employer_business_name', 'current_position', 'payday']);
+        ->toBe(['employer_business_name', 'employer_business_address_barangay', 'current_position', 'payday']);
 });
 
 // ---------------------------------------------------------------------------
@@ -49,9 +49,17 @@ test('missingRequiredFields excludes employer fields for a pensioner with all ot
         'birthplace_city' => 'Cebu City',
         'educational_attainment' => 'College',
         'length_of_stay' => '10 years',
+        'home_address1' => 'Street',
+        'home_address_barangay' => 'Barangay',
+        'home_address2' => 'City',
+        'home_address3' => 'Province',
+        'civil_status' => 'Single',
+        'housing_status' => 'OWNED',
+        'release_method' => 'Cash',
         'gross_monthly_income' => '15000.00',
         // employer_business_name, current_position, payday intentionally blank
         'employer_business_name' => null,
+        'employer_business_address_barangay' => null,
         'current_position' => null,
         'payday' => null,
     ]);
@@ -111,6 +119,13 @@ test('pensioner member completes onboarding without employer name, position, or 
             'birthplace_province' => 'Cebu',
             'educational_attainment' => 'College',
             'length_of_stay' => '20 years',
+            'home_address1' => 'Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
+            'release_method' => 'Cash',
             'employment_type' => MemberApplicationProfile::PENSIONER_EMPLOYMENT_TYPE,
             'gross_monthly_income' => '12000',
             // employer_business_name, current_position, payday intentionally omitted
@@ -189,8 +204,16 @@ test('pensioner profile page shows no employer fields in missing fields list', f
         'birthplace_city' => 'Cebu City',
         'educational_attainment' => 'College',
         'length_of_stay' => '20 years',
+        'home_address1' => 'Street',
+        'home_address_barangay' => 'Barangay',
+        'home_address2' => 'City',
+        'home_address3' => 'Province',
+        'civil_status' => 'Single',
+        'housing_status' => 'OWNED',
+        'release_method' => 'Cash',
         'gross_monthly_income' => '12000.00',
         'employer_business_name' => null,
+        'employer_business_address_barangay' => null,
         'current_position' => null,
         'payday' => null,
     ]);
@@ -220,8 +243,16 @@ test('memberApplicationProfileIsComplete returns true for pensioner with only th
         'birthplace_city' => 'Cebu City',
         'educational_attainment' => 'College',
         'length_of_stay' => '10 years',
+        'home_address1' => 'Street',
+        'home_address_barangay' => 'Barangay',
+        'home_address2' => 'City',
+        'home_address3' => 'Province',
+        'civil_status' => 'Single',
+        'housing_status' => 'OWNED',
+        'release_method' => 'Cash',
         'gross_monthly_income' => '15000.00',
         'employer_business_name' => null,
+        'employer_business_address_barangay' => null,
         'current_position' => null,
         'payday' => null,
     ]);
@@ -298,8 +329,16 @@ test('profileCompletion payload marks pensioner with missing gross_monthly_incom
         'birthplace_city' => 'Cebu City',
         'educational_attainment' => 'College',
         'length_of_stay' => '10 years',
+        'home_address1' => 'Street',
+        'home_address_barangay' => 'Barangay',
+        'home_address2' => 'City',
+        'home_address3' => 'Province',
+        'civil_status' => 'Single',
+        'housing_status' => 'OWNED',
+        'release_method' => 'Cash',
         'gross_monthly_income' => null,
         'employer_business_name' => null,
+        'employer_business_address_barangay' => null,
         'current_position' => null,
         'payday' => null,
     ]);
@@ -327,8 +366,16 @@ test('profileCompletion payload marks Regular member as incomplete with employer
         'birthplace_city' => 'Cebu City',
         'educational_attainment' => 'College',
         'length_of_stay' => '5 years',
+        'home_address1' => 'Street',
+        'home_address_barangay' => 'Barangay',
+        'home_address2' => 'City',
+        'home_address3' => 'Province',
+        'civil_status' => 'Single',
+        'housing_status' => 'OWNED',
+        'release_method' => 'Cash',
         'gross_monthly_income' => '25000.00',
         'employer_business_name' => null,
+        'employer_business_address_barangay' => null,
         'current_position' => null,
         'payday' => null,
     ]);
@@ -344,6 +391,7 @@ test('profileCompletion payload marks Regular member as incomplete with employer
             ->where('profileCompletion.isComplete', false)
             ->where('profileCompletion.missingFields', [
                 'Employer or business name',
+                'Employer address barangay',
                 'Current position',
                 'Payday',
             ])

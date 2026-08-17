@@ -277,7 +277,7 @@ test('save draft accepts wizard_step 22 for the review step', function (): void 
     expect($entry->value_json['value'])->toBe(22);
 });
 
-test('save draft rejects wizard_step above 22 with 422', function (): void {
+test('save draft rejects wizard_step above 23 with 422', function (): void {
     $member = createDraftMember('002016');
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
@@ -287,7 +287,7 @@ test('save draft rejects wizard_step above 22 with 422', function (): void {
 
     $this->actingAs($member)
         ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [
-            'wizard_step' => 23,
+            'wizard_step' => 24,
         ])
         ->assertUnprocessable();
 });

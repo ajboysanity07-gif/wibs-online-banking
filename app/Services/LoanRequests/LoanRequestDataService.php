@@ -2,6 +2,7 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanPaydayOption;
 use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
 use App\Models\AppUser;
@@ -1746,15 +1747,34 @@ class LoanRequestDataService
         'payment_account_type',
     ];
 
+    /**
+     * Sections whose required fields are waived when the member requested a
+     * 1-month Lumpsum repayment -- the insurance/health questionnaire is
+     * skipped in the wizard for that choice (see
+     * LoanRequestStoreRequest::isOneMonthLumpsumRequested()).
+     *
+     * @var list<string>
+     */
+    private const LUMPSUM_WAIVED_SECTIONS = ['insurance', 'health', 'dependents'];
+
     public function missingRequiredMemberFields(LoanRequest $loanRequest): array
     {
         $flatValues = $this->loadFlatValues($loanRequest);
         $missing = [];
+        $isOneMonthLumpsum = $loanRequest->requested_payment_frequency === LoanPaydayOption::Lumpsum->value
+            && (int) $loanRequest->requested_payment_frequency_lumpsum_months === 1;
 
         foreach (self::FIELD_DEFINITIONS as $fieldKey => $definition) {
             if (
                 $definition['owner'] !== self::OWNER_MEMBER
                 || ! $definition['required_on_submit']
+            ) {
+                continue;
+            }
+
+            if (
+                $isOneMonthLumpsum
+                && in_array($definition['section'], self::LUMPSUM_WAIVED_SECTIONS, true)
             ) {
                 continue;
             }

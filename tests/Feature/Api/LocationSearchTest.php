@@ -37,7 +37,7 @@ test('province search endpoint returns normalized suggestions', function () {
         ->assertJsonPath('data.0.value', 'Cebu');
 });
 
-test('city search returns duplicate names with province labels', function () {
+test('city search returns duplicate names disambiguated via the province field', function () {
     $response = $this
         ->actingAs($this->user)
         ->get(route('api.locations.cities', ['search' => 'Carmen']));
@@ -54,10 +54,13 @@ test('city search returns duplicate names with province labels', function () {
     $provinces = $data->pluck('province')->sort()->values()->all();
     $values = $data->pluck('value')->unique()->values()->all();
 
+    // Labels intentionally show the bare city name -- the frontend renders
+    // a separate City/Municipality type badge, and province disambiguation
+    // is carried by the `province` field instead (see PsgcService::searchCities()).
     expect($labels)->toBe([
-        'Carmen, Cebu',
-        'Carmen, Cotabato',
-        'Carmen, Davao del Norte',
+        'Carmen',
+        'Carmen',
+        'Carmen',
     ]);
     expect($provinces)->toBe([
         'Cebu',
@@ -83,7 +86,7 @@ test('city search returns davao suggestions', function () {
     $labels = $data->pluck('label');
     $values = $data->pluck('value');
 
-    expect($labels)->toContain('City of Davao, Region XI (Davao Region)');
+    expect($labels)->toContain('City of Davao');
     expect($values)->toContain('City of Davao');
 });
 
@@ -103,7 +106,7 @@ test('city search endpoint returns a province\'s full city list without a search
 
     expect($data)->not->toBeEmpty();
     expect($data->pluck('province')->unique()->all())->toBe(['Davao del Norte']);
-    expect($data->pluck('label'))->toContain('Carmen, Davao del Norte');
+    expect($data->pluck('label'))->toContain('Carmen');
 });
 
 test('city search endpoint returns empty data for an empty search without a province', function () {
