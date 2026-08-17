@@ -481,17 +481,24 @@ test('other_charges_amount left unset does not break document generation and con
         ->and($documentData['loan']['net_proceeds_raw'])->toBe(24000.0);
 });
 
-test('net proceeds matches the Disclosure Statement workbook: interest is never deducted, only service charge plus non-finance charges are', function (): void {
+test('net proceeds matches the Disclosure Statement workbook: interest and service charge are both Finance Charges', function (): void {
     // Exact scenario from the source workbook (PLAN OF PAYMENT,DISC.PROMIS.xlsx,
-    // Disclosure Statement sheet): 200,000 loan, 36% p.a. interest, 5% service
-    // charge, insurance ₱1.00/₱1,000/month x 12, 2% loan security, 0.75% doc
-    // stamps, ₱100 notarial fee.
+    // "Disclosure Statement" sheet -- the R.A. 3765 Truth In Lending Act
+    // form, not the "Loan Information" sheet): 200,000 loan, 36% p.a.
+    // interest, 5% service charge, insurance ₱1.00/₱1,000/month x 12, 2%
+    // loan security, 0.75% doc stamps, ₱100 notarial fee.
+    //
+    // The Disclosure Statement sheet lists "a. Interest" as Finance Charge
+    // item (row 14) alongside "e. ... Service Charge" (row 23), summed into
+    // "TOTAL FINANCE CHARGES" (row 25). "NET PROCEEDS OF LOAN (A LESS D)"
+    // (row 35) is loan amount minus (B) Finance Charges + (C) Non-Finance
+    // Charges -- so interest genuinely reduces net proceeds.
     //
     // Workbook figures:
-    //   (B) Total Finance Charges     = 10,000 (service charge only)
+    //   (B) Total Finance Charges     = 82,000 (72,000 interest + 10,000 service charge)
     //   (C) Total Non-Finance Charges =  8,000 (2,400 + 4,000 + 1,500 + 100)
-    //   (D) Total Deductions (B + C)  = 18,000
-    //   (E) Net Proceeds (A - D)      = 182,000
+    //   (D) Total Deductions (B + C)  = 90,000
+    //   (E) Net Proceeds (A - D)      = 110,000
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 200000,
@@ -518,18 +525,20 @@ test('net proceeds matches the Disclosure Statement workbook: interest is never 
 
     $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
 
-    // Interest 200000*0.36/12*12 = 72,000 is disclosed in the "Not Deducted
-    // From Proceeds" column but must not be subtracted from proceeds.
+    // Interest 200000*0.36/12*12 = 72,000. interest_not_deducted_raw keeps
+    // its name (it feeds the "Loan Information" sheet's own, independent
+    // "Interest Not Deducted" cell) but is no longer excluded from net
+    // proceeds -- it's part of the Finance Charges total below.
     expect($documentData['loan']['interest_not_deducted_raw'])->toBe(72000.0)
         ->and($documentData['loan']['service_charge_amount_raw'])->toBe(10000.0)
         ->and($documentData['loan']['insurance_premium_raw'])->toBe(2400.0)
         ->and($documentData['loan']['loan_security_amount_raw'])->toBe(4000.0)
         ->and($documentData['loan']['documentary_stamp_amount_raw'])->toBe(1500.0)
         ->and($documentData['loan']['notarial_fee_raw'])->toBe(100.0)
-        ->and($documentData['loan']['finance_charge_total_raw'])->toBe(10000.0)
+        ->and($documentData['loan']['finance_charge_total_raw'])->toBe(82000.0)
         ->and($documentData['loan']['non_finance_charge_total_raw'])->toBe(8000.0)
-        ->and($documentData['loan']['deductions_total_raw'])->toBe(18000.0)
-        ->and($documentData['loan']['net_proceeds_raw'])->toBe(182000.0);
+        ->and($documentData['loan']['deductions_total_raw'])->toBe(90000.0)
+        ->and($documentData['loan']['net_proceeds_raw'])->toBe(110000.0);
 });
 
 test('grepalife is applicable regardless of insurance_required value', function (): void {
@@ -1266,14 +1275,26 @@ test('generali application form is ready when PEP true and Old cycle status both
     expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value);
 });
 
-test('generali and generali application form are not applicable when payment frequency is Lumpsum', function (): void {
+test('generali and generali application form are not applicable for a 1-month Lumpsum', function (): void {
     $loanRequest = LoanRequest::factory()->make([
         'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency_lumpsum_months' => 1,
     ]);
     $catalog = app(LoanRequestDocumentCatalog::class);
 
     expect($catalog->isApplicable(LoanRequestDocumentKey::Generali, $loanRequest, []))->toBeFalse()
         ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeFalse();
+});
+
+test('generali and generali application form remain applicable for a 2-month-or-longer Lumpsum', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency_lumpsum_months' => 2,
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Generali, $loanRequest, []))->toBeTrue()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeTrue();
 });
 
 test('generali and generali application form remain applicable for non-Lumpsum frequencies', function (): void {
@@ -1286,17 +1307,23 @@ test('generali and generali application form remain applicable for non-Lumpsum f
         ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeTrue();
 });
 
-test('Lumpsum payment frequency zeroes loan security, savings, and insurance, and uses the lumpsum month count for amortization', function (): void {
+test('a 1-month Lumpsum zeroes loan security, savings, and insurance, and derives the amortization/maturity month count from the approved term', function (): void {
+    // recommended/approved term is the sole source of truth for how many
+    // months a Lumpsum payment covers -- amortization count and maturity
+    // date must agree, both driven by the same term (1 month here), even
+    // though the legacy recommended_payment_frequency_lumpsum_months column
+    // is seeded with a stale, mismatched value (12) to prove it's ignored.
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 24000,
-        'recommended_term' => 12,
+        'recommended_term' => 1,
         'recommended_interest_rate' => 0,
         'recommended_payment_frequency' => 'Lumpsum',
-        'recommended_payment_frequency_lumpsum_months' => 2,
+        'recommended_payment_frequency_lumpsum_months' => 12,
         'approved_amount' => 24000,
-        'approved_term' => 12,
+        'approved_term' => 1,
         'approved_interest_rate' => 0,
+        'approved_at' => now(),
     ]);
 
     applicabilityPersistDataEntries($loanRequest, [
@@ -1320,6 +1347,50 @@ test('Lumpsum payment frequency zeroes loan security, savings, and insurance, an
         ->and($documentData['loan']['insurance_rate_raw'])->toBe(0.0)
         ->and($documentData['loan']['insurance_term'])->toBe(0)
         ->and($documentData['loan']['insurance_premium_raw'])->toBe(0.0)
+        ->and($documentData['loan']['amortization_count'])->toBe(1)
+        ->and($documentData['loan']['payment_mode_workbook'])->toBe('LUMPSUM')
+        ->and($documentData['loan']['lumpsum_months'])->toBe(1)
+        ->and($documentData['loan']['maturity_date_short'])->toBe(
+            $loanRequest->approved_at->copy()->addMonthsNoOverflow(1)->format('m/d/Y'),
+        );
+});
+
+test('a 2-month-or-longer Lumpsum still charges an insurance premium but keeps loan security/savings zeroed', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 24000,
+        'recommended_term' => 2,
+        'recommended_interest_rate' => 0,
+        'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency_lumpsum_months' => 2,
+        'approved_amount' => 24000,
+        'approved_term' => 2,
+        'approved_interest_rate' => 0,
+        'approved_at' => now(),
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 0],
+        'insurance_rate' => ['number', 1.0],
+        'insurance_term' => ['number', 2],
+        'loan_security_rate' => ['number', 0.02],
+        'savings_rate' => ['number', 0.02],
+        'documentary_stamp_rate' => ['number', 0],
+        'notarial_fee' => ['number', 0],
+        'penalty_rate_per_month' => ['number', 0],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    expect($documentData['loan']['loan_security_rate_raw'])->toBe(0.0)
+        ->and($documentData['loan']['savings_rate_raw'])->toBe(0.0)
+        ->and($documentData['loan']['loan_security_amount_raw'])->toBe(0.0)
+        ->and($documentData['loan']['insurance_rate_raw'])->toBe(1.0)
+        ->and($documentData['loan']['insurance_term'])->toBe(2)
+        // (24000/1000) * 2 * 1.0 = 48.0
+        ->and($documentData['loan']['insurance_premium_raw'])->toBe(48.0)
         ->and($documentData['loan']['amortization_count'])->toBe(2)
         ->and($documentData['loan']['payment_mode_workbook'])->toBe('LUMPSUM')
         ->and($documentData['loan']['lumpsum_months'])->toBe(2);

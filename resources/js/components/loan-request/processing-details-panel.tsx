@@ -199,13 +199,17 @@ const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
 // Insurer's senior-age insurance rate bands (from the loan processors'
 // reference table). Only these two bands are currently known; applicants
 // outside them keep the existing manual-entry behavior with no default.
+// These are per-mille rates (pesos per ₱1,000 of principal per month), NOT
+// percentages -- insurance_rate feeds insurance_premium = (amount/1000) *
+// insurance_term * insurance_rate, so the raw table value (e.g. 2.05) must
+// be stored as-is, unlike the other *_rate fields which are true percentages.
 const INSURANCE_RATE_AGE_BANDS: {
     minAge: number;
     maxAge: number;
     rate: number;
 }[] = [
-    { minAge: 66, maxAge: 70, rate: 0.0205 },
-    { minAge: 71, maxAge: 75, rate: 0.0395 },
+    { minAge: 66, maxAge: 70, rate: 2.05 },
+    { minAge: 71, maxAge: 75, rate: 3.95 },
 ];
 
 const calculateAgeFromBirthdate = (birthdate: string | null): number | null => {
@@ -253,7 +257,6 @@ const resolveAgeBandedInsuranceRate = (
 // so it is added only for this dropdown rather than to the shared
 // PAYDAY_OPTIONS list (also used by the applicant/co-maker payday pickers).
 const PAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Lumpsum'] as const;
-const LUMPSUM_MONTHS_OPTIONS = [1, 2] as const;
 
 const withProcessingChargeDefaults = (
     processing: Record<string, string | number | boolean | null>,
@@ -304,12 +307,16 @@ const PROCESSING_FIELD_KIND: Record<string, 'currency' | 'percent' | 'months'> =
         other_charges_amount: 'currency',
         guaranteed_net_take_home_pay: 'currency',
         service_charge_rate: 'percent',
-        insurance_rate: 'percent',
         loan_security_rate: 'percent',
         savings_rate: 'percent',
         documentary_stamp_rate: 'percent',
         penalty_rate_per_month: 'percent',
         insurance_term: 'months',
+        // insurance_rate is deliberately absent here (falls through to the
+        // plain numeric input below): it's a per-mille rate (pesos per
+        // ₱1,000 of principal per month, e.g. 2.05), not a fraction of the
+        // loan amount, so it must NOT go through the %-to-fraction
+        // conversion that PercentInput applies to the other *_rate fields.
     };
 
 // Category A — financial processing terms edited inline on the page.
@@ -319,7 +326,6 @@ type InlineProcessingFormState = {
     recommended_term: string;
     recommended_interest_rate: string;
     recommended_payment_frequency: string;
-    recommended_payment_frequency_lumpsum_months: string;
     reason: string;
 };
 
@@ -384,9 +390,6 @@ export function ProcessingDetailsPanel({
             ),
             recommended_payment_frequency:
                 loanRequest.recommended_payment_frequency ?? '',
-            recommended_payment_frequency_lumpsum_months: toStringValue(
-                loanRequest.recommended_payment_frequency_lumpsum_months,
-            ),
             reason: '',
         });
     const [recommendationPreview, setRecommendationPreview] =
@@ -426,9 +429,6 @@ export function ProcessingDetailsPanel({
             ),
             recommended_payment_frequency:
                 loanRequest.recommended_payment_frequency ?? '',
-            recommended_payment_frequency_lumpsum_months: toStringValue(
-                loanRequest.recommended_payment_frequency_lumpsum_months,
-            ),
             reason: '',
         });
         setShowSecondOfficer(
@@ -444,7 +444,6 @@ export function ProcessingDetailsPanel({
         loanRequest.recommended_amount,
         loanRequest.recommended_interest_rate,
         loanRequest.recommended_payment_frequency,
-        loanRequest.recommended_payment_frequency_lumpsum_months,
         loanRequest.recommended_term,
     ]);
 
@@ -494,8 +493,10 @@ export function ProcessingDetailsPanel({
                     recommended_payment_frequency:
                         processingForm.recommended_payment_frequency || null,
                     recommended_payment_frequency_lumpsum_months:
-                        processingForm.recommended_payment_frequency_lumpsum_months ||
-                        null,
+                        processingForm.recommended_payment_frequency ===
+                        'Lumpsum'
+                            ? processingForm.recommended_term || null
+                            : null,
                     service_charge_rate: numericProcessingFieldValue(
                         processingForm.processing.service_charge_rate,
                     ),
@@ -653,8 +654,9 @@ export function ProcessingDetailsPanel({
             recommended_payment_frequency:
                 processingForm.recommended_payment_frequency || null,
             recommended_payment_frequency_lumpsum_months:
-                processingForm.recommended_payment_frequency_lumpsum_months ||
-                null,
+                processingForm.recommended_payment_frequency === 'Lumpsum'
+                    ? processingForm.recommended_term || null
+                    : null,
         });
 
         if (result) {
@@ -956,14 +958,11 @@ export function ProcessingDetailsPanel({
                                             ...current,
                                             recommended_payment_frequency:
                                                 value,
-                                            // Lumpsum forces loan security/savings to 0% and
-                                            // clears the month sub-choice; switching away
-                                            // restores the standard default so staff aren't
-                                            // stuck at 0%.
-                                            recommended_payment_frequency_lumpsum_months:
-                                                value === 'Lumpsum'
-                                                    ? current.recommended_payment_frequency_lumpsum_months
-                                                    : '',
+                                            // Lumpsum forces loan security/savings to 0%;
+                                            // switching away restores the standard default
+                                            // so staff aren't stuck at 0%. The Lumpsum month
+                                            // count is derived from "Recommended term", not
+                                            // entered separately.
                                             processing:
                                                 value === 'Lumpsum'
                                                     ? {
@@ -1004,45 +1003,16 @@ export function ProcessingDetailsPanel({
                             </div>
                             {processingForm.recommended_payment_frequency ===
                                 'Lumpsum' && (
-                                <div className="grid gap-2">
-                                    <Label htmlFor="inline_lumpsum_months">
-                                        Lumpsum term
-                                    </Label>
-                                    <Select
-                                        value={
-                                            processingForm.recommended_payment_frequency_lumpsum_months ||
-                                            undefined
-                                        }
-                                        onValueChange={(value) => {
-                                            setProcessingForm((current) => ({
-                                                ...current,
-                                                recommended_payment_frequency_lumpsum_months:
-                                                    value,
-                                            }));
-                                            scheduleGnthpRecalculation();
-                                        }}
-                                    >
-                                        <SelectTrigger
-                                            id="inline_lumpsum_months"
-                                            className="w-full"
-                                        >
-                                            <SelectValue placeholder="Select 1 or 2 months" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {LUMPSUM_MONTHS_OPTIONS.map(
-                                                (months) => (
-                                                    <SelectItem
-                                                        key={months}
-                                                        value={`${months}`}
-                                                    >
-                                                        {months} month
-                                                        {months > 1 ? 's' : ''}
-                                                    </SelectItem>
-                                                ),
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <p className="text-sm text-muted-foreground sm:col-span-2">
+                                    Lumpsum is repaid as a single payment after
+                                    the recommended term above (
+                                    {processingForm.recommended_term || '—'}{' '}
+                                    month
+                                    {processingForm.recommended_term === '1'
+                                        ? ''
+                                        : 's'}
+                                    ).
+                                </p>
                             )}
                         </div>
                         {renderProcessingSectionLabel('Charges & fees')}
@@ -1053,7 +1023,7 @@ export function ProcessingDetailsPanel({
                             {renderProcessingField('insurance_rate', {
                                 onBlur: scheduleGnthpRecalculation,
                                 tooltip:
-                                    "Auto-suggested from the applicant's age using the insurer's senior-age bands (66–70 → 2.05%, 71–75 → 3.95%). Outside those bands the rate must be entered manually. Editable in all cases.",
+                                    "Pesos per ₱1,000 of principal per month, NOT a percentage. Auto-suggested from the applicant's age using the insurer's senior-age bands (66–70 → 2.05, 71–75 → 3.95). Outside those bands the rate must be entered manually. Editable in all cases.",
                             })}
                             {renderProcessingField('insurance_term', {
                                 onBlur: scheduleGnthpRecalculation,

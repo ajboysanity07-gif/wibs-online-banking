@@ -61,14 +61,11 @@ test('happy path preview computes net proceeds and suggested GNTHP for MONTHLY f
         )
         ->assertOk();
 
-    // Hand-computed: interest 25000*0.36/12*12=9000 is NOT deducted from
-    // proceeds (it is amortized into the schedule and disclosed in the
-    // "Not Deducted From Proceeds of Loan" column, matching the Disclosure
-    // Statement workbook). Deducted charges: service charge 25000*0.05=1250,
-    // insurance (25000/1000)*12*1.0=300, loan security 25000*0.02=500, doc
-    // stamp 25000*0.0075=187.5, notarial fee 100 flat.
-    // net proceeds = 25000 - (1250+300+500+187.5+100) = 22662.5.
-    $this->assertEqualsWithDelta(22662.5, $response->json('data.net_proceeds_raw'), 0.01);
+    // Hand-computed: interest 25000*0.36/12*12=9000, service charge
+    // 25000*0.05=1250, insurance (25000/1000)*12*1.0=300, loan security
+    // 25000*0.02=500, doc stamp 25000*0.0075=187.5, notarial fee 100 flat.
+    // net proceeds = 25000 - (9000+1250+300+500+187.5+100) = 13662.5.
+    $this->assertEqualsWithDelta(13662.5, $response->json('data.net_proceeds_raw'), 0.01);
 
     // amortizationCount for MONTHLY/12 months = 12. principal 25000/12=2083.33,
     // interest 9000/12=750, savings 2083.33*0.02=41.67 (savings_rate is
@@ -108,7 +105,7 @@ test('non-monthly frequency converts the suggested GNTHP using the x30/14 bi-wee
 
     // net proceeds does not depend on payment frequency at all, so it must
     // match the MONTHLY case exactly.
-    $this->assertEqualsWithDelta(22662.5, $response->json('data.net_proceeds_raw'), 0.01);
+    $this->assertEqualsWithDelta(13662.5, $response->json('data.net_proceeds_raw'), 0.01);
 
     // BI-WEEKLY amortizationCount = round(12*30/14) = round(25.714...) = 26.
     // principal 25000/26=961.54, interest 9000/26=346.15,
@@ -156,7 +153,7 @@ test('unsaved recommended_payment_frequency override is used instead of the pers
 
     // net proceeds does not depend on payment frequency, so it matches the
     // MONTHLY-frequency happy-path case exactly.
-    $this->assertEqualsWithDelta(22662.5, $response->json('data.net_proceeds_raw'), 0.01);
+    $this->assertEqualsWithDelta(13662.5, $response->json('data.net_proceeds_raw'), 0.01);
 
     // If the stale persisted MONTHLY value were used instead of the BI-WEEKLY
     // override, this would equal the MONTHLY case's 12125.0 rather than the
@@ -307,7 +304,7 @@ test('missing applicant gross monthly income blocks only the suggested GNTHP fig
         )
         ->assertOk();
 
-    $this->assertEqualsWithDelta(22662.5, $response->json('data.net_proceeds_raw'), 0.01);
+    $this->assertEqualsWithDelta(13662.5, $response->json('data.net_proceeds_raw'), 0.01);
 
     expect($response->json('data.suggested_gnthp_raw'))->toBeNull()
         ->and($response->json('data.failure_information'))->not->toBeNull()
@@ -340,7 +337,7 @@ test('preview is denied for a user without updateProcessingDetails permission on
         ->assertForbidden();
 });
 
-test('preview accepts Lumpsum frequency with a required lumpsum month count and zeroes loan security/insurance', function (): void {
+test('preview accepts Lumpsum frequency, derives the lumpsum month count from the recommended term, zeroes loan security, and still charges insurance for a 2-month-or-longer term', function (): void {
     $processor = previewCreateActor([Role::LOAN_PROCESSOR]);
     $member = previewCreateActor([Role::MEMBER], '950103');
 
@@ -365,17 +362,59 @@ test('preview accepts Lumpsum frequency with a required lumpsum month count and 
             [
                 ...previewChargesOverridePayload(),
                 'recommended_payment_frequency' => 'Lumpsum',
+                // Deliberately mismatched -- the server must ignore this and
+                // derive the months from recommended_term (12) instead.
                 'recommended_payment_frequency_lumpsum_months' => 1,
             ],
         )
         ->assertOk();
 
-    // service charge 25000*0.05=1250, doc stamp 25000*0.0075=187.5, notarial
-    // fee 100 flat; loan security/insurance are forced to 0 for Lumpsum.
-    $this->assertEqualsWithDelta(23462.5, $response->json('data.net_proceeds_raw'), 0.01);
+    // interest 25000*0.36/12*12=9000, service charge 25000*0.05=1250,
+    // insurance (25000/1000)*12*1.0=300 (a 12-month Lumpsum is not the
+    // 1-month waiver case, so insurance still applies), loan security is
+    // forced to 0 for any Lumpsum, doc stamp 25000*0.0075=187.5, notarial
+    // fee 100 flat.
+    $this->assertEqualsWithDelta(14162.5, $response->json('data.net_proceeds_raw'), 0.01);
 });
 
-test('preview rejects Lumpsum frequency without the required month count', function (): void {
+test('preview zeroes both loan security and insurance for a 1-month Lumpsum', function (): void {
+    $processor = previewCreateActor([Role::LOAN_PROCESSOR]);
+    $member = previewCreateActor([Role::MEMBER], '950105');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency_lumpsum_months' => 1,
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['gross_monthly_income' => 15000]);
+
+    $response = $this
+        ->actingAs($processor)
+        ->postJson(
+            route('spa.workflow.loan-requests.processing-details.preview', $loanRequest),
+            [
+                ...previewChargesOverridePayload(),
+                'recommended_amount' => 25000,
+                'recommended_term' => 1,
+                'recommended_payment_frequency' => 'Lumpsum',
+            ],
+        )
+        ->assertOk();
+
+    // interest 25000*0.36/12*1=750, service charge 25000*0.05=1250, doc
+    // stamp 25000*0.0075=187.5, notarial fee 100 flat; loan
+    // security/insurance are forced to 0 for a 1-month Lumpsum only.
+    $this->assertEqualsWithDelta(22712.5, $response->json('data.net_proceeds_raw'), 0.01);
+});
+
+test('preview rejects Lumpsum frequency without a recommended term to derive the month count from', function (): void {
     $processor = previewCreateActor([Role::LOAN_PROCESSOR]);
     $member = previewCreateActor([Role::MEMBER], '950104');
 
@@ -386,12 +425,15 @@ test('preview rejects Lumpsum frequency without the required month count', funct
         'submitted_at' => now(),
     ]);
 
+    $payload = previewChargesOverridePayload();
+    unset($payload['recommended_term']);
+
     $this
         ->actingAs($processor)
         ->postJson(
             route('spa.workflow.loan-requests.processing-details.preview', $loanRequest),
             [
-                ...previewChargesOverridePayload(),
+                ...$payload,
                 'recommended_payment_frequency' => 'Lumpsum',
             ],
         )

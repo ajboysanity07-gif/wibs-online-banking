@@ -657,9 +657,21 @@ class LoanRequestDocumentCatalog
                 && ($flatValues['payment_option'] ?? null) === LoanPaymentOption::SalaryDeduction->value,
             'atm_payout_employee' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues),
             'atm_payment_option' => ($flatValues['payment_option'] ?? null) === LoanPaymentOption::AtmDeduction->value,
-            'not_lumpsum' => $loanRequest->recommended_payment_frequency !== LoanPaydayOption::Lumpsum->value,
+            'not_lumpsum' => ! $this->isOneMonthLumpsum($loanRequest),
             default => true,
         };
+    }
+
+    /**
+     * Only a 1-month Lumpsum skips insurance entirely -- a 2-month-or-longer
+     * Lumpsum still requires the insurance document (mirrors
+     * LoanRequestDecisionService::isOneMonthLumpsum() and the insurance
+     * premium waiver in ApprovedLoanDocumentDataBuilder).
+     */
+    private function isOneMonthLumpsum(LoanRequest $loanRequest): bool
+    {
+        return $loanRequest->recommended_payment_frequency === LoanPaydayOption::Lumpsum->value
+            && (int) $loanRequest->recommended_payment_frequency_lumpsum_months === 1;
     }
 
     /**

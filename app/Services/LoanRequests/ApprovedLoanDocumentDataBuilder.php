@@ -71,11 +71,22 @@ class ApprovedLoanDocumentDataBuilder
             ) ?? $this->normalizeText($loanRequest->recommended_payment_frequency),
         );
         $isLumpsum = $paymentMode === 'LUMPSUM';
-        $lumpsumMonths = $this->resolveIntegerOverride(
-            (is_array($overrides['loan'] ?? null) ? $overrides['loan']['lumpsum_months'] ?? null : null)
-                ?? $loanRequest->recommended_payment_frequency_lumpsum_months,
-            null,
-        );
+        // The approved/recommended term is the sole source of truth for how
+        // many months a Lumpsum payment covers -- it can no longer disagree
+        // with the amortization count or maturity date, which both derive
+        // from the same $approvedTerm.
+        $lumpsumMonths = $isLumpsum
+            ? $this->resolveIntegerOverride(
+                (is_array($overrides['loan'] ?? null) ? $overrides['loan']['lumpsum_months'] ?? null : null),
+                $approvedTerm,
+            )
+            : null;
+        // Only a 1-month Lumpsum skips insurance entirely (mirrors
+        // LoanRequestDecisionService::isOneMonthLumpsum(), which exempts the
+        // member from the insurance/health wizard on submission for the same
+        // case). A 2-month-or-longer Lumpsum still carries an insurance
+        // premium and requires the insurance document.
+        $isOneMonthLumpsum = $isLumpsum && $lumpsumMonths === 1;
         $officialLoanManager = $this->officialLoanManagerResolver->documentData();
         $overrideLoan = is_array($overrides['loan'] ?? null)
             ? $overrides['loan']
@@ -117,13 +128,13 @@ class ApprovedLoanDocumentDataBuilder
                 ?? null,
             null,
         );
-        $insuranceRateRaw = $isLumpsum ? 0.0 : $this->resolveNumericOverride(
+        $insuranceRateRaw = $isOneMonthLumpsum ? 0.0 : $this->resolveNumericOverride(
             $overrideLoan['insurance_rate_raw']
                 ?? $flatValues['insurance_rate']
                 ?? null,
             0.0,
         );
-        $insuranceTerm = $isLumpsum ? 0 : $this->resolveIntegerOverride(
+        $insuranceTerm = $isOneMonthLumpsum ? 0 : $this->resolveIntegerOverride(
             $overrideLoan['insurance_term']
                 ?? $flatValues['insurance_term']
                 ?? null,
@@ -211,13 +222,13 @@ class ApprovedLoanDocumentDataBuilder
                 $loanSecurityAmortizationRaw,
             ),
         );
-        // Interest is never deducted from the proceeds: it is amortized into
-        // the payment schedule and disclosed in the "Not Deducted From
-        // Proceeds of Loan" column, matching the Disclosure Statement
-        // workbook (R.A. 3765). Only deducted finance charges (service
-        // charge) contribute to the deductions total.
+        // Net proceeds (this app's own staff-facing figure -- it is not
+        // printed on the Disclosure Statement/Promissory Note workbook,
+        // whose own "Interest Not Deducted" line is a separate, independent
+        // formula) treats the full cost of credit as a deduction: interest
+        // plus the service charge.
         $financeChargeTotalRaw = $this->roundCurrency(
-            $this->sumAmounts($serviceChargeAmountRaw),
+            $this->sumAmounts($interestNotDeductedRaw, $serviceChargeAmountRaw),
         );
         $nonFinanceChargeTotalRaw = $this->roundCurrency(
             $this->sumAmounts(
