@@ -1,14 +1,16 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     BellRing,
-    Clock3,
-    Headset,
-    LineChart,
+    FileStack,
+    PiggyBank,
+    ReceiptText,
     ShieldCheck,
-    Sparkles,
+    Wallet,
 } from 'lucide-react';
 import SupportContact from '@/components/support-contact';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { useBranding } from '@/hooks/use-branding';
 import { dashboard, login, register } from '@/routes';
 
@@ -23,41 +25,48 @@ type PageProps = {
 
 const features = [
     {
-        title: 'View loan applications and status',
+        title: 'Request a loan online',
         description:
-            'See current loan requests, track approvals, and review WIBS-managed loan updates.',
-        icon: LineChart,
+            'Fill out one guided form — employment, banking, co-makers, and required documents in a single pass. Choose a regular term or a lump-sum payoff for eligible loan types.',
+        icon: Wallet,
     },
     {
-        title: 'Track payments and balances',
+        title: 'Track every application step',
         description:
-            'Review dues, balances, and payment history synced from the system of record.',
-        icon: Clock3,
+            'Follow your request from submission through review, recommendation, and approval, with the reason for any revision request shown inline.',
+        icon: FileStack,
     },
     {
-        title: 'Request a new loan',
+        title: 'Review savings and loan balances',
         description:
-            'Submit requests online so your cooperative can review them faster.',
-        icon: Sparkles,
+            'See running balances, payment schedules, and posted transactions synced from WIBS Desktop — no separate statement request needed.',
+        icon: PiggyBank,
     },
     {
-        title: 'Upload required documents',
+        title: 'Check payment history',
         description:
-            'Share supporting documents securely when your request requires them.',
-        icon: Headset,
+            'Look up dues paid, amounts due, and upcoming schedule dates for every active loan.',
+        icon: ReceiptText,
     },
     {
-        title: 'Notifications and status updates',
+        title: 'Get notified on changes',
         description:
-            'Get updates on approvals, requirements, and changes to your requests.',
+            'Receive an alert the moment your request moves stages, needs a correction, or is ready for release.',
         icon: BellRing,
     },
     {
-        title: 'Secure member verification',
+        title: 'Verified member access only',
         description:
-            'Only verified members can create portal access to protect your data.',
+            'Portal accounts are matched against your membership record before login access is created.',
         icon: ShieldCheck,
     },
+];
+
+const pipeline = [
+    { label: 'Submitted', detail: 'Application and documents received' },
+    { label: 'Under review', detail: 'Loan processor checks requirements' },
+    { label: 'Recommended', detail: 'Sent to loan manager for approval' },
+    { label: 'Approved', detail: 'Ready for release scheduling' },
 ];
 
 const steps = [
@@ -85,13 +94,10 @@ export default function Welcome() {
     const showCompanyName = !branding.logoIsWordmark;
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+        <div className="min-h-screen bg-background text-foreground">
             <Head title="Welcome" />
 
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,hsl(var(--primary)/0.14),transparent_35%),radial-gradient(circle_at_85%_10%,hsl(var(--accent)/0.18),transparent_40%)]" />
-            <div className="absolute inset-x-0 top-0 h-56 bg-linear-to-b from-primary/10 via-transparent to-transparent opacity-80 blur-3xl" />
-
-            <div className="relative mx-auto flex max-w-6xl flex-col px-6 pt-8 pb-16 lg:px-10 lg:pt-12 lg:pb-24">
+            <div className="mx-auto flex max-w-6xl flex-col px-6 pt-8 pb-16 lg:px-10 lg:pt-12 lg:pb-24">
                 <header className="flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <img
@@ -136,15 +142,16 @@ export default function Welcome() {
                 <main className="mt-8 space-y-16 lg:mt-20">
                     <section className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
                         <div className="space-y-6">
-                            <p className="hidden text-xs font-semibold tracking-[0.3em] text-primary uppercase sm:flex">
+                            <Badge variant="secondary" className="w-fit">
                                 {branding.appTitle}
-                            </p>
+                            </Badge>
                             <h1 className="text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
-                                Member portal built for cooperative services.
+                                Your loan account, one clear request away.
                             </h1>
                             <p className="text-lg text-muted-foreground sm:text-xl">
-                                View loan history, payments, and submit requests
-                                processed in WIBS Desktop.
+                                Request a loan, follow it through approval, and
+                                keep an eye on savings and payments — all kept
+                                in sync with WIBS Desktop.
                             </p>
 
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -184,47 +191,71 @@ export default function Welcome() {
                             </div>
                         </div>
 
-                        <div className="relative">
-                            <div className="pointer-events-none absolute inset-0 rounded-3xl bg-linear-to-br from-primary/15 via-transparent to-[hsl(var(--accent)/0.18)] opacity-80 blur-3xl" />
-                            <div className="relative rounded-3xl border border-border bg-card/90 p-8 shadow-xl backdrop-blur-md">
-                                <div className="space-y-4">
-                                    <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                                        <p className="text-sm font-semibold">
-                                            Integrated with WIBS Desktop
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
-                                            Requests, approvals, and balances
-                                            stay aligned with the system of
-                                            record.
-                                        </p>
-                                    </div>
-                                    <div className="grid gap-3 sm:grid-cols-2">
-                                        {[
-                                            {
-                                                label: 'Member verification',
-                                                detail: 'Protects access before registration.',
-                                            },
-                                            {
-                                                label: 'Instant access',
-                                                detail: 'Log in right after registration.',
-                                            },
-                                        ].map((item) => (
-                                            <div
-                                                key={item.label}
-                                                className="rounded-2xl border border-border bg-card/80 px-4 py-3 text-sm shadow-sm"
-                                            >
-                                                <p className="font-semibold">
-                                                    {item.label}
+                        <Card className="gap-4 py-6">
+                            <div className="flex items-center justify-between px-6">
+                                <p className="text-sm font-semibold">
+                                    Where your request stands
+                                </p>
+                                <span className="text-xs text-muted-foreground">
+                                    Sample application
+                                </span>
+                            </div>
+                            <div className="space-y-0 px-6">
+                                {pipeline.map((stage, index) => {
+                                    const isCurrent =
+                                        index === pipeline.length - 2;
+                                    const isDone = index < pipeline.length - 2;
+
+                                    return (
+                                        <div
+                                            key={stage.label}
+                                            className="flex gap-3"
+                                        >
+                                            <div className="flex flex-col items-center">
+                                                <span
+                                                    className={
+                                                        isDone || isCurrent
+                                                            ? 'flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground'
+                                                            : 'flex h-6 w-6 items-center justify-center rounded-full border border-border text-xs font-semibold text-muted-foreground'
+                                                    }
+                                                >
+                                                    {index + 1}
+                                                </span>
+                                                {index <
+                                                    pipeline.length - 1 && (
+                                                    <span
+                                                        className={
+                                                            isDone
+                                                                ? 'w-px flex-1 bg-primary'
+                                                                : 'w-px flex-1 bg-border'
+                                                        }
+                                                    />
+                                                )}
+                                            </div>
+                                            <div className="pb-6">
+                                                <p
+                                                    className={
+                                                        isCurrent
+                                                            ? 'text-sm font-semibold text-primary'
+                                                            : 'text-sm font-semibold'
+                                                    }
+                                                >
+                                                    {stage.label}
+                                                    {isCurrent && (
+                                                        <Badge className="ml-2 align-middle">
+                                                            In progress
+                                                        </Badge>
+                                                    )}
                                                 </p>
-                                                <p className="text-muted-foreground">
-                                                    {item.detail}
+                                                <p className="text-sm text-muted-foreground">
+                                                    {stage.detail}
                                                 </p>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        </div>
+                        </Card>
                     </section>
 
                     <section className="space-y-6">
@@ -239,10 +270,7 @@ export default function Welcome() {
 
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {features.map((feature) => (
-                                <div
-                                    key={feature.title}
-                                    className="rounded-2xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur-sm"
-                                >
+                                <Card key={feature.title} className="p-5">
                                     <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                                         <feature.icon className="h-5 w-5" />
                                     </div>
@@ -254,7 +282,7 @@ export default function Welcome() {
                                             {feature.description}
                                         </p>
                                     </div>
-                                </div>
+                                </Card>
                             ))}
                         </div>
                     </section>
@@ -274,9 +302,9 @@ export default function Welcome() {
                         </div>
                         <div className="grid gap-4">
                             {steps.map((step, index) => (
-                                <div
+                                <Card
                                     key={step.title}
-                                    className="flex gap-4 rounded-2xl border border-border bg-card/80 p-4 shadow-sm"
+                                    className="flex-row gap-4 p-4"
                                 >
                                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                                         {index + 1}
@@ -289,7 +317,7 @@ export default function Welcome() {
                                             {step.description}
                                         </p>
                                     </div>
-                                </div>
+                                </Card>
                             ))}
                         </div>
                     </section>
