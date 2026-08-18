@@ -194,6 +194,7 @@ const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
     // Institutional documentary stamp constant (₱1.50 per ₱200 of loan =
     // 1.5/200 = 0.75%); the amount itself follows the ₱200 banding rule.
     documentary_stamp_rate: 0.0075,
+    penalty_rate_per_month: 0.05,
 };
 
 // Insurer's senior-age insurance rate bands (from the loan processors'
@@ -253,10 +254,10 @@ const resolveAgeBandedInsuranceRate = (
     return band?.rate ?? null;
 };
 
-// "Lumpsum" is a loan-level payment frequency, not a valid personal payday,
+// "Lump sum" is a loan-level payment frequency, not a valid personal payday,
 // so it is added only for this dropdown rather than to the shared
 // PAYDAY_OPTIONS list (also used by the applicant/co-maker payday pickers).
-const PAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Lumpsum'] as const;
+const PAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Lump sum'] as const;
 
 const withProcessingChargeDefaults = (
     processing: Record<string, string | number | boolean | null>,
@@ -947,13 +948,13 @@ export function ProcessingDetailsPanel({
                                             ...current,
                                             recommended_payment_frequency:
                                                 value,
-                                            // Lumpsum forces loan security/savings to 0%;
+                                            // Lump sum forces loan security/savings to 0%;
                                             // switching away restores the standard default
-                                            // so staff aren't stuck at 0%. The Lumpsum month
+                                            // so staff aren't stuck at 0%. The Lump sum month
                                             // count is derived from "Recommended term", not
                                             // entered separately.
                                             processing:
-                                                value === 'Lumpsum'
+                                                value === 'Lump sum'
                                                     ? {
                                                           ...current.processing,
                                                           loan_security_rate: 0,
@@ -991,9 +992,9 @@ export function ProcessingDetailsPanel({
                                 </Select>
                             </div>
                             {processingForm.recommended_payment_frequency ===
-                                'Lumpsum' && (
+                                'Lump sum' && (
                                 <p className="text-sm text-muted-foreground sm:col-span-2">
-                                    Lumpsum is repaid as a single payment after
+                                    Lump sum is repaid as a single payment after
                                     the recommended term above (
                                     {processingForm.recommended_term || '—'}{' '}
                                     month
@@ -1020,7 +1021,7 @@ export function ProcessingDetailsPanel({
                                 onBlur: scheduleGnthpRecalculation,
                             })}
                             {processingForm.recommended_payment_frequency !==
-                                'Lumpsum' && (
+                                'Lump sum' && (
                                 <div className="grid gap-2">
                                     <Label
                                         htmlFor="inline_processing_loan_security_rate"
@@ -1039,7 +1040,7 @@ export function ProcessingDetailsPanel({
                                                         reference workbook. Not
                                                         editable per loan.
                                                         Zeroed automatically for
-                                                        Lumpsum loans.
+                                                        Lump sum loans.
                                                     </p>
                                                 </TooltipContent>
                                             </Tooltip>

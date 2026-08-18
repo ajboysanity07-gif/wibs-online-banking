@@ -345,7 +345,7 @@ test('preview accepts Lumpsum frequency, derives the lumpsum month count from th
         'status' => LoanRequestStatus::UnderReview,
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'assigned_officer_id' => $processor->user_id,
-        'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency' => 'Lump sum',
         'recommended_term' => 1,
         'submitted_at' => now(),
     ]);
@@ -361,7 +361,7 @@ test('preview accepts Lumpsum frequency, derives the lumpsum month count from th
             route('spa.workflow.loan-requests.processing-details.preview', $loanRequest),
             [
                 ...previewChargesOverridePayload(),
-                'recommended_payment_frequency' => 'Lumpsum',
+                'recommended_payment_frequency' => 'Lump sum',
             ],
         )
         ->assertOk();
@@ -382,7 +382,7 @@ test('preview zeroes both loan security and insurance for a 1-month Lumpsum', fu
         'status' => LoanRequestStatus::UnderReview,
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'assigned_officer_id' => $processor->user_id,
-        'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency' => 'Lump sum',
         'recommended_term' => 1,
         'submitted_at' => now(),
     ]);
@@ -400,7 +400,7 @@ test('preview zeroes both loan security and insurance for a 1-month Lumpsum', fu
                 ...previewChargesOverridePayload(),
                 'recommended_amount' => 25000,
                 'recommended_term' => 1,
-                'recommended_payment_frequency' => 'Lumpsum',
+                'recommended_payment_frequency' => 'Lump sum',
             ],
         )
         ->assertOk();
@@ -431,7 +431,7 @@ test('preview rejects Lumpsum frequency without a recommended term to derive the
             route('spa.workflow.loan-requests.processing-details.preview', $loanRequest),
             [
                 ...$payload,
-                'recommended_payment_frequency' => 'Lumpsum',
+                'recommended_payment_frequency' => 'Lump sum',
             ],
         )
         ->assertInvalid(['recommended_term']);

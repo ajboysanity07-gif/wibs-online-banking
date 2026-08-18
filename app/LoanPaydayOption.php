@@ -10,7 +10,7 @@ enum LoanPaydayOption: string
     case FifteenthAndThirtieth = '15th & 30th';
     case BiWeekly = 'Bi-Weekly';
     case Monthly = 'Monthly';
-    case Lumpsum = 'Lumpsum';
+    case Lumpsum = 'Lump sum';
 
     /**
      * @return list<string>

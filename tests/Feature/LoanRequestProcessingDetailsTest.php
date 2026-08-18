@@ -141,7 +141,7 @@ test('processing update rejects Lumpsum without a recommended term', function ()
             'loan_purpose' => 'Home improvement',
             'availment_status' => 'New',
         ],
-        'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency' => 'Lump sum',
     ];
 
     $this

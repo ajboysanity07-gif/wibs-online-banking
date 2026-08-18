@@ -1300,7 +1300,7 @@ class ApprovedLoanDocumentDataBuilder
             return null;
         }
 
-        if (in_array($trimmed, ['Weekly', '15th', '30th', '15th & 30th', 'Bi-Weekly', 'Monthly', 'Lumpsum'], true)) {
+        if (in_array($trimmed, ['Weekly', '15th', '30th', '15th & 30th', 'Bi-Weekly', 'Monthly', 'Lump sum'], true)) {
             return $trimmed;
         }
 
@@ -1329,7 +1329,7 @@ class ApprovedLoanDocumentDataBuilder
             '15th',
             '30th',
             'Monthly' => 'MONTHLY',
-            'Lumpsum' => 'LUMPSUM',
+            'Lump sum' => 'LUMPSUM',
             default => null,
         };
     }

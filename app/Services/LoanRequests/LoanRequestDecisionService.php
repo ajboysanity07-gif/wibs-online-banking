@@ -24,7 +24,7 @@ class LoanRequestDecisionService
 
     private const CORRECTION_AUDIT_UNAVAILABLE_MESSAGE = 'Correction audit history is unavailable. Please save the correction before approving this admin-corrected request.';
 
-    private const INSURANCE_DATA_REQUIRED_MESSAGE = 'This request has no insurance/health questionnaire data on file (the member requested a 1-month Lumpsum, which skips that step). Run an admin correction to collect it before approving a non-Lumpsum or multi-month payment frequency.';
+    private const INSURANCE_DATA_REQUIRED_MESSAGE = 'This request has no insurance/health questionnaire data on file (the member requested a 1-month Lump sum, which skips that step). Run an admin correction to collect it before approving a non-Lump sum or multi-month payment frequency.';
 
     public function __construct(
         private LoanRequestCorrectionReportService $correctionReports,

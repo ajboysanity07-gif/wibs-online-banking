@@ -1277,7 +1277,7 @@ test('generali application form is ready when PEP true and Old cycle status both
 
 test('generali and generali application form are not applicable for a 1-month Lumpsum', function (): void {
     $loanRequest = LoanRequest::factory()->make([
-        'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency' => 'Lump sum',
         'recommended_term' => 1,
     ]);
     $catalog = app(LoanRequestDocumentCatalog::class);
@@ -1288,7 +1288,7 @@ test('generali and generali application form are not applicable for a 1-month Lu
 
 test('generali and generali application form remain applicable for a 2-month-or-longer Lumpsum', function (): void {
     $loanRequest = LoanRequest::factory()->make([
-        'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency' => 'Lump sum',
         'recommended_term' => 2,
     ]);
     $catalog = app(LoanRequestDocumentCatalog::class);
@@ -1307,6 +1307,31 @@ test('generali and generali application form remain applicable for non-Lumpsum f
         ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeTrue();
 });
 
+test('a Lumpsum recommended payment frequency does not block promissory note generation', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 24000,
+        'recommended_term' => 1,
+        'recommended_interest_rate' => 0,
+        'recommended_payment_frequency' => 'Lump sum',
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 0],
+        'insurance_rate' => ['number', 1.0],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0.02],
+        'documentary_stamp_rate' => ['number', 0.0075],
+        'notarial_fee' => ['number', 0],
+        'penalty_rate_per_month' => ['number', 0.05],
+        'witness_one_name' => ['string', 'Witness One'],
+    ]);
+
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::PromissoryNote);
+
+    expect($entry['blockers'])->not->toContain('Recommended payment frequency is not recognized by the official templates.');
+});
+
 test('a 1-month Lumpsum zeroes loan security, savings, and insurance, and derives the amortization/maturity month count from the approved term', function (): void {
     // recommended/approved term is the sole source of truth for how many
     // months a Lumpsum payment covers -- amortization count and maturity
@@ -1316,7 +1341,7 @@ test('a 1-month Lumpsum zeroes loan security, savings, and insurance, and derive
         'recommended_amount' => 24000,
         'recommended_term' => 1,
         'recommended_interest_rate' => 0,
-        'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency' => 'Lump sum',
         'approved_amount' => 24000,
         'approved_term' => 1,
         'approved_interest_rate' => 0,
@@ -1358,7 +1383,7 @@ test('a 2-month-or-longer Lumpsum still charges an insurance premium but keeps l
         'recommended_amount' => 24000,
         'recommended_term' => 2,
         'recommended_interest_rate' => 0,
-        'recommended_payment_frequency' => 'Lumpsum',
+        'recommended_payment_frequency' => 'Lump sum',
         'approved_amount' => 24000,
         'approved_term' => 2,
         'approved_interest_rate' => 0,

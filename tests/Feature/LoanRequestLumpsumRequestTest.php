@@ -210,7 +210,7 @@ test('member can submit a 1-month Lumpsum Other Loan request without insurance o
         'loan_purpose' => 'Emergency expenses',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        'requested_payment_frequency' => 'Lumpsum',
+        'requested_payment_frequency' => 'Lump sum',
         ...lumpsumMemberSectionPayload([
             'insurance' => [],
             'health' => [],
@@ -230,7 +230,7 @@ test('member can submit a 1-month Lumpsum Other Loan request without insurance o
 
     $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
     expect($loanRequest)->not->toBeNull();
-    expect($loanRequest->requested_payment_frequency)->toBe('Lumpsum');
+    expect($loanRequest->requested_payment_frequency)->toBe('Lump sum');
     expect($loanRequest->requested_term)->toBe(1);
 });
 
@@ -251,7 +251,7 @@ test('member requesting 2-month Lumpsum still requires insurance and health data
         'loan_purpose' => 'Emergency expenses',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        'requested_payment_frequency' => 'Lumpsum',
+        'requested_payment_frequency' => 'Lump sum',
         ...lumpsumMemberSectionPayload([
             'insurance' => [],
             'health' => [],
@@ -290,7 +290,7 @@ test('member cannot request Lumpsum for a loan type other than Other Loan', func
         'loan_purpose' => 'Emergency expenses',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        'requested_payment_frequency' => 'Lumpsum',
+        'requested_payment_frequency' => 'Lump sum',
         ...lumpsumMemberSectionPayload(),
         'applicant' => lumpsumApplicantPayload(),
         'co_maker_1' => lumpsumCoMakerPayload('CoOne'),
@@ -318,7 +318,7 @@ test('staff cannot approve a non-lumpsum recommended frequency when insurance da
         'acctno' => $member->acctno,
         'status' => LoanRequestStatus::RecommendedForApproval,
         'submitted_at' => now(),
-        'requested_payment_frequency' => 'Lumpsum',
+        'requested_payment_frequency' => 'Lump sum',
         'requested_term' => 1,
         'recommended_payment_frequency' => 'Monthly',
     ]);

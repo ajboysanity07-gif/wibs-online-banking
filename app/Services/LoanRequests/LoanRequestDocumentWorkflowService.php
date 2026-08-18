@@ -39,6 +39,7 @@ class LoanRequestDocumentWorkflowService
         '15th & 30th',
         'Bi-Weekly',
         'Monthly',
+        'Lump sum',
     ];
 
     /**
