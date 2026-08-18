@@ -199,7 +199,7 @@ const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
 
 // Insurer's senior-age insurance rate bands (from the loan processors'
 // reference table). Only these two bands are currently known; applicants
-// outside them keep the existing manual-entry behavior with no default.
+// outside them are locked to a fixed rate of 1 (see withProcessingChargeDefaults).
 // These are per-mille rates (pesos per ₱1,000 of principal per month), NOT
 // percentages -- insurance_rate feeds insurance_premium = (amount/1000) *
 // insurance_term * insurance_rate, so the raw table value (e.g. 2.05) must
@@ -279,15 +279,20 @@ const withProcessingChargeDefaults = (
         }
     }
 
-    // Once the applicant falls in a known senior-age band, the rate is
-    // table-driven and no longer a manual entry -- force it to the band
-    // value even if a stale/blank-fallback rate was already saved (e.g. from
-    // before this age-band table existed), rather than only filling blanks.
+    // insurance_rate is always system-controlled, never manually entered:
+    // table-driven when the applicant falls in a known senior-age band,
+    // otherwise fixed at 1. Force it every time (not just when blank) so a
+    // stale saved value never survives a re-render.
     const ageBandedRate = resolveAgeBandedInsuranceRate(applicantBirthdate);
+    next = { ...next, insurance_rate: ageBandedRate ?? 1 };
 
-    if (ageBandedRate !== null) {
-        next = { ...next, insurance_rate: ageBandedRate };
-    }
+    // penalty_rate_per_month is likewise always locked to its institutional
+    // default, never manually entered.
+    next = {
+        ...next,
+        penalty_rate_per_month:
+            PROCESSING_CHARGE_DEFAULTS.penalty_rate_per_month,
+    };
 
     return next;
 };
@@ -1031,10 +1036,10 @@ export function ProcessingDetailsPanel({
                             })}
                             {renderProcessingField('insurance_rate', {
                                 onBlur: scheduleGnthpRecalculation,
-                                disabled: isApplicantInInsuranceAgeBand,
+                                disabled: true,
                                 tooltip: isApplicantInInsuranceAgeBand
                                     ? "Pesos per ₱1,000 of principal per month, NOT a percentage. Locked to the insurer's senior-age band rate for this applicant's age (66–70 → 2.05, 71–75 → 3.95)."
-                                    : "Pesos per ₱1,000 of principal per month, NOT a percentage. Applicant is outside the insurer's senior-age bands (66–70 → 2.05, 71–75 → 3.95), so the rate must be entered manually.",
+                                    : "Pesos per ₱1,000 of principal per month, NOT a percentage. Applicant is outside the insurer's senior-age bands (66–70 → 2.05, 71–75 → 3.95), so the rate is fixed at 1.",
                             })}
                             {renderProcessingField('insurance_term', {
                                 onBlur: scheduleGnthpRecalculation,
@@ -1103,6 +1108,9 @@ export function ProcessingDetailsPanel({
                             )}
                             {renderProcessingField('penalty_rate_per_month', {
                                 onBlur: scheduleGnthpRecalculation,
+                                disabled: true,
+                                tooltip:
+                                    'Fixed institutional rate (5% per month). Not editable per loan.',
                             })}
                         </div>
                         {renderProcessingSectionLabel('Net take-home pay')}
