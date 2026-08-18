@@ -235,6 +235,10 @@ type LoanRequestRecommendationPreviewFailureInformation = {
 };
 
 type LoanRequestRecommendationPreviewResponse = {
+    approved_amount_raw: number | null;
+    finance_charge_total_raw: number | null;
+    non_finance_charge_total_raw: number | null;
+    deductions_total_raw: number | null;
     net_proceeds_raw: number | null;
     suggested_gnthp_raw: number | null;
     failure_information: LoanRequestRecommendationPreviewFailureInformation | null;

@@ -481,24 +481,28 @@ test('other_charges_amount left unset does not break document generation and con
         ->and($documentData['loan']['net_proceeds_raw'])->toBe(24000.0);
 });
 
-test('net proceeds matches the Disclosure Statement workbook: interest and service charge are both Finance Charges', function (): void {
+test('net proceeds matches the Disclosure Statement workbook: only the service charge is a deducted finance charge; interest stays "Not Deducted"', function (): void {
     // Exact scenario from the source workbook (PLAN OF PAYMENT,DISC.PROMIS.xlsx,
     // "Disclosure Statement" sheet -- the R.A. 3765 Truth In Lending Act
     // form, not the "Loan Information" sheet): 200,000 loan, 36% p.a.
     // interest, 5% service charge, insurance ₱1.00/₱1,000/month x 12, 2%
     // loan security, 0.75% doc stamps, ₱100 notarial fee.
     //
-    // The Disclosure Statement sheet lists "a. Interest" as Finance Charge
-    // item (row 14) alongside "e. ... Service Charge" (row 23), summed into
-    // "TOTAL FINANCE CHARGES" (row 25). "NET PROCEEDS OF LOAN (A LESS D)"
-    // (row 35) is loan amount minus (B) Finance Charges + (C) Non-Finance
-    // Charges -- so interest genuinely reduces net proceeds.
+    // The Disclosure Statement sheet lists "a. Interest" (row 14) with the
+    // amount in the "Not Deducted From Proceeds of Loan" column (J14, a
+    // formula off 'Loan Information'!C13); interest is amortized into the
+    // payment schedule instead of being taken out of the proceeds. Only the
+    // service charge (row 23) carries a "Deducted" amount (L23), so the
+    // workbook's "TOTAL FINANCE CHARGES" (N25 = N23 = L23 + L14, with L14
+    // empty) equals the service charge alone. "NET PROCEEDS OF LOAN
+    // (A LESS D)" (row 35) is loan amount minus (B) Finance Charges + (C)
+    // Non-Finance Charges.
     //
-    // Workbook figures:
-    //   (B) Total Finance Charges     = 82,000 (72,000 interest + 10,000 service charge)
+    // Workbook figures (verified against the template formulas):
+    //   (B) Total Finance Charges     = 10,000 (service charge only; 72,000 interest is Not Deducted)
     //   (C) Total Non-Finance Charges =  8,000 (2,400 + 4,000 + 1,500 + 100)
-    //   (D) Total Deductions (B + C)  = 90,000
-    //   (E) Net Proceeds (A - D)      = 110,000
+    //   (D) Total Deductions (B + C)  = 18,000
+    //   (E) Net Proceeds (A - D)      = 182,000
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 200000,
@@ -526,19 +530,19 @@ test('net proceeds matches the Disclosure Statement workbook: interest and servi
     $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
 
     // Interest 200000*0.36/12*12 = 72,000. interest_not_deducted_raw keeps
-    // its name (it feeds the "Loan Information" sheet's own, independent
-    // "Interest Not Deducted" cell) but is no longer excluded from net
-    // proceeds -- it's part of the Finance Charges total below.
+    // its name and meaning (it feeds the workbook's "Interest Not Deducted"
+    // column) -- it is disclosed, not deducted, so it must not appear in the
+    // Finance Charges total or reduce net proceeds.
     expect($documentData['loan']['interest_not_deducted_raw'])->toBe(72000.0)
         ->and($documentData['loan']['service_charge_amount_raw'])->toBe(10000.0)
         ->and($documentData['loan']['insurance_premium_raw'])->toBe(2400.0)
         ->and($documentData['loan']['loan_security_amount_raw'])->toBe(4000.0)
         ->and($documentData['loan']['documentary_stamp_amount_raw'])->toBe(1500.0)
         ->and($documentData['loan']['notarial_fee_raw'])->toBe(100.0)
-        ->and($documentData['loan']['finance_charge_total_raw'])->toBe(82000.0)
+        ->and($documentData['loan']['finance_charge_total_raw'])->toBe(10000.0)
         ->and($documentData['loan']['non_finance_charge_total_raw'])->toBe(8000.0)
-        ->and($documentData['loan']['deductions_total_raw'])->toBe(90000.0)
-        ->and($documentData['loan']['net_proceeds_raw'])->toBe(110000.0);
+        ->and($documentData['loan']['deductions_total_raw'])->toBe(18000.0)
+        ->and($documentData['loan']['net_proceeds_raw'])->toBe(182000.0);
 });
 
 test('grepalife is applicable regardless of insurance_required value', function (): void {

@@ -797,6 +797,10 @@ class LoanRequestDocumentWorkflowService
      *                                               notarial_fee, other_charges_amount, other_charges_description,
      *                                               penalty_rate_per_month.
      * @return array{
+     *     approved_amount_raw: float|int|null,
+     *     finance_charge_total_raw: float|int|null,
+     *     non_finance_charge_total_raw: float|int|null,
+     *     deductions_total_raw: float|int|null,
      *     net_proceeds_raw: float|int|null,
      *     suggested_gnthp_raw: float|null,
      *     failure_information: array{message: string, blockers: list<string>}|null,
@@ -885,6 +889,10 @@ class LoanRequestDocumentWorkflowService
         }
 
         return [
+            'approved_amount_raw' => data_get($documentData, 'loan.approved_amount_raw'),
+            'finance_charge_total_raw' => data_get($documentData, 'loan.finance_charge_total_raw'),
+            'non_finance_charge_total_raw' => data_get($documentData, 'loan.non_finance_charge_total_raw'),
+            'deductions_total_raw' => data_get($documentData, 'loan.deductions_total_raw'),
             'net_proceeds_raw' => $netProceedsRaw,
             'suggested_gnthp_raw' => $suggestedGnthpRaw,
             'failure_information' => $blockers === []

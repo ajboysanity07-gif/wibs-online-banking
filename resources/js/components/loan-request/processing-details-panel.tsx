@@ -339,6 +339,10 @@ const hasSecondOfficerValue = (
 };
 
 type RecommendationPreviewState = {
+    approved_amount_raw: number | null;
+    finance_charge_total_raw: number | null;
+    non_finance_charge_total_raw: number | null;
+    deductions_total_raw: number | null;
     net_proceeds_raw: number | null;
     suggested_gnthp_raw: number | null;
     failure_information: { message: string; blockers: string[] } | null;
@@ -1101,66 +1105,111 @@ export function ProcessingDetailsPanel({
                             )}
 
                             <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex-1 space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <Label className="text-sm font-medium text-foreground">
-                                                Net Proceeds (at recommended
-                                                terms)
-                                            </Label>
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <button
-                                                            type="button"
-                                                            className="text-muted-foreground hover:text-foreground"
-                                                        >
-                                                            <Info className="h-4 w-4" />
-                                                        </button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent className="max-w-xs">
-                                                        <p>
-                                                            Approved Amount less
-                                                            all deductions
-                                                            (finance charges,
-                                                            insurance, loan
-                                                            security,
-                                                            documentary stamp,
-                                                            notarial fee, and
-                                                            other charges).
-                                                        </p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        </div>
-                                        {isRecommendationPreviewLoading ? (
-                                            <div className="flex items-center gap-2 text-muted-foreground">
-                                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                                <span className="text-sm">
-                                                    Calculating…
-                                                </span>
-                                            </div>
-                                        ) : recommendationPreview ? (
-                                            recommendationPreview.net_proceeds_raw !==
-                                            null ? (
-                                                <p className="text-2xl font-semibold text-foreground">
-                                                    {formatCurrency(
-                                                        recommendationPreview.net_proceeds_raw,
-                                                    )}
+                                <div className="mb-3 flex items-center gap-2">
+                                    <Label className="text-sm font-medium text-foreground">
+                                        Net Proceeds (at recommended terms)
+                                    </Label>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="text-muted-foreground hover:text-foreground"
+                                                >
+                                                    <Info className="h-4 w-4" />
+                                                </button>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-xs">
+                                                <p>
+                                                    Loan granted less finance
+                                                    charges (service charge),
+                                                    non-finance charges
+                                                    (insurance, loan security,
+                                                    documentary stamp, notarial
+                                                    fee, and other charges), and
+                                                    total charges. Interest is
+                                                    disclosed under "Not
+                                                    Deducted From Proceeds of
+                                                    Loan" — it is amortized into
+                                                    the payment schedule instead
+                                                    of being deducted here.
                                                 </p>
-                                            ) : (
-                                                <p className="text-sm text-muted-foreground">
-                                                    Not enough data to compute.
-                                                </p>
-                                            )
-                                        ) : (
-                                            <p className="text-sm text-muted-foreground">
-                                                Fill in recommendation and
-                                                charges above to calculate.
-                                            </p>
-                                        )}
-                                    </div>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
                                 </div>
+                                {isRecommendationPreviewLoading ? (
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                        <span className="text-sm">
+                                            Calculating…
+                                        </span>
+                                    </div>
+                                ) : recommendationPreview &&
+                                  recommendationPreview.net_proceeds_raw !==
+                                      null ? (
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center justify-between gap-3 text-sm">
+                                            <span className="text-muted-foreground">
+                                                Loan granted
+                                            </span>
+                                            <span className="font-medium tabular-nums">
+                                                {formatCurrency(
+                                                    recommendationPreview.approved_amount_raw,
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-3 text-sm">
+                                            <span className="text-muted-foreground">
+                                                Finance charges
+                                            </span>
+                                            <span className="font-medium tabular-nums">
+                                                {formatCurrency(
+                                                    recommendationPreview.finance_charge_total_raw,
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-3 text-sm">
+                                            <span className="text-muted-foreground">
+                                                Non-finance charges
+                                            </span>
+                                            <span className="font-medium tabular-nums">
+                                                {formatCurrency(
+                                                    recommendationPreview.non_finance_charge_total_raw,
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-3 text-sm">
+                                            <span className="text-muted-foreground">
+                                                Total charges
+                                            </span>
+                                            <span className="font-medium tabular-nums">
+                                                {formatCurrency(
+                                                    recommendationPreview.deductions_total_raw,
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-3 border-t border-primary/20 pt-2">
+                                            <span className="text-sm font-medium text-foreground">
+                                                Net Proceeds
+                                            </span>
+                                            <span className="text-2xl font-semibold text-foreground tabular-nums">
+                                                {formatCurrency(
+                                                    recommendationPreview.net_proceeds_raw,
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : recommendationPreview ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        Not enough data to compute.
+                                    </p>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        Fill in recommendation and charges above
+                                        to calculate.
+                                    </p>
+                                )}
                             </div>
 
                             {renderProcessingField(

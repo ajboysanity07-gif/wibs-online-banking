@@ -222,13 +222,16 @@ class ApprovedLoanDocumentDataBuilder
                 $loanSecurityAmortizationRaw,
             ),
         );
-        // Net proceeds (this app's own staff-facing figure -- it is not
-        // printed on the Disclosure Statement/Promissory Note workbook,
-        // whose own "Interest Not Deducted" line is a separate, independent
-        // formula) treats the full cost of credit as a deduction: interest
-        // plus the service charge.
+        // Net proceeds follows the Disclosure Statement workbook (R.A. 3765):
+        // interest is disclosed under "Not Deducted From Proceeds of Loan"
+        // (it is amortized into the payment schedule instead), so only the
+        // service charge counts as a deducted finance charge here. The
+        // workbook's own TOTAL FINANCE CHARGES cell (N25 = N23 = L23 + L14)
+        // sums the service charge with the interest "Deducted" column (L14),
+        // which stays empty because interest lives in the "Not Deducted"
+        // column (J14) -- so matching it means excluding interest.
         $financeChargeTotalRaw = $this->roundCurrency(
-            $this->sumAmounts($interestNotDeductedRaw, $serviceChargeAmountRaw),
+            $this->sumAmounts($serviceChargeAmountRaw),
         );
         $nonFinanceChargeTotalRaw = $this->roundCurrency(
             $this->sumAmounts(

@@ -64,8 +64,15 @@ test('happy path preview computes net proceeds and suggested GNTHP for MONTHLY f
     // Hand-computed: interest 25000*0.36/12*12=9000, service charge
     // 25000*0.05=1250, insurance (25000/1000)*12*1.0=300, loan security
     // 25000*0.02=500, doc stamp 25000*0.0075=187.5, notarial fee 100 flat.
-    // net proceeds = 25000 - (9000+1250+300+500+187.5+100) = 13662.5.
-    $this->assertEqualsWithDelta(13662.5, $response->json('data.net_proceeds_raw'), 0.01);
+    // Interest is disclosed under "Not Deducted From Proceeds of Loan" (it is
+    // amortized into the payment schedule), so finance charges are the
+    // service charge alone and net proceeds = 25000 - (1250+300+500+187.5+100)
+    // = 22662.5.
+    $this->assertEqualsWithDelta(22662.5, $response->json('data.net_proceeds_raw'), 0.01);
+    $this->assertEqualsWithDelta(25000.0, $response->json('data.approved_amount_raw'), 0.01);
+    $this->assertEqualsWithDelta(1250.0, $response->json('data.finance_charge_total_raw'), 0.01);
+    $this->assertEqualsWithDelta(1087.5, $response->json('data.non_finance_charge_total_raw'), 0.01);
+    $this->assertEqualsWithDelta(2337.5, $response->json('data.deductions_total_raw'), 0.01);
 
     // amortizationCount for MONTHLY/12 months = 12. principal 25000/12=2083.33,
     // interest 9000/12=750, savings 2083.33*0.02=41.67 (savings_rate is
@@ -104,8 +111,8 @@ test('non-monthly frequency converts the suggested GNTHP using the x30/14 bi-wee
         ->assertOk();
 
     // net proceeds does not depend on payment frequency at all, so it must
-    // match the MONTHLY case exactly.
-    $this->assertEqualsWithDelta(13662.5, $response->json('data.net_proceeds_raw'), 0.01);
+    // match the MONTHLY case exactly (interest is not deducted from proceeds).
+    $this->assertEqualsWithDelta(22662.5, $response->json('data.net_proceeds_raw'), 0.01);
 
     // BI-WEEKLY amortizationCount = round(12*30/14) = round(25.714...) = 26.
     // principal 25000/26=961.54, interest 9000/26=346.15,
@@ -152,8 +159,8 @@ test('unsaved recommended_payment_frequency override is used instead of the pers
         ->assertOk();
 
     // net proceeds does not depend on payment frequency, so it matches the
-    // MONTHLY-frequency happy-path case exactly.
-    $this->assertEqualsWithDelta(13662.5, $response->json('data.net_proceeds_raw'), 0.01);
+    // MONTHLY-frequency happy-path case exactly (interest not deducted).
+    $this->assertEqualsWithDelta(22662.5, $response->json('data.net_proceeds_raw'), 0.01);
 
     // If the stale persisted MONTHLY value were used instead of the BI-WEEKLY
     // override, this would equal the MONTHLY case's 12125.0 rather than the
@@ -304,7 +311,7 @@ test('missing applicant gross monthly income blocks only the suggested GNTHP fig
         )
         ->assertOk();
 
-    $this->assertEqualsWithDelta(13662.5, $response->json('data.net_proceeds_raw'), 0.01);
+    $this->assertEqualsWithDelta(22662.5, $response->json('data.net_proceeds_raw'), 0.01);
 
     expect($response->json('data.suggested_gnthp_raw'))->toBeNull()
         ->and($response->json('data.failure_information'))->not->toBeNull()
@@ -370,8 +377,9 @@ test('preview accepts Lumpsum frequency, derives the lumpsum month count from th
     // insurance (25000/1000)*12*1.0=300 (a 12-month Lumpsum is not the
     // 1-month waiver case, so insurance still applies), loan security is
     // forced to 0 for any Lumpsum, doc stamp 25000*0.0075=187.5, notarial
-    // fee 100 flat.
-    $this->assertEqualsWithDelta(14162.5, $response->json('data.net_proceeds_raw'), 0.01);
+    // fee 100 flat. Interest is not deducted from proceeds, so net =
+    // 25000 - (1250+300+187.5+100) = 23162.5.
+    $this->assertEqualsWithDelta(23162.5, $response->json('data.net_proceeds_raw'), 0.01);
 });
 
 test('preview zeroes both loan security and insurance for a 1-month Lumpsum', function (): void {
@@ -408,7 +416,9 @@ test('preview zeroes both loan security and insurance for a 1-month Lumpsum', fu
     // interest 25000*0.36/12*1=750, service charge 25000*0.05=1250, doc
     // stamp 25000*0.0075=187.5, notarial fee 100 flat; loan
     // security/insurance are forced to 0 for a 1-month Lumpsum only.
-    $this->assertEqualsWithDelta(22712.5, $response->json('data.net_proceeds_raw'), 0.01);
+    // Interest is not deducted from proceeds, so net =
+    // 25000 - (1250+187.5+100) = 23462.5.
+    $this->assertEqualsWithDelta(23462.5, $response->json('data.net_proceeds_raw'), 0.01);
 });
 
 test('preview rejects Lumpsum frequency without a recommended term to derive the month count from', function (): void {
