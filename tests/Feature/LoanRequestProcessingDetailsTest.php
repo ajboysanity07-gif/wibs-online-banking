@@ -418,9 +418,11 @@ test('processing update round-trips all Charges & Fees fields through save respo
         'penalty_rate_per_month' => '0.02',
     ];
 
-    // Mirrors the full 14-key payload buildInlineProcessingPayload() sends
-    // from the real "Processing details" form, not just the 8 fields under
-    // test, so this exercises the exact shape the frontend submits.
+    // Mirrors the full payload buildInlineProcessingPayload() sends from the
+    // real "Processing details" form (every dataSections.processing field,
+    // not just the 8 under test), so this exercises the exact shape the
+    // frontend submits — including the barangay fields that are always
+    // present in the payload even when the barangay section isn't rendered.
     $payload = [
         'reason' => 'Regression test save',
         'information_source' => 'Automated regression test',
@@ -431,6 +433,9 @@ test('processing update round-trips all Charges & Fees fields through save respo
             'witness_two_name' => null,
             'barangay_official_name' => null,
             'barangay_official_title' => null,
+            'barangay_official_designation' => null,
+            'barangay_agency_name' => null,
+            'barangay_agency_address' => null,
             'guaranteed_net_take_home_pay' => '21333.34',
         ],
         'recommended_amount' => null,
