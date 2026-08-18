@@ -200,6 +200,63 @@ export const LoanRequestDocumentChecklistCard = ({
         }
     };
 
+    const handlePrintDocument = (printHref: string) => {
+        const printWindow = window.open('', '_blank');
+
+        if (printWindow === null) {
+            window.open(printHref, '_blank', 'noopener,noreferrer');
+
+            return;
+        }
+
+        printWindow.document.open();
+        printWindow.document.write(`
+            <!doctype html>
+            <html>
+            <head>
+                <title>Print</title>
+                <style>
+                    html, body {
+                        margin: 0;
+                        padding: 0;
+                        height: 100%;
+                    }
+                    iframe.print-frame {
+                        display: block;
+                        width: 100%;
+                        height: 100%;
+                        border: 0;
+                    }
+                </style>
+            </head>
+            <body>
+                <iframe class="print-frame" src="${printHref}"></iframe>
+                <script>
+                    (() => {
+                        let printed = false;
+
+                        const triggerPrint = () => {
+                            if (printed) {
+                                return;
+                            }
+
+                            printed = true;
+                            window.print();
+                        };
+
+                        const frame = document.querySelector('.print-frame');
+                        frame.addEventListener('load', () => {
+                            setTimeout(triggerPrint, 250);
+                        });
+                        setTimeout(triggerPrint, 4000);
+                    })();
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
     const relaxedEntries = sortedChecklist.filter(
         (document) =>
             document.is_relaxed_old_record &&
@@ -306,9 +363,6 @@ export const LoanRequestDocumentChecklistCard = ({
                             WORKBOOK_DOCUMENT_KEYS.includes(document.key);
                         const previewHref = isWorkbookDocument
                             ? `${viewHref}?preview=1`
-                            : viewHref;
-                        const printDocumentHref = isWorkbookDocument
-                            ? `${viewHref}?print=1`
                             : viewHref;
                         const downloadHref = `${viewHref}?download=1`;
 
@@ -521,17 +575,15 @@ export const LoanRequestDocumentChecklistCard = ({
                                                             Preview
                                                         </a>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem asChild>
-                                                        <a
-                                                            href={
-                                                                printDocumentHref
-                                                            }
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                        >
-                                                            <Printer />
-                                                            Print
-                                                        </a>
+                                                    <DropdownMenuItem
+                                                        onSelect={() => {
+                                                            handlePrintDocument(
+                                                                viewHref,
+                                                            );
+                                                        }}
+                                                    >
+                                                        <Printer />
+                                                        Print
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem asChild>
                                                         <a href={downloadHref}>
