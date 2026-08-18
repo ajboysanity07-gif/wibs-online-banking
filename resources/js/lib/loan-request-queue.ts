@@ -138,5 +138,6 @@ export const buildStaffLoanRequestQueueStatusOptions = (
             value: status,
             label: loanRequestQueueStatusLabels[status],
         })),
+        { value: 'reported', label: 'Reported' },
     ];
 };

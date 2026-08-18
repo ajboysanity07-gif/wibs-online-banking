@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\Role;
 use App\Services\Reports\ReportMetricsService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -33,9 +34,19 @@ class ProcessorDashboardController extends Controller
             ->whereBetween('rejected_at', [$monthStart, $monthEnd])
             ->count();
 
-        $queueData = $metricsService->processorQueue($actor);
+        $isManager = $actor->hasRole(Role::LOAN_MANAGER)
+            && ! $actor->hasRole(Role::LOAN_PROCESSOR);
+
+        if ($isManager) {
+            $queueData = $metricsService->managerQueue($actor);
+            $dashboardRole = 'loan_manager';
+        } else {
+            $queueData = $metricsService->processorQueue($actor);
+            $dashboardRole = 'loan_processor';
+        }
 
         return Inertia::render('staff/processor-dashboard', [
+            'dashboardRole' => $dashboardRole,
             'queueData' => $queueData,
             'thisMonth' => [
                 'approved' => $approvedThisMonth,

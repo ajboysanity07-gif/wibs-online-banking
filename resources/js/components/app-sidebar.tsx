@@ -39,14 +39,14 @@ import {
     loans as clientLoans,
     savings as clientSavings,
 } from '@/routes/client';
-import {
-    index as loanRequestsIndex,
-} from '@/routes/client/loan-requests';
+import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
 import { edit as profileEdit } from '@/routes/profile';
 import { index as staffLoanRequestsIndex } from '@/routes/staff/loan-requests';
 import { index as superadminStaffIndex } from '@/routes/superadmin/staff';
 import type { Auth, NavItem, WorkspaceName } from '@/types';
 import AppLogo from './app-logo';
+import { index as staffMembersIndex } from '@/routes/staff/members';
+import { index as staffReportedRequestsIndex } from '@/routes/staff/reported-requests';
 
 type PageProps = {
     auth: Auth;
@@ -112,7 +112,7 @@ const legacyAdminNavItems = (): NavItem[] => [
     },
 ];
 
-const staffWorkflowNavItems: NavItem[] = [
+const staffWorkflowNavItems = (auth: Auth): NavItem[] => [
     {
         title: 'Loan Workflow',
         href: staffLoanRequestsIndex(),
@@ -120,6 +120,22 @@ const staffWorkflowNavItems: NavItem[] = [
         match: 'section',
         matchPaths: [staffLoanRequestsIndex(), '/staff/loan-requests'],
     },
+    {
+        title: 'Reported Requests',
+        href: staffReportedRequestsIndex(),
+        icon: FileText,
+    },
+    ...(auth.canViewStaffMembers
+        ? [
+              {
+                  title: 'Members',
+                  href: staffMembersIndex(),
+                  icon: Users,
+                  match: 'section' as const,
+                  matchPaths: [staffMembersIndex(), '/staff/members'],
+              },
+          ]
+        : []),
 ];
 
 const footerNavItems: NavItem[] = [
@@ -140,12 +156,13 @@ export function AppSidebar() {
     const activeWorkspace = auth.activeWorkspace;
     const hasMemberWorkspace = auth.availableWorkspaces.includes('member');
     const hasStaffWorkspace = auth.availableWorkspaces.includes('staff');
-    const showMemberNav =
-        activeWorkspace === 'member' && hasMemberWorkspace;
+    const showMemberNav = activeWorkspace === 'member' && hasMemberWorkspace;
     const showStaffNav = activeWorkspace === 'staff' && hasStaffWorkspace;
     const staffWorkspaceItems: NavItem[] = showStaffNav
         ? [
-              ...(auth.canAccessLoanWorkflow ? staffWorkflowNavItems : []),
+              ...(auth.canAccessLoanWorkflow
+                  ? staffWorkflowNavItems(auth)
+                  : []),
               ...(auth.isSuperadmin && auth.hasActiveStaffAccess
                   ? [
                         {
@@ -163,9 +180,7 @@ export function AppSidebar() {
               ...(auth.isAdmin && auth.hasActiveStaffAccess
                   ? legacyAdminNavItems()
                   : []),
-              ...(auth.isAdmin &&
-              auth.isSuperadmin &&
-              auth.hasActiveStaffAccess
+              ...(auth.isAdmin && auth.isSuperadmin && auth.hasActiveStaffAccess
                   ? [
                         {
                             title: 'Organization settings',
@@ -186,12 +201,12 @@ export function AppSidebar() {
             ? clientDashboard()
             : primaryWorkspace === 'staff'
               ? auth.isSuperadmin
-                    ? superadminStaffIndex()
-                    : auth.isAdmin && auth.hasActiveStaffAccess
-                      ? adminDashboard()
-                      : auth.canAccessLoanWorkflow
-                        ? staffLoanRequestsIndex()
-                        : profileEdit()
+                  ? superadminStaffIndex()
+                  : auth.isAdmin && auth.hasActiveStaffAccess
+                    ? adminDashboard()
+                    : auth.canAccessLoanWorkflow
+                      ? staffLoanRequestsIndex()
+                      : profileEdit()
               : workspaceDashboard();
 
     return (

@@ -188,6 +188,50 @@ class ReportMetricsService
     }
 
     /**
+     * @return array{
+     *     queue_count:int,
+     *     aging_count:int,
+     *     aging_threshold_days:int,
+     *     items:list<array{id:int,reference:string,status:string,created_at:string,business_days_in_queue:int,is_aging:bool}>
+     * }
+     */
+    public function managerQueue(AppUser $manager): array
+    {
+        $threshold = (int) config('loan_workflow.report_aging_threshold_days', 3);
+
+        $statuses = [
+            LoanRequestStatus::RecommendedForApproval->value,
+            LoanRequestStatus::AwaitingMemberAcceptance->value,
+        ];
+
+        $requests = LoanRequest::query()
+            ->whereIn('status', $statuses)
+            ->orderBy('created_at')
+            ->get(['id', 'reference', 'status', 'created_at']);
+
+        $items = $requests->map(function (LoanRequest $r) use ($threshold): array {
+            $businessDays = $this->businessDaysSince(Carbon::parse($r->created_at));
+            $isAging = $businessDays >= $threshold;
+
+            return [
+                'id' => (int) $r->id,
+                'reference' => (string) $r->reference,
+                'status' => $this->statusValue($r->status),
+                'created_at' => Carbon::parse($r->created_at)->toDateTimeString(),
+                'business_days_in_queue' => $businessDays,
+                'is_aging' => $isAging,
+            ];
+        })->all();
+
+        return [
+            'queue_count' => count($items),
+            'aging_count' => count(array_filter($items, fn ($i) => $i['is_aging'])),
+            'aging_threshold_days' => $threshold,
+            'items' => array_values($items),
+        ];
+    }
+
+    /**
      * @return \Illuminate\Database\Eloquent\Builder<LoanRequest>
      */
     private function baseQuery(AppUser $actor): \Illuminate\Database\Eloquent\Builder

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Permission;
 use App\Services\LoanRequests\LoanWorkflowWorkspaceService;
 use App\Services\OrganizationSettingsService;
 use Illuminate\Http\Request;
@@ -99,6 +100,7 @@ class HandleInertiaRequests extends Middleware
      *     experience: mixed,
      *     hasActiveStaffAccess: bool,
      *     canAccessLoanWorkflow: bool,
+     *     canViewStaffMembers: bool,
      *     loanWorkflowRoles: array<int, string>,
      *     loanWorkflowPermissions: array<int, string>
      * }
@@ -129,6 +131,7 @@ class HandleInertiaRequests extends Middleware
                 'experience' => $user?->experienceType(),
                 'hasActiveStaffAccess' => $user?->hasActiveStaffAccess() ?? false,
                 'canAccessLoanWorkflow' => $workspaceService->canAccessLoanWorkflow($user),
+                'canViewStaffMembers' => $user?->hasPermission(Permission::MEMBER_VIEW) ?? false,
                 'loanWorkflowRoles' => $workspaceService->workflowRoles($user),
                 'loanWorkflowPermissions' => $workspaceService->workflowPermissions($user),
             ];
@@ -162,6 +165,7 @@ class HandleInertiaRequests extends Middleware
      *     experience: mixed,
      *     hasActiveStaffAccess: bool,
      *     canAccessLoanWorkflow: bool,
+     *     canViewStaffMembers: bool,
      *     loanWorkflowRoles: array<int, string>,
      *     loanWorkflowPermissions: array<int, string>
      * }
@@ -181,6 +185,7 @@ class HandleInertiaRequests extends Middleware
             'experience' => null,
             'hasActiveStaffAccess' => false,
             'canAccessLoanWorkflow' => false,
+            'canViewStaffMembers' => false,
             'loanWorkflowRoles' => [],
             'loanWorkflowPermissions' => [],
         ];

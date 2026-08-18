@@ -87,6 +87,7 @@ class Role extends Model
                 Permission::LOAN_REQUEST_REVISION,
                 Permission::LOAN_REJECT,
                 Permission::LOAN_RECOMMEND_APPROVAL,
+                Permission::MEMBER_VIEW,
                 Permission::REPORT_VIEW_OWN,
             ],
             self::LOAN_MANAGER => [
@@ -96,6 +97,7 @@ class Role extends Model
                 Permission::LOAN_APPROVE,
                 Permission::LOAN_DECLINE,
                 Permission::LOAN_WIBS_ENCODE,
+                Permission::MEMBER_VIEW,
                 Permission::REPORT_VIEW_ALL,
                 Permission::REPORT_EXPORT,
             ],

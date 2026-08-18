@@ -79,6 +79,7 @@ type Props = {
     showRequestHref: (requestId: number) => string;
     summaryHelperText: string;
     showReportedSummary?: boolean;
+    initialStatusFilter?: LoanRequestQueueStatusFilter;
 };
 
 const formatDate = (value?: string | null): string => {
@@ -260,11 +261,12 @@ export function LoanRequestQueuePage({
     showRequestHref,
     summaryHelperText,
     showReportedSummary = false,
+    initialStatusFilter = 'all',
 }: Props) {
     const [search, setSearch] = useState('');
     const [loanType, setLoanType] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] =
-        useState<LoanRequestQueueStatusFilter>('all');
+        useState<LoanRequestQueueStatusFilter>(initialStatusFilter);
     const [assignmentFilter, setAssignmentFilter] = useState<
         'unassigned' | 'mine' | 'all' | null
     >(null);

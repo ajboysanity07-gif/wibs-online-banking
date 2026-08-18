@@ -57,12 +57,15 @@ use App\Http\Controllers\Spa\PasswordRecoveryLookupController as SpaPasswordReco
 use App\Http\Controllers\Spa\PasswordRecoveryPhoneOtpController as SpaPasswordRecoveryPhoneOtpController;
 use App\Http\Controllers\Spa\PasswordRecoveryPhoneResetController as SpaPasswordRecoveryPhoneResetController;
 use App\Http\Controllers\Spa\PasswordRecoveryPhoneVerificationController as SpaPasswordRecoveryPhoneVerificationController;
+use App\Http\Controllers\Spa\Staff\MembersController as SpaStaffMembersController;
 use App\Http\Controllers\Spa\Staff\RequestsController as SpaStaffRequestsController;
 use App\Http\Controllers\Spa\Superadmin\AuditController as SpaSuperadminAuditController;
 use App\Http\Controllers\Spa\Superadmin\StaffController as SpaSuperadminStaffController;
 use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggestionController;
 use App\Http\Controllers\Staff\LoanRequestController as StaffLoanRequestController;
+use App\Http\Controllers\Staff\MembersController as StaffMembersController;
 use App\Http\Controllers\Staff\ProcessorDashboardController;
+use App\Http\Controllers\Staff\ReportedRequestsController as StaffReportedRequestsController;
 use App\Http\Controllers\Staff\WibsTrackingController;
 use App\Http\Controllers\Superadmin\StaffController as SuperadminStaffController;
 use App\Http\Controllers\WorkspaceSwitchController;
@@ -166,6 +169,10 @@ Route::prefix('spa')->middleware('web')->group(function () {
     Route::middleware(['auth', 'verified', 'loan-workflow-staff'])->group(function () {
         Route::get('staff/loan-requests', SpaStaffRequestsController::class)
             ->name('spa.staff.loan-requests.index');
+        Route::get('staff/members', [SpaStaffMembersController::class, 'index'])
+            ->name('spa.staff.members.index');
+        Route::get('staff/members/{member}', [SpaStaffMembersController::class, 'show'])
+            ->name('spa.staff.members.show');
     });
 
     Route::prefix('superadmin')
@@ -408,6 +415,12 @@ Route::get('notifications', NotificationsPageController::class)
 Route::prefix('staff')->middleware(['auth', 'verified', 'loan-workflow-staff'])->group(function () {
     Route::get('processor-dashboard', [ProcessorDashboardController::class, 'index'])
         ->name('staff.processor-dashboard.index');
+
+    Route::get('members', [StaffMembersController::class, 'index'])
+        ->name('staff.members.index');
+
+    Route::get('reported-requests', [StaffReportedRequestsController::class, 'index'])
+        ->name('staff.reported-requests.index');
 
     Route::get('loan-requests', [StaffLoanRequestController::class, 'index'])
         ->name('staff.loan-requests.index');

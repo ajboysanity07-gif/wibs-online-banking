@@ -63,6 +63,7 @@ test('error page shared props bypass db-backed branding and auth lookups', funct
         'experience' => null,
         'hasActiveStaffAccess' => false,
         'canAccessLoanWorkflow' => false,
+        'canViewStaffMembers' => false,
         'loanWorkflowRoles' => [],
         'loanWorkflowPermissions' => [],
     ]);

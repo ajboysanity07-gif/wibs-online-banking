@@ -31,7 +31,10 @@ type ThisMonth = {
     month_label: string;
 };
 
+type DashboardRole = 'loan_processor' | 'loan_manager';
+
 type Props = {
+    dashboardRole: DashboardRole;
     queueData: ProcessorQueueData;
     thisMonth: ThisMonth;
 };
@@ -40,39 +43,67 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'My Dashboard', href: processorDashboardIndex().url },
 ];
 
-export default function ProcessorDashboard({ queueData, thisMonth }: Props) {
+export default function ProcessorDashboard({
+    dashboardRole,
+    queueData,
+    thisMonth,
+}: Props) {
     const agingItems = queueData.items.filter((i) => i.is_aging);
+    const isManager = dashboardRole === 'loan_manager';
+
+    const kicker = isManager ? 'Loan Manager' : 'Loan Processor';
+    const queueLabel = isManager ? 'Awaiting decision' : 'My queue';
+    const queueHelperText = isManager
+        ? 'Applications recommended for approval or awaiting member acceptance'
+        : 'Active assigned applications';
+    const queueDescription = isManager
+        ? 'Applications currently awaiting your approval decision.'
+        : 'All applications currently assigned to you.';
+    const agingHelperText = isManager ? 'the decision queue' : 'your queue';
+    const approvedLabel = 'Approved';
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="My Dashboard" />
             <PageShell size="wide" className="gap-8">
                 <PageHero
-                    kicker="Loan Processor"
+                    kicker={kicker}
                     title="My Dashboard"
-                    description="Your assigned queue and this month's activity."
+                    description="Your queue and this month's activity."
                 />
 
                 <div className="grid gap-4 sm:grid-cols-3">
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
-                            <CardDescription>My queue</CardDescription>
-                            <CardTitle className="text-3xl">{queueData.queue_count}</CardTitle>
+                            <CardDescription>{queueLabel}</CardDescription>
+                            <CardTitle className="text-3xl">
+                                {queueData.queue_count}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground">Active assigned applications</p>
+                            <p className="text-sm text-muted-foreground">
+                                {queueHelperText}
+                            </p>
                         </CardContent>
                     </Card>
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
-                            <CardDescription>Approved — {thisMonth.month_label}</CardDescription>
-                            <CardTitle className="text-3xl">{thisMonth.approved}</CardTitle>
+                            <CardDescription>
+                                {approvedLabel} — {thisMonth.month_label}
+                            </CardDescription>
+                            <CardTitle className="text-3xl">
+                                {thisMonth.approved}
+                            </CardTitle>
                         </CardHeader>
                     </Card>
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
-                            <CardDescription>Rejected — {thisMonth.month_label}</CardDescription>
-                            <CardTitle className="text-3xl">{thisMonth.rejected}</CardTitle>
+                            <CardDescription>
+                                Rejected — {thisMonth.month_label}
+                            </CardDescription>
+                            <CardTitle className="text-3xl">
+                                {thisMonth.rejected}
+                            </CardTitle>
                         </CardHeader>
                     </Card>
                 </div>
@@ -81,10 +112,14 @@ export default function ProcessorDashboard({ queueData, thisMonth }: Props) {
                     <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
                         <AlertTitle>
-                            {agingItems.length} aging application{agingItems.length !== 1 ? 's' : ''}
+                            {agingItems.length} aging application
+                            {agingItems.length !== 1 ? 's' : ''}
                         </AlertTitle>
                         <AlertDescription>
-                            {agingItems.length} application{agingItems.length !== 1 ? 's have' : ' has'} exceeded {queueData.aging_threshold_days} business days in your queue.
+                            {agingItems.length} application
+                            {agingItems.length !== 1 ? 's have' : ' has'}{' '}
+                            exceeded {queueData.aging_threshold_days} business
+                            days in {agingHelperText}.
                         </AlertDescription>
                     </Alert>
                 ) : null}
@@ -92,9 +127,9 @@ export default function ProcessorDashboard({ queueData, thisMonth }: Props) {
                 <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                     <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <CardTitle>My queue</CardTitle>
+                            <CardTitle>{queueLabel}</CardTitle>
                             <CardDescription>
-                                All applications currently assigned to you.
+                                {queueDescription}
                             </CardDescription>
                         </div>
                     </CardHeader>
@@ -107,32 +142,58 @@ export default function ProcessorDashboard({ queueData, thisMonth }: Props) {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="px-6">Reference</TableHead>
-                                        <TableHead className="px-6">Status</TableHead>
-                                        <TableHead className="px-6">Business days</TableHead>
-                                        <TableHead className="px-6">Aging</TableHead>
+                                        <TableHead className="px-6">
+                                            Reference
+                                        </TableHead>
+                                        <TableHead className="px-6">
+                                            Status
+                                        </TableHead>
+                                        <TableHead className="px-6">
+                                            Business days
+                                        </TableHead>
+                                        <TableHead className="px-6">
+                                            Aging
+                                        </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {queueData.items.map((item) => (
-                                        <TableRow key={item.id} className={item.is_aging ? 'bg-destructive/5' : ''}>
+                                        <TableRow
+                                            key={item.id}
+                                            className={
+                                                item.is_aging
+                                                    ? 'bg-destructive/5'
+                                                    : ''
+                                            }
+                                        >
                                             <TableCell className="px-6 font-medium">
                                                 <Link
-                                                    href={loanRequestShow(item.id).url}
+                                                    href={
+                                                        loanRequestShow(item.id)
+                                                            .url
+                                                    }
                                                     className="underline-offset-4 hover:underline"
                                                 >
                                                     {item.reference}
                                                 </Link>
                                             </TableCell>
                                             <TableCell className="px-6">
-                                                <Badge variant="outline">{item.status}</Badge>
+                                                <Badge variant="outline">
+                                                    {item.status}
+                                                </Badge>
                                             </TableCell>
-                                            <TableCell className="px-6">{item.business_days_in_queue}</TableCell>
+                                            <TableCell className="px-6">
+                                                {item.business_days_in_queue}
+                                            </TableCell>
                                             <TableCell className="px-6">
                                                 {item.is_aging ? (
-                                                    <Badge variant="destructive">Aging</Badge>
+                                                    <Badge variant="destructive">
+                                                        Aging
+                                                    </Badge>
                                                 ) : (
-                                                    <Badge variant="secondary">On time</Badge>
+                                                    <Badge variant="secondary">
+                                                        On time
+                                                    </Badge>
                                                 )}
                                             </TableCell>
                                         </TableRow>
