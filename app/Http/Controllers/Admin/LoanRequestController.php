@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\LoanDocumentPackageJobStatus;
 use App\LoanRequestDocumentKey;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
@@ -10,6 +11,7 @@ use App\Models\DocumentAccessLog;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
 use App\Models\Permission;
+use App\Services\LoanRequests\ApprovedLoanDocumentPackageJobService;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanManagerWitnessResolver;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
@@ -22,6 +24,7 @@ use App\Services\LoanRequests\LoanRequestPdfService;
 use App\Services\LoanRequests\LoanRequestService;
 use App\Support\DocumentFilename;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -200,6 +203,77 @@ class LoanRequestController extends Controller
         }
 
         return $documentService->packageZip($loanRequestRecord);
+    }
+
+    public function approvedDocumentsDispatch(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentPackageJobService $packageJobService,
+    ): JsonResponse {
+        $loanRequestRecord = $this->approvedDocumentsPackageJobLoanRequest($loanRequest);
+        $actor = $request->user();
+        abort_unless($actor instanceof AppUser, 403);
+
+        $packageJob = $packageJobService->dispatch($loanRequestRecord, $actor);
+
+        return response()->json([
+            'id' => $packageJob->id,
+            'status' => $packageJob->status->value,
+        ]);
+    }
+
+    public function approvedDocumentsStatus(
+        int $loanRequest,
+        int $packageJob,
+        ApprovedLoanDocumentPackageJobService $packageJobService,
+    ): JsonResponse {
+        $loanRequestRecord = $this->approvedDocumentsPackageJobLoanRequest($loanRequest);
+        $job = $packageJobService->findForLoanRequest($loanRequestRecord, $packageJob);
+
+        if ($job === null) {
+            abort(404);
+        }
+
+        return response()->json([
+            'id' => $job->id,
+            'status' => $job->status->value,
+            'error_message' => $job->status === LoanDocumentPackageJobStatus::Failed
+                ? $job->error_message
+                : null,
+        ]);
+    }
+
+    public function approvedDocumentsDownload(
+        int $loanRequest,
+        int $packageJob,
+        ApprovedLoanDocumentPackageJobService $packageJobService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->approvedDocumentsPackageJobLoanRequest($loanRequest);
+        $job = $packageJobService->findForLoanRequest($loanRequestRecord, $packageJob);
+
+        if ($job === null) {
+            abort(404);
+        }
+
+        return $packageJobService->downloadResponse($job);
+    }
+
+    private function approvedDocumentsPackageJobLoanRequest(int $loanRequest): LoanRequest
+    {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequestRecord);
+        $this->authorizeAdminDocumentAccess($loanRequestRecord);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $loanRequestRecord;
     }
 
     public function applicationFormDocument(

@@ -30,7 +30,9 @@ import { useCreateAdminCorrectedLoanRequest } from '@/hooks/admin/use-create-adm
 import { useDismissLoanRequestCorrectionReport } from '@/hooks/admin/use-dismiss-loan-request-correction-report';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import { useUpdateLoanRequestDecision } from '@/hooks/admin/use-update-loan-request-decision';
+import { useApprovedDocumentPackageDownload } from '@/hooks/loan-request/use-approved-document-package-download';
 import AppLayout from '@/layouts/app-layout';
+import { adminApprovedDocumentPackageApi } from '@/lib/api/approved-document-package';
 import { formatDateTime } from '@/lib/formatters';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import {
@@ -145,6 +147,10 @@ export default function LoanRequestShow({
     const { auth } = usePage<{ auth: Auth }>().props;
     const [currentRequest, setCurrentRequest] =
         useState<LoanRequestDetail>(loanRequest);
+    const packageZipDownload = useApprovedDocumentPackageDownload(
+        currentRequest.id,
+        adminApprovedDocumentPackageApi,
+    );
     const [currentEligibleOfficers, setCurrentEligibleOfficers] =
         useState<LoanRequestAssignmentOfficerOption[]>(eligibleOfficers);
     const [currentApplicant, setCurrentApplicant] =
@@ -833,9 +839,7 @@ export default function LoanRequestShow({
                                         documentKey as LoanRequestDocumentKey,
                                     );
                                 }}
-                                packageZipHref={
-                                    approvedDocumentHrefs?.packageZip ?? null
-                                }
+                                packageZipDownload={packageZipDownload}
                                 lockFinalizedDocuments={[
                                     'approved',
                                     'converted_to_loan',

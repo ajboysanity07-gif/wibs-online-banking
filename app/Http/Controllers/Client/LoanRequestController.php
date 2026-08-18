@@ -9,12 +9,14 @@ use App\Http\Requests\Client\LoanRequestResolveActionRequest;
 use App\Http\Requests\Client\LoanRequestStoreRequest;
 use App\Http\Requests\Client\SaveDraftRequest;
 use App\LoanCivilStatus;
+use App\LoanDocumentPackageJobStatus;
 use App\LoanPaydayOption;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
+use App\Services\LoanRequests\ApprovedLoanDocumentPackageJobService;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
@@ -427,6 +429,94 @@ class LoanRequestController extends Controller
         }
 
         return $documentService->packageZip($loanRequestRecord);
+    }
+
+    public function approvedDocumentsDispatch(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentPackageJobService $packageJobService,
+    ): JsonResponse {
+        $user = $this->authorizeApprovedDocumentsPackageJob($request);
+        $loanRequestRecord = $this->approvedDocumentsPackageJobLoanRequest($user, $loanRequest);
+
+        $packageJob = $packageJobService->dispatch($loanRequestRecord, $user);
+
+        return response()->json([
+            'id' => $packageJob->id,
+            'status' => $packageJob->status->value,
+        ]);
+    }
+
+    public function approvedDocumentsStatus(
+        Request $request,
+        int $loanRequest,
+        int $packageJob,
+        ApprovedLoanDocumentPackageJobService $packageJobService,
+    ): JsonResponse {
+        $user = $this->authorizeApprovedDocumentsPackageJob($request);
+        $loanRequestRecord = $this->approvedDocumentsPackageJobLoanRequest($user, $loanRequest);
+        $job = $packageJobService->findForLoanRequest($loanRequestRecord, $packageJob);
+
+        if ($job === null) {
+            abort(404);
+        }
+
+        return response()->json([
+            'id' => $job->id,
+            'status' => $job->status->value,
+            'error_message' => $job->status === LoanDocumentPackageJobStatus::Failed
+                ? $job->error_message
+                : null,
+        ]);
+    }
+
+    public function approvedDocumentsDownload(
+        Request $request,
+        int $loanRequest,
+        int $packageJob,
+        ApprovedLoanDocumentPackageJobService $packageJobService,
+    ): HttpResponse {
+        $user = $this->authorizeApprovedDocumentsPackageJob($request);
+        $loanRequestRecord = $this->approvedDocumentsPackageJobLoanRequest($user, $loanRequest);
+        $job = $packageJobService->findForLoanRequest($loanRequestRecord, $packageJob);
+
+        if ($job === null) {
+            abort(404);
+        }
+
+        return $packageJobService->downloadResponse($job);
+    }
+
+    private function authorizeApprovedDocumentsPackageJob(Request $request): AppUser
+    {
+        $user = $request->user();
+
+        abort_unless($user instanceof AppUser, 403);
+
+        $user->loadMissing('adminProfile');
+
+        if ($user->isAdminOnly()) {
+            abort(403);
+        }
+
+        return $user;
+    }
+
+    private function approvedDocumentsPackageJobLoanRequest(
+        AppUser $user,
+        int $loanRequestId,
+    ): LoanRequest {
+        $loanRequestRecord = $this->findLoanRequestForUser(
+            $user,
+            $loanRequestId,
+            'approved-documents-package-job',
+        );
+
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $loanRequestRecord;
     }
 
     public function applicationFormDocument(

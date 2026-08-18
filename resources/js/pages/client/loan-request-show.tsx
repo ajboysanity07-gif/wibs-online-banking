@@ -30,10 +30,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useApprovedDocumentPackageDownload } from '@/hooks/loan-request/use-approved-document-package-download';
 import { useCancelMemberLoanRequest } from '@/hooks/use-cancel-member-loan-request';
 import { useResolveMemberLoanRequestAction } from '@/hooks/use-resolve-member-loan-request-action';
 import { useSubmitLoanRequestCorrectionReport } from '@/hooks/use-submit-loan-request-correction-report';
 import AppLayout from '@/layouts/app-layout';
+import { memberApprovedDocumentPackageApi } from '@/lib/api/approved-document-package';
 import { formatDate } from '@/lib/formatters';
 import { dashboard as clientDashboard } from '@/routes/client';
 import {
@@ -113,6 +115,10 @@ export default function LoanRequestShow({
 }: Props) {
     const [currentLoanRequest, setCurrentLoanRequest] =
         useState<LoanRequestDetail>(loanRequest);
+    const packageZipDownload = useApprovedDocumentPackageDownload(
+        currentLoanRequest.id,
+        memberApprovedDocumentPackageApi,
+    );
     const [currentAuditTrail, setCurrentAuditTrail] =
         useState<LoanRequestAuditEntry[]>(auditTrail);
     const [currentDataSections, setCurrentDataSections] =
@@ -706,6 +712,9 @@ export default function LoanRequestShow({
                 backLabel="Back to loan requests"
                 pdfHref={pdfHref}
                 approvedDocumentHrefs={approvedDocumentHrefs}
+                packageZipDownload={
+                    approvedDocumentHrefs ? packageZipDownload : null
+                }
                 correctedRequestHref={correctedRequestHref}
                 auditTrail={currentAuditTrail}
                 auditTrailAudience="member"

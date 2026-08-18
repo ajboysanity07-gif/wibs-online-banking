@@ -12,10 +12,14 @@ use App\Models\OrganizationSetting;
 use App\Models\UserProfile;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\ApprovedLoanImageTemplatePdfService;
+use App\Services\LoanRequests\DisclosureStatementPdfService;
+use App\Services\LoanRequests\LoanRequestPdfService;
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
+use App\Services\LoanRequests\PlanOfPaymentPdfService;
+use App\Services\LoanRequests\PromissoryNotePdfService;
 use App\Support\DocumentFilename;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +40,127 @@ beforeEach(function () {
     approvedLoanDocumentsEnsureWmasterTable();
     approvedLoanDocumentsSeedTemplateFilesForTests();
 });
+
+/**
+ * Text-content assertions here only run against dompdf output: the test
+ * suite's hand-rolled PDF text extractor (approvedLoanDocumentsExtractPdfText
+ * et al.) was written against dompdf's simple, uncompressed content streams
+ * and cannot decode Chromium/Puppeteer's PDF output (compressed object
+ * streams, Type0/CID font encoding) -- confirmed by running it against real
+ * chromium output, which came back garbled. Chromium's structural validity
+ * (parses as a well-formed PDF, correct page count) is checked instead via
+ * FPDI, a real PDF parser already used elsewhere in this suite. Full visual
+ * fidelity between drivers still requires a human render check (no
+ * PDF-to-image tool -- ghostscript/imagemagick/poppler -- is available in
+ * this environment); this test cannot substitute for that.
+ */
+test('chromium driver produces a structurally valid pdf with the same page count as dompdf for every blade-based document', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+        'fullname' => 'Annabelle M. Amora',
+    ]);
+
+    OrganizationSetting::factory()->create([
+        'company_name' => 'Acme Cooperative',
+        'business_address' => 'Poblacion, Tagum City, Davao del Norte',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant)
+        ->firstOrFail()
+        ->update([
+            'first_name' => 'Helario',
+            'middle_name' => 'B.',
+            'last_name' => 'Tejero',
+        ]);
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest);
+    $expectedNeedles = ['HELARIOB.TEJERO', 'ACMECOOPERATIVE'];
+
+    $documentDataServices = [
+        'promissory-note' => app(PromissoryNotePdfService::class),
+        'disclosure-statement' => app(DisclosureStatementPdfService::class),
+        'plan-of-payment' => app(PlanOfPaymentPdfService::class),
+    ];
+
+    foreach ($documentDataServices as $label => $service) {
+        $pageCountByDriver = [];
+
+        foreach (['chromium', 'dompdf'] as $driver) {
+            config()->set('reports.pdf_driver', $driver);
+
+            $path = storage_path("app/tmp/pdf-driver-parity-{$label}-{$driver}.pdf");
+            $service->generate($path, $documentData);
+            $content = File::get($path);
+
+            expect($content)->toStartWith('%PDF');
+
+            if ($driver === 'dompdf') {
+                $text = strtoupper(str_replace(
+                    ' ',
+                    '',
+                    approvedLoanDocumentsExtractPdfTextFromContent($content),
+                ));
+
+                foreach ($expectedNeedles as $needle) {
+                    expect($text)->toContain($needle);
+                }
+            }
+
+            $pageCountByDriver[$driver] = (new Fpdi('P', 'mm'))->setSourceFile($path);
+            File::delete($path);
+        }
+
+        // The promissory note is a known, accepted divergence: Chromium fits
+        // it on 1 page, dompdf spills onto 2 (measured 2026-08-18). Only
+        // sanity-check both render, rather than asserting parity that
+        // doesn't hold -- flip this to a hard equality check if the
+        // underlying layout is ever reconciled between drivers.
+        if ($label === 'promissory-note') {
+            expect($pageCountByDriver['chromium'])->toBeGreaterThan(0);
+            expect($pageCountByDriver['dompdf'])->toBeGreaterThan(0);
+
+            continue;
+        }
+
+        expect($pageCountByDriver['chromium'])->toBe($pageCountByDriver['dompdf']);
+    }
+
+    $loanRequestPdfService = app(LoanRequestPdfService::class);
+    $applicationFormPageCountByDriver = [];
+
+    foreach (['chromium', 'dompdf'] as $driver) {
+        config()->set('reports.pdf_driver', $driver);
+
+        $path = storage_path("app/tmp/pdf-driver-parity-application-form-{$driver}.pdf");
+        $loanRequestPdfService->saveToPath($loanRequest, $path);
+        $content = File::get($path);
+
+        expect($content)->toStartWith('%PDF');
+
+        if ($driver === 'dompdf') {
+            $text = strtoupper(str_replace(
+                ' ',
+                '',
+                approvedLoanDocumentsExtractPdfTextFromContent($content),
+            ));
+
+            foreach ($expectedNeedles as $needle) {
+                expect($text)->toContain($needle);
+            }
+        }
+
+        $applicationFormPageCountByDriver[$driver] = (new Fpdi('P', 'mm'))->setSourceFile($path);
+        File::delete($path);
+    }
+
+    expect($applicationFormPageCountByDriver['chromium'])
+        ->toBe($applicationFormPageCountByDriver['dompdf']);
+})->group('pdf-driver-parity');
 
 function approvedLoanDocumentsEnsureWmasterTable(): void
 {
@@ -2824,6 +2949,157 @@ test('approved document zip omits undertaking-barangay when the borrower has no 
     ]);
 });
 
+test('approved documents package job dispatch creates a queued job and reuses it while active', function () {
+    \Illuminate\Support\Facades\Queue::fake();
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $first = $this
+        ->actingAs($admin)
+        ->post(route('admin.requests.approved-documents.package-jobs.dispatch', $loanRequest));
+
+    $first->assertOk();
+    $first->assertJson(['status' => 'queued']);
+
+    $second = $this
+        ->actingAs($admin)
+        ->post(route('admin.requests.approved-documents.package-jobs.dispatch', $loanRequest));
+
+    $second->assertOk();
+    expect($second->json('id'))->toBe($first->json('id'));
+
+    \Illuminate\Support\Facades\Queue::assertPushed(
+        \App\Jobs\GenerateApprovedLoanDocumentPackageJob::class,
+        1,
+    );
+
+    expect(\App\Models\LoanDocumentPackageJob::query()->count())->toBe(1);
+});
+
+test('approved documents package job status reports failure details', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $packageJob = \App\Models\LoanDocumentPackageJob::create([
+        'loan_request_id' => $loanRequest->id,
+        'status' => \App\LoanDocumentPackageJobStatus::Failed,
+        'error_message' => 'Something went wrong.',
+        'requested_by' => $admin->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.approved-documents.package-jobs.status', [
+            $loanRequest,
+            $packageJob,
+        ]));
+
+    $response->assertOk();
+    $response->assertJson([
+        'id' => $packageJob->id,
+        'status' => 'failed',
+        'error_message' => 'Something went wrong.',
+    ]);
+});
+
+test('approved documents package job status 404s for a package job belonging to a different loan request', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $otherLoanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $packageJob = \App\Models\LoanDocumentPackageJob::create([
+        'loan_request_id' => $otherLoanRequest->id,
+        'status' => \App\LoanDocumentPackageJobStatus::Completed,
+        'requested_by' => $admin->user_id,
+    ]);
+
+    $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.approved-documents.package-jobs.status', [
+            $loanRequest,
+            $packageJob,
+        ]))
+        ->assertNotFound();
+});
+
+test('approved documents package job download 404s while the job is still queued', function () {
+    \Illuminate\Support\Facades\Queue::fake();
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $dispatchResponse = $this
+        ->actingAs($admin)
+        ->post(route('admin.requests.approved-documents.package-jobs.dispatch', $loanRequest));
+
+    $dispatchResponse->assertOk();
+    $packageJobId = $dispatchResponse->json('id');
+
+    $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.approved-documents.package-jobs.download', [
+            $loanRequest,
+            $packageJobId,
+        ]))
+        ->assertNotFound();
+});
+
+test('approved documents package job download streams the same documents as the synchronous zip endpoint once completed', function () {
+    if (! class_exists(\ZipArchive::class)) {
+        $this->markTestSkipped('ZIP extension is required for this test.');
+    }
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    // QUEUE_CONNECTION=sync in tests -- dispatch() below runs the job
+    // synchronously in-process, so the package job is already completed by
+    // the time this request returns. No manual job invocation needed.
+    $dispatchResponse = $this
+        ->actingAs($admin)
+        ->post(route('admin.requests.approved-documents.package-jobs.dispatch', $loanRequest));
+
+    $dispatchResponse->assertOk();
+    $packageJobId = $dispatchResponse->json('id');
+
+    $statusResponse = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.approved-documents.package-jobs.status', [
+            $loanRequest,
+            $packageJobId,
+        ]));
+
+    $statusResponse->assertOk();
+    $statusResponse->assertJson(['status' => 'completed']);
+
+    $downloadResponse = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.approved-documents.package-jobs.download', [
+            $loanRequest,
+            $packageJobId,
+        ]));
+
+    $downloadResponse->assertOk();
+    $downloadResponse->assertHeaderContains('content-type', 'application/zip');
+
+    $jobEntries = approvedLoanDocumentsOpenZipEntriesFromResponse($downloadResponse);
+
+    $syncResponse = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.approved-documents', $loanRequest));
+
+    $syncResponse->assertOk();
+    $syncEntries = approvedLoanDocumentsOpenZipEntriesFromResponse($syncResponse);
+
+    expect(array_keys($jobEntries))->toBe(array_keys($syncEntries));
+});
+
 test('undertaking barangay single-document download 404s when the borrower has no barangay-employment signal', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -3213,7 +3489,13 @@ function approvedLoanDocumentsReadDownloadedFileContent(
 function approvedLoanDocumentsExtractPdfText(
     \Illuminate\Testing\TestResponse $response,
 ): string {
-    $content = approvedLoanDocumentsReadDownloadedFileContent($response);
+    return approvedLoanDocumentsExtractPdfTextFromContent(
+        approvedLoanDocumentsReadDownloadedFileContent($response),
+    );
+}
+
+function approvedLoanDocumentsExtractPdfTextFromContent(string $content): string
+{
     $text = '';
     $cmap = approvedLoanDocumentsParseToUnicodeCMaps($content);
 

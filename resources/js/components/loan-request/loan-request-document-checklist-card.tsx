@@ -7,6 +7,7 @@ import {
     Download,
     Eye,
     Info,
+    Loader2,
     MinusCircle,
     MoreHorizontal,
     PlayCircle,
@@ -119,7 +120,11 @@ export type LoanRequestDocumentChecklistCardProps = {
     isProcessing: boolean;
     onGenerate: (documentKeys: string[]) => Promise<void>;
     onRegenerate: (documentKey: string) => Promise<void>;
-    packageZipHref?: string | null;
+    packageZipDownload?: {
+        isPreparing: boolean;
+        errorMessage: string | null;
+        start: () => void;
+    } | null;
     lockFinalizedDocuments?: boolean;
 };
 
@@ -130,7 +135,7 @@ export const LoanRequestDocumentChecklistCard = ({
     isProcessing,
     onGenerate,
     onRegenerate,
-    packageZipHref = null,
+    packageZipDownload = null,
     lockFinalizedDocuments = false,
 }: LoanRequestDocumentChecklistCardProps) => {
     const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
@@ -688,23 +693,35 @@ export const LoanRequestDocumentChecklistCard = ({
                         );
                     })}
                 </div>
-                {packageZipHref ? (
+                {packageZipDownload ? (
                     <div className="mt-4 border-t border-border/40 pt-4">
                         {allDocumentsGenerated ? (
-                            <Button
-                                asChild
-                                className="h-11 w-full justify-start px-3 shadow-sm"
-                            >
-                                <a
-                                    href={packageZipHref}
-                                    className="flex w-full min-w-0 items-center gap-2"
+                            <div className="space-y-2">
+                                <Button
+                                    type="button"
+                                    disabled={packageZipDownload.isPreparing}
+                                    onClick={packageZipDownload.start}
+                                    className="h-11 w-full justify-start px-3 shadow-sm"
                                 >
-                                    <Download className="size-4 shrink-0" />
-                                    <span className="min-w-0 flex-1 text-left text-sm font-semibold">
-                                        Download All as ZIP
+                                    <span className="flex w-full min-w-0 items-center gap-2">
+                                        {packageZipDownload.isPreparing ? (
+                                            <Loader2 className="size-4 shrink-0 animate-spin" />
+                                        ) : (
+                                            <Download className="size-4 shrink-0" />
+                                        )}
+                                        <span className="min-w-0 flex-1 text-left text-sm font-semibold">
+                                            {packageZipDownload.isPreparing
+                                                ? 'Preparing ZIP…'
+                                                : 'Download All as ZIP'}
+                                        </span>
                                     </span>
-                                </a>
-                            </Button>
+                                </Button>
+                                {packageZipDownload.errorMessage ? (
+                                    <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                                        {packageZipDownload.errorMessage}
+                                    </p>
+                                ) : null}
+                            </div>
                         ) : (
                             <p className="rounded-lg border border-dashed border-border/60 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
                                 Generate every applicable document above to

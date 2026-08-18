@@ -18,6 +18,7 @@ import {
     Heart,
     Home,
     IdCard,
+    Loader2,
     MapPin,
     PencilLine,
     Phone,
@@ -93,6 +94,11 @@ type Props = {
     backLabel: string;
     pdfHref: string;
     approvedDocumentHrefs?: ApprovedDocumentHrefs | null;
+    packageZipDownload?: {
+        isPreparing: boolean;
+        errorMessage: string | null;
+        start: () => void;
+    } | null;
     correctedRequestHref?: string | null;
     auditTrail: LoanRequestAuditEntry[];
     auditTrailAudience?: LoanRequestAuditTrailAudience;
@@ -988,6 +994,7 @@ export function LoanRequestDetailPage({
     backLabel,
     pdfHref,
     approvedDocumentHrefs = null,
+    packageZipDownload = null,
     correctedRequestHref = null,
     auditTrail,
     auditTrailAudience = 'staff',
@@ -1721,7 +1728,40 @@ export function LoanRequestDetailPage({
                                                 </div>
                                             ),
                                         )}
-                                        {approvedDocumentHrefs.packageZip ? (
+                                        {packageZipDownload ? (
+                                            <div className="mt-1 space-y-2">
+                                                <Button
+                                                    type="button"
+                                                    disabled={
+                                                        packageZipDownload.isPreparing
+                                                    }
+                                                    onClick={
+                                                        packageZipDownload.start
+                                                    }
+                                                    className="h-11 w-full justify-start px-3 shadow-sm"
+                                                >
+                                                    <span className="flex w-full min-w-0 items-center gap-2">
+                                                        {packageZipDownload.isPreparing ? (
+                                                            <Loader2 className="size-4 shrink-0 animate-spin" />
+                                                        ) : (
+                                                            <Download className="size-4 shrink-0" />
+                                                        )}
+                                                        <span className="min-w-0 flex-1 text-left text-sm font-semibold">
+                                                            {packageZipDownload.isPreparing
+                                                                ? 'Preparing ZIP…'
+                                                                : 'Download All as ZIP'}
+                                                        </span>
+                                                    </span>
+                                                </Button>
+                                                {packageZipDownload.errorMessage ? (
+                                                    <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                                                        {
+                                                            packageZipDownload.errorMessage
+                                                        }
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        ) : approvedDocumentHrefs.packageZip ? (
                                             <Button
                                                 asChild
                                                 className="mt-1 h-11 w-full justify-start px-3 shadow-sm"

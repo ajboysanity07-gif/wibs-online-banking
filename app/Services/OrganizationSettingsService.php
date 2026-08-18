@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\OrganizationSetting;
 use App\Support\LocationComposer;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -11,6 +12,8 @@ use Throwable;
 
 class OrganizationSettingsService
 {
+    private const CACHE_TTL_SECONDS = 300;
+
     private const DEFAULT_PORTAL_LABEL = 'Member Portal';
 
     private const DEFAULT_LOAN_SMS_APPROVED_TEMPLATE = '{company_name} {portal_label}: Your loan request ({loan_reference}) has been APPROVED for {approved_amount} payable over {approved_term} months and is awaiting processing in WIBS.';
@@ -66,7 +69,13 @@ class OrganizationSettingsService
     public function branding(): array
     {
         try {
-            return $this->mapBranding($this->currentSetting());
+            $setting = $this->currentSetting();
+
+            return Cache::remember(
+                $this->brandingCacheKey($setting),
+                self::CACHE_TTL_SECONDS,
+                fn () => $this->mapBranding($setting),
+            );
         } catch (Throwable $exception) {
             Log::warning('Organization branding lookup failed. Using fallback branding.', [
                 'exception' => $exception::class,
@@ -75,6 +84,18 @@ class OrganizationSettingsService
 
             return $this->fallbackBranding();
         }
+    }
+
+    /**
+     * Keyed by the setting row's own update timestamp so the cache
+     * self-invalidates on any write, no matter what wrote it.
+     */
+    private function brandingCacheKey(?OrganizationSetting $setting): string
+    {
+        return sprintf(
+            'organization-settings.branding:%s',
+            $setting?->updated_at?->timestamp ?? 'none',
+        );
     }
 
     /**
@@ -340,27 +361,37 @@ class OrganizationSettingsService
     public function logoDataUri(): ?string
     {
         $setting = OrganizationSetting::query()->first();
-        $logoPreset = $this->resolveLogoPreset($setting?->logo_preset);
-        $logoPath = $logoPreset === self::LOGO_PRESET_FULL
-            ? $setting?->logo_full_path
-            : $setting?->logo_mark_path;
-        $fallbackAsset = $logoPreset === self::LOGO_PRESET_FULL
-            ? self::LOGO_FULL_ASSET
-            : self::LOGO_MARK_ASSET;
-        $logoSource = $this->resolveLogoContents($logoPath, $fallbackAsset);
 
-        if ($logoSource['contents'] === null) {
-            return null;
-        }
+        return Cache::remember(
+            sprintf(
+                'organization-settings.logo-data-uri:%s',
+                $setting?->updated_at?->timestamp ?? 'none',
+            ),
+            self::CACHE_TTL_SECONDS,
+            function () use ($setting): ?string {
+                $logoPreset = $this->resolveLogoPreset($setting?->logo_preset);
+                $logoPath = $logoPreset === self::LOGO_PRESET_FULL
+                    ? $setting?->logo_full_path
+                    : $setting?->logo_mark_path;
+                $fallbackAsset = $logoPreset === self::LOGO_PRESET_FULL
+                    ? self::LOGO_FULL_ASSET
+                    : self::LOGO_MARK_ASSET;
+                $logoSource = $this->resolveLogoContents($logoPath, $fallbackAsset);
 
-        $mimeType = $this->resolveLogoMimeType(
-            $logoSource['path'] ?? $fallbackAsset,
-        );
+                if ($logoSource['contents'] === null) {
+                    return null;
+                }
 
-        return sprintf(
-            'data:%s;base64,%s',
-            $mimeType,
-            base64_encode($logoSource['contents']),
+                $mimeType = $this->resolveLogoMimeType(
+                    $logoSource['path'] ?? $fallbackAsset,
+                );
+
+                return sprintf(
+                    'data:%s;base64,%s',
+                    $mimeType,
+                    base64_encode($logoSource['contents']),
+                );
+            },
         );
     }
 

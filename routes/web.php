@@ -331,6 +331,27 @@ Route::get(
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.approved-documents');
 
+Route::post(
+    'client/loans/requests/{loanRequest}/approved-documents/package-jobs',
+    [LoanRequestController::class, 'approvedDocumentsDispatch'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.approved-documents.package-jobs.dispatch');
+
+Route::get(
+    'client/loans/requests/{loanRequest}/approved-documents/package-jobs/{packageJob}',
+    [LoanRequestController::class, 'approvedDocumentsStatus'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.approved-documents.package-jobs.status');
+
+Route::get(
+    'client/loans/requests/{loanRequest}/approved-documents/package-jobs/{packageJob}/download',
+    [LoanRequestController::class, 'approvedDocumentsDownload'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.approved-documents.package-jobs.download');
+
 Route::prefix('client/loans/requests/{loanRequest}/documents')
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->group(function () {
@@ -442,6 +463,21 @@ Route::prefix('staff')->middleware(['auth', 'verified', 'loan-workflow-staff'])-
         [StaffLoanRequestController::class, 'approvedDocuments'],
     )->name('staff.loan-requests.approved-documents');
 
+    Route::post(
+        'loan-requests/{loanRequest}/approved-documents/package-jobs',
+        [StaffLoanRequestController::class, 'approvedDocumentsDispatch'],
+    )->name('staff.loan-requests.approved-documents.package-jobs.dispatch');
+
+    Route::get(
+        'loan-requests/{loanRequest}/approved-documents/package-jobs/{packageJob}',
+        [StaffLoanRequestController::class, 'approvedDocumentsStatus'],
+    )->name('staff.loan-requests.approved-documents.package-jobs.status');
+
+    Route::get(
+        'loan-requests/{loanRequest}/approved-documents/package-jobs/{packageJob}/download',
+        [StaffLoanRequestController::class, 'approvedDocumentsDownload'],
+    )->name('staff.loan-requests.approved-documents.package-jobs.download');
+
     Route::get(
         'loan-requests/{loanRequest}/documents/generated/{documentKey}',
         [StaffLoanRequestController::class, 'generatedDocument'],
@@ -549,6 +585,21 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
         'requests/{loanRequest}/approved-documents',
         [AdminLoanRequestController::class, 'approvedDocuments'],
     )->name('admin.requests.approved-documents');
+
+    Route::post(
+        'requests/{loanRequest}/approved-documents/package-jobs',
+        [AdminLoanRequestController::class, 'approvedDocumentsDispatch'],
+    )->name('admin.requests.approved-documents.package-jobs.dispatch');
+
+    Route::get(
+        'requests/{loanRequest}/approved-documents/package-jobs/{packageJob}',
+        [AdminLoanRequestController::class, 'approvedDocumentsStatus'],
+    )->name('admin.requests.approved-documents.package-jobs.status');
+
+    Route::get(
+        'requests/{loanRequest}/approved-documents/package-jobs/{packageJob}/download',
+        [AdminLoanRequestController::class, 'approvedDocumentsDownload'],
+    )->name('admin.requests.approved-documents.package-jobs.download');
 
     Route::prefix('requests/{loanRequest}/documents')->group(function () {
         Route::get('application-form', [AdminLoanRequestController::class, 'applicationFormDocument'])

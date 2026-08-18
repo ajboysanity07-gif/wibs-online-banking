@@ -16,6 +16,7 @@ use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
 use App\Services\OrganizationSettingsService;
 use App\Support\DocumentFilename;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -347,6 +348,27 @@ class ApprovedLoanDocumentService
 
     public function packageZip(LoanRequest $loanRequest): Response
     {
+        $built = $this->buildZipArchive($loanRequest);
+
+        return $this->downloadFile(
+            $built['path'],
+            $built['filename'],
+            'application/zip',
+            $built['workingDirectory'],
+        );
+    }
+
+    /**
+     * Generates every applicable approved-loan document and bundles them
+     * into a ZIP, without streaming a response -- shared by the synchronous
+     * packageZip() download and GenerateApprovedLoanDocumentPackageJob's
+     * queued path. Callers own workingDirectory cleanup on success; on
+     * failure this method cleans up after itself before rethrowing.
+     *
+     * @return array{path: string, filename: string, workingDirectory: string}
+     */
+    public function buildZipArchive(LoanRequest $loanRequest): array
+    {
         $this->ensureApproved($loanRequest);
         $loanRequest->loadMissing(
             'people',
@@ -532,12 +554,11 @@ class ApprovedLoanDocumentService
             throw $exception;
         }
 
-        return $this->downloadFile(
-            $zipPath,
-            $zipFilename,
-            'application/zip',
-            $workingDirectory,
-        );
+        return [
+            'path' => $zipPath,
+            'filename' => $zipFilename,
+            'workingDirectory' => $workingDirectory,
+        ];
     }
 
     /**
@@ -873,10 +894,26 @@ class ApprovedLoanDocumentService
         array $overrides = [],
         bool $allowDefaultFinancialValues = false,
     ): array {
-        return $this->documentDataBuilder->buildDocumentData(
-            $loanRequest,
-            $overrides,
-            $allowDefaultFinancialValues,
+        if ($overrides !== [] || $allowDefaultFinancialValues) {
+            return $this->documentDataBuilder->buildDocumentData(
+                $loanRequest,
+                $overrides,
+                $allowDefaultFinancialValues,
+            );
+        }
+
+        return Cache::remember(
+            sprintf(
+                'approved-loan-document-data:%d:%d',
+                $loanRequest->id,
+                $loanRequest->updated_at?->timestamp ?? 0,
+            ),
+            90,
+            fn () => $this->documentDataBuilder->buildDocumentData(
+                $loanRequest,
+                $overrides,
+                $allowDefaultFinancialValues,
+            ),
         );
     }
 

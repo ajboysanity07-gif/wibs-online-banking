@@ -47,8 +47,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
+import { useApprovedDocumentPackageDownload } from '@/hooks/loan-request/use-approved-document-package-download';
 import AppLayout from '@/layouts/app-layout';
 import { adminApi } from '@/lib/api/admin';
+import { staffApprovedDocumentPackageApi } from '@/lib/api/approved-document-package';
 import { formatDate, formatDateTime } from '@/lib/formatters';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
@@ -286,6 +288,10 @@ export default function StaffLoanRequestShow({
     const { auth } = usePage<{ auth: Auth }>().props;
     const [currentRequest, setCurrentRequest] =
         useState<LoanRequestDetail>(loanRequest);
+    const packageZipDownload = useApprovedDocumentPackageDownload(
+        currentRequest.id,
+        staffApprovedDocumentPackageApi,
+    );
     const [currentApplicant, setCurrentApplicant] =
         useState<LoanRequestPersonData | null>(applicant);
     const [currentCoMakerOne, setCurrentCoMakerOne] =
@@ -1272,9 +1278,7 @@ export default function StaffLoanRequestShow({
                                     documentKey as LoanRequestDocumentKey,
                                 );
                             }}
-                            packageZipHref={
-                                approvedDocumentHrefs?.packageZip ?? null
-                            }
+                            packageZipDownload={packageZipDownload}
                             lockFinalizedDocuments={[
                                 'approved',
                                 'converted_to_loan',
