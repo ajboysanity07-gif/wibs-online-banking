@@ -1307,6 +1307,19 @@ test('generali and generali application form remain applicable for non-Lumpsum f
         ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeTrue();
 });
 
+test('plan of payment, disclosure statement, and promissory note have no template-file blockers', function (): void {
+    // These three render from Blade views (PlanOfPaymentPdfService,
+    // DisclosureStatementPdfService, PromissoryNotePdfService), not from an
+    // on-disk workbook -- template_files was previously left pointing at a
+    // shared xlsx none of them actually read, which uselessly blocked
+    // generation whenever that file was absent (e.g. not synced to prod).
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->templateBlockers(LoanRequestDocumentKey::PlanOfPayment))->toBe([])
+        ->and($catalog->templateBlockers(LoanRequestDocumentKey::DisclosureStatement))->toBe([])
+        ->and($catalog->templateBlockers(LoanRequestDocumentKey::PromissoryNote))->toBe([]);
+});
+
 test('a Lumpsum recommended payment frequency does not block promissory note generation', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,

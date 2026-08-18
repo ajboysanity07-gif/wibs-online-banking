@@ -199,12 +199,9 @@ class LoanRequestDocumentCatalog
                 'co_maker_1.',
                 'co_maker_2.',
             ],
-            'template_files' => [
-                [
-                    'path' => 'storage/app/templates/approved-loan-documents/excel/plan-of-payment-disclosure-promissory-note.xlsx',
-                    'description' => 'Workbook template for plan of payment',
-                ],
-            ],
+            // No template_files: rendered from a Blade view (PlanOfPaymentPdfService),
+            // not from an on-disk workbook, so there's nothing to require here.
+            'template_files' => [],
             'requires_financials' => true,
         ],
         'disclosure_statement' => [
@@ -235,12 +232,9 @@ class LoanRequestDocumentCatalog
                 'loan_request.recommended_payment_frequency',
                 'applicant.',
             ],
-            'template_files' => [
-                [
-                    'path' => 'storage/app/templates/approved-loan-documents/excel/plan-of-payment-disclosure-promissory-note.xlsx',
-                    'description' => 'Workbook template for disclosure statement',
-                ],
-            ],
+            // No template_files: rendered from a Blade view (DisclosureStatementPdfService),
+            // not from an on-disk workbook, so there's nothing to require here.
+            'template_files' => [],
             'requires_financials' => true,
         ],
         'promissory_note' => [
@@ -276,12 +270,9 @@ class LoanRequestDocumentCatalog
                 'co_maker_1.',
                 'co_maker_2.',
             ],
-            'template_files' => [
-                [
-                    'path' => 'storage/app/templates/approved-loan-documents/excel/plan-of-payment-disclosure-promissory-note.xlsx',
-                    'description' => 'Workbook template for promissory note',
-                ],
-            ],
+            // No template_files: rendered from a Blade view (PromissoryNotePdfService),
+            // not from an on-disk workbook, so there's nothing to require here.
+            'template_files' => [],
             'requires_financials' => true,
         ],
         'undertaking_barangay' => [
