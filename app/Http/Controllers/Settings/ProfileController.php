@@ -8,6 +8,7 @@ use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Models\MemberApplicationProfile;
 use App\Models\MemberDependentProfile;
 use App\Services\LoanRequests\DependentsProfileSyncService;
+use App\Services\LoanRequests\LoanRequestService;
 use App\Support\SettingsPageData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,8 +34,11 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request, DependentsProfileSyncService $dependentsSync): RedirectResponse
-    {
+    public function update(
+        ProfileUpdateRequest $request,
+        DependentsProfileSyncService $dependentsSync,
+        LoanRequestService $loanRequestService,
+    ): RedirectResponse {
         $user = $request->user();
         $validated = $request->validated();
 
@@ -114,6 +118,17 @@ class ProfileController extends Controller
             );
 
             $user->setRelation('memberApplicationProfile', $memberProfile);
+
+            // The member profile is the canonical gross monthly income: keep
+            // the applicant snapshot on active loan requests in step so the
+            // income-dependent GNTHP reflects the corrected figure before any
+            // processing-details edit.
+            $loanRequestService->syncApplicantIncomeFromProfile(
+                $user,
+                $memberProfile->gross_monthly_income !== null
+                    ? (float) $memberProfile->gross_monthly_income
+                    : null,
+            );
 
             if ($user->memberApplicationProfileIsComplete()) {
                 return to_route('client.dashboard');

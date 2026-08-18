@@ -56,6 +56,7 @@ class LoanRequestPayloadSerializer
         LoanRequestChange::ACTION_CREATE_CORRECTED_REQUEST => 'Corrected Request Created',
         LoanRequestChange::ACTION_ADMIN_CREATE_CORRECTED_REQUEST => 'Admin-Corrected Request Created',
         LoanRequestChange::ACTION_ADMIN_UPDATE_CORRECTED_REQUEST_DETAILS => 'Corrected Request Updated',
+        LoanRequestChange::ACTION_MEMBER_PROFILE_INCOME_SYNCED => 'Profile Income Synced',
     ];
 
     private const AUDIT_STATUS_LABELS = [

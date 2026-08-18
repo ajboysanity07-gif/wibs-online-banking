@@ -28,6 +28,20 @@ use Illuminate\Validation\ValidationException;
 
 class LoanRequestService
 {
+    /**
+     * Statuses whose loan documents are final, so the applicant income
+     * snapshot must not be overwritten by profile changes.
+     *
+     * @var list<string>
+     */
+    public const INCOME_SYNC_EXCLUDED_STATUSES = [
+        LoanRequestStatus::Rejected->value,
+        LoanRequestStatus::Declined->value,
+        LoanRequestStatus::MemberDeclinedTerms->value,
+        LoanRequestStatus::Cancelled->value,
+        LoanRequestStatus::Released->value,
+    ];
+
     public function __construct(
         private SchemaCapabilities $schemaCapabilities,
         private NotificationRecipientService $notificationRecipients,
@@ -1034,6 +1048,87 @@ class LoanRequestService
             LoanRequestPersonRole::CoMakerTwo,
             $this->extractPersonPayload($payload, 'co_maker_2'),
         );
+    }
+
+    /**
+     * Propagate a member's current gross monthly income from their
+     * application profile onto the applicant snapshot of their active loan
+     * requests, so income-dependent figures (GNTHP) stay in sync before a
+     * staff member ever edits processing details.
+     *
+     * Terminal/released requests are excluded: their documents are final.
+     * Draft requests are updated but never audited (drafts must not create
+     * audit entries).
+     *
+     * @return int Number of applicant snapshots updated.
+     */
+    public function syncApplicantIncomeFromProfile(
+        AppUser $member,
+        ?float $grossMonthlyIncome,
+    ): int {
+        if ($grossMonthlyIncome === null) {
+            return 0;
+        }
+
+        $normalized = $this->normalizeDecimal($grossMonthlyIncome);
+
+        if ($normalized === null) {
+            return 0;
+        }
+
+        $acctno = trim((string) $member->acctno);
+
+        $activeRequests = LoanRequest::query()
+            ->where(fn ($query) => $query
+                ->where('user_id', $member->user_id)
+                ->when($acctno !== '', fn ($query) => $query->orWhere('acctno', $acctno)))
+            ->whereNotIn('status', self::INCOME_SYNC_EXCLUDED_STATUSES)
+            ->with('people')
+            ->get();
+
+        $updated = 0;
+
+        foreach ($activeRequests as $loanRequest) {
+            $applicant = $loanRequest->people
+                ->firstWhere('role', LoanRequestPersonRole::Applicant);
+
+            if ($applicant === null) {
+                continue;
+            }
+
+            $current = $applicant->getAttribute('gross_monthly_income');
+
+            if (
+                $current !== null
+                && abs((float) $current - (float) $normalized) < 0.005
+            ) {
+                continue;
+            }
+
+            $before = $current;
+            $applicant->setAttribute('gross_monthly_income', $normalized);
+            $applicant->save();
+
+            $isDraft = $loanRequest->status instanceof LoanRequestStatus
+                ? $loanRequest->status->value === LoanRequestStatus::Draft->value
+                : (string) $loanRequest->status === LoanRequestStatus::Draft->value;
+
+            if (! $isDraft) {
+                LoanRequestChange::query()->create([
+                    'loan_request_id' => $loanRequest->id,
+                    'changed_by' => $member->user_id,
+                    'action' => LoanRequestChange::ACTION_MEMBER_PROFILE_INCOME_SYNCED,
+                    'reason' => 'Gross monthly income updated in the member profile.',
+                    'before_json' => ['applicant' => ['gross_monthly_income' => $before]],
+                    'after_json' => ['applicant' => ['gross_monthly_income' => $normalized]],
+                    'changed_fields_json' => ['applicant.gross_monthly_income'],
+                ]);
+            }
+
+            $updated++;
+        }
+
+        return $updated;
     }
 
     /**

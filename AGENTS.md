@@ -54,6 +54,7 @@ loan-workflow:send-reminders       Send pending notifications
 loan-workflow:cleanup-temp-files   Remove temp export files
 loan-requests:repair-owners        Fix orphaned request owners
 loan-requests:backfill-health-fields  Backfill health_smoking_status; report item 2e rows for review
+loan-requests:sync-profile-incomes  Sync member profile income onto active loan-request snapshots (dry run; --fix to apply)
 ```
 
 ## Hard Rules

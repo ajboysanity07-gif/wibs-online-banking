@@ -58,6 +58,11 @@ class LoanRequestProcessingService
                 );
             }
 
+            // upsertPeopleSnapshots persists through separate model instances,
+            // so the already-loaded relation holds stale snapshots. Drop it so
+            // the GNTHP preview below re-reads the freshly written income.
+            $lockedLoanRequest->unsetRelation('people');
+
             foreach ([
                 'recommended_amount',
                 'recommended_term',

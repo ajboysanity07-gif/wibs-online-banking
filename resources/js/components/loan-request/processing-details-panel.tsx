@@ -569,6 +569,21 @@ export function ProcessingDetailsPanel({
         };
     }, []);
 
+    // Keep the latest preview function available without making it a
+    // dependency of the income effect below (it is recreated each render).
+    const recalculateGnthpRef = useRef(recalculateGnthp);
+
+    useEffect(() => {
+        recalculateGnthpRef.current = recalculateGnthp;
+    });
+
+    // The applicant's income snapshot can change (member-profile income sync)
+    // without any processing field being edited, so recompute the GNTHP on
+    // mount and whenever the income changes.
+    useEffect(() => {
+        void recalculateGnthpRef.current();
+    }, [applicant?.gross_monthly_income, loanRequest.id]);
+
     // Build the processing payload: booleans are always sent as true/false
     // (never null, which the endpoint rejects); empty text/number fields become
     // null so they can be cleared without failing numeric validation.

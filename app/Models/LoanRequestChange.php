@@ -81,6 +81,8 @@ class LoanRequestChange extends Model
 
     public const ACTION_LOAN_STATUS_WARNING_VIEWED = 'loan_status_warning_viewed';
 
+    public const ACTION_MEMBER_PROFILE_INCOME_SYNCED = 'member_profile_income_synced';
+
     /**
      * @var list<string>
      */
