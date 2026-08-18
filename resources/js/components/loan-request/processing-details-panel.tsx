@@ -278,18 +278,14 @@ const withProcessingChargeDefaults = (
         }
     }
 
-    const currentInsuranceRate = next.insurance_rate;
-    const isInsuranceRateBlank =
-        currentInsuranceRate === null ||
-        currentInsuranceRate === undefined ||
-        `${currentInsuranceRate}`.trim() === '';
+    // Once the applicant falls in a known senior-age band, the rate is
+    // table-driven and no longer a manual entry -- force it to the band
+    // value even if a stale/blank-fallback rate was already saved (e.g. from
+    // before this age-band table existed), rather than only filling blanks.
+    const ageBandedRate = resolveAgeBandedInsuranceRate(applicantBirthdate);
 
-    if (isInsuranceRateBlank) {
-        const ageBandedRate = resolveAgeBandedInsuranceRate(applicantBirthdate);
-
-        if (ageBandedRate !== null) {
-            next = { ...next, insurance_rate: ageBandedRate };
-        }
+    if (ageBandedRate !== null) {
+        next = { ...next, insurance_rate: ageBandedRate };
     }
 
     return next;
@@ -409,6 +405,8 @@ export function ProcessingDetailsPanel({
     > | null>(null);
     const officersUnknown =
         processingForm.processing.authority_to_deduct_officers_unknown === true;
+    const isApplicantInInsuranceAgeBand =
+        resolveAgeBandedInsuranceRate(applicant?.birthdate ?? null) !== null;
 
     useEffect(() => {
         setProcessingForm({
@@ -1013,8 +1011,10 @@ export function ProcessingDetailsPanel({
                             })}
                             {renderProcessingField('insurance_rate', {
                                 onBlur: scheduleGnthpRecalculation,
-                                tooltip:
-                                    "Pesos per ₱1,000 of principal per month, NOT a percentage. Auto-suggested from the applicant's age using the insurer's senior-age bands (66–70 → 2.05, 71–75 → 3.95). Outside those bands the rate must be entered manually. Editable in all cases.",
+                                disabled: isApplicantInInsuranceAgeBand,
+                                tooltip: isApplicantInInsuranceAgeBand
+                                    ? "Pesos per ₱1,000 of principal per month, NOT a percentage. Locked to the insurer's senior-age band rate for this applicant's age (66–70 → 2.05, 71–75 → 3.95)."
+                                    : "Pesos per ₱1,000 of principal per month, NOT a percentage. Applicant is outside the insurer's senior-age bands (66–70 → 2.05, 71–75 → 3.95), so the rate must be entered manually.",
                             })}
                             {renderProcessingField('insurance_term', {
                                 onBlur: scheduleGnthpRecalculation,
