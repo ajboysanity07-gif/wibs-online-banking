@@ -1762,7 +1762,7 @@ class LoanRequestDataService
         $flatValues = $this->loadFlatValues($loanRequest);
         $missing = [];
         $isOneMonthLumpsum = $loanRequest->requested_payment_frequency === LoanPaydayOption::Lumpsum->value
-            && (int) $loanRequest->requested_payment_frequency_lumpsum_months === 1;
+            && (int) $loanRequest->requested_term === 1;
 
         foreach (self::FIELD_DEFINITIONS as $fieldKey => $definition) {
             if (

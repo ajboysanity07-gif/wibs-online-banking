@@ -379,7 +379,6 @@ class LoanRequestDraftRequest extends FormRequest
             'undertaking_accepted' => ['sometimes', 'boolean'],
             'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:23'],
             'requested_payment_frequency' => ['sometimes', 'nullable', 'string', Rule::in(LoanPaydayOption::values())],
-            'requested_payment_frequency_lumpsum_months' => ['sometimes', 'nullable', 'integer', Rule::in([1, 2])],
             'insurance' => ['sometimes', 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship,beneficiary_secondary_birthdate'],
             'insurance.beneficiary_primary_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'insurance.beneficiary_primary_relationship' => ['sometimes', 'nullable', 'string', 'max:255'],

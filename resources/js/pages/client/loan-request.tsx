@@ -103,8 +103,7 @@ type LoanDetailField =
     | 'requested_term'
     | 'loan_purpose'
     | 'availment_status'
-    | 'requested_payment_frequency'
-    | 'requested_payment_frequency_lumpsum_months';
+    | 'requested_payment_frequency';
 
 const applicantBasicFields = new Set([
     'first_name',
@@ -465,9 +464,6 @@ export default function LoanRequestPage({
         loan_purpose: draft?.loan_purpose ?? '',
         availment_status: draft?.availment_status ?? '',
         requested_payment_frequency: draft?.requested_payment_frequency ?? '',
-        requested_payment_frequency_lumpsum_months: toStringValue(
-            draft?.requested_payment_frequency_lumpsum_months,
-        ),
         undertaking_accepted: false,
         applicant: toPersonForm(applicant),
         co_maker_1: toPersonForm(coMakerOne),
@@ -503,7 +499,7 @@ export default function LoanRequestPage({
 
     const isOneMonthLumpsumRequested =
         form.data.requested_payment_frequency === 'Lumpsum' &&
-        form.data.requested_payment_frequency_lumpsum_months === '1';
+        form.data.requested_term === '1';
 
     const skippedStepIds = useMemo(
         () =>

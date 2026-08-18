@@ -817,8 +817,6 @@ class LoanRequestDocumentWorkflowService
         $workingLoanRequest->approved_interest_rate = $overrideInput['recommended_interest_rate'] ?? null;
         $workingLoanRequest->recommended_payment_frequency = $overrideInput['recommended_payment_frequency']
             ?? $loanRequest->recommended_payment_frequency;
-        $workingLoanRequest->recommended_payment_frequency_lumpsum_months = $overrideInput['recommended_payment_frequency_lumpsum_months']
-            ?? $loanRequest->recommended_payment_frequency_lumpsum_months;
         $workingLoanRequest->reviewed_at = $loanRequest->reviewed_at
             ?? $loanRequest->updated_at
             ?? now();

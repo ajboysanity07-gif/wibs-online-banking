@@ -73,7 +73,6 @@ export type LoanRequestProcessingDetailsPayload = {
     recommended_term?: number | string | null;
     recommended_interest_rate?: number | string | null;
     recommended_payment_frequency?: string | null;
-    recommended_payment_frequency_lumpsum_months?: number | string | null;
 };
 
 export type LoanRequestMemberActionPayload = {

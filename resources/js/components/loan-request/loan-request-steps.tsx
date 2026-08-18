@@ -91,16 +91,13 @@ export const OTHER_LOAN_TYPECODE = '01';
 
 const REPAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Lumpsum'] as const;
 
-const LUMPSUM_MONTHS_OPTIONS = ['1', '2'] as const;
-
 type LoanDetailField =
     | 'typecode'
     | 'requested_amount'
     | 'requested_term'
     | 'loan_purpose'
     | 'availment_status'
-    | 'requested_payment_frequency'
-    | 'requested_payment_frequency_lumpsum_months';
+    | 'requested_payment_frequency';
 
 type LoanDetailsProps = {
     data: LoanRequestFormData;
@@ -120,22 +117,8 @@ export function LoanRequestLoanDetailsStep({
     useEffect(() => {
         if (!isOtherLoan && data.requested_payment_frequency) {
             onChange('requested_payment_frequency', '');
-            onChange('requested_payment_frequency_lumpsum_months', '');
         }
     }, [isOtherLoan, data.requested_payment_frequency, onChange]);
-
-    useEffect(() => {
-        if (
-            data.requested_payment_frequency !== 'Lumpsum' &&
-            data.requested_payment_frequency_lumpsum_months
-        ) {
-            onChange('requested_payment_frequency_lumpsum_months', '');
-        }
-    }, [
-        data.requested_payment_frequency,
-        data.requested_payment_frequency_lumpsum_months,
-        onChange,
-    ]);
 
     return (
         <LoanRequestSectionCard
@@ -265,49 +248,13 @@ export function LoanRequestLoanDetailsStep({
 
                 {isOtherLoan &&
                     data.requested_payment_frequency === 'Lumpsum' && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="requested_payment_frequency_lumpsum_months">
-                                Pay in
-                            </Label>
-                            <Select
-                                value={
-                                    data.requested_payment_frequency_lumpsum_months ||
-                                    undefined
-                                }
-                                onValueChange={(value) =>
-                                    onChange(
-                                        'requested_payment_frequency_lumpsum_months',
-                                        value,
-                                    )
-                                }
-                            >
-                                <SelectTrigger
-                                    id="requested_payment_frequency_lumpsum_months"
-                                    className="mt-1 w-full"
-                                >
-                                    <SelectValue placeholder="Select number of months" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {LUMPSUM_MONTHS_OPTIONS.map((option) => (
-                                        <SelectItem key={option} value={option}>
-                                            {option} month
-                                            {option === '1' ? '' : 's'}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <InputError
-                                message={
-                                    errors.requested_payment_frequency_lumpsum_months
-                                }
-                            />
-                            {data.requested_payment_frequency_lumpsum_months ===
-                                '1' && (
-                                <p className="text-sm text-muted-foreground">
-                                    Paying in 1 month skips the insurance and
-                                    health questionnaire steps below.
-                                </p>
-                            )}
+                        <div className="grid gap-2 md:col-span-2">
+                            <p className="text-sm text-muted-foreground">
+                                Lumpsum is repaid as a single payment after the
+                                loan term above.
+                                {data.requested_term === '1' &&
+                                    ' Paying in 1 month skips the insurance and health questionnaire steps below.'}
+                            </p>
                         </div>
                     )}
             </div>
@@ -2442,7 +2389,7 @@ export function LoanRequestReviewStep({
                       label: 'Requested repayment frequency',
                       value:
                           data.requested_payment_frequency === 'Lumpsum'
-                              ? `Lumpsum (${data.requested_payment_frequency_lumpsum_months || '--'} month${data.requested_payment_frequency_lumpsum_months === '1' ? '' : 's'})`
+                              ? `Lumpsum (${data.requested_term || '--'} month${data.requested_term === '1' ? '' : 's'})`
                               : displayText(data.requested_payment_frequency),
                   },
               ]

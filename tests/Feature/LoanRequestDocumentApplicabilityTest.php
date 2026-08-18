@@ -1278,7 +1278,7 @@ test('generali application form is ready when PEP true and Old cycle status both
 test('generali and generali application form are not applicable for a 1-month Lumpsum', function (): void {
     $loanRequest = LoanRequest::factory()->make([
         'recommended_payment_frequency' => 'Lumpsum',
-        'recommended_payment_frequency_lumpsum_months' => 1,
+        'recommended_term' => 1,
     ]);
     $catalog = app(LoanRequestDocumentCatalog::class);
 
@@ -1289,7 +1289,7 @@ test('generali and generali application form are not applicable for a 1-month Lu
 test('generali and generali application form remain applicable for a 2-month-or-longer Lumpsum', function (): void {
     $loanRequest = LoanRequest::factory()->make([
         'recommended_payment_frequency' => 'Lumpsum',
-        'recommended_payment_frequency_lumpsum_months' => 2,
+        'recommended_term' => 2,
     ]);
     $catalog = app(LoanRequestDocumentCatalog::class);
 
@@ -1310,16 +1310,13 @@ test('generali and generali application form remain applicable for non-Lumpsum f
 test('a 1-month Lumpsum zeroes loan security, savings, and insurance, and derives the amortization/maturity month count from the approved term', function (): void {
     // recommended/approved term is the sole source of truth for how many
     // months a Lumpsum payment covers -- amortization count and maturity
-    // date must agree, both driven by the same term (1 month here), even
-    // though the legacy recommended_payment_frequency_lumpsum_months column
-    // is seeded with a stale, mismatched value (12) to prove it's ignored.
+    // date must agree, both driven by the same term (1 month here).
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 24000,
         'recommended_term' => 1,
         'recommended_interest_rate' => 0,
         'recommended_payment_frequency' => 'Lumpsum',
-        'recommended_payment_frequency_lumpsum_months' => 12,
         'approved_amount' => 24000,
         'approved_term' => 1,
         'approved_interest_rate' => 0,
@@ -1362,7 +1359,6 @@ test('a 2-month-or-longer Lumpsum still charges an insurance premium but keeps l
         'recommended_term' => 2,
         'recommended_interest_rate' => 0,
         'recommended_payment_frequency' => 'Lumpsum',
-        'recommended_payment_frequency_lumpsum_months' => 2,
         'approved_amount' => 24000,
         'approved_term' => 2,
         'approved_interest_rate' => 0,

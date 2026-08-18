@@ -492,11 +492,6 @@ export function ProcessingDetailsPanel({
                         processingForm.recommended_interest_rate || null,
                     recommended_payment_frequency:
                         processingForm.recommended_payment_frequency || null,
-                    recommended_payment_frequency_lumpsum_months:
-                        processingForm.recommended_payment_frequency ===
-                        'Lumpsum'
-                            ? processingForm.recommended_term || null
-                            : null,
                     service_charge_rate: numericProcessingFieldValue(
                         processingForm.processing.service_charge_rate,
                     ),
@@ -653,10 +648,6 @@ export function ProcessingDetailsPanel({
                 processingForm.recommended_interest_rate || null,
             recommended_payment_frequency:
                 processingForm.recommended_payment_frequency || null,
-            recommended_payment_frequency_lumpsum_months:
-                processingForm.recommended_payment_frequency === 'Lumpsum'
-                    ? processingForm.recommended_term || null
-                    : null,
         });
 
         if (result) {

@@ -117,7 +117,7 @@ test('processing update rejects a non-canonical recommended_payment_frequency va
         ->assertJsonValidationErrors(['recommended_payment_frequency']);
 });
 
-test('processing update accepts Lumpsum frequency with a lumpsum month count and rejects it without one', function (): void {
+test('processing update rejects Lumpsum without a recommended term', function (): void {
     $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
     $member = createProcessingActor([Role::MEMBER], '950005');
 
@@ -151,17 +151,20 @@ test('processing update accepts Lumpsum frequency with a lumpsum month count and
             $basePayload,
         )
         ->assertStatus(422)
-        ->assertJsonValidationErrors(['recommended_payment_frequency_lumpsum_months']);
+        ->assertJsonValidationErrors(['recommended_term']);
 
     $this
         ->actingAs($processor)
         ->patchJson(
             route('spa.workflow.loan-requests.processing-details', $loanRequest),
-            [...$basePayload, 'recommended_payment_frequency_lumpsum_months' => 2],
+            [
+                ...$basePayload,
+                'recommended_term' => 2,
+            ],
         )
         ->assertOk();
 
-    expect($loanRequest->fresh()->recommended_payment_frequency_lumpsum_months)->toBe(2);
+    expect($loanRequest->fresh()->recommended_term)->toBe(2);
 });
 
 test('processing update rejects the removed doc/page/book/series/valid-id notarization keys', function (): void {

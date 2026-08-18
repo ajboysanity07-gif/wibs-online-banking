@@ -346,7 +346,7 @@ test('preview accepts Lumpsum frequency, derives the lumpsum month count from th
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'assigned_officer_id' => $processor->user_id,
         'recommended_payment_frequency' => 'Lumpsum',
-        'recommended_payment_frequency_lumpsum_months' => 1,
+        'recommended_term' => 1,
         'submitted_at' => now(),
     ]);
 
@@ -362,9 +362,6 @@ test('preview accepts Lumpsum frequency, derives the lumpsum month count from th
             [
                 ...previewChargesOverridePayload(),
                 'recommended_payment_frequency' => 'Lumpsum',
-                // Deliberately mismatched -- the server must ignore this and
-                // derive the months from recommended_term (12) instead.
-                'recommended_payment_frequency_lumpsum_months' => 1,
             ],
         )
         ->assertOk();
@@ -386,7 +383,7 @@ test('preview zeroes both loan security and insurance for a 1-month Lumpsum', fu
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'assigned_officer_id' => $processor->user_id,
         'recommended_payment_frequency' => 'Lumpsum',
-        'recommended_payment_frequency_lumpsum_months' => 1,
+        'recommended_term' => 1,
         'submitted_at' => now(),
     ]);
 
@@ -437,7 +434,7 @@ test('preview rejects Lumpsum frequency without a recommended term to derive the
                 'recommended_payment_frequency' => 'Lumpsum',
             ],
         )
-        ->assertInvalid(['recommended_payment_frequency_lumpsum_months']);
+        ->assertInvalid(['recommended_term']);
 });
 
 /**

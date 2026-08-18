@@ -200,14 +200,14 @@ class LoanRequestDecisionService
         // data there is out of scope for this guardrail.
         if (! $this->isOneMonthLumpsum(
             $loanRequest->requested_payment_frequency,
-            $loanRequest->requested_payment_frequency_lumpsum_months,
+            $loanRequest->requested_term,
         )) {
             return false;
         }
 
         if ($this->isOneMonthLumpsum(
             $loanRequest->recommended_payment_frequency,
-            $loanRequest->recommended_payment_frequency_lumpsum_months,
+            $loanRequest->recommended_term,
         )) {
             return false;
         }
@@ -223,10 +223,10 @@ class LoanRequestDecisionService
             ->exists();
     }
 
-    private function isOneMonthLumpsum(?string $frequency, int|string|null $months): bool
+    private function isOneMonthLumpsum(?string $frequency, int|string|null $term): bool
     {
         return $frequency === LoanPaydayOption::Lumpsum->value
-            && (int) $months === 1;
+            && (int) $term === 1;
     }
 
     public function approvalBlockedMessage(

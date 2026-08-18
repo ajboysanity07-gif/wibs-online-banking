@@ -185,13 +185,12 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'processing.applicant_cycle_status' => ['sometimes', 'nullable', 'string', Rule::in(['New', 'Old'])],
             'processing.applicant_cycle_number' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'recommended_amount' => ['sometimes', 'nullable', 'numeric', 'min:1'],
-            'recommended_term' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:360'],
+            'recommended_term' => [
+                Rule::requiredIf(fn (): bool => $this->input('recommended_payment_frequency') === LoanPaydayOption::Lumpsum->value),
+                'nullable', 'integer', 'min:1', 'max:360',
+            ],
             'recommended_interest_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'recommended_payment_frequency' => ['sometimes', 'nullable', 'string', Rule::in(LoanPaydayOption::values())],
-            'recommended_payment_frequency_lumpsum_months' => [
-                Rule::requiredIf(fn (): bool => $this->input('recommended_payment_frequency') === LoanPaydayOption::Lumpsum->value),
-                'nullable', 'integer', Rule::in([1, 2]),
-            ],
         ];
     }
 

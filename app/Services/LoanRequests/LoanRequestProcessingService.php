@@ -63,7 +63,6 @@ class LoanRequestProcessingService
                 'recommended_term',
                 'recommended_interest_rate',
                 'recommended_payment_frequency',
-                'recommended_payment_frequency_lumpsum_months',
             ] as $field) {
                 if (array_key_exists($field, $payload)) {
                     $lockedLoanRequest->setAttribute($field, $payload[$field]);

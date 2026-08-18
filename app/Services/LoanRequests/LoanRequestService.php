@@ -995,7 +995,6 @@ class LoanRequestService
             'loan_purpose' => $loanRequest->loan_purpose ?? '',
             'availment_status' => $loanRequest->availment_status ?? '',
             'requested_payment_frequency' => $loanRequest->requested_payment_frequency,
-            'requested_payment_frequency_lumpsum_months' => $loanRequest->requested_payment_frequency_lumpsum_months,
         ], $payload);
 
         $typecode = (string) ($payload['typecode'] ?? '');
@@ -1008,9 +1007,6 @@ class LoanRequestService
         $loanRequest->availment_status = (string) ($payload['availment_status'] ?? '');
         $loanRequest->requested_payment_frequency = $payload['requested_payment_frequency'] !== null
             ? (string) $payload['requested_payment_frequency']
-            : null;
-        $loanRequest->requested_payment_frequency_lumpsum_months = $payload['requested_payment_frequency_lumpsum_months'] !== null
-            ? (int) $payload['requested_payment_frequency_lumpsum_months']
             : null;
     }
 
@@ -1168,7 +1164,6 @@ class LoanRequestService
      *     loan_purpose: string|null,
      *     availment_status: string|null,
      *     requested_payment_frequency: string|null,
-     *     requested_payment_frequency_lumpsum_months: int|string|null,
      *     submitted_at: string|null,
      *     updated_at: string|null
      * }
@@ -1212,7 +1207,6 @@ class LoanRequestService
             'loan_purpose' => $loanPurpose,
             'availment_status' => $availmentStatus,
             'requested_payment_frequency' => $requestedPaymentFrequency,
-            'requested_payment_frequency_lumpsum_months' => $loanRequest->requested_payment_frequency_lumpsum_months,
             'submitted_at' => $loanRequest->submitted_at?->toDateTimeString(),
             'updated_at' => $loanRequest->updated_at?->toDateTimeString(),
         ];

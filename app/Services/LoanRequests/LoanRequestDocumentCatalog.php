@@ -671,7 +671,7 @@ class LoanRequestDocumentCatalog
     private function isOneMonthLumpsum(LoanRequest $loanRequest): bool
     {
         return $loanRequest->recommended_payment_frequency === LoanPaydayOption::Lumpsum->value
-            && (int) $loanRequest->recommended_payment_frequency_lumpsum_months === 1;
+            && (int) $loanRequest->recommended_term === 1;
     }
 
     /**

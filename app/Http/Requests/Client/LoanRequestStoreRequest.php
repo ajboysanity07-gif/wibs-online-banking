@@ -253,7 +253,7 @@ class LoanRequestStoreRequest extends FormRequest
     private function isOneMonthLumpsumRequested(): bool
     {
         return $this->input('requested_payment_frequency') === LoanPaydayOption::Lumpsum->value
-            && (int) $this->input('requested_payment_frequency_lumpsum_months') === 1;
+            && (int) $this->input('requested_term') === 1;
     }
 
     /**
@@ -465,12 +465,6 @@ class LoanRequestStoreRequest extends FormRequest
                         $fail('Lumpsum payment frequency is only available for Other Loan applications.');
                     }
                 },
-            ],
-            'requested_payment_frequency_lumpsum_months' => [
-                Rule::requiredIf(fn () => $this->input('requested_payment_frequency') === LoanPaydayOption::Lumpsum->value),
-                'nullable',
-                'integer',
-                Rule::in([1, 2]),
             ],
             'insurance' => [$insuranceRequired, 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship,beneficiary_secondary_birthdate'],
             'insurance.beneficiary_primary_name' => [$insuranceRequired, 'string', 'max:255'],
