@@ -86,10 +86,40 @@ const PAYMENT_OPTION_OPTIONS = [
 ] as const;
 const ACCOUNT_TYPE_OPTIONS = ['Savings', 'Checking'] as const;
 
-/** wlntype.typecode for "Other Loan" -- the only type eligible for Lumpsum. */
+/** wlntype.typecode for "Other Loan" -- the only type eligible for Lump sum. */
 export const OTHER_LOAN_TYPECODE = '01';
 
-const REPAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Lumpsum'] as const;
+const REPAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Lump sum'] as const;
+
+const KIND_OF_LOAN_OPTIONS = ['Regular', 'Emergency'] as const;
+
+/** wlntype.lntype label match for "Micro Business Loan" -- no fixed typecode. */
+const MICRO_BUSINESS_LOAN_LABEL = 'MICRO BUSINESS LOAN';
+
+/** Loan type abbreviations shown alongside the kind-of-loan selection. */
+const LOAN_TYPE_ABBREVIATIONS: Record<string, string> = {
+    [MICRO_BUSINESS_LOAN_LABEL]: 'MBL',
+};
+
+function isMicroBusinessLoanLabel(label?: string | null): boolean {
+    return (label ?? '').trim().toUpperCase() === MICRO_BUSINESS_LOAN_LABEL;
+}
+
+export function resolveLoanTypeAbbreviation(
+    label?: string | null,
+    kindOfLoan?: string | null,
+): string | null {
+    const abbreviation =
+        LOAN_TYPE_ABBREVIATIONS[(label ?? '').trim().toUpperCase()];
+
+    if (!abbreviation) {
+        return null;
+    }
+
+    return kindOfLoan === 'Emergency'
+        ? `${abbreviation}-Emergency`
+        : abbreviation;
+}
 
 type LoanDetailField =
     | 'typecode'
@@ -97,7 +127,8 @@ type LoanDetailField =
     | 'requested_term'
     | 'loan_purpose'
     | 'availment_status'
-    | 'requested_payment_frequency';
+    | 'requested_payment_frequency'
+    | 'kind_of_loan';
 
 type LoanDetailsProps = {
     data: LoanRequestFormData;
@@ -113,12 +144,26 @@ export function LoanRequestLoanDetailsStep({
     onChange,
 }: LoanDetailsProps) {
     const isOtherLoan = data.typecode === OTHER_LOAN_TYPECODE;
+    const selectedLoanTypeLabel =
+        loanTypes.find((option) => option.typecode === data.typecode)?.label ??
+        null;
+    const isMicroBusinessLoan = isMicroBusinessLoanLabel(selectedLoanTypeLabel);
+    const loanTypeAbbreviation = resolveLoanTypeAbbreviation(
+        selectedLoanTypeLabel,
+        data.kind_of_loan,
+    );
 
     useEffect(() => {
         if (!isOtherLoan && data.requested_payment_frequency) {
             onChange('requested_payment_frequency', '');
         }
     }, [isOtherLoan, data.requested_payment_frequency, onChange]);
+
+    useEffect(() => {
+        if (!isMicroBusinessLoan && data.kind_of_loan) {
+            onChange('kind_of_loan', '');
+        }
+    }, [isMicroBusinessLoan, data.kind_of_loan, onChange]);
 
     return (
         <LoanRequestSectionCard
@@ -148,6 +193,41 @@ export function LoanRequestLoanDetailsStep({
                     </Select>
                     <InputError message={errors.typecode} />
                 </div>
+
+                {isMicroBusinessLoan && (
+                    <div className="grid gap-2">
+                        <Label htmlFor="kind_of_loan">Kind of loan</Label>
+                        <Select
+                            value={data.kind_of_loan || undefined}
+                            onValueChange={(value) =>
+                                onChange('kind_of_loan', value)
+                            }
+                        >
+                            <SelectTrigger
+                                id="kind_of_loan"
+                                className="mt-1 w-full"
+                            >
+                                <SelectValue placeholder="Select kind of loan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {KIND_OF_LOAN_OPTIONS.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                        {option}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.kind_of_loan} />
+                        {loanTypeAbbreviation && (
+                            <p className="text-xs text-muted-foreground">
+                                Shown as{' '}
+                                <Badge variant="secondary">
+                                    {loanTypeAbbreviation}
+                                </Badge>
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 <div className="grid gap-2">
                     <Label htmlFor="requested_amount">Requested amount</Label>
@@ -247,10 +327,10 @@ export function LoanRequestLoanDetailsStep({
                 )}
 
                 {isOtherLoan &&
-                    data.requested_payment_frequency === 'Lumpsum' && (
+                    data.requested_payment_frequency === 'Lump sum' && (
                         <div className="grid gap-2 md:col-span-2">
                             <p className="text-sm text-muted-foreground">
-                                Lumpsum is repaid as a single payment after the
+                                Lump sum is repaid as a single payment after the
                                 loan term above.
                                 {data.requested_term === '1' &&
                                     ' Paying in 1 month skips the insurance and health questionnaire steps below.'}
@@ -2363,13 +2443,30 @@ export function LoanRequestReviewStep({
     const loanTypeLabel =
         loanTypes.find((type) => type.typecode === data.typecode)?.label ??
         data.typecode;
+    const loanTypeAbbreviation = resolveLoanTypeAbbreviation(
+        loanTypeLabel,
+        data.kind_of_loan,
+    );
     const requestedAmount =
         data.requested_amount !== ''
             ? formatCurrency(Number(data.requested_amount))
             : '--';
 
     const loanSummary: SummaryItem[] = [
-        { label: 'Loan type', value: displayText(loanTypeLabel || '') },
+        {
+            label: 'Loan type',
+            value: loanTypeAbbreviation
+                ? `${displayText(loanTypeLabel || '')} (${loanTypeAbbreviation})`
+                : displayText(loanTypeLabel || ''),
+        },
+        ...(isMicroBusinessLoanLabel(loanTypeLabel)
+            ? [
+                  {
+                      label: 'Kind of loan',
+                      value: displayValue(data.kind_of_loan),
+                  },
+              ]
+            : []),
         { label: 'Requested amount', value: requestedAmount },
         {
             label: 'Requested term',
@@ -2388,8 +2485,8 @@ export function LoanRequestReviewStep({
                   {
                       label: 'Requested repayment frequency',
                       value:
-                          data.requested_payment_frequency === 'Lumpsum'
-                              ? `Lumpsum (${data.requested_term || '--'} month${data.requested_term === '1' ? '' : 's'})`
+                          data.requested_payment_frequency === 'Lump sum'
+                              ? `Lump sum (${data.requested_term || '--'} month${data.requested_term === '1' ? '' : 's'})`
                               : displayText(data.requested_payment_frequency),
                   },
               ]

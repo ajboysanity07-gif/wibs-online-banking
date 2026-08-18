@@ -33,6 +33,12 @@ class LoanRequestStoreRequest extends FormRequest
     private const OTHER_LOAN_TYPECODE = '01';
 
     /**
+     * wlntype.lntype label match for "Micro Business Loan" -- the only loan
+     * type that collects a Regular/Emergency kind_of_loan.
+     */
+    private const MICRO_BUSINESS_LOAN_LABEL = 'MICRO BUSINESS LOAN';
+
+    /**
      * GLAPI (Generali) 17-item health questionnaire field keys. Not required
      * on submit yet -- see LoanRequestDraftRequest for the rationale (mirrors
      * that request).
@@ -285,6 +291,26 @@ class LoanRequestStoreRequest extends FormRequest
     }
 
     /**
+     * Checks the submitted typecode against wlntype's "Micro Business Loan"
+     * row by label -- there is no fixed typecode for it like OTHER_LOAN_TYPECODE.
+     */
+    private function isMicroBusinessLoanType(): bool
+    {
+        $typecode = $this->input('typecode');
+
+        if ($typecode === null
+            || ! Schema::hasTable('wlntype')
+            || ! Schema::hasColumn('wlntype', 'typecode')
+        ) {
+            return false;
+        }
+
+        $label = Wlntype::query()->where('typecode', $typecode)->value('lntype');
+
+        return $label !== null && strtoupper(trim((string) $label)) === self::MICRO_BUSINESS_LOAN_LABEL;
+    }
+
+    /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     private function dependentsRules(): array
@@ -462,9 +488,15 @@ class LoanRequestStoreRequest extends FormRequest
                 Rule::in(LoanPaydayOption::values()),
                 function (string $attribute, mixed $value, \Closure $fail): void {
                     if ($value === LoanPaydayOption::Lumpsum->value && ! $this->isOtherLoanType()) {
-                        $fail('Lumpsum payment frequency is only available for Other Loan applications.');
+                        $fail('Lump sum payment frequency is only available for Other Loan applications.');
                     }
                 },
+            ],
+            'kind_of_loan' => [
+                Rule::requiredIf(fn () => $this->isMicroBusinessLoanType()),
+                'nullable',
+                'string',
+                Rule::in(['Regular', 'Emergency']),
             ],
             'insurance' => [$insuranceRequired, 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship,beneficiary_secondary_birthdate'],
             'insurance.beneficiary_primary_name' => [$insuranceRequired, 'string', 'max:255'],

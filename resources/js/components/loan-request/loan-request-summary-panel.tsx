@@ -1,4 +1,5 @@
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
+import { resolveLoanTypeAbbreviation } from '@/components/loan-request/loan-request-steps';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
@@ -68,6 +69,10 @@ export function LoanRequestSummaryPanel({
     const loanTypeLabel =
         loanTypes.find((type) => type.typecode === data.typecode)?.label ??
         data.typecode;
+    const loanTypeAbbreviation = resolveLoanTypeAbbreviation(
+        loanTypeLabel,
+        data.kind_of_loan,
+    );
     const requestedAmount =
         data.requested_amount.trim() !== ''
             ? formatCurrency(Number(data.requested_amount))
@@ -104,7 +109,11 @@ export function LoanRequestSummaryPanel({
                     <div className="space-y-2">
                         <SummaryRow
                             label="Loan type"
-                            value={displayText(loanTypeLabel)}
+                            value={
+                                loanTypeAbbreviation
+                                    ? `${displayText(loanTypeLabel)} (${loanTypeAbbreviation})`
+                                    : displayText(loanTypeLabel)
+                            }
                         />
                         <SummaryRow
                             label="Requested amount"

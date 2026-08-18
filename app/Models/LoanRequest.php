@@ -61,6 +61,7 @@ class LoanRequest extends Model
         'recommended_interest_rate',
         'recommended_payment_frequency',
         'requested_payment_frequency',
+        'kind_of_loan',
         'decision_notes',
         'declined_by',
         'declined_at',

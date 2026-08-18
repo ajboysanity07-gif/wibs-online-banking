@@ -995,6 +995,7 @@ class LoanRequestService
             'loan_purpose' => $loanRequest->loan_purpose ?? '',
             'availment_status' => $loanRequest->availment_status ?? '',
             'requested_payment_frequency' => $loanRequest->requested_payment_frequency,
+            'kind_of_loan' => $loanRequest->kind_of_loan,
         ], $payload);
 
         $typecode = (string) ($payload['typecode'] ?? '');
@@ -1007,6 +1008,9 @@ class LoanRequestService
         $loanRequest->availment_status = (string) ($payload['availment_status'] ?? '');
         $loanRequest->requested_payment_frequency = $payload['requested_payment_frequency'] !== null
             ? (string) $payload['requested_payment_frequency']
+            : null;
+        $loanRequest->kind_of_loan = $payload['kind_of_loan'] !== null
+            ? (string) $payload['kind_of_loan']
             : null;
     }
 
@@ -1164,6 +1168,7 @@ class LoanRequestService
      *     loan_purpose: string|null,
      *     availment_status: string|null,
      *     requested_payment_frequency: string|null,
+     *     kind_of_loan: string|null,
      *     submitted_at: string|null,
      *     updated_at: string|null
      * }
@@ -1179,6 +1184,10 @@ class LoanRequestService
         $availmentStatus = $this->normalizeDraftString($loanRequest->availment_status, $isDraft);
         $requestedPaymentFrequency = $this->normalizeDraftString(
             $loanRequest->requested_payment_frequency,
+            $isDraft,
+        );
+        $kindOfLoan = $this->normalizeDraftString(
+            $loanRequest->kind_of_loan,
             $isDraft,
         );
         $loanTypeLabel = $this->normalizeDraftString(
@@ -1207,6 +1216,7 @@ class LoanRequestService
             'loan_purpose' => $loanPurpose,
             'availment_status' => $availmentStatus,
             'requested_payment_frequency' => $requestedPaymentFrequency,
+            'kind_of_loan' => $kindOfLoan,
             'submitted_at' => $loanRequest->submitted_at?->toDateTimeString(),
             'updated_at' => $loanRequest->updated_at?->toDateTimeString(),
         ];

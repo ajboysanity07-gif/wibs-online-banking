@@ -413,6 +413,7 @@ export type LoanRequestDetail = {
     loan_purpose: string | null;
     availment_status: string | null;
     requested_payment_frequency: string | null;
+    kind_of_loan: string | null;
     submitted_at: string | null;
     assigned_officer_id: number | string | null;
     assigned_processor_id: number | string | null;
@@ -507,6 +508,7 @@ export type LoanRequestDraft = {
     loan_purpose: string | null;
     availment_status: string | null;
     requested_payment_frequency: string | null;
+    kind_of_loan: string | null;
     submitted_at: string | null;
     updated_at: string | null;
 };
@@ -564,6 +566,7 @@ export type LoanRequestFormData = {
     loan_purpose: string;
     availment_status: string;
     requested_payment_frequency: string;
+    kind_of_loan: string;
     undertaking_accepted: boolean;
     applicant: LoanRequestPersonFormData;
     co_maker_1: LoanRequestPersonFormData;
