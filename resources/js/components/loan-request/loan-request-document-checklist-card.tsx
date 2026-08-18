@@ -402,13 +402,44 @@ export const LoanRequestDocumentChecklistCard = ({
                                     </div>
                                     <div className="flex shrink-0 items-center gap-2">
                                         {missingFieldCount > 0 ? (
-                                            <span className="text-xs text-muted-foreground">
-                                                {missingFieldCount} field
-                                                {missingFieldCount === 1
-                                                    ? ''
-                                                    : 's'}{' '}
-                                                missing
-                                            </span>
+                                            <TooltipProvider delayDuration={0}>
+                                                <Tooltip>
+                                                    <TooltipTrigger
+                                                        type="button"
+                                                        className="cursor-default"
+                                                    >
+                                                        <span className="text-xs text-muted-foreground underline decoration-dotted underline-offset-2">
+                                                            {missingFieldCount}{' '}
+                                                            field
+                                                            {missingFieldCount ===
+                                                            1
+                                                                ? ''
+                                                                : 's'}{' '}
+                                                            missing
+                                                        </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent
+                                                        align="end"
+                                                        className="max-w-64"
+                                                    >
+                                                        <ul className="list-disc pl-4 text-left">
+                                                            {document.blockers.map(
+                                                                (blocker) => (
+                                                                    <li
+                                                                        key={
+                                                                            blocker
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            blocker
+                                                                        }
+                                                                    </li>
+                                                                ),
+                                                            )}
+                                                        </ul>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
                                         ) : null}
                                         {hasMetadata ? (
                                             <Popover>
