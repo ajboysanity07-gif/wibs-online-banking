@@ -712,6 +712,190 @@ test('loan processor correcting an unassigned request becomes its assigned offic
     expect($loanRequest->refresh()->status)->toBe(LoanRequestStatus::RecommendedForApproval);
 });
 
+function correctedWorkflowFullPersonPayload(): array
+{
+    return [
+        'applicant' => [
+            'first_name' => 'Corrected',
+            'last_name' => 'Applicant',
+            'middle_name' => 'A',
+            'nickname' => 'CA',
+            'birthdate' => '1990-04-10',
+            'birthplace_city' => 'Manila',
+            'birthplace_province' => 'Metro Manila',
+            'address1' => 'Corrected Street',
+            'address2' => 'Manila',
+            'address3' => 'Metro Manila',
+            'length_of_stay' => '6 years',
+            'housing_status' => 'OWNED',
+            'cell_no' => '09123456789',
+            'civil_status' => 'Married',
+            'educational_attainment' => 'College',
+            'number_of_children' => 2,
+            'spouse_name' => 'Corrected Spouse',
+            'spouse_age' => 35,
+            'spouse_cell_no' => '09123456780',
+            'employment_type' => 'Private',
+            'employer_business_name' => 'Corrected Company',
+            'employer_business_address1' => 'Corrected Center',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
+            'telephone_no' => '021234567',
+            'current_position' => 'Supervisor',
+            'nature_of_business' => 'Finance',
+            'years_in_work_business' => '5 years',
+            'employer_date_employed' => '2017-05-20',
+            'gross_monthly_income' => 32000,
+            'payday' => '15th & 30th',
+        ],
+        'co_maker_1' => [
+            'first_name' => 'Corrected',
+            'last_name' => 'CoMakerOne',
+            'middle_name' => 'One',
+            'nickname' => null,
+            'birthdate' => '1989-03-12',
+            'birthplace_city' => 'Cebu',
+            'birthplace_province' => 'Cebu',
+            'address1' => 'Corrected Co One Street',
+            'address2' => 'Cebu City',
+            'address3' => 'Cebu',
+            'length_of_stay' => '4 years',
+            'housing_status' => 'RENT',
+            'cell_no' => '09998887777',
+            'civil_status' => 'Married',
+            'educational_attainment' => 'College',
+            'employment_type' => 'Government',
+            'employer_business_name' => 'Corrected Office One',
+            'employer_business_address1' => 'Corrected Plaza',
+            'employer_business_address2' => 'Cebu City',
+            'employer_business_address3' => 'Cebu',
+            'telephone_no' => '021234568',
+            'current_position' => 'Clerk',
+            'nature_of_business' => 'Government',
+            'years_in_work_business' => '6 years',
+            'gross_monthly_income' => 18000,
+            'payday' => '30th',
+        ],
+        'co_maker_2' => [
+            'first_name' => 'Corrected',
+            'last_name' => 'CoMakerTwo',
+            'middle_name' => 'Two',
+            'nickname' => null,
+            'birthdate' => '1987-02-12',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address1' => 'Corrected Co Two Street',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
+            'length_of_stay' => '3 years',
+            'housing_status' => 'OWNED',
+            'cell_no' => '09111112222',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'High School',
+            'employment_type' => 'Self Employed',
+            'employer_business_name' => 'Corrected Store Two',
+            'employer_business_address1' => 'Corrected Store',
+            'employer_business_address2' => 'Davao City',
+            'employer_business_address3' => 'Davao del Sur',
+            'telephone_no' => '021234569',
+            'current_position' => 'Owner',
+            'nature_of_business' => 'Retail',
+            'years_in_work_business' => '8 years',
+            'gross_monthly_income' => 22000,
+            'payday' => '15th',
+        ],
+        'dependents' => [
+            'applicant_cycle_status' => 'New',
+            'dependent_spouse_cycle_status' => 'New',
+        ],
+    ];
+}
+
+test('loan manager can correct a recommended for approval request without returning it for processing', function () {
+    $manager = User::factory()->create(['acctno' => '000526']);
+    AdminProfile::factory()->create(['user_id' => $manager->user_id]);
+    Role::attachNamedRole($manager, Role::LOAN_MANAGER);
+
+    $member = User::factory()->create(['acctno' => '000527']);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'typecode' => 'LN-COR',
+        'requested_amount' => 15000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Original purpose',
+        'availment_status' => 'New',
+        'status' => LoanRequestStatus::RecommendedForApproval,
+        'submitted_at' => now(),
+        'assigned_officer_id' => null,
+    ]);
+
+    LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::Applicant)->create();
+    LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::CoMakerOne)->create();
+    LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::CoMakerTwo)->create();
+
+    $this
+        ->actingAs($manager)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/corrections", [
+            'change_reason' => 'Fixed a typo spotted during approval review.',
+            'typecode' => 'LN-COR',
+            'requested_amount' => 20000,
+            'requested_term' => 12,
+            'loan_purpose' => 'Original purpose',
+            'availment_status' => 'New',
+            ...correctedWorkflowFullPersonPayload(),
+        ])
+        ->assertOk();
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::RecommendedForApproval);
+    expect((float) $loanRequest->requested_amount)->toBe(20000.0);
+
+    $change = LoanRequestChange::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->latest('id')
+        ->first();
+
+    expect($change)->not->toBeNull();
+    expect($change?->changed_by)->toBe($manager->user_id);
+    expect($change?->reason)->toBe('Fixed a typo spotted during approval review.');
+});
+
+test('loan manager cannot correct their own recommended for approval request', function () {
+    $manager = User::factory()->create(['acctno' => '000528']);
+    AdminProfile::factory()->create(['user_id' => $manager->user_id]);
+    Role::attachNamedRole($manager, Role::LOAN_MANAGER);
+
+    $loanRequest = LoanRequest::factory()->forUser($manager)->create([
+        'typecode' => 'LN-COR',
+        'requested_amount' => 15000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Original purpose',
+        'availment_status' => 'New',
+        'status' => LoanRequestStatus::RecommendedForApproval,
+        'submitted_at' => now(),
+        'assigned_officer_id' => null,
+    ]);
+
+    LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::Applicant)->create();
+    LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::CoMakerOne)->create();
+    LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::CoMakerTwo)->create();
+
+    $this
+        ->actingAs($manager)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/corrections", [
+            'change_reason' => 'Attempted self-correction.',
+            'typecode' => 'LN-COR',
+            'requested_amount' => 20000,
+            'requested_term' => 12,
+            'loan_purpose' => 'Original purpose',
+            'availment_status' => 'New',
+            ...correctedWorkflowFullPersonPayload(),
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('correction');
+});
+
 test('staff without loan review permission cannot correct an under review request', function () {
     $staff = User::factory()->create(['acctno' => '000524']);
     AdminProfile::factory()->create(['user_id' => $staff->user_id]);

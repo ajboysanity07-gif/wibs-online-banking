@@ -203,11 +203,19 @@ class LoanRequestPolicy
         // assigned processor -- any loan.review holder can bring it current.
         // The document-key–level lock against re-running already-current
         // documents lives in LoanRequestDocumentWorkflowService::generateDocument.
-        return $this->canActOnAnotherUsersRequest($user, $loanRequest, Permission::LOAN_REVIEW)
+        if ($this->canActOnAnotherUsersRequest($user, $loanRequest, Permission::LOAN_REVIEW)
             && in_array($this->statusValue($loanRequest), [
                 LoanRequestStatus::Approved->value,
                 LoanRequestStatus::ConvertedToLoan->value,
-            ], true);
+            ], true)) {
+            return true;
+        }
+
+        // A reviewing manager may bring documents current after correcting a
+        // mistake spotted during approval, without returning the request to
+        // the processor.
+        return $this->canActOnAnotherUsersRequest($user, $loanRequest, Permission::LOAN_APPROVE)
+            && $this->statusValue($loanRequest) === LoanRequestStatus::RecommendedForApproval->value;
     }
 
     public function approve(AppUser $user, LoanRequest $loanRequest): bool

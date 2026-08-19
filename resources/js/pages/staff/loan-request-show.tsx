@@ -621,13 +621,20 @@ export default function StaffLoanRequestShow({
             'needs_revision',
             'awaiting_member_information',
         ].includes(currentRequest.status ?? '');
+    const canManagerCorrect =
+        !isOwnRequest &&
+        hasWorkflowPermission('loan.correct') &&
+        currentRequest.status === 'recommended_for_approval';
     const canGenerateDocuments =
         canUpdateProcessing ||
         (!isOwnRequest &&
             hasWorkflowPermission('loan.review') &&
             ['approved', 'converted_to_loan'].includes(
                 currentRequest.status ?? '',
-            ));
+            )) ||
+        (!isOwnRequest &&
+            hasWorkflowPermission('loan.approve') &&
+            currentRequest.status === 'recommended_for_approval');
     const canRecommendApproval =
         !isOwnRequest &&
         currentRequest.status === 'under_review' &&
@@ -989,7 +996,7 @@ export default function StaffLoanRequestShow({
                     </AlertDescription>
                 </Alert>
             ) : null}
-            {canUpdateProcessing ? (
+            {canUpdateProcessing || canManagerCorrect ? (
                 <Button
                     type="button"
                     variant="outline"

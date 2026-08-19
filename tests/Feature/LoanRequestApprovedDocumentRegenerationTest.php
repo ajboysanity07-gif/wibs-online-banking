@@ -104,6 +104,31 @@ test('a manager without loan.review permission cannot generate documents even af
     expect($policy->generateDocuments($manager, $loanRequest))->toBeFalse();
 });
 
+test('a loan.approve holder who is not the request owner may generate documents while recommended for approval', function (): void {
+    [$loanRequest, , , $manager] = approvedDocumentRegenerationLoanRequest();
+    $loanRequest->update(['status' => LoanRequestStatus::RecommendedForApproval]);
+
+    $policy = app(LoanRequestPolicy::class);
+
+    expect($policy->generateDocuments($manager, $loanRequest))->toBeTrue();
+});
+
+test('a loan.approve holder cannot generate documents on their own request while recommended for approval', function (): void {
+    [, , , $manager] = approvedDocumentRegenerationLoanRequest();
+
+    $ownRequest = LoanRequest::factory()
+        ->forUser($manager)
+        ->create([
+            'status' => LoanRequestStatus::RecommendedForApproval,
+            'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+            'submitted_at' => now(),
+        ]);
+
+    $policy = app(LoanRequestPolicy::class);
+
+    expect($policy->generateDocuments($manager, $ownRequest))->toBeFalse();
+});
+
 test('a finalized document cannot be regenerated once the request is approved', function (): void {
     [$loanRequest, $assignedProcessor, $otherProcessor] = approvedDocumentRegenerationLoanRequest();
 

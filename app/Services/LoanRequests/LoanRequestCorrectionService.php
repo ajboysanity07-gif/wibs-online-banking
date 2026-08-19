@@ -36,6 +36,7 @@ class LoanRequestCorrectionService
         private LoanRequestPayloadSerializer $serializer,
         private LoanRequestAssignmentService $assignmentService,
         private LoanRequestDataService $dataService,
+        private LoanRequestDocumentWorkflowService $documentWorkflowService,
     ) {}
 
     /**
@@ -109,6 +110,11 @@ class LoanRequestCorrectionService
                 ]);
             }
 
+            $this->documentWorkflowService->markAffectedDocumentsStale(
+                $lockedLoanRequest,
+                array_values(array_unique([...$changedFields, ...$changedDataFields])),
+            );
+
             LoanRequestChange::query()->create([
                 'loan_request_id' => $updated->id,
                 'changed_by' => $actor->user_id,
@@ -175,9 +181,9 @@ class LoanRequestCorrectionService
 
     private function ensureCorrectable(LoanRequest $loanRequest, AppUser $actor): void
     {
-        if (! $this->isUnderReview($loanRequest)) {
+        if (! $this->isCorrectableStatus($loanRequest)) {
             throw ValidationException::withMessages([
-                'status' => 'Only under review requests can be corrected.',
+                'status' => 'Only under review or recommended for approval requests can be corrected.',
             ]);
         }
 
@@ -188,10 +194,12 @@ class LoanRequestCorrectionService
         }
     }
 
-    private function isUnderReview(LoanRequest $loanRequest): bool
+    private function isCorrectableStatus(LoanRequest $loanRequest): bool
     {
-        return LoanRequestStatus::normalizeValue($loanRequest->status)
-            === LoanRequestStatus::UnderReview->value;
+        return in_array(LoanRequestStatus::normalizeValue($loanRequest->status), [
+            LoanRequestStatus::UnderReview->value,
+            LoanRequestStatus::RecommendedForApproval->value,
+        ], true);
     }
 
     /**
