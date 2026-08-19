@@ -731,13 +731,46 @@ test('disclosure statement pdf includes statutory labels and computed totals', f
         ->toContain('HELARIOB.TEJERO')
         ->toContain('25,000.00')
         ->toContain('MONTHLY')
-        ->toContain('ANNABELLEM.AMORA')
-        ->toContain('LOANMANAGER');
+        ->toContain('VELINAP.GAMUTAN')
+        ->toContain('BOOKKEEPER')
+        ->toContain('TOTALINSTALLMENTPAYMENT')
+        ->not->toContain('SINGLEPAYMENTDUEON');
 
     // The old Blade-escaped {{ ... : '&nbsp;' }} fallbacks rendered the literal
     // text "&nbsp;" inside empty cells (most visibly in the "e. Others:" row).
     // The rendered PDF must never contain that literal text again.
     expect($text)->not->toContain('nbsp');
+});
+
+test('disclosure statement pdf shows single payment due on, not total installment payment, for a lumpsum loan', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $loanRequest->update([
+        'approved_amount' => 25000,
+        'approved_term' => 2,
+        'approved_interest_rate' => 0.36,
+        'recommended_payment_frequency' => 'Lump sum',
+        'reviewed_at' => '2026-05-22 10:00:00',
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.disclosure-statement', $loanRequest));
+
+    $response->assertOk();
+
+    $text = approvedLoanDocumentsExtractPdfText($response);
+    $searchable = strtoupper(str_replace(' ', '', $text));
+
+    expect($searchable)
+        ->toContain('SCHEDULEOFPAYMENT')
+        ->toContain('SINGLEPAYMENTDUEON')
+        ->not->toContain('TOTALINSTALLMENTPAYMENT')
+        // Service charge is a finance charge and must always be present/computed,
+        // regardless of payment mode.
+        ->toContain('SERVICECHARGEAT');
 });
 
 test('disclosure statement pdf includes the org report header image when configured', function () {

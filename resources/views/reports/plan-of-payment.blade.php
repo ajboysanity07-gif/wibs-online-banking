@@ -14,8 +14,6 @@
     $interestAmt     = $loan['amortization_interest_raw'] ?? null;
     $loanSecurityAmt = $loan['amortization_loan_security_raw'] ?? null;
     $totalAmt        = $loan['amortization_total_raw'] ?? null;
-    $approvedDate    = trim((string) ($loan['approved_date_short'] ?? ''));
-    $maturityDate    = trim((string) ($loan['maturity_date_short'] ?? ''));
     $reviewerName    = trim((string) ($reviewer['name'] ?? ''));
 
     $fmt = static function (mixed $value): string {
@@ -108,13 +106,14 @@
 
             .fl {
                 width: 100%;
+                table-layout: fixed;
                 border-collapse: collapse;
                 margin-bottom: 4pt;
             }
 
             .fl td { padding: 1pt 2pt; vertical-align: bottom; }
             .fl .lbl { white-space: nowrap; font-weight: 600; padding-right: 4pt; }
-            .fl .val { border-bottom: 0.6pt solid #333; font-weight: 700; min-width: 80pt; }
+            .fl .val { border-bottom: 0.6pt solid #333; font-weight: 700; }
 
             .amort-table {
                 width: 100%;
@@ -197,30 +196,31 @@
             <div class="copy-label">Borrower's Copy</div>
             <div class="copy-body">
                 <table class="fl">
+                    <colgroup>
+                        <col style="width:100pt" />
+                        <col />
+                        <col style="width:10pt" />
+                        <col style="width:85pt" />
+                        <col />
+                    </colgroup>
                     <tr>
                         <td class="lbl">Borrower's Name:</td>
-                        <td class="val">{{ $borrowerName !== '' ? $borrowerName : ' ' }}</td>
+                        <td class="val" colspan="4">{{ $borrowerName !== '' ? $borrowerName : ' ' }}</td>
                     </tr>
-                </table>
-                <table class="fl">
                     <tr>
                         <td class="lbl">Address:</td>
-                        <td class="val">{{ $borrowerAddress !== '' ? $borrowerAddress : ' ' }}</td>
+                        <td class="val" colspan="4">{{ $borrowerAddress !== '' ? $borrowerAddress : ' ' }}</td>
                     </tr>
-                </table>
-                <table class="fl" style="table-layout:fixed;width:100%;">
                     <tr>
-                        <td class="lbl" style="width:auto;">Loan Amount: P</td>
-                        <td class="val" style="width:28%;">{{ $approvedAmount !== null ? $fmt($approvedAmount) : ' ' }}</td>
-                        <td style="width:10pt;"></td>
+                        <td class="lbl">Loan Amount: P</td>
+                        <td class="val">{{ $approvedAmount !== null ? $fmt($approvedAmount) : ' ' }}</td>
+                        <td></td>
                         <td class="lbl">Loan Type:</td>
                         <td class="val">{{ $loanType !== '' ? $loanType : ' ' }}</td>
                     </tr>
-                </table>
-                <table class="fl">
                     <tr>
                         <td class="lbl">Mode of Payment:</td>
-                        <td class="val">{{ $paymentMode !== '' ? $paymentMode : ' ' }}</td>
+                        <td class="val" colspan="4">{{ $paymentMode !== '' ? $paymentMode : ' ' }}</td>
                     </tr>
                 </table>
 
@@ -231,18 +231,25 @@
                     <tbody>
                         <tr><td>Principal</td><td>{{ $principalAmt !== null ? $fmt($principalAmt) : '' }}</td></tr>
                         <tr><td>Interest</td><td>{{ $interestAmt !== null ? $fmt($interestAmt) : '' }}</td></tr>
-                        <tr><td>Savings (2%)</td><td>{{ $loanSecurityAmt !== null ? $fmt($loanSecurityAmt) : '' }}</td></tr>
+                        <tr><td>Loan Security</td><td>{{ $loanSecurityAmt !== null ? $fmt($loanSecurityAmt) : '' }}</td></tr>
                         <tr style="font-weight:700;"><td>Total Amortization</td><td>{{ $totalAmt !== null ? $fmt($totalAmt) : '' }}</td></tr>
                     </tbody>
                 </table>
 
-                <table class="fl" style="table-layout:fixed;width:100%;">
+                <table class="fl">
+                    <colgroup>
+                        <col style="width:100pt" />
+                        <col />
+                        <col style="width:10pt" />
+                        <col style="width:85pt" />
+                        <col />
+                    </colgroup>
                     <tr>
-                        <td class="lbl" style="width:auto;">Date Granted:</td>
-                        <td class="val" style="width:22%;">{{ $approvedDate !== '' ? $approvedDate : ' ' }}</td>
-                        <td style="width:10pt;"></td>
+                        <td class="lbl">Date Granted:</td>
+                        <td class="val">&nbsp;</td>
+                        <td></td>
                         <td class="lbl">Maturity Date:</td>
-                        <td class="val">{{ $maturityDate !== '' ? $maturityDate : ' ' }}</td>
+                        <td class="val">&nbsp;</td>
                     </tr>
                 </table>
 
@@ -268,30 +275,31 @@
             <div class="copy-label">Cooperative's Copy</div>
             <div class="copy-body">
                 <table class="fl">
+                    <colgroup>
+                        <col style="width:100pt" />
+                        <col />
+                        <col style="width:10pt" />
+                        <col style="width:85pt" />
+                        <col />
+                    </colgroup>
                     <tr>
                         <td class="lbl">Borrower's Name:</td>
-                        <td class="val">{{ $borrowerName !== '' ? $borrowerName : ' ' }}</td>
+                        <td class="val" colspan="4">{{ $borrowerName !== '' ? $borrowerName : ' ' }}</td>
                     </tr>
-                </table>
-                <table class="fl">
                     <tr>
                         <td class="lbl">Address:</td>
-                        <td class="val">{{ $borrowerAddress !== '' ? $borrowerAddress : ' ' }}</td>
+                        <td class="val" colspan="4">{{ $borrowerAddress !== '' ? $borrowerAddress : ' ' }}</td>
                     </tr>
-                </table>
-                <table class="fl" style="table-layout:fixed;width:100%;">
                     <tr>
-                        <td class="lbl" style="width:auto;">Loan Amount: P</td>
-                        <td class="val" style="width:28%;">{{ $approvedAmount !== null ? $fmt($approvedAmount) : ' ' }}</td>
-                        <td style="width:10pt;"></td>
+                        <td class="lbl">Loan Amount: P</td>
+                        <td class="val">{{ $approvedAmount !== null ? $fmt($approvedAmount) : ' ' }}</td>
+                        <td></td>
                         <td class="lbl">Loan Type:</td>
                         <td class="val">{{ $loanType !== '' ? $loanType : ' ' }}</td>
                     </tr>
-                </table>
-                <table class="fl">
                     <tr>
                         <td class="lbl">Mode of Payment:</td>
-                        <td class="val">{{ $paymentMode !== '' ? $paymentMode : ' ' }}</td>
+                        <td class="val" colspan="4">{{ $paymentMode !== '' ? $paymentMode : ' ' }}</td>
                     </tr>
                 </table>
 
@@ -302,18 +310,25 @@
                     <tbody>
                         <tr><td>Principal</td><td>{{ $principalAmt !== null ? $fmt($principalAmt) : '' }}</td></tr>
                         <tr><td>Interest</td><td>{{ $interestAmt !== null ? $fmt($interestAmt) : '' }}</td></tr>
-                        <tr><td>Savings (2%)</td><td>{{ $loanSecurityAmt !== null ? $fmt($loanSecurityAmt) : '' }}</td></tr>
+                        <tr><td>Loan Security</td><td>{{ $loanSecurityAmt !== null ? $fmt($loanSecurityAmt) : '' }}</td></tr>
                         <tr style="font-weight:700;"><td>Total Amortization</td><td>{{ $totalAmt !== null ? $fmt($totalAmt) : '' }}</td></tr>
                     </tbody>
                 </table>
 
-                <table class="fl" style="table-layout:fixed;width:100%;">
+                <table class="fl">
+                    <colgroup>
+                        <col style="width:100pt" />
+                        <col />
+                        <col style="width:10pt" />
+                        <col style="width:85pt" />
+                        <col />
+                    </colgroup>
                     <tr>
-                        <td class="lbl" style="width:auto;">Date Granted:</td>
-                        <td class="val" style="width:22%;">{{ $approvedDate !== '' ? $approvedDate : ' ' }}</td>
-                        <td style="width:10pt;"></td>
+                        <td class="lbl">Date Granted:</td>
+                        <td class="val">&nbsp;</td>
+                        <td></td>
                         <td class="lbl">Maturity Date:</td>
-                        <td class="val">{{ $maturityDate !== '' ? $maturityDate : ' ' }}</td>
+                        <td class="val">&nbsp;</td>
                     </tr>
                 </table>
 

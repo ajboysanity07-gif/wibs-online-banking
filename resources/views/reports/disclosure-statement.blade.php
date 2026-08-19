@@ -24,17 +24,14 @@
     $netProceeds         = $loan['net_proceeds_raw'] ?? null;
     $amortizationTotal   = $loan['amortization_total_raw'] ?? null;
     $paymentMode         = trim((string) ($loan['payment_mode_workbook'] ?? ''));
+    $isLumpsum           = $paymentMode === 'LUMPSUM';
     $approvedTerm        = $loan['approved_term_raw'] ?? null;
-    $approvedDateShort   = trim((string) ($loan['approved_date_short'] ?? ''));
-    $maturityDateShort   = trim((string) ($loan['maturity_date_short'] ?? ''));
 
-    $reviewerData        = is_array($reviewer ?? null) ? $reviewer : [];
-    $reviewerName        = trim((string) ($reviewerData['name'] ?? '')) !== ''
-        ? trim((string) $reviewerData['name'])
-        : 'VELINA P. GAMUTAN';
-    $reviewerPosition    = trim((string) ($reviewerData['position'] ?? '')) !== ''
-        ? trim((string) $reviewerData['position'])
-        : 'BOOKKEEPER';
+    // "Certified Correct" is always signed by the bookkeeper, not the loan
+    // manager/reviewer who processed the request -- do not source this from
+    // $reviewer.
+    $reviewerName        = 'VELINA P. GAMUTAN';
+    $reviewerPosition    = 'BOOKKEEPER';
 
     $fmt = static function (mixed $value): string {
         if ($value === null || !is_numeric((string) $value)) {
@@ -259,9 +256,9 @@
                 <td></td>
                 <td class="b9 bold c u">{{ $interestRate !== null ? $pct($interestRate) : '' }}</td>
                 <td class="c nw">% p.a. From</td>
-                <td class="b7 u">{{ $approvedDateShort !== '' ? $approvedDateShort : '' }}</td>
+                <td class="b7 u">&nbsp;</td>
                 <td class="c">To</td>
-                <td class="b7 u">{{ $maturityDateShort !== '' ? $maturityDateShort : '' }}</td>
+                <td class="b7 u">&nbsp;</td>
                 <td class="r">P</td>
                 <td class="b9 bold r u">{{ $interestNotDeducted !== null ? $fmt($interestNotDeducted) : '' }}</td>
                 <td class="r">P</td>
@@ -494,21 +491,24 @@
                 <td class="ut">&nbsp;</td>
                 <td colspan="9"></td>
             </tr>
-            <tr>
-                <td></td>
-                <td class="nw" colspan="3">a. Single Payment Due On</td>
-                <td class="r">P</td>
-                <td class="b9 r u">{{ $maturityDateShort !== '' ? $maturityDateShort : '' }}</td>
-                <td colspan="9"></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td class="nw" colspan="3">b. Total Installment Payment</td>
-                <td class="r">P</td>
-                <td class="b10 bold r ub">{{ $amortizationTotal !== null ? $fmt($amortizationTotal) : '' }}</td>
-                <td class="b10 bold l" colspan="2">{{ $paymentMode !== '' ? $paymentMode : '' }}</td>
-                <td colspan="7"></td>
-            </tr>
+            @if ($isLumpsum)
+                <tr>
+                    <td></td>
+                    <td class="nw" colspan="3">a. Single Payment Due On</td>
+                    <td class="r">P</td>
+                    <td class="b10 bold r ub">{{ $amortizationTotal !== null ? $fmt($amortizationTotal) : '' }}</td>
+                    <td colspan="9"></td>
+                </tr>
+            @else
+                <tr>
+                    <td></td>
+                    <td class="nw" colspan="3">b. Total Installment Payment</td>
+                    <td class="r">P</td>
+                    <td class="b10 bold r ub">{{ $amortizationTotal !== null ? $fmt($amortizationTotal) : '' }}</td>
+                    <td class="b10 bold l" colspan="2">{{ $paymentMode !== '' ? $paymentMode : '' }}</td>
+                    <td colspan="7"></td>
+                </tr>
+            @endif
             <tr>
                 <td></td>
                 <td class="nw" colspan="2">Payable in</td>
