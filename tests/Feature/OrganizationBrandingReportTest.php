@@ -471,12 +471,15 @@ test('blade reports use calibri as the font family by default', function () {
         ->toContain('c nw ut" colspan="3">Signature of Borrower Over Printed Name</td>');
 });
 
-test('promissory note addresses render on one line and shrink to fit the column', function (): void {
+test('promissory note addresses and signature names fit on one line without clipping', function (): void {
     $branding = app(OrganizationSettingsService::class)->branding();
 
     $shortAddress = 'Sample Address';
     $mediumAddress = 'POBLACION, LIANGA, SURIGAO DEL SUR';
     $longAddress = 'POBLACION BARANGAY SAN ISIDRO LIANGA SURIGAO DEL SUR ZONE 4 BLOCK 12';
+
+    $borrowerName = 'MARIA TERESA VILLANUEVA DE LOS SANTOS GONZALES';
+    $witnessName = 'ANNABELLE M. AMORA';
 
     // Mirrors the blade's character-width-aware stepped shrink_to_fit
     // approach, replicating the Affidavit of Undertaking method.
@@ -501,7 +504,7 @@ test('promissory note addresses render on one line and shrink to fit the column'
         '@' => 0.40, '#' => 0.40, '$' => 0.40,
     ];
 
-    $fitSize = static function (string $value) use ($CHAR_WIDTH): string {
+    $fitSize = static function (string $value, float $maxSize = 10.0) use ($CHAR_WIDTH): string {
         $length = mb_strlen(trim($value));
 
         if ($length === 0) {
@@ -514,8 +517,7 @@ test('promissory note addresses render on one line and shrink to fit the column'
         }
 
         $availableWidth = 155.0;
-        $maxSize = 10.0;
-        $minSize = 4.0;
+        $minSize = 3.0;
 
         for ($size = $maxSize; $size >= $minSize; $size -= 0.5) {
             if ($totalWidthAt1pt * $size <= $availableWidth) {
@@ -528,11 +530,20 @@ test('promissory note addresses render on one line and shrink to fit the column'
 
     $html = view('reports.promissory-note', [
         'organization' => ['company_name' => 'Acme Cooperative'],
-        'loan' => [],
-        'applicant' => ['address' => $mediumAddress],
+        'loan' => [
+            'approved_date_short' => '05/22/2026',
+            'maturity_date_short' => '05/22/2027',
+        ],
+        'applicant' => [
+            'address' => $mediumAddress,
+            'full_name' => $borrowerName,
+        ],
         'co_maker_one' => ['address' => $shortAddress],
         'co_maker_two' => ['address' => $longAddress],
-        'reviewer' => [],
+        'reviewer' => [
+            'witness_one_name' => $witnessName,
+            'witness_two_name' => $witnessName,
+        ],
         'reportHeader' => ['designData' => null],
         'reportTypography' => $branding['reportTypography'],
         'organizationLogoDataUri' => null,
@@ -542,7 +553,7 @@ test('promissory note addresses render on one line and shrink to fit the column'
         ->toContain('.address-value--fit')
         ->toContain('white-space: nowrap;')
         ->toContain('word-break: normal;')
-        ->toContain('overflow: hidden;')
+        ->not->toContain('overflow: hidden;')
         ->toContain(
             'class="address-value address-value--fit" style="'
             .$fitSize($mediumAddress).'">'.$mediumAddress,
@@ -555,6 +566,27 @@ test('promissory note addresses render on one line and shrink to fit the column'
             'class="address-value address-value--fit" style="'
             .$fitSize($longAddress).'">'.$longAddress,
         );
+
+    // Signature and witness names auto-fit so they never wrap or clip.
+    expect($html)
+        ->toContain(
+            '<div class="signature-name" style="'
+            .$fitSize($borrowerName, 10.5).'">',
+        )
+        ->toContain(
+            '<div class="witness-name" style="'
+            .$fitSize($witnessName, 10.5).'">',
+        )
+        ->toContain($borrowerName)
+        ->toContain($witnessName);
+
+    // Date Granted / Date Due stay as blank underlined rows for the loan
+    // manager to fill in by hand after release -- never auto-filled.
+    expect($html)
+        ->toContain('<td class="meta-label">Date Granted:</td>')
+        ->toContain('<td class="meta-label">Date Due:</td>')
+        ->not->toContain('05/22/2026')
+        ->not->toContain('05/22/2027');
 
     expect($fitSize($mediumAddress))->toBe('font-size: 8.0pt;');
     expect($fitSize($shortAddress))->toBe('font-size: 10.0pt;');

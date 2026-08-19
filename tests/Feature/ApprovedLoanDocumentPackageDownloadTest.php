@@ -4133,6 +4133,13 @@ function approvedLoanDocumentsCreateLoanRequestPeopleSnapshots(
             'cell_no' => '09171234567',
             'civil_status' => 'Married',
             'employer_business_name' => 'Sample Enterprise',
+            // Pinned to a non-institutional profile so Affidavit of Undertaking
+            // applicability is deterministic: a randomized employment_type /
+            // nature_of_business could randomly resolve to an institutional
+            // category (Government+Government -> LGU, Healthcare -> LDH) and
+            // flip the AU document in/out of the document set between runs.
+            'employment_type' => 'Private',
+            'nature_of_business' => 'General Services',
             'current_position' => 'Manager',
             'employer_date_employed' => '2019-06-01',
             'payday' => '15/30',

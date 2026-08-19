@@ -8,8 +8,6 @@
     $headerLogo = $organizationLogoDataUri ?? null;
 
     $loanTermDays = $loan['term_days'] ?? null;
-    $approvedDateShort = trim((string) ($loan['approved_date_short'] ?? ''));
-    $maturityDateShort = trim((string) ($loan['maturity_date_short'] ?? ''));
     $approvedAmountRaw = $loan['approved_amount_raw'] ?? null;
     $approvedAmountWords = trim((string) ($loan['approved_amount_words'] ?? ''));
     $interestRateWords = trim((string) ($loan['interest_rate_words'] ?? ''));
@@ -57,9 +55,9 @@
 
     $addressAvailableWidth = 155.0;
     $addressMaxSize = 10.0;
-    $addressMinSize = 4.0;
+    $addressMinSize = 3.0;
 
-    $resolveAddressSize = static function (string $value) use ($CHAR_WIDTH, $addressAvailableWidth, $addressMaxSize, $addressMinSize): string {
+    $resolveFitSize = static function (string $value, float $maxSize) use ($CHAR_WIDTH, $addressAvailableWidth, $addressMinSize): string {
         $length = mb_strlen(trim($value));
 
         if ($length === 0) {
@@ -71,7 +69,7 @@
             $totalWidthAt1pt += $CHAR_WIDTH[$char] ?? 0.48;
         }
 
-        for ($size = $addressMaxSize; $size >= $addressMinSize; $size -= 0.5) {
+        for ($size = $maxSize; $size >= $addressMinSize; $size -= 0.5) {
             if ($totalWidthAt1pt * $size <= $addressAvailableWidth) {
                 return 'font-size: ' . number_format($size, 1) . 'pt;';
             }
@@ -79,6 +77,9 @@
 
         return 'font-size: ' . number_format($addressMinSize, 1) . 'pt;';
     };
+
+    $resolveAddressSize = static fn (string $value): string => $resolveFitSize($value, $addressMaxSize);
+    $resolveNameSize = static fn (string $value): string => $resolveFitSize($value, 10.5);
 
     $formatAmount = static function (mixed $value): string {
         if ($value === null || !is_numeric((string) $value)) {
@@ -279,6 +280,7 @@
                 font-weight: 700;
                 text-align: center;
                 text-transform: uppercase;
+                white-space: nowrap;
                 border-bottom: 0.8pt solid #111;
             }
 
@@ -319,7 +321,6 @@
             .address-value--fit {
                 white-space: nowrap;
                 word-break: normal;
-                overflow: hidden;
             }
 
             .witness-section {
@@ -354,6 +355,7 @@
                 font-weight: 700;
                 text-align: center;
                 text-transform: uppercase;
+                white-space: nowrap;
                 border-bottom: 0.8pt solid #111;
             }
 
@@ -394,11 +396,11 @@
             <table class="meta-block" style="float:right; width:auto; margin-bottom:6pt;">
                 <tr>
                     <td class="meta-label">Date Granted:</td>
-                    <td class="meta-value">{{ $approvedDateShort !== '' ? $approvedDateShort : ' ' }}</td>
+                    <td class="meta-value">&nbsp;</td>
                 </tr>
                 <tr>
                     <td class="meta-label">Date Due:</td>
-                    <td class="meta-value">{{ $maturityDateShort !== '' ? $maturityDateShort : ' ' }}</td>
+                    <td class="meta-value">&nbsp;</td>
                 </tr>
                 <tr>
                     <td class="meta-label">Amount:&nbsp;&nbsp;P</td>
@@ -423,9 +425,9 @@
                     inclusive of interest every
                     {!! $renderValue($paymentMode, '7em') !!}
                     starting
-                    {!! $renderValue($approvedDateShort, '7em') !!}
+                    {!! $renderValue(null, '7em') !!}
                     to
-                    {!! $renderValue($maturityDateShort, '7em') !!}
+                    {!! $renderValue(null, '7em') !!}
                     for
                     {!! $renderValue($amortizationCount !== null ? (string)(int)$amortizationCount : null, '4em') !!}
                     Amortization/Installment payment.
@@ -483,7 +485,7 @@
                     <td class="signature-column">
                         <div class="signature-block">
                             <div class="signature-signing-area">
-                                <div class="signature-name">
+                                <div class="signature-name" style="{{ $resolveNameSize($borrowerName) }}">
                                     {{ $borrowerName !== '' ? $borrowerName : ' ' }}
                                 </div>
                                 <div class="signature-label">Borrower</div>
@@ -493,7 +495,7 @@
                     <td class="signature-column">
                         <div class="signature-block">
                             <div class="signature-signing-area">
-                                <div class="signature-name">
+                                <div class="signature-name" style="{{ $resolveNameSize($coMakerOneName) }}">
                                     {{ $coMakerOneName !== '' ? $coMakerOneName : ' ' }}
                                 </div>
                                 <div class="signature-label">Co-borrower 1</div>
@@ -503,7 +505,7 @@
                     <td class="signature-column">
                         <div class="signature-block">
                             <div class="signature-signing-area">
-                                <div class="signature-name">
+                                <div class="signature-name" style="{{ $resolveNameSize($coMakerTwoName) }}">
                                     {{ $coMakerTwoName !== '' ? $coMakerTwoName : ' ' }}
                                 </div>
                                 <div class="signature-label">Co-borrower 2</div>
@@ -535,13 +537,13 @@
                 <table class="witness-layout">
                     <tr>
                         <td class="witness-column">
-                            <div class="witness-name">
+                            <div class="witness-name" style="{{ $resolveNameSize($witnessOneName) }}">
                                 {{ $witnessOneName !== '' ? $witnessOneName : ' ' }}
                             </div>
                             <div class="witness-label">Witness</div>
                         </td>
                         <td class="witness-column">
-                            <div class="witness-name">
+                            <div class="witness-name" style="{{ $resolveNameSize($witnessTwoName) }}">
                                 {{ $witnessTwoName !== '' ? $witnessTwoName : ' ' }}
                             </div>
                             <div class="witness-label">Witness</div>

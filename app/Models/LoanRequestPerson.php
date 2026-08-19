@@ -81,7 +81,7 @@ class LoanRequestPerson extends Model
 
     public function composedAddress(): string
     {
-        $composed = LocationComposer::compose(
+        $composed = LocationComposer::composeUnique(
             $this->address1,
             $this->address2,
             $this->address3,
@@ -97,7 +97,7 @@ class LoanRequestPerson extends Model
 
     public function composedEmployerBusinessAddress(): string
     {
-        $composed = LocationComposer::compose(
+        $composed = LocationComposer::composeUnique(
             $this->employer_business_address1,
             $this->employer_business_address2,
             $this->employer_business_address3,
