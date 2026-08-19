@@ -57,6 +57,7 @@ import {
     formatHousingStatus,
     formatPayday,
 } from '@/lib/formatters';
+import { resolveInstitutionalEmployerCategory } from '@/lib/institutional-employer-category';
 import type {
     LoanRequestDataFieldDefinition,
     LoanRequestDataFieldValue,
@@ -780,6 +781,12 @@ type DataSectionStepProps = {
     // (payout_atm_holder_name, banking section only) -- omit for sections
     // that don't render that field.
     applicantFullName?: string;
+    // Employer signal (banking section only) used to restrict the "Salary
+    // Deduction" payment option to institutional-payroll employers -- see
+    // resolveInstitutionalEmployerCategory().
+    applicantEmployerBusinessName?: string | null;
+    applicantEmploymentType?: string | null;
+    applicantNatureOfBusiness?: string | null;
 };
 
 // declaration_truth_confirmation and declaration_data_privacy_consent are
@@ -843,6 +850,9 @@ type BankingSectionFieldsProps = {
     errors: Record<string, string | undefined>;
     onChange: (field: string, value: string | number | boolean | null) => void;
     applicantFullName?: string;
+    applicantEmployerBusinessName?: string | null;
+    applicantEmploymentType?: string | null;
+    applicantNatureOfBusiness?: string | null;
 };
 
 // Two full-width, clearly headed subsections -- Loan Disbursement (release
@@ -857,6 +867,9 @@ function BankingSectionFields({
     errors,
     onChange,
     applicantFullName,
+    applicantEmployerBusinessName,
+    applicantEmploymentType,
+    applicantNatureOfBusiness,
 }: BankingSectionFieldsProps) {
     const releaseMethod = values.release_method
         ? `${values.release_method}`
@@ -864,6 +877,17 @@ function BankingSectionFields({
     const paymentOption = values.payment_option
         ? `${values.payment_option}`
         : '';
+    const isInstitutionalEmployer =
+        resolveInstitutionalEmployerCategory(
+            applicantEmployerBusinessName,
+            applicantEmploymentType,
+            applicantNatureOfBusiness,
+        ) !== null;
+    const paymentOptionChoices = isInstitutionalEmployer
+        ? PAYMENT_OPTION_OPTIONS
+        : PAYMENT_OPTION_OPTIONS.filter(
+              (option) => option !== 'Salary Deduction',
+          );
     const showReleaseBankFields =
         releaseMethod === 'ATM' || releaseMethod === 'Bank Transfer';
     const showReleaseAtmFields = releaseMethod === 'ATM';
@@ -1085,7 +1109,7 @@ function BankingSectionFields({
                             <SelectValue placeholder="Select payment option" />
                         </SelectTrigger>
                         <SelectContent>
-                            {PAYMENT_OPTION_OPTIONS.map((option) => (
+                            {paymentOptionChoices.map((option) => (
                                 <SelectItem key={option} value={option}>
                                     {option}
                                 </SelectItem>
@@ -1095,6 +1119,12 @@ function BankingSectionFields({
                     <InputError
                         message={errors[`${sectionKey}.payment_option`]}
                     />
+                    {!isInstitutionalEmployer && (
+                        <p className="text-xs text-muted-foreground">
+                            Salary Deduction is only available for BLGU, LGU,
+                            LDH, or MRDINC employees.
+                        </p>
+                    )}
                 </div>
 
                 {canUseSameDetails && (
@@ -1230,6 +1260,9 @@ export function LoanRequestDataSectionStep({
     errors,
     onChange,
     applicantFullName,
+    applicantEmployerBusinessName,
+    applicantEmploymentType,
+    applicantNatureOfBusiness,
 }: DataSectionStepProps) {
     if (sectionKey === 'banking') {
         return (
@@ -1245,6 +1278,11 @@ export function LoanRequestDataSectionStep({
                     errors={errors}
                     onChange={onChange}
                     applicantFullName={applicantFullName}
+                    applicantEmployerBusinessName={
+                        applicantEmployerBusinessName
+                    }
+                    applicantEmploymentType={applicantEmploymentType}
+                    applicantNatureOfBusiness={applicantNatureOfBusiness}
                 />
                 <Alert className="border-border/50 bg-muted/10">
                     <AlertTitle>Member-provided details</AlertTitle>

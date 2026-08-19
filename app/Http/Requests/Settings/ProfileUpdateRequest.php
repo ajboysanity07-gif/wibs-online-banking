@@ -13,11 +13,13 @@ use App\Rules\ValidPostalCode;
 use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
 use App\Rules\ValidPsgcProvince;
+use App\Services\LoanRequests\InstitutionalEmployerCategoryResolver;
 use App\Support\DisplayText;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class ProfileUpdateRequest extends FormRequest
 {
@@ -672,5 +674,27 @@ class ProfileUpdateRequest extends FormRequest
         $trimmed = trim((string) $value);
 
         return $trimmed !== '' ? $trimmed : null;
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($this->input('payment_option') !== LoanPaymentOption::SalaryDeduction->value) {
+                return;
+            }
+
+            $category = InstitutionalEmployerCategoryResolver::resolve(
+                $this->input('employer_business_name'),
+                $this->input('employment_type'),
+                $this->input('nature_of_business'),
+            );
+
+            if ($category === null) {
+                $validator->errors()->add(
+                    'payment_option',
+                    'Salary Deduction is only available for BLGU, LGU, LDH, or MRDINC employees.',
+                );
+            }
+        });
     }
 }

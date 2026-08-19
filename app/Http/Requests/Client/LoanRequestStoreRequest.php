@@ -15,12 +15,14 @@ use App\Rules\ValidPostalCode;
 use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
 use App\Rules\ValidPsgcProvince;
+use App\Services\LoanRequests\InstitutionalEmployerCategoryResolver;
 use App\Support\DisplayText;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class LoanRequestStoreRequest extends FormRequest
 {
@@ -615,6 +617,28 @@ class LoanRequestStoreRequest extends FormRequest
         return [
             'undertaking_accepted.accepted' => 'Please confirm the undertaking.',
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($this->input('banking.payment_option') !== LoanPaymentOption::SalaryDeduction->value) {
+                return;
+            }
+
+            $category = InstitutionalEmployerCategoryResolver::resolve(
+                $this->input('applicant.employer_business_name'),
+                $this->input('applicant.employment_type'),
+                $this->input('applicant.nature_of_business'),
+            );
+
+            if ($category === null) {
+                $validator->errors()->add(
+                    'banking.payment_option',
+                    'Salary Deduction is only available for BLGU, LGU, LDH, or MRDINC employees.',
+                );
+            }
+        });
     }
 
     /**

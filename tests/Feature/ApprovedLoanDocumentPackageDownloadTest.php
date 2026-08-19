@@ -236,7 +236,17 @@ test('approved loan can access each approved loan document separately', function
     ]);
     $this->actingAs($admin);
 
-    foreach (approvedLoanDocumentsRouteDefinitions($loanRequest) as $document) {
+    // Barangay (institutional) employer makes Undertaking-Barangay applicable
+    // but, since Affidavit of Undertaking now excludes institutional-category
+    // employers, makes Affidavit of Undertaking inapplicable -- covered
+    // separately by the dedicated "affidavit undertaking pdf ..." tests below,
+    // which use the default non-institutional employer fixture instead.
+    $routeDefinitions = array_filter(
+        approvedLoanDocumentsRouteDefinitions($loanRequest),
+        fn (array $document): bool => $document['route'] !== 'admin.requests.documents.affidavit-undertaking',
+    );
+
+    foreach ($routeDefinitions as $document) {
         $response = $this->get(route($document['route'], $loanRequest));
 
         $response->assertOk();
@@ -281,7 +291,14 @@ test('each approved loan document pdf route returns a pdf response', function ()
     ]);
     $this->actingAs($admin);
 
-    foreach (approvedLoanDocumentsPdfRouteDefinitions($loanRequest) as $document) {
+    // See the identical exclusion note in "approved loan can access each
+    // approved loan document separately" above.
+    $routeDefinitions = array_filter(
+        approvedLoanDocumentsPdfRouteDefinitions($loanRequest),
+        fn (array $document): bool => $document['route'] !== 'admin.requests.documents.affidavit-undertaking',
+    );
+
+    foreach ($routeDefinitions as $document) {
         $response = $this->get(route($document['route'], $loanRequest));
         $content = approvedLoanDocumentsReadDownloadedFileContent($response);
 
@@ -308,7 +325,14 @@ test('approved template-backed pdf routes preserve page counts', function () {
     ]);
     $this->actingAs($admin);
 
-    foreach (approvedLoanDocumentsTemplateBackedPdfRouteDefinitions($loanRequest) as $document) {
+    // See the identical exclusion note in "approved loan can access each
+    // approved loan document separately" above.
+    $routeDefinitions = array_filter(
+        approvedLoanDocumentsTemplateBackedPdfRouteDefinitions($loanRequest),
+        fn (array $document): bool => $document['route'] !== 'admin.requests.documents.affidavit-undertaking',
+    );
+
+    foreach ($routeDefinitions as $document) {
         $response = $this->get(route($document['route'], $loanRequest));
         $content = approvedLoanDocumentsReadDownloadedFileContent($response);
 
@@ -2829,13 +2853,21 @@ test('missing optional fields do not break approved document generation', functi
             'address3' => null,
         ]);
 
-    // Keeps affidavit_undertaking applicable (it requires ATM Deduction as
-    // the payment option) for the same reason.
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payment_option', 'string', \App\LoanPaymentOption::AtmDeduction->value);
 
     $this->actingAs($admin);
 
-    foreach (approvedLoanDocumentsPdfRouteDefinitions($loanRequest) as $document) {
+    // The barangay-named employer above (kept for undertaking_barangay
+    // coverage) makes Affidavit of Undertaking inapplicable, since it now
+    // excludes institutional-category employers -- covered separately by the
+    // dedicated "affidavit undertaking pdf ..." tests, which use a
+    // non-institutional employer fixture instead.
+    $routeDefinitions = array_filter(
+        approvedLoanDocumentsPdfRouteDefinitions($loanRequest),
+        fn (array $document): bool => $document['route'] !== 'admin.requests.documents.affidavit-undertaking',
+    );
+
+    foreach ($routeDefinitions as $document) {
         $response = $this->get(route($document['route'], $loanRequest));
 
         $response->assertOk();

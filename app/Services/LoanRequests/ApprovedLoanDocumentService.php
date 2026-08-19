@@ -6,7 +6,6 @@ use App\LoanRequestDocumentKey;
 use App\LoanRequestStatus;
 use App\Models\LoanRequest;
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
-use App\Services\LoanRequests\PdfFieldMaps\AtmSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GeneraliApplicationFormPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
@@ -47,7 +46,6 @@ class ApprovedLoanDocumentService
         'generali' => 'generali.pdf',
         'deped_salary_deduction_waiver' => 'deped-salary-deduction-waiver.pdf',
         'pension_deduction_waiver' => 'pension-deduction-waiver.pdf',
-        'atm_salary_deduction_waiver' => 'atm-salary-deduction-waiver.pdf',
         'generali_application_form' => 'generali-application-form.pdf',
     ];
 
@@ -68,7 +66,6 @@ class ApprovedLoanDocumentService
         'authority_to_deduct' => '11-Authority-to-Deduct.pdf',
         'deped_salary_deduction_waiver' => '12-DepEd-Salary-Deduction-Waiver.pdf',
         'pension_deduction_waiver' => '13-Pension-Deduction-Waiver.pdf',
-        'atm_salary_deduction_waiver' => '15-ATM-Salary-Deduction-Waiver.pdf',
         'generali_application_form' => '14-Generali-Application-Form.pdf',
     ];
 
@@ -93,7 +90,6 @@ class ApprovedLoanDocumentService
         private AuthorityToDeductPdfService $authorityToDeductPdfService,
         private DepedSalaryDeductionWaiverPdfFieldMap $depedSalaryDeductionWaiverPdfFieldMap,
         private PensionDeductionWaiverPdfFieldMap $pensionDeductionWaiverPdfFieldMap,
-        private AtmSalaryDeductionWaiverPdfFieldMap $atmSalaryDeductionWaiverPdfFieldMap,
         private GeneraliApplicationFormPdfFieldMap $generaliApplicationFormPdfFieldMap,
         private ApprovedLoanDocumentDataBuilder $documentDataBuilder,
     ) {}
@@ -259,23 +255,6 @@ class ApprovedLoanDocumentService
         );
     }
 
-    public function atmSalaryDeductionWaiver(LoanRequest $loanRequest): Response
-    {
-        return $this->downloadApprovedDocument(
-            $loanRequest,
-            'atm_salary_deduction_waiver',
-            'application/pdf',
-            function (string $outputPath, array $documentData): void {
-                $this->approvedLoanPdfTemplateService->generate(
-                    self::PDF_TEMPLATE_FILENAMES['atm_salary_deduction_waiver'],
-                    $outputPath,
-                    $documentData,
-                    $this->atmSalaryDeductionWaiverPdfFieldMap,
-                );
-            },
-        );
-    }
-
     public function generaliApplicationForm(LoanRequest $loanRequest): Response
     {
         return $this->downloadApprovedDocument(
@@ -408,19 +387,6 @@ class ApprovedLoanDocumentService
                 $loanRequest,
                 $flatValues,
             );
-            // Also requires the real PDF template to exist -- unlike the other
-            // document types here, no blank template has been supplied for this
-            // one yet (see AtmSalaryDeductionWaiverPdfFieldMap's docblock), and
-            // packageZip() generates unconditionally rather than going through
-            // the readiness/blockers gate that protects the single-document
-            // generation flow. Skip it silently until the template lands instead
-            // of crashing the whole ZIP download for an applicable borrower.
-            $includeAtmSalaryDeductionWaiver = $this->documentCatalog->isApplicable(
-                LoanRequestDocumentKey::AtmSalaryDeductionWaiver,
-                $loanRequest,
-                $flatValues,
-            ) && $this->documentCatalog->templateBlockers(LoanRequestDocumentKey::AtmSalaryDeductionWaiver) === [];
-
             $applicationFormPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['application_form'];
             $grepalifePath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['grepalife'];
             $affidavitUndertakingPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['affidavit_undertaking'];
@@ -434,7 +400,6 @@ class ApprovedLoanDocumentService
             $authorityToDeductPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['authority_to_deduct'];
             $depedSalaryDeductionWaiverPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['deped_salary_deduction_waiver'];
             $pensionDeductionWaiverPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['pension_deduction_waiver'];
-            $atmSalaryDeductionWaiverPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['atm_salary_deduction_waiver'];
             $generaliApplicationFormPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['generali_application_form'];
 
             $this->loanRequestPdfService->saveToPath($loanRequest, $applicationFormPath);
@@ -510,14 +475,6 @@ class ApprovedLoanDocumentService
                     $this->pensionDeductionWaiverPdfFieldMap,
                 );
             }
-            if ($includeAtmSalaryDeductionWaiver) {
-                $this->approvedLoanPdfTemplateService->generate(
-                    self::PDF_TEMPLATE_FILENAMES['atm_salary_deduction_waiver'],
-                    $atmSalaryDeductionWaiverPath,
-                    $documentData,
-                    $this->atmSalaryDeductionWaiverPdfFieldMap,
-                );
-            }
             $this->approvedLoanPdfTemplateService->generate(
                 self::PDF_TEMPLATE_FILENAMES['generali_application_form'],
                 $generaliApplicationFormPath,
@@ -546,7 +503,6 @@ class ApprovedLoanDocumentService
                 $includeAuthorityToDeduct ? $authorityToDeductPath : null,
                 $includeDepedSalaryDeductionWaiver ? $depedSalaryDeductionWaiverPath : null,
                 $includePensionDeductionWaiver ? $pensionDeductionWaiverPath : null,
-                $includeAtmSalaryDeductionWaiver ? $atmSalaryDeductionWaiverPath : null,
                 $generaliApplicationFormPath,
             ])));
         } catch (Throwable $exception) {
@@ -698,18 +654,6 @@ class ApprovedLoanDocumentService
                         $path,
                         $documentData,
                         $this->pensionDeductionWaiverPdfFieldMap,
-                    );
-                },
-            ),
-            LoanRequestDocumentKey::AtmSalaryDeductionWaiver => $this->generatePdfDocumentToPath(
-                $outputPath,
-                $documentKey,
-                function (string $path) use ($documentData): void {
-                    $this->approvedLoanPdfTemplateService->generate(
-                        self::PDF_TEMPLATE_FILENAMES['atm_salary_deduction_waiver'],
-                        $path,
-                        $documentData,
-                        $this->atmSalaryDeductionWaiverPdfFieldMap,
                     );
                 },
             ),

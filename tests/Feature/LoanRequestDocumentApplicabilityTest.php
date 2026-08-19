@@ -1035,7 +1035,7 @@ test('deped waiver is applicable and authority to deduct is not for a teacher', 
 
     expect($waiverApplicability['deped']['applicable'])->toBeTrue()
         ->and($waiverApplicability['pension']['applicable'])->toBeFalse()
-        ->and($waiverApplicability['atm']['applicable'])->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::AffidavitUndertaking, $loanRequest, $flatValues))->toBeFalse()
         ->and($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeFalse();
 });
 
@@ -1055,11 +1055,11 @@ test('pension waiver is applicable and authority to deduct is not for a pensione
 
     expect($waiverApplicability['pension']['applicable'])->toBeTrue()
         ->and($waiverApplicability['deped']['applicable'])->toBeFalse()
-        ->and($waiverApplicability['atm']['applicable'])->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::AffidavitUndertaking, $loanRequest, $flatValues))->toBeFalse()
         ->and($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeFalse();
 });
 
-test('atm salary deduction waiver is applicable for a non-pensioner, non-institutional employee who chose ATM payout', function (): void {
+test('affidavit of undertaking is applicable for a non-pensioner, non-institutional employee who chose ATM payout', function (): void {
     $loanRequest = LoanRequest::factory()->create();
 
     LoanRequestPerson::factory()
@@ -1076,14 +1076,13 @@ test('atm salary deduction waiver is applicable for a non-pensioner, non-institu
 
     $waiverApplicability = $catalog->waiverApplicability($loanRequest, $flatValues);
 
-    expect($waiverApplicability['atm']['applicable'])->toBeTrue()
-        ->and($waiverApplicability['deped']['applicable'])->toBeFalse()
+    expect($waiverApplicability['deped']['applicable'])->toBeFalse()
         ->and($waiverApplicability['pension']['applicable'])->toBeFalse()
-        ->and($catalog->isApplicable(LoanRequestDocumentKey::AtmSalaryDeductionWaiver, $loanRequest, $flatValues))->toBeTrue()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::AffidavitUndertaking, $loanRequest, $flatValues))->toBeTrue()
         ->and($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeFalse();
 });
 
-test('atm salary deduction waiver is not applicable for a BLGU employee whose payment option is ATM Deduction (they belong to an institutional category, not the uncategorized ATM bucket)', function (): void {
+test('affidavit of undertaking is not applicable for a BLGU employee whose payment option is ATM Deduction (they belong to an institutional category, not the uncategorized ATM bucket)', function (): void {
     $loanRequest = LoanRequest::factory()->create();
 
     LoanRequestPerson::factory()
@@ -1095,10 +1094,11 @@ test('atm salary deduction waiver is not applicable for a BLGU employee whose pa
     $loanRequest = $loanRequest->fresh();
     $flatValues = ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value];
 
-    // Neither document applies here: the ATM waiver excludes anyone with a
-    // resolved institutional category, and Authority to Deduct requires
-    // payment_option to be Salary Deduction specifically.
-    expect($catalog->isApplicable(LoanRequestDocumentKey::AtmSalaryDeductionWaiver, $loanRequest, $flatValues))->toBeFalse()
+    // Neither document applies here: Affidavit of Undertaking excludes anyone
+    // with a resolved institutional category, and Authority to Deduct requires
+    // payment_option to be Salary Deduction specifically -- so an institutional
+    // employee who chose ATM Deduction has no repayment-authorization document.
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AffidavitUndertaking, $loanRequest, $flatValues))->toBeFalse()
         ->and($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeFalse();
 
     // With Salary Deduction instead, the same BLGU employer becomes Authority
@@ -1107,7 +1107,7 @@ test('atm salary deduction waiver is not applicable for a BLGU employee whose pa
     expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $salaryDeductionFlatValues))->toBeTrue();
 });
 
-test('atm salary deduction waiver is not applicable for a self-employed applicant even with ATM payout', function (): void {
+test('affidavit of undertaking is not applicable for a self-employed applicant even with ATM payout', function (): void {
     $loanRequest = LoanRequest::factory()->create();
 
     LoanRequestPerson::factory()
@@ -1119,7 +1119,7 @@ test('atm salary deduction waiver is not applicable for a self-employed applican
     $loanRequest = $loanRequest->fresh();
     $flatValues = ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value];
 
-    expect($catalog->isApplicable(LoanRequestDocumentKey::AtmSalaryDeductionWaiver, $loanRequest, $flatValues))->toBeFalse();
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AffidavitUndertaking, $loanRequest, $flatValues))->toBeFalse();
 });
 
 test('affidavit of undertaking is applicable only when payment option is ATM Deduction', function (): void {

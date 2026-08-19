@@ -192,6 +192,84 @@ test('profile update accepts a real birthplace city and province', function () {
     expect($memberProfile->birthplace_province)->toBe('Ilocos Norte');
 });
 
+test('profile update rejects salary deduction for a non-institutional employer', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'City of Batac',
+            'birthplace_province' => 'Ilocos Norte',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+            'release_method' => 'Cash',
+            'payment_option' => 'Salary Deduction',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
+        ]);
+
+    $response->assertSessionHasErrors(['payment_option']);
+});
+
+test('profile update accepts salary deduction for an institutional (MRDINC) employer', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'City of Batac',
+            'birthplace_province' => 'Ilocos Norte',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'MRDINC Head Office',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+            'release_method' => 'Cash',
+            'payment_option' => 'Salary Deduction',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
+        ]);
+
+    $response->assertSessionDoesntHaveErrors(['payment_option']);
+});
+
 test('profile update accepts an optional real birthplace barangay', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([

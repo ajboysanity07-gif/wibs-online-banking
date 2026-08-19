@@ -1,7 +1,6 @@
 <?php
 
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
-use App\Services\LoanRequests\PdfFieldMaps\AtmSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
@@ -19,7 +18,6 @@ test('signature-line printed names render ALL CAPS regardless of stored casing',
         [UndertakingBarangayPdfFieldMap::class, 'applicant.full_name', 205.0],
         [AffidavitUndertakingPdfFieldMap::class, 'applicant.full_name', 250.75],
         [PensionDeductionWaiverPdfFieldMap::class, 'applicant.full_name', 171.0],
-        [AtmSalaryDeductionWaiverPdfFieldMap::class, 'applicant.full_name', 171.0],
         [DepedSalaryDeductionWaiverPdfFieldMap::class, 'applicant.full_name', 206.0],
         [LoanInformationPdfFieldMap::class, 'reviewer.witness_one_name', 297.76],
         [LoanInformationPdfFieldMap::class, 'reviewer.name', 303.74],

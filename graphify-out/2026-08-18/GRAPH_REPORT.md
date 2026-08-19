@@ -1,16 +1,16 @@
 # Graph Report - wibs-online-banking  (2026-08-18)
 
 ## Corpus Check
-- 1297 files · ~1,152,186 words
+- 1320 files · ~1,160,976 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 8044 nodes · 18300 edges · 642 communities (450 shown, 192 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 484 edges (avg confidence: 0.8)
+- 8166 nodes · 18726 edges · 653 communities (456 shown, 197 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 508 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `701f442a`
+- Built from commit: `684bd53d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -474,241 +474,250 @@
 - sonner
 - tailwind-merge
 - @tailwindcss/vite
-- .handle
+- MemberLoanScheduleResource
 - typescript
-- CreateNewUser.php
+- use-staff-directory.ts
 - input-otp
-- Repositories/MemberAccountsRepository.php
-- OfficialLoanManagerResolver
-- CalibrateApprovedLoanPdfFieldsCommand
-- TwoFactorAuthenticationRequest
-- PromoteMemberToStaffRequest
-- LoanRequestWorkflowApproveRequest
-- approvedLoanDocumentsDrawingLeftOffsetInPixels
-- LoanWorkflowPreflightCommand.php
+- image-crop.ts
+- use-clipboard.ts
+- SyncProfileIncomesCommand
+- LoanRequestResolveActionRequest
+- UserRoleChangeResource
+- PasswordRecoveryLookupRequest
+- PasswordRecoveryService.php
+- MemberLoanPaymentsExportRequest
 - LoanRequestApproveRequest
-- LoanRequestDeclineRequest
+- LinkMembershipRequest
 - LoanRequestCancelRequest
+- LoanRequestCancelRequest
+- LoanRequestDeclineRequest
 - LoanRequestResolveActionRequest
-- LoanRequestResolveActionRequest
+- LoanRequestCorrectionReportDismissRequest
 - LoanRequestCorrectionReportDismissRequest
 - @fullcalendar/core
 - SuspendStaffAccessRequest
-- 2026_08_14_130000_add_requested_payment_frequency_to_loan_requests_table.php
+- LoanRequestCancelRequest
+- LoanRequestCorrectionReportStoreRequest
 - MemberAccountLoansRequest
-- Builder
+- MemberLookupRequest
 - AuditLogIndexRequest
-- Carbon
+- ReactivateStaffAccessRequest
 - opencode.json
-- TestResponse
+- StaffHistoryRequest
 - @types/react-dom
 - loan-request-animated-step.tsx
 - LoanRequestReopenRequest
 - LoanRequestResolveActionRequest
-- DatabaseNotification
-- ResetStaffPasswordRequest
+- LoanRequestRecommendationPreviewRequest
 - StaffIndexRequest
-- axios
+- LoanRequestGenerateDocumentsRequest
+- LoanRequestRecommendApprovalRequest
+- LoanRequestClaimRequest
+- LoanRequestReopenRequest
 - UpdateStaffRolesRequest
-- LoanWorkflowDeploymentCheckCommand.php
+- LoanRequestKindOfLoanTest.php
+- LoanRequestReturnForProcessingRequest
+- LoanRequestStartReviewRequest
 - globals
-- LoanRequestRejectRequest
-- LoanRequestRequestRevisionRequest
-- buildInitialFormData
-- 2026_06_15_081803_create_loan_request_documents_table.php
+- RecordWibsReferenceRequest
+- WorkspaceSwitchRequest
+- ScheduleWibsReleaseRequest
+- LoanRequestRecommendationPreviewRequest
+- 2026_06_15_081813_add_phase_five_workflow_fields_to_loan_requests_table.php
+- globals
 
 ## God Nodes (most connected - your core abstractions)
-1. `AppUser` - 574 edges
-2. `LoanRequest` - 512 edges
+1. `AppUser` - 592 edges
+2. `LoanRequest` - 527 edges
 3. `cn()` - 249 edges
-4. `Role` - 205 edges
-5. `Controller` - 140 edges
-6. `ApprovedLoanDocumentService` - 106 edges
+4. `Role` - 215 edges
+5. `Controller` - 146 edges
+6. `ApprovedLoanDocumentService` - 109 edges
 7. `LoanRequestPayloadSerializer` - 86 edges
-8. `MemberApplicationProfile` - 81 edges
-9. `Wmaster` - 75 edges
-10. `LoanRequestService` - 74 edges
+8. `MemberApplicationProfile` - 83 edges
+9. `LoanRequestService` - 81 edges
+10. `Wmaster` - 75 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `createRequestsApiAdmin()` --calls--> `AdminProfile`  [INFERRED]
   tests/Feature/Admin/RequestsApiFallbackTest.php → app/Models/AdminProfile.php
 - `makeSuperadminForAudit()` --calls--> `AdminProfile`  [INFERRED]
   tests/Feature/AuditLogViewerTest.php → app/Models/AdminProfile.php
-- `createAssignmentActor()` --calls--> `AdminProfile`  [INFERRED]
-  tests/Feature/LoanRequestAssignmentWorkflowTest.php → app/Models/AdminProfile.php
 - `createCorrectionReportAdminUser()` --calls--> `AdminProfile`  [INFERRED]
   tests/Feature/LoanRequestCorrectionReportTest.php → app/Models/AdminProfile.php
 - `createAdminUser()` --calls--> `AdminProfile`  [INFERRED]
   tests/Feature/NotificationsTest.php → app/Models/AdminProfile.php
+- `createWorkflowAuthorizationActor()` --calls--> `AdminProfile`  [INFERRED]
+  tests/Feature/Rbac/LoanRequestWorkflowAuthorizationTest.php → app/Models/AdminProfile.php
 
 ## Import Cycles
 - None detected.
 
-## Communities (642 total, 192 thin omitted)
+## Communities (653 total, 197 thin omitted)
 
 ### Community 0 - "cn"
-Cohesion: 0.04
-Nodes (8): PromoteMemberToStaffRequest, ReactivateStaffAccessRequest, StaffHistoryRequest, StaffIndexRequest, LoanRequestRejectDuringProcessingRequest, LoanRequestReturnToQueueRequest, Illuminate\Notifications\Notifiable, Laravel\Fortify\TwoFactorAuthenticatable
+Cohesion: 0.03
+Nodes (45): MemberApplicationProfile, MemberCoMaker, UserProfile, SavedCoMakersService, MemberCoMakerFactory, static, User, approvedLoanDocumentsCreateApprovedMember() (+37 more)
 
 ### Community 1 - "api/admin.ts"
 Cohesion: 0.04
 Nodes (48): Additional Checks, Checklist, Checklist, Checklist, Checklist, Checklist, Checklist, Checklist (+40 more)
 
 ### Community 2 - "Illuminate\Foundation\Http\FormRequest"
-Cohesion: 0.03
-Nodes (125): MemberDetailPageHeader(), MemberDetailPageHeaderProps, accentStyles, DetailAccent, MemberDetailPrimaryCard(), MemberDetailPrimaryCardProps, MemberDetailSupportingCard(), MemberDetailSupportingCardProps (+117 more)
+Cohesion: 0.05
+Nodes (62): MemberLoanScheduleSectionsProps, scheduleTableSkeletonColumns, PageHero(), PageHeroProps, paddingClasses, SurfaceCard(), SurfaceCardProps, variantClasses (+54 more)
 
 ### Community 3 - "types/admin.ts"
-Cohesion: 0.11
-Nodes (5): ValidPostalCode, ValidPsgcBarangay, ValidPsgcLocality, ValidPsgcProvince, Illuminate\Contracts\Validation\ValidationRule
+Cohesion: 0.04
+Nodes (43): CreateNewUser, AdminProfile, Role, up(), schema(), up(), AdminUserSeeder, SuperadminUserSeeder (+35 more)
+
+### Community 4 - "Controller"
+Cohesion: 0.03
+Nodes (121): TwoFactorRecoveryCodes(), TwoFactorVerificationStep(), LoanRequestCancellationOptions, LoanRequestCancellationPayload, useCancelLoanRequest(), LaravelValidationPayload, LoanRequestCorrectionOptions, normalizeValidationErrors() (+113 more)
 
 ### Community 5 - "Illuminate\Http\JsonResponse"
 Cohesion: 0.04
 Nodes (45): Appendix: support notes, Approval actions, Audit log, Audit trail, Common interface guidance, Document access, Fixing missing member role data, Loan Manager (+37 more)
 
 ### Community 6 - "button.tsx"
-Cohesion: 0.03
-Nodes (110): ApplicantCycleSection(), defaultSlotFieldLabel(), DEPENDENT_ATTRIBUTE_LABELS, DEPENDENT_SLOT_ATTRIBUTES, DependentCategoryConfig, dependentCategoryPluralLabel(), DependentCategorySection(), DependentCategorySummary (+102 more)
+Cohesion: 0.02
+Nodes (129): ApplicantCycleSection(), defaultSlotFieldLabel(), DEPENDENT_ATTRIBUTE_LABELS, DEPENDENT_SLOT_ATTRIBUTES, DependentCategoryConfig, dependentCategoryPluralLabel(), DependentCategorySection(), DependentCategorySummary (+121 more)
 
 ### Community 7 - "loan-request-steps.tsx"
 Cohesion: 0.05
 Nodes (40): 10. Server-Side Request Forgery — SSRF (A10:2021), 1. Broken Access Control (A01:2021), 1. Broken Access Control (CRITICAL), 2. Cryptographic Failures (A02:2021), 2. Cryptographic Failures (CRITICAL), 3. Injection (A03:2021), 3. Injection Prevention (CRITICAL), 4. Insecure Design (A04:2021) (+32 more)
 
 ### Community 8 - "AppUser"
-Cohesion: 0.08
-Nodes (3): Permission, LoanWorkflowPermissionSeedService, Illuminate\Database\Eloquent\Relations\HasOne
+Cohesion: 0.11
+Nodes (4): EnsureLoanWorkflowStaffAccess, RequestsService, LoanWorkflowWorkspaceService, Illuminate\Database\Eloquent\Builder
 
 ### Community 9 - "staff/loan-request-show.tsx"
-Cohesion: 0.08
-Nodes (29): AppLogo(), AppLogoProps, AppLogoIcon(), NotificationListItem(), NotificationMetadataChips(), SupportContact(), SupportContactItem, SupportContactProps (+21 more)
+Cohesion: 0.05
+Nodes (20): AbstractDatabaseNotification, AdminAccessAuditNotification, AdminAccessChangedNotification, LoanRequestAdminCorrectedCreatedNotification, LoanRequestCancelledNotification, LoanRequestCorrectedNotification, LoanRequestDecisionNotification, LoanRequestSubmittedNotification (+12 more)
 
 ### Community 10 - "LoanRequestAssignmentService"
 Cohesion: 0.05
 Nodes (29): 1. HTTP & Feature Tests (CRITICAL), 2. Model Factories (CRITICAL), 3. Database Assertions (HIGH), 4. Faking Services (HIGH), 5. Authentication Testing (HIGH), 6. Test Organisation Patterns (MEDIUM), API Authentication Testing with Sanctum, assertDatabaseHas and assertModelExists (+21 more)
 
 ### Community 11 - "profile.tsx"
-Cohesion: 0.17
-Nodes (4): MemberVerificationController, VerifyMemberRequest, MemberVerificationMatcher, Illuminate\Contracts\Validation\Validator
+Cohesion: 0.12
+Nodes (5): MemberVerificationController, MemberVerificationController, VerifyMemberRequest, MemberVerificationMatcher, Illuminate\Contracts\Validation\Validator
 
 ### Community 12 - "Role"
 Cohesion: 0.08
-Nodes (13): LoanRequestController, EnsureAdmin, EnsureMemberProfileComplete, EnsureMemberVerified, EnsureMustChangePassword, EnsureSuperadmin, EnsureTwoFactorSetup, EnsureUserApproved (+5 more)
+Nodes (40): MemberRecordsCardProps, SectionHeader(), SectionHeaderProps, Alert(), AlertDescription(), AlertTitle(), alertVariants, MemberAccountsSummarySectionProps (+32 more)
 
 ### Community 13 - "OrganizationSettingsService"
-Cohesion: 0.04
-Nodes (24): memberVisibleValue(), normalized(), normalizeValue(), self, LoanRequestDocument, Illuminate\Support\Facades\Notification, Illuminate\Validation\ValidationException, backfillZipCreateMemberWithRequest() (+16 more)
+Cohesion: 0.08
+Nodes (35): AppLogo(), AppLogoProps, AppLogoIcon(), SupportContact(), SupportContactItem, SupportContactProps, useBranding(), breadcrumbs (+27 more)
 
 ### Community 14 - "Illuminate\Database\Eloquent\Factories\Factory"
 Cohesion: 0.03
-Nodes (32): AdminProfileFactory, static, AppUserFactory, static, DocumentAccessLogFactory, LoanRequestChangeFactory, LoanRequestCorrectionReportFactory, static (+24 more)
+Nodes (31): AdminProfileFactory, static, AppUserFactory, static, AuthorityToDeductInstitutionContactFactory, DocumentAccessLogFactory, LoanRequestChangeFactory, LoanRequestCorrectionReportFactory (+23 more)
 
-### Community 16 - "Illuminate\Database\Eloquent\Relations\BelongsTo"
-Cohesion: 0.15
-Nodes (3): WorkspaceSwitchController, EnsureLoanWorkflowStaffAccess, LoanWorkflowWorkspaceService
+### Community 15 - "ApprovedLoanPdfTemplateService"
+Cohesion: 0.05
+Nodes (11): schema(), up(), DatabaseSeeder, LoanRequestPersonSeeder, LoanRequestSeeder, LoanWorkflowRbacSeeder, MemberApplicationProfileSeeder, OrganizationSettingSeeder (+3 more)
 
 ### Community 17 - "Illuminate\Support\Collection"
-Cohesion: 0.06
-Nodes (20): AbstractReportExport, AuditLogExport, MonthlyApplicationsExport, Carbon, Carbon, ProcessorWorkloadExport, Carbon, RejectionReasonsExport (+12 more)
+Cohesion: 0.07
+Nodes (17): AbstractReportExport, AuditLogExport, MonthlyApplicationsExport, Carbon, Carbon, ProcessorWorkloadExport, Carbon, RejectionReasonsExport (+9 more)
 
 ### Community 19 - "LoanRequest"
-Cohesion: 0.04
-Nodes (29): MemberApplicationProfile, MemberCoMaker, MemberDependent, MemberDependentProfile, UserProfile, DependentsProfileSyncService, SavedCoMakersService, createDraftMember() (+21 more)
+Cohesion: 0.11
+Nodes (19): breadcrumbs, Dashboard(), PageProps, resolveStaffRoleLabels(), workflowRoleLabel(), ErrorPage(), ErrorPageProps, fallbackCopy (+11 more)
+
+### Community 20 - "LoanRequestStatus.php"
+Cohesion: 0.10
+Nodes (3): OrganizationSettingsController, OrganizationSetting, OrganizationSettingsService
 
 ### Community 21 - "Illuminate\Http\Resources\Json\JsonResource"
-Cohesion: 0.08
-Nodes (10): MemberAccountsSummaryResource, MemberLoanResource, MemberLoanSecurityResource, MemberRecentAccountActionResource, MemberAccountsSummaryResource, MemberSavingsResource, MemberSummaryResource, UserRoleChangeResource (+2 more)
+Cohesion: 0.06
+Nodes (14): MemberAccountsSummaryResource, MemberLoanResource, MemberLoanSecurityResource, MemberRecentAccountActionResource, MemberAdminAccessController, MemberAdminAccessRequest, MemberAccountsSummaryResource, MemberLoanSummaryResource (+6 more)
 
 ### Community 22 - "Illuminate\Database\Schema\Builder"
 Cohesion: 0.07
-Nodes (61): addIndexIfMissing(), down(), dropIndexIfExists(), indexExists(), scheduleConnectionName(), schema(), sqlServerIndexExists(), up() (+53 more)
+Nodes (59): addIndexIfMissing(), down(), dropIndexIfExists(), indexExists(), scheduleConnectionName(), schema(), sqlServerIndexExists(), up() (+51 more)
 
 ### Community 23 - "Illuminate\Http\Request"
 Cohesion: 0.22
 Nodes (8): CLAUDE.md, Commands, graphify, Hard Rules, Key Patterns, Project Map, Roles & Permissions, Workflow Status Flow
 
 ### Community 24 - "AppUser.php"
-Cohesion: 0.11
-Nodes (3): RequestsService, StaffManagementService, Illuminate\Database\Eloquent\Builder
+Cohesion: 0.10
+Nodes (9): AccountSummaryController, DashboardDataController, RequestsController, WatchlistController, RequestsController, RequestsIndexRequest, RequestPreviewResource, AdminDashboardService (+1 more)
 
 ### Community 25 - "LoanWorkflowWorkspaceService"
-Cohesion: 0.20
-Nodes (4): LoanRequestChange, LoanRequestNotificationService, LoanRequestStatus, WibsTrackingService
+Cohesion: 0.11
+Nodes (28): useStaffDirectory(), breadcrumbs, CreateStaffForm, describeLastChange(), editableRoleOptions, FieldErrors, formatDateTime(), getAssignableRoleOptions() (+20 more)
 
 ### Community 26 - "LoanRequestDocumentWorkflowService"
-Cohesion: 0.04
-Nodes (69): MemberListCardSkeleton(), MemberListCardSkeletonProps, loanStatusBadgeVariant(), MemberLoanStatusCard(), MemberProfileDetailsCard(), MemberProfileHeader(), MemberStatusCard(), DashboardState (+61 more)
+Cohesion: 0.05
+Nodes (67): Heading(), InputError(), Props, Props, TextLink(), Props, TwoFactorSetupStep(), Button() (+59 more)
 
 ### Community 27 - "ApprovedLoanDocumentService"
 Cohesion: 0.07
 Nodes (26): 1. Mutating props or closures during render, 2. Reading a ref during render, 3. Legacy class components, 4. Unsupported syntax inside otherwise-fine components, 5. The `"use no memo"` escape hatch, Dynamic `import()` inside an effect, Lint coverage map, Mutated counter captured inside `.map()` lambdas (+18 more)
 
 ### Community 28 - "admin-loan-request-correction-dialog.tsx"
-Cohesion: 0.06
-Nodes (36): AdminLoanRequestCorrectionDialog(), applicantChangeFields, applicantRequiredFields, applicantStepFieldKeys, AVAILMENT_OPTIONS, ChangeEntry, ChangeGroup, CIVIL_STATUS_OPTIONS (+28 more)
-
-### Community 29 - "notifications.tsx"
-Cohesion: 0.11
-Nodes (10): AdminDashboardController, ReportingController, AccountSummaryController, DashboardDataController, WatchlistController, RequestsController, RequestPreviewResource, WatchlistItemResource (+2 more)
+Cohesion: 0.04
+Nodes (70): AdminLoanRequestCorrectionDialog(), applicantChangeFields, applicantRequiredFields, applicantStepFieldKeys, AVAILMENT_OPTIONS, buildInitialFormData(), buildPersonChangeEntries(), ChangeEntry (+62 more)
 
 ### Community 30 - "LoanRequestDocumentStorage"
-Cohesion: 0.13
-Nodes (4): PasswordRecoveryOtp, PasswordRecoveryService, PasswordRecoveryState, CarbonImmutable
+Cohesion: 0.05
+Nodes (51): LoanRequestPageHero(), LoanRequestSearchBox(), LoanRequestStatusFilterOption, LoanRequestStatusFilters(), LoanRequestSummaryCards(), formatCountLabel(), formatDate(), LoanRequestQueuePage() (+43 more)
 
 ### Community 31 - "PasswordValidationRules.php"
-Cohesion: 0.03
-Nodes (56): CreateNewUser, AdminProfile, Role, up(), schema(), up(), AdminUserSeeder, DatabaseSeeder (+48 more)
-
-### Community 32 - "MemberLoanScheduleResource"
-Cohesion: 0.10
-Nodes (28): calculateAgeFromBirthdate(), hasSecondOfficerValue(), InlineProcessingFormState, INSURANCE_RATE_AGE_BANDS, numericProcessingFieldValue(), PAYMENT_FREQUENCY_OPTIONS, PROCESSING_CHARGE_DEFAULTS, PROCESSING_FIELD_KIND (+20 more)
+Cohesion: 0.07
+Nodes (10): LoanRequest, LoanRequestPolicy, Illuminate\Database\Eloquent\Relations\HasMany, approvedLoanDocumentsCreateApprovedLoanRequestWithPeople(), approvedLoanDocumentsCreateDataEntries(), approvedLoanDocumentsCreateLoanRequestPeopleSnapshots(), approvedLoanDocumentsPersistDataEntry(), generaliApplicationFormBuildDocumentData() (+2 more)
 
 ### Community 33 - "MemberApplicationProfile"
-Cohesion: 0.05
-Nodes (17): HttpResponse, LoanRequestCorrectionReportController, LoanRequestCorrectionController, LoanRequestCorrectionReportController, LoanRequestDecisionController, MemberAdminAccessController, MembersController, MemberStatusController (+9 more)
+Cohesion: 0.17
+Nodes (3): UsernameSuggestionController, UsernameSuggestionController, Carbon\CarbonImmutable
 
 ### Community 34 - "ApprovedLoanDocumentService.php"
-Cohesion: 0.03
-Nodes (135): react, react, DEPENDENT_CATEGORIES, DependentValues, BirthdateInput(), BirthdateInputProps, digitsToIso(), isoToDisplay() (+127 more)
+Cohesion: 0.08
+Nodes (32): LoanRequestMobileCard(), LoanRequestRecordsCard(), LoanRequestRecordsCardProps, requestTableSkeletonColumns, resolveAmount(), resolveAssignedOfficer(), resolveLoanTypeLabel(), resolveReference() (+24 more)
+
+### Community 35 - "Wmaster"
+Cohesion: 0.05
+Nodes (16): ReportingController, LoanRequestController, SavedCoMakerController, EnsureAdmin, EnsureMemberProfileComplete, EnsureMemberVerified, EnsureMustChangePassword, EnsureSuperadmin (+8 more)
 
 ### Community 36 - "LoanRequest.php"
 Cohesion: 0.07
 Nodes (29): API Routing, Artisan Commands, Authorization, Blade Templates, Class Structure, Code Quality Reminders, Comments, Configuration (+21 more)
 
 ### Community 37 - "ApprovedLoanDocumentPackageDownloadTest.php"
-Cohesion: 0.08
-Nodes (35): approvedLoanDocumentsBuildDocumentData(), approvedLoanDocumentsCreateApprovedLoanRequestWithPeople(), approvedLoanDocumentsCreateDataEntries(), approvedLoanDocumentsCreateLoanRequestPeopleSnapshots(), approvedLoanDocumentsCreateTemplateImage(), approvedLoanDocumentsCreateTemplatePdf(), approvedLoanDocumentsDecodeCidBytes(), approvedLoanDocumentsDecodePdfStream() (+27 more)
+Cohesion: 0.09
+Nodes (31): approvedLoanDocumentsBuildDocumentData(), approvedLoanDocumentsCreateTemplateImage(), approvedLoanDocumentsCreateTemplatePdf(), approvedLoanDocumentsDecodeCidBytes(), approvedLoanDocumentsDecodePdfStream(), approvedLoanDocumentsDecodePdfTextOperand(), approvedLoanDocumentsDownloadedFilePath(), approvedLoanDocumentsExpectedWorksheetPrintAreaRange() (+23 more)
 
 ### Community 38 - "reports.tsx"
 Cohesion: 0.05
 Nodes (37): 0. Business context (confirmed by WIBS/Ariz — do not re-litigate), 10. RISK ASSESSMENT, 10a. Reversing the prior 🔒 "do not remove — gates document generation" decision — **safe**, 10b. Mid-flight requests losing data — **acceptable per business confirmation**, 10c. Other `release_method` references — swept, no further work, 11. IMPLEMENTATION CHECKLIST (ordered), 1. INVESTIGATION RESULT — what is `release_method`? → **RELOCATE, do not delete**, 2. FIELD REGISTRY — `app/Services/LoanRequests/LoanRequestDataService.php` (+29 more)
 
 ### Community 39 - "LoanRequestService"
-Cohesion: 0.06
-Nodes (16): LoanRequest, LoanRequestDataEntry, Carbon, LoanRequestDecisionService, LoanRequestPersonRole, up(), Illuminate\Database\Eloquent\Relations\HasMany, approvedLoanDocumentsRouteDefinitions() (+8 more)
+Cohesion: 0.04
+Nodes (51): DashboardState, emptySummary, useAdminDashboard(), emptyResponse, StaffDirectoryOptions, StaffDirectoryParams, StaffDirectoryState, ApiResponse (+43 more)
 
 ### Community 41 - "dependencies"
 Cohesion: 0.05
 Nodes (37): cmdk, concurrently, @fullcalendar/core, @fullcalendar/daygrid, @headlessui/react, @inertiajs/react, laravel-vite-plugin, dependencies (+29 more)
 
-### Community 42 - "ApprovedLoanExcelTemplateService"
-Cohesion: 0.05
-Nodes (54): LoanRequestPageHero(), LoanRequestPageHeroProps, LoanRequestSearchBox(), LoanRequestSearchBoxProps, LoanRequestStatusFilterOption, LoanRequestStatusFilters(), LoanRequestStatusFiltersProps, LoanRequestSummaryCardItem (+46 more)
-
 ### Community 43 - "PromissoryNotePdfService"
-Cohesion: 0.11
-Nodes (3): ApprovedLoanDocumentDataBuilder, Builder, LoanRequestPersonRole
+Cohesion: 0.06
+Nodes (10): BackfillZipCodesCommand, LoanRequestPerson, ApprovedLoanDocumentDataBuilder, Builder, LoanRequestPersonRole, LoanRequestCompletenessService, PersonName, Carbon\CarbonInterface (+2 more)
 
 ### Community 44 - "MemberLoansRepository"
 Cohesion: 0.16
 Nodes (5): Amortsched, Wlnled, MemberLoansRepository, Carbon, Illuminate\Support\Carbon
 
 ### Community 45 - "LoanRequestDecisionService"
-Cohesion: 0.03
-Nodes (102): LoanRequestMobileCard(), LoanRequestRecordsCard(), LoanRequestRecordsCardProps, requestTableSkeletonColumns, resolveAmount(), resolveAssignedOfficer(), resolveLoanTypeLabel(), resolveReference() (+94 more)
+Cohesion: 0.06
+Nodes (65): MemberDetailPageHeader(), MemberDetailPageHeaderProps, accentStyles, DetailAccent, MemberDetailPrimaryCard(), MemberDetailPrimaryCardProps, MemberDetailSupportingCard(), MemberDetailSupportingCardProps (+57 more)
 
 ### Community 48 - "MemberAccountsRepository"
-Cohesion: 0.26
-Nodes (3): MemberAccountsRepository, Wsvmaster, MemberAccountsRepository
+Cohesion: 0.20
+Nodes (4): MemberAccountsRepository, Wsavled, Wsvmaster, MemberAccountsRepository
 
 ### Community 49 - "Spa/Superadmin/StaffController.php"
 Cohesion: 0.06
@@ -722,37 +731,21 @@ Nodes (6): ApprovedLoanImageTemplatePdfService, TCPDF, approvedLoanImageTemplate
 Cohesion: 0.06
 Nodes (31): @aivangogh/ph-address, babel-plugin-react-compiler, eslint, eslint-config-prettier, eslint-import-resolver-typescript, @eslint/js, eslint-plugin-import, eslint-plugin-react (+23 more)
 
-### Community 53 - "Illuminate\Console\Command"
-Cohesion: 0.21
-Nodes (4): DashboardController, HandleInertiaRequests, Inertia\Middleware, Throwable
-
-### Community 54 - "MemberVerificationMatcher"
-Cohesion: 0.03
-Nodes (23): RecordLoginHistory, AuthorityToDeductInstitutionContact, self, DocumentAccessLog, LoanRequestCorrectionReport, LoanRequestDataChange, LoanRequestNotificationEvent, LoginHistory (+15 more)
-
 ### Community 55 - "LoanRequestPdfService"
 Cohesion: 0.11
 Nodes (10): AffidavitUndertakingPdfFieldMap, AtmSalaryDeductionWaiverPdfFieldMap, upper(), upperTransform(), DepedSalaryDeductionWaiverPdfFieldMap, LoanInformationPdfFieldMap, LoanSecurityAgreementPdfFieldMap, PensionDeductionWaiverPdfFieldMap (+2 more)
 
-### Community 56 - "RequestsService"
-Cohesion: 0.15
-Nodes (5): MemberLoanScheduleController, MemberLoanScheduleController, MemberLoanScheduleController, MemberLoanScheduleResource, MemberLoanSummaryResource
-
 ### Community 57 - "loan-request-records-card.tsx"
 Cohesion: 0.03
-Nodes (136): AppContent(), Props, mainNavItems, Props, rightNavItems, AppShell(), Props, AppSidebar() (+128 more)
+Nodes (119): AppContent(), Props, AppHeader(), mainNavItems, Props, rightNavItems, AppShell(), Props (+111 more)
 
 ### Community 59 - "LoanRequestController"
 Cohesion: 0.07
 Nodes (26): 1. Page Components (CRITICAL), 1. Type-Safe Page Components, 2. Form Handling with useForm, 2. Forms & Validation (CRITICAL), 3. Navigation (CRITICAL-HIGH), 3. Navigation with Link, 4. Programmatic Navigation, 4. Shared Data (CRITICAL-HIGH) (+18 more)
 
 ### Community 60 - "use-current-url.ts"
-Cohesion: 0.22
-Nodes (16): AppearanceToggleTab(), Appearance, applyTheme(), getStoredAppearance(), handleSystemThemeChange(), initializeTheme(), isDarkMode(), listeners (+8 more)
-
-### Community 62 - "PhpOffice\PhpSpreadsheet\Worksheet\Worksheet"
-Cohesion: 0.21
-Nodes (11): resolveAppTitle(), setup(), SharedProps, Toaster(), ToasterProps, mrdincTheme, injectClientTheme(), serializeTokens() (+3 more)
+Cohesion: 0.07
+Nodes (40): resolveAppTitle(), setup(), SharedProps, ApiNotice(), noticeContent, NoticeType, AppearanceToggleTab(), Toaster() (+32 more)
 
 ### Community 64 - ".submit"
 Cohesion: 0.13
@@ -767,8 +760,8 @@ Cohesion: 0.11
 Nodes (18): resources/js/**/*.d.ts, resources/js/**/*.ts, resources/js/**/*.tsx, compilerOptions, allowJs, esModuleInterop, forceConsistentCasingInFileNames, isolatedModules (+10 more)
 
 ### Community 67 - "LocationComposer"
-Cohesion: 0.07
-Nodes (44): NotificationBell(), NotificationHeader(), ApiResponse, notificationsApi, ACCOUNT_ACCESS_NOTIFICATION_TYPES, buildNotificationMetadataChips(), chipClassNames, conciseDateFormatter (+36 more)
+Cohesion: 0.06
+Nodes (51): NotificationBell(), NotificationHeader(), NotificationListItem(), NotificationMetadataChips(), DropdownMenu(), DropdownMenuItem(), DropdownMenuTrigger(), ApiResponse (+43 more)
 
 ### Community 69 - "PsgcService"
 Cohesion: 0.07
@@ -783,24 +776,24 @@ Cohesion: 0.08
 Nodes (23): 1. Page Components (CRITICAL), 2. Forms & Validation (CRITICAL), 3. Navigation & Links (HIGH), 4. Shared Data (HIGH), 5. Layouts (MEDIUM), 6. File Uploads (MEDIUM), 7. Advanced Patterns (LOW), Essential Patterns (+15 more)
 
 ### Community 72 - "LoanRequestWorkflowService"
-Cohesion: 0.18
-Nodes (19): AppHeader(), IsCurrentUrlFn, IsMatchFn, MatchStrategy, resolvePathname(), UrlMatchOptions, useCurrentUrl(), UseCurrentUrlReturn (+11 more)
+Cohesion: 0.20
+Nodes (15): IsCurrentUrlFn, IsMatchFn, MatchStrategy, UrlMatchOptions, UseCurrentUrlReturn, WhenCurrentUrlFn, memberLoanRequestSectionPaths, memberLoanRequestsNavMatchOptions (+7 more)
 
 ### Community 73 - "composer.json"
 Cohesion: 0.12
 Nodes (16): autoload-dev, psr-4, description, extra, laravel, keywords, dont-discover, license (+8 more)
 
 ### Community 74 - "LoanRequestPerson"
-Cohesion: 0.02
-Nodes (168): TwoFactorRecoveryCodes(), TwoFactorVerificationStep(), LoanRequestCancellationOptions, LoanRequestCancellationPayload, useCancelLoanRequest(), LaravelValidationPayload, LoanRequestCorrectionOptions, normalizeValidationErrors() (+160 more)
+Cohesion: 0.17
+Nodes (13): RequestsParams, useRequests(), emptyResponse, RequestQueueParams, useRequestQueue(), RequestsParams, useRequests(), ApiResponse (+5 more)
 
 ### Community 75 - "MemberLoanPaymentsRequest"
 Cohesion: 0.09
 Nodes (22): 1. HTTP & Feature Tests (CRITICAL), 2. Model Factories (CRITICAL), 3. Database Assertions (HIGH), 4. Faking Services (HIGH), 5. Authentication Testing (HIGH), 6. Test Organisation Patterns (MEDIUM), Core assertions (identical in both frameworks), Essential Patterns (+14 more)
 
-### Community 77 - "LoanSecurityAgreementPdfService"
-Cohesion: 0.10
-Nodes (4): LoanRequestPerson, LocationComposer, createLoanRequestPeopleSnapshots(), waiverDocumentsCreateApprovedLoanRequestWithApplicant()
+### Community 76 - "NotificationResource"
+Cohesion: 0.11
+Nodes (7): WibsTrackingController, LoanRequestChange, LoanRequestNotificationEvent, LoanRequestNotificationService, LoanRequestStatus, WibsTrackingService, createAuditTrailChange()
 
 ### Community 78 - "2026_06_15_234636_add_phase_seven_hardening_to_loan_workflow_tables.php"
 Cohesion: 0.30
@@ -809,6 +802,10 @@ Nodes (13): backfillLegacyLoanRequestDocuments(), createRepairAuditTable(), dete
 ### Community 79 - "app-sidebar-layout.tsx"
 Cohesion: 0.07
 Nodes (29): Behavior Matrix, Create, Data Source: `wlnmaster` Table (WIBS), Feature Tests, Files Summary, Implementation Plan: Auto-populate Loan Declarations + PDL/IIL Visibility, Logic Summary, Member Experience (+21 more)
+
+### Community 80 - "LoanRequestStoreRequest"
+Cohesion: 0.05
+Nodes (17): AuthorityToDeductInstitutionContact, self, MemberDependent, Permission, UserRoleChange, Wlntype, LoanWorkflowPermissionSeedService, WlntypeSeeder (+9 more)
 
 ### Community 81 - "require"
 Cohesion: 0.14
@@ -843,24 +840,24 @@ Cohesion: 0.40
 Nodes (5): npx, context7, playwright, @playwright/mcp, @upstash/context7-mcp
 
 ### Community 89 - "SchemaCapabilities"
-Cohesion: 0.18
-Nodes (14): buildStepGroups(), EMPTY_HIDDEN_STEP_IDS, GROUP_META, GroupMeta, HiddenStepIds, LoanRequestStepIndicator(), Props, StepGroup (+6 more)
+Cohesion: 0.07
+Nodes (41): PAYDAY_OPTIONS, AdornedNumberInputProps, CurrencyInput(), fractionToPercentDisplay(), MonthsInput(), MonthsInputProps, PercentInput(), percentToFraction() (+33 more)
 
 ### Community 90 - "app.tsx"
 Cohesion: 0.10
-Nodes (7): AppServiceProvider, FortifyServiceProvider, PhAddressLocationProvider, Illuminate\Cache\RateLimiting\Limit, Illuminate\Support\ServiceProvider, Limit, LocationProvider
+Nodes (7): PasswordRecoveryEmailLinkController, PasswordRecoveryLookupController, PasswordRecoveryPhoneOtpController, PasswordRecoveryOtp, PasswordRecoveryService, PasswordRecoveryState, CarbonImmutable
 
 ### Community 91 - "loan-request-step-indicator.tsx"
-Cohesion: 0.05
-Nodes (8): LoanRequestPolicy, AuthorityToDeductPdfService, DisclosureStatementPdfService, LoanSecurityAgreementPdfService, PlanOfPaymentPdfService, PromissoryNotePdfService, authorityToDeductBuildViewData(), authorityToDeductDocumentData()
+Cohesion: 0.07
+Nodes (4): LoanRequestCorrectionReport, LoanRequestDataChange, LoanRequestCorrectionReportService, Illuminate\Database\Eloquent\Relations\BelongsTo
 
 ### Community 92 - "branding-theme.ts"
-Cohesion: 0.33
-Nodes (10): formatHsl(), hexToRgb(), HslColor, normalizeHexColor(), relativeLuminance(), resolveBrandingTheme(), resolveForegroundColor(), rgbChannelToLinear() (+2 more)
+Cohesion: 0.15
+Nodes (6): PhpOffice\PhpSpreadsheet\Worksheet\Worksheet, approvedLoanDocumentsExpectedHeaderCenteringWidth(), approvedLoanDocumentsExpectedHeaderOffsetXAdjustment(), approvedLoanDocumentsFirstContentRow(), approvedLoanDocumentsHeaderRowCount(), approvedLoanDocumentsMaximumMergedEndColumnIndex()
 
 ### Community 93 - "branding.ts"
-Cohesion: 0.09
-Nodes (12): ResetUserPassword, emailRules(), phoneRules(), profileRules(), usernameRules(), ResetPasswordWithOtpRequest, PasswordUpdateRequest, ProfileDeleteRequest (+4 more)
+Cohesion: 0.11
+Nodes (7): LoanRequestDataEntry, Carbon, up(), backfillHealthCreateDataEntry(), generaliApplicationFormPersistDataEntry(), applicabilityPersistDataEntries(), waiverDocumentsPersistDataEntry()
 
 ### Community 94 - "MemberLoanSecurityLedgerResource"
 Cohesion: 0.14
@@ -870,29 +867,21 @@ Nodes (13): Arrow Functions, Comparisons, Destructuring, Function Declarations, 
 Cohesion: 0.18
 Nodes (6): barangays, DATA_PATH, fixture, FIXTURE_MUNICIPALITY_CODES, FIXTURE_PATH, ROOT_DIR
 
-### Community 96 - "UsernameSuggestionController"
-Cohesion: 0.08
-Nodes (9): MemberLoanPaymentsController, MemberLoanPaymentsExportController, MemberLoanPaymentsController, MemberLoanPaymentsExportController, MemberLoanPaymentsRequest, MemberLoanPaymentsRequest, MemberLoanPaymentResource, MemberLoanExportService (+1 more)
-
 ### Community 98 - "require-dev"
 Cohesion: 0.20
 Nodes (10): require-dev, fakerphp/faker, laravel/boost, laravel/pail, laravel/pint, laravel/sail, mockery/mockery, nunomaduro/collision (+2 more)
 
 ### Community 100 - "SaveDraftRequest"
-Cohesion: 0.18
-Nodes (10): BrandingAssets, BrandingCommunications, BrandingContact, BrandingGeneral, BrandingReports, LoanSmsTemplates, LogoPreset, ReportHeader (+2 more)
-
-### Community 101 - "MemberDetailResource"
-Cohesion: 0.24
-Nodes (5): AuditController, LengthAwarePaginator, DocumentFilename, approvedLoanDocumentsPdfRouteDefinitions(), approvedLoanDocumentsTemplateBackedPdfRouteDefinitions()
+Cohesion: 0.03
+Nodes (22): LoanRequestAdminCorrectedCopyRequest, MemberAccountActionsRequest, MemberAccountLoansRequest, MemberAccountSavingsRequest, MemberIndexRequest, MemberLoanPaymentsExportRequest, VerifyPasswordRecoveryOtpRequest, LoanRequestCancelRequest (+14 more)
 
 ### Community 102 - "inject-theme.ts"
 Cohesion: 0.17
-Nodes (13): RequestsParams, useRequests(), emptyResponse, RequestQueueParams, useRequestQueue(), RequestsParams, useRequests(), ApiResponse (+5 more)
+Nodes (17): LoanRequestPageHeroProps, LoanRequestSearchBoxProps, LoanRequestStatusFiltersProps, LoanRequestSummaryCardItem, LoanRequestSummaryCardsProps, Props, TYPE_LABELS, Command() (+9 more)
 
 ### Community 103 - ".grant"
-Cohesion: 0.05
-Nodes (7): LoanRequestWorkflowController, LoanRequestAssignmentService, LoanRequestDataService, LoanRequestDocumentWorkflowService, LoanRequestPayloadSerializer, LoanRequestPersonRole, LoanRequestDocumentKey
+Cohesion: 0.04
+Nodes (18): HttpResponse, LoanRequestCorrectionReportController, LoanRequestCorrectionController, LoanRequestCorrectionReportController, LoanRequestDecisionController, MembersController, MemberStatusController, AuthController (+10 more)
 
 ### Community 104 - ".index"
 Cohesion: 0.15
@@ -905,6 +894,10 @@ Nodes (22): 0. Full coordinate dump (fixed target — read before designing anyt
 ### Community 106 - "setup"
 Cohesion: 0.25
 Nodes (8): post-root-package-install, setup, composer install, npm install, npm run build, @php artisan key:generate, @php artisan migrate --force, @php -r \"file_exists('.env') || copy('.env.example', '.env');\
+
+### Community 107 - "image-crop.ts"
+Cohesion: 0.15
+Nodes (4): ProfileController, MemberDependentProfile, DependentsProfileSyncService, SettingsPageData
 
 ### Community 108 - "password-recovery-flow.d.ts"
 Cohesion: 0.25
@@ -954,49 +947,61 @@ Nodes (29): 1. HTTP & Feature Tests (CRITICAL), 2. Model Factories (CRITICAL), 3
 Cohesion: 0.83
 Nodes (3): down(), foreignKeyExists(), up()
 
-### Community 189 - "AbstractDatabaseNotification"
-Cohesion: 0.15
-Nodes (9): SendLoanWorkflowSmsJob, LoanRequestWorkflowStatusNotification, Illuminate\Bus\Queueable, Illuminate\Contracts\Queue\ShouldQueue, Illuminate\Foundation\Bus\Dispatchable, Illuminate\Notifications\Messages\MailMessage, Illuminate\Notifications\Notification, Illuminate\Queue\InteractsWithQueue (+1 more)
+### Community 122 - "UserMenuContent"
+Cohesion: 0.10
+Nodes (7): AppServiceProvider, FortifyServiceProvider, PhAddressLocationProvider, Illuminate\Cache\RateLimiting\Limit, Illuminate\Support\ServiceProvider, Limit, LocationProvider
+
+### Community 187 - "SendLoanDecisionSmsJob"
+Cohesion: 0.08
+Nodes (4): MemberAccountsService, Wmaster, MemberAccountsService, Illuminate\Pagination\LengthAwarePaginator
 
 ### Community 191 - "@fullcalendar/core"
-Cohesion: 0.05
-Nodes (30): OrganizationSettingsController, RequestsController, WatchlistController, BarangaySearchController, BirthplaceSearchController, CitySearchController, ProvinceSearchController, ZipLookupController (+22 more)
+Cohesion: 0.03
+Nodes (47): AdminDashboardController, MemberLoanPaymentsController, MemberLoanPaymentsExportController, MemberLoanScheduleController, MemberLoansController, MemberProfileController, MemberSavingsController, RequestsController (+39 more)
 
 ### Community 192 - "@fullcalendar/daygrid"
 Cohesion: 0.60
 Nodes (4): down(), tryAddIndex(), tryDropIndex(), up()
 
 ### Community 193 - "@fullcalendar/react"
-Cohesion: 0.10
-Nodes (3): LoanRequestService, LoanRequestPersonRole, LoanRequestStatus
+Cohesion: 0.06
+Nodes (5): SyncProfileIncomesCommand, LoanRequestService, LoanRequestPersonRole, LoanRequestStatus, LocationComposer
+
+### Community 194 - "globals"
+Cohesion: 0.32
+Nodes (3): Builder, Carbon, ReportMetricsService
+
+### Community 195 - "@headlessui/react"
+Cohesion: 0.12
+Nodes (5): ValidPostalCode, ValidPsgcBarangay, ValidPsgcLocality, ValidPsgcProvince, Illuminate\Contracts\Validation\ValidationRule
 
 ### Community 196 - "@inertiajs/react"
-Cohesion: 0.03
-Nodes (141): AlertError(), AssignOfficerDialog(), Props, LoanRequestAuditTrail(), Props, ApprovedDocumentHrefs, buildCoMakerCuratedFields(), buildCoMakerMoreFields() (+133 more)
+Cohesion: 0.04
+Nodes (87): AlertError(), LoanRequestAuditTrail(), Props, ApprovedDocumentHrefs, buildCoMakerCuratedFields(), buildCoMakerMoreFields(), CancellationProps, CorrectedCopyProps (+79 more)
 
 ### Community 197 - "CalibrateApprovedLoanPdfFieldsCommand"
 Cohesion: 0.14
 Nodes (13): 4a. Grepalife render-fallback test, 4b. Backfill command test, Decisions (locked with user), Facts (verified against live DB), Key reference files, Part 1 — Profile settings Personal tab: home ZIP always visible (read-only), Part 2 — Render-time fallback in ApprovedLoanDocumentService, Part 3 — Backfill command: `loan-requests:backfill-zip-codes` (+5 more)
 
+### Community 200 - "CorrectionDialogForm"
+Cohesion: 0.04
+Nodes (85): MemberProfileDetailsCard(), MemberProfileHeader(), MemberStatusCard(), MemberAccountActionsResponse, MemberLoanSecurity, MemberLoanSecurityLedgerEntry, MemberLoanSecurityLedgerResponse, MemberLoansResponse (+77 more)
+
 ### Community 201 - "@radix-ui/react-navigation-menu"
-Cohesion: 0.33
-Nodes (3): createAcceptanceActor(), createAcceptanceMember(), createAcceptanceWorkflowRequest()
+Cohesion: 0.29
+Nodes (3): AuditController, LengthAwarePaginator, Symfony\Component\HttpFoundation\BinaryFileResponse
 
 ### Community 204 - "@radix-ui/react-toggle-group"
 Cohesion: 0.40
 Nodes (4): Before building anything, Conventions to follow, shadcn/ui Expert, When a component is genuinely missing
 
-### Community 207 - "toggle-group.tsx"
+### Community 206 - "react-dom"
 Cohesion: 0.05
-Nodes (16): ArchiveOldLoanRequests, BackfillMemberRoles, BackfillZipCodesCommand, LoanRequestOwnerRepairCommand, LoanWorkflowCleanupTempFilesCommand, LoanWorkflowDeploymentCheckCommand, LoanWorkflowPreflightCommand, LoanWorkflowRepairCommand (+8 more)
+Nodes (18): LoanRequestDocument, Illuminate\Validation\ValidationException, approvedDocumentRegenerationLoanRequest(), applicabilityChecklistEntry(), makeLockResilienceLoanRequest(), createGeneratedDocumentLoanRequest(), createGeneratedDocumentStaffUser(), createGeneratedPdfDocument() (+10 more)
 
-### Community 208 - "CorrectionDialogForm"
-Cohesion: 0.36
-Nodes (7): createCroppedImageFile(), CreateCroppedImageOptions, CroppedImageResult, getOutputFileName(), getOutputMimeType(), loadImage(), MIME_EXTENSION
-
-### Community 209 - "loan-request-summary-panel.tsx"
-Cohesion: 0.33
-Nodes (4): SharedProps, Branding, InertiaConfig, @inertiajs/core
+### Community 207 - "toggle-group.tsx"
+Cohesion: 0.32
+Nodes (7): GenerateApprovedLoanDocumentPackageJob, SendLoanWorkflowSmsJob, Illuminate\Bus\Queueable, Illuminate\Contracts\Queue\ShouldQueue, Illuminate\Foundation\Bus\Dispatchable, Illuminate\Queue\InteractsWithQueue, Illuminate\Queue\SerializesModels
 
 ### Community 211 - "AppUserFactory"
 Cohesion: 0.50
@@ -1007,12 +1012,16 @@ Cohesion: 0.50
 Nodes (3): Checklist, Output, UI/UX Reviewer
 
 ### Community 214 - "vite"
-Cohesion: 0.04
-Nodes (32): AppUser, AbstractDatabaseNotification, AdminAccessAuditNotification, AdminAccessChangedNotification, LoanRequestAdminCorrectedCreatedNotification, LoanRequestCancelledNotification, LoanRequestCorrectedNotification, LoanRequestCorrectionReportedNotification (+24 more)
+Cohesion: 0.06
+Nodes (11): AppUser, StaffAccessControl, StaffManagementService, Illuminate\Database\Eloquent\Relations\HasOne, Illuminate\Foundation\Auth\User, Illuminate\Notifications\Notifiable, Laravel\Fortify\TwoFactorAuthenticatable, makeSuperadminForAudit() (+3 more)
 
 ### Community 270 - "member-profile.tsx"
 Cohesion: 0.11
 Nodes (18): Architecture Testing, Assertions, Basic Test Structure, Basic Usage, Browser Test Example, Common Pitfalls, Creating Tests, Datasets (+10 more)
+
+### Community 271 - "use-clipboard.ts"
+Cohesion: 0.21
+Nodes (4): MemberLoanSecurityLedgerResource, MemberSavingsController, MemberSavingsController, MemberSavingsLedgerResource
 
 ### Community 272 - "React Compiler Exceptions"
 Cohesion: 0.07
@@ -1034,6 +1043,10 @@ Nodes (23): 1. Page Components (CRITICAL), 2. Forms & Validation (CRITICAL), 3. 
 Cohesion: 0.09
 Nodes (22): 1. HTTP & Feature Tests (CRITICAL), 2. Model Factories (CRITICAL), 3. Database Assertions (HIGH), 4. Faking Services (HIGH), 5. Authentication Testing (HIGH), 6. Test Organisation Patterns (MEDIUM), Core assertions (identical in both frameworks), Essential Patterns (+14 more)
 
+### Community 277 - "DisclosureStatementPdfService"
+Cohesion: 0.18
+Nodes (10): BrandingAssets, BrandingCommunications, BrandingContact, BrandingGeneral, BrandingReports, LoanSmsTemplates, LogoPreset, ReportHeader (+2 more)
+
 ### Community 278 - "WibsTrackingController"
 Cohesion: 0.11
 Nodes (18): 1. Move GLAPI step into "Insurance & health", 2. Yes/No boolean control: Select → toggle, 3. Reusable-profile architecture (About you / Bank & payout / Co-makers), Confirmed: no write-back from the wizard today, Current state (confirmed in code), Current state (confirmed in code), Decision: sync on submit only, not on draft saves, Files to change (+10 more)
@@ -1041,6 +1054,10 @@ Nodes (18): 1. Move GLAPI step into "Insurance & health", 2. Yes/No boolean cont
 ### Community 279 - "PhpOffice\PhpSpreadsheet\Worksheet\Worksheet"
 Cohesion: 0.11
 Nodes (18): 10. Manual Verification Checklist (0–15), 1. Authoritative Flat Index Map (0–15), 2. Step Components — approach, 2a. `resources/js/components/loan-request/loan-request-fields.tsx`, 2b. `resources/js/components/loan-request/loan-request-steps.tsx`, 3. `steps` array in `loan-request.tsx` (lines 63–119), 4. AnimatedStep blocks in `loan-request.tsx` (lines 598–783), 5. `resolveStepFromErrors` in `loan-request.tsx` (lines 259–333) (+10 more)
+
+### Community 280 - "LoanRequestChange"
+Cohesion: 0.18
+Nodes (5): RecordLoginHistory, LoginHistory, EventServiceProvider, Illuminate\Auth\Events\Login, Illuminate\Foundation\Support\Providers\EventServiceProvider
 
 ### Community 281 - "Spatie Version Control Guidelines"
 Cohesion: 0.11
@@ -1097,6 +1114,10 @@ Nodes (11): 1. HTTP & Feature Tests (Critical), 2. Model Factories (Critical), 3
 ### Community 295 - "6. Rendering Performance"
 Cohesion: 0.17
 Nodes (12): 6.10 Use React DOM Resource Hints, 6.11 Use useTransition Over Manual Loading States, 6.1 Animate SVG Wrapper Instead of SVG Element, 6.2 CSS content-visibility for Long Lists, 6.3 Hoist Static JSX Elements, 6.4 Optimize SVG Precision, 6.5 Prevent Hydration Mismatch Without Flickering, 6.6 Suppress Expected Hydration Mismatches (+4 more)
+
+### Community 296 - "inject-theme.ts"
+Cohesion: 0.33
+Nodes (3): AuthorityToDeductPdfService, authorityToDeductBuildViewData(), authorityToDeductDocumentData()
 
 ### Community 297 - "Form useForm Hook"
 Cohesion: 0.18
@@ -1178,10 +1199,6 @@ Nodes (8): Additional Checks, Categories, Laravel OWASP Security, Overview, OWAS
 Cohesion: 0.22
 Nodes (8): Always Regenerate Session After Login, Correct — Rate Limiting on Auth Routes, Enforce Authentication and Rate Limiting, Incorrect — No Rate Limiting, Recommended Patterns, Session Configuration, Use RateLimiter in LoginRequest, Why It Matters
 
-### Community 317 - "MemberLoanPaymentsExportRequest"
-Cohesion: 0.15
-Nodes (3): ApprovedLoanExcelTemplateService, PhpOffice\PhpSpreadsheet\Spreadsheet, approvedLoanDocumentsWorkbookStringValues()
-
 ### Community 318 - "MemberSummaryResource"
 Cohesion: 0.18
 Nodes (10): Always Check Ownership, Correct, Incorrect, Mirror Server-Side Checks — Never Trust Frontend Alone, Prevent Broken Access Control, Protect Route Groups with Middleware, Recommended Patterns, Scope All Queries to the Authenticated User (+2 more)
@@ -1191,8 +1208,8 @@ Cohesion: 0.25
 Nodes (7): Correct — Mass Assignment Prevention, Correct — SQL Injection Prevention, Incorrect — Mass Assignment, Incorrect — SQL Injection, Prevent SQL Injection and Mass Assignment, Recommended Patterns, Why It Matters
 
 ### Community 320 - "validateAllRequiredFields"
-Cohesion: 0.03
-Nodes (21): LoanRequestApproveRequest, LoanRequestCancelRequest, MemberAccountActionsRequest, MemberAccountLoansRequest, MemberAccountSavingsRequest, MemberIndexRequest, MemberLoanScheduleRequest, MemberStatusRequest (+13 more)
+Cohesion: 0.09
+Nodes (12): ResetUserPassword, emailRules(), phoneRules(), profileRules(), usernameRules(), ResetPasswordWithOtpRequest, PasswordUpdateRequest, ProfileDeleteRequest (+4 more)
 
 ### Community 321 - "OrganizationSettingUpdateRequest"
 Cohesion: 0.22
@@ -1201,6 +1218,10 @@ Nodes (8): 1. Step structure, 2. Smoking field migration, 3. Item 2e field migra
 ### Community 322 - "DisclosureStatementPdfService"
 Cohesion: 0.18
 Nodes (10): Always Use @csrf in Blade Forms, Correct, Custom fetch Must Include CSRF Token, Enforce CSRF Protection, Incorrect, Inertia Handles CSRF Automatically, Only Exclude Stateless Webhook Routes, Recommended Patterns (+2 more)
+
+### Community 323 - "MemberSummaryResource"
+Cohesion: 0.14
+Nodes (3): OrganizationSettingUpdateRequest, ProfileUpdateRequest, DisplayText
 
 ### Community 324 - "fake-mail.md"
 Cohesion: 0.29
@@ -1434,6 +1455,10 @@ Nodes (6): 4 — Loan Information (LI), Section 1 — Borrower & Loan Details, S
 Cohesion: 0.33
 Nodes (6): ❌ Add to App (missing — need new fields or derivations), 📋 Document Conversion Status, ❓ Pending WIBS Answers, 🗑️ Removed Fields (confirmed deleted — 8 fields total), Summary: Action Items by Type, ⚠️ Wire Up (collected but not printing)
 
+### Community 388 - "LoanRequestWorkflowStatusNotification"
+Cohesion: 0.36
+Nodes (5): PhpOffice\PhpSpreadsheet\Spreadsheet, PhpOffice\PhpSpreadsheet\Worksheet\Drawing, approvedLoanDocumentsDrawingLeftOffsetInPixels(), approvedLoanDocumentsWorkbookStringValues(), approvedLoanDocumentsWorksheetWidthInPixels()
+
 ### Community 389 - "LoanRequestCancelRequest"
 Cohesion: 0.40
 Nodes (5): 2 — Grepalife / Sun Life (GL), Beneficiaries, Insurance Terms, Personal Data, Section 2 — Health Questionnaire
@@ -1455,16 +1480,16 @@ Cohesion: 0.40
 Nodes (5): 9 — Loan Security Agreement (LSA), Borrower, Co-Makers, Loan Terms, Signatories
 
 ### Community 394 - "SendLoanDecisionSmsJob"
-Cohesion: 0.15
-Nodes (3): OrganizationSettingUpdateRequest, LoanRequestDraftRequest, DisplayText
+Cohesion: 0.17
+Nodes (3): LoanRequestPdfService, LoanRequestPersonRole, OfficialLoanManagerResolver
 
 ### Community 395 - "LoanRequestClaimRequest"
 Cohesion: 0.50
 Nodes (4): 6 — Disclosure Statement (DS), Borrower, Certified Correct, Finance Charges (Staff-entered)
 
 ### Community 398 - "FortifyServiceProvider"
-Cohesion: 0.05
-Nodes (70): Heading(), InputError(), Props, Props, TextLink(), Props, TwoFactorSetupStep(), Button() (+62 more)
+Cohesion: 0.04
+Nodes (102): react, react, DEPENDENT_CATEGORIES, DependentValues, BirthdateInput(), BirthdateInputProps, digitsToIso(), isoToDisplay() (+94 more)
 
 ### Community 399 - "SemaphoreSmsService"
 Cohesion: 0.20
@@ -1746,61 +1771,61 @@ Nodes (3): Bad Example, Fluent JSON Assertions with AssertableJson, Good Example
 Cohesion: 0.67
 Nodes (3): Framework Detection, References, Syntax Comparison
 
-### Community 585 - "CreateNewUser.php"
-Cohesion: 0.07
-Nodes (16): MemberLoanSecurityLedgerResource, MemberAccountsService, MemberLoansController, MemberProfileController, MemberSavingsController, MemberLoansController, MemberSavingsController, MemberAccountActionsController (+8 more)
+### Community 574 - "BackfillHealthSmokingStatusCommand"
+Cohesion: 0.22
+Nodes (3): MemberLoanPaymentsController, MemberLoanPaymentsRequest, MemberLoanPaymentResource
 
-### Community 589 - "Repositories/MemberAccountsRepository.php"
+### Community 582 - "@tailwindcss/vite"
+Cohesion: 0.30
+Nodes (4): NotificationsController, Illuminate\Contracts\Auth\Authenticatable, Illuminate\Notifications\DatabaseNotification, Throwable
+
+### Community 585 - "use-staff-directory.ts"
+Cohesion: 0.33
+Nodes (3): createAcceptanceActor(), createAcceptanceMember(), createAcceptanceWorkflowRequest()
+
+### Community 590 - "use-clipboard.ts"
+Cohesion: 0.05
+Nodes (56): AssignOfficerDialog(), Props, AsyncResult, buildOfficerLabel(), LoanRequestWorkflowActionConfig, LoanRequestWorkflowActions(), LoanRequestWorkflowApprovePayload, LoanRequestWorkflowAssignmentActionConfig (+48 more)
+
+### Community 595 - "PasswordRecoveryLookupRequest"
+Cohesion: 0.40
+Nodes (3): LoanRequestPersonFactory, LoanRequestPersonRole, static
+
+### Community 601 - "LinkMembershipRequest"
 Cohesion: 0.50
-Nodes (3): ApiNotice(), noticeContent, NoticeType
-
-### Community 596 - "approvedLoanDocumentsDrawingLeftOffsetInPixels"
-Cohesion: 0.11
-Nodes (15): OrganizationSetting, OrganizationSettingSeeder, User, createRequestsApiAdmin(), approvedLoanDocumentsCreateApprovedMember(), createCorrectionReportAdminUser(), createCorrectionReportApprovedMember(), createApprovedMemberForLoanRequestTests() (+7 more)
-
-### Community 601 - "LoanWorkflowPreflightCommand.php"
-Cohesion: 0.27
-Nodes (10): buildPersonChangeEntries(), CorrectionDialogForm(), formatChangeValue(), getStepFieldKeys(), humanizeFieldKey(), mergeValidationErrors(), normalizeComparable(), resolveStepFromErrors() (+2 more)
-
-### Community 618 - "2026_08_14_130000_add_requested_payment_frequency_to_loan_requests_table.php"
-Cohesion: 0.67
-Nodes (3): PhpOffice\PhpSpreadsheet\Worksheet\Drawing, approvedLoanDocumentsDrawingLeftOffsetInPixels(), approvedLoanDocumentsWorksheetWidthInPixels()
-
-### Community 620 - "Builder"
-Cohesion: 0.11
-Nodes (7): MemberVerificationController, LoanRequestActionController, LinkMembershipController, ProfileController, WibsTrackingController, Carbon\CarbonImmutable, Illuminate\Http\RedirectResponse
+Nodes (3): prepareLoanRequestForApproval(), testPngSignatureBinary(), testPngSignatureDataUrl()
 
 ### Community 624 - "opencode.json"
 Cohesion: 0.22
 Nodes (8): mcp, pdf-forms, command, enabled, type, $schema, C:\\laragon\\www\\wibs-online-banking\\storage\\app\\templates\\approved-loan-documents, C:\\Users\\ACER Predator\\AppData\\Local\\mcp-pdf-forms\\venv\\Scripts\\mcp-pdf-forms.exe
 
-### Community 632 - "ResetStaffPasswordRequest"
-Cohesion: 0.43
-Nodes (7): isBlank(), isDigits(), validateAllRequiredFields(), validateChangeReason(), validateLoanDetails(), validatePerson(), validateStepData()
+### Community 631 - "LoanRequestRecommendationPreviewRequest"
+Cohesion: 0.05
+Nodes (16): ArchiveOldLoanRequests, BackfillHealthSmokingStatusCommand, BackfillMemberRoles, LoanRequestOwnerRepairCommand, LoanWorkflowCleanupTempFilesCommand, LoanWorkflowDeploymentCheckCommand, LoanWorkflowPreflightCommand, LoanWorkflowRepairCommand (+8 more)
 
-### Community 651 - "buildInitialFormData"
-Cohesion: 0.67
-Nodes (4): buildInitialFormData(), toPersonForm(), toStringValue(), toDateInputValue()
+### Community 638 - "LoanRequestKindOfLoanTest.php"
+Cohesion: 0.05
+Nodes (16): memberVisibleValue(), normalized(), normalizeValue(), self, LoanRequestCorrectionReportedNotification, Illuminate\Support\Facades\Notification, backfillZipCreateMemberWithRequest(), generaliApplicationFormOpenZipEntries() (+8 more)
 
 ## Knowledge Gaps
-- **2522 isolated node(s):** `format-on-edit.sh script`, `stop-check.sh script`, `@playwright/mcp`, `@upstash/context7-mcp`, `$schema` (+2517 more)
+- **2535 isolated node(s):** `format-on-edit.sh script`, `stop-check.sh script`, `@playwright/mcp`, `@upstash/context7-mcp`, `$schema` (+2530 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **192 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **197 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `LoanRequestDocumentKey` connect `.grant` to `globals`, `LoanRequestWorkflowStatusNotification`, `@inertiajs/react`, `LoanRequestPerson`, `ApprovedLoanPdfTemplateService`, `PasswordRecoveryState`?**
-  _High betweenness centrality (0.142) - this node is a cross-community bridge._
-- **Why does `LoanRequest` connect `LoanRequestService` to `types/admin.ts`, `LoanRequestWorkflowStatusNotification`, `AppUser`, `Role`, `OrganizationSettingsService`, `Illuminate\Database\Eloquent\Factories\Factory`, `ApprovedLoanPdfTemplateService`, `Illuminate\Support\Collection`, `LoanWorkflowProductionSupportService`, `LoanRequest`, `DisclosureStatementPdfService`, `AppUser.php`, `LoanWorkflowWorkspaceService`, `notifications.tsx`, `PasswordValidationRules.php`, `MemberApplicationProfile`, `ApprovedLoanDocumentPackageDownloadTest.php`, `sidebar.tsx`, `PromissoryNotePdfService`, `PasswordRecoveryState`, `MemberVerificationMatcher`, `.buildLegacyStatusFallbackEntries`, `AbstractDatabaseNotification`, `@fullcalendar/core`, `@fullcalendar/react`, `globals`, `PsgcService`, `@radix-ui/react-checkbox`, `@radix-ui/react-navigation-menu`, `image-crop.ts`, `NotificationResource`, `LoanSecurityAgreementPdfService`, `toggle-group.tsx`, `Branding`, `approvedLoanDocumentsDrawingLeftOffsetInPixels`, `vite`, `LoanRequestApproveRequest`, `loan-request-step-indicator.tsx`, `PlanOfPaymentPdfService`, `LoanRequestResolveActionRequest`, `MemberDetailResource`, `.grant`, `Builder`, `UserMenuContent`?**
-  _High betweenness centrality (0.110) - this node is a cross-community bridge._
-- **Why does `AppUser` connect `vite` to `cn`, `Controller`, `AppUser`, `Role`, `OrganizationSettingsService`, `Illuminate\Database\Eloquent\Factories\Factory`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Illuminate\Support\Collection`, `LoanRequest`, `Illuminate\Database\Schema\Builder`, `AppUser.php`, `LoanWorkflowWorkspaceService`, `notifications.tsx`, `LoanRequestDocumentStorage`, `PasswordValidationRules.php`, `MemberApplicationProfile`, `Wmaster`, `ApprovedLoanDocumentPackageDownloadTest.php`, `LoanRequestService`, `MemberLoansRepository`, `PasswordRecoveryState`, `MemberVerificationMatcher`, `SendLoanDecisionSmsJob`, `clsx`, `AbstractDatabaseNotification`, `@fullcalendar/core`, `@fullcalendar/react`, `@headlessui/react`, `PsgcService`, `use-appearance.tsx`, `@radix-ui/react-checkbox`, `CreateNewUser.php`, `image-crop.ts`, `@radix-ui/react-navigation-menu`, `NotificationResource`, `toggle-group.tsx`, `Branding`, `approvedLoanDocumentsDrawingLeftOffsetInPixels`, `app.tsx`, `loan-request-step-indicator.tsx`, `branding.ts`, `PlanOfPaymentPdfService`, `UsernameSuggestionController`, `.grant`?**
-  _High betweenness centrality (0.072) - this node is a cross-community bridge._
-- **Are the 29 inferred relationships involving `AppUser` (e.g. with `.handle()` and `.handle()`) actually correct?**
-  _`AppUser` has 29 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 25 inferred relationships involving `LoanRequest` (e.g. with `.handle()` and `.handle()`) actually correct?**
-  _`LoanRequest` has 25 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `LoanRequestDocumentKey` connect `sidebar.tsx` to `Controller`, `@inertiajs/react`, `.grant`, `PromissoryNotePdfService`, `react-dom`, `Branding`, `Illuminate\Console\Command`?**
+  _High betweenness centrality (0.162) - this node is a cross-community bridge._
+- **Why does `LoanRequest` connect `PasswordValidationRules.php` to `cn`, `AppUser`, `staff/loan-request-show.tsx`, `SendLoanDecisionSmsJob`, `Illuminate\Database\Eloquent\Factories\Factory`, `ApprovedLoanPdfTemplateService`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Illuminate\Support\Collection`, `AppUser.php`, `CorrectionReportContextCard`, `Wmaster`, `ApprovedLoanDocumentPackageDownloadTest.php`, `sidebar.tsx`, `ApprovedLoanExcelTemplateService`, `PromissoryNotePdfService`, `PasswordRecoveryState`, `Illuminate\Console\Command`, `MemberVerificationMatcher`, `MemberLoanPaymentsExportRequest`, `PhpOffice\PhpSpreadsheet\Worksheet\Worksheet`, `@fullcalendar/core`, `@fullcalendar/react`, `globals`, `@headlessui/react`, `tailwind-merge`, `@radix-ui/react-navigation-menu`, `image-crop.ts`, `use-staff-directory.ts`, `NotificationResource`, `react-dom`, `toggle-group.tsx`, `LoanRequestStoreRequest`, `LoanRequestResolveActionRequest`, `Branding`, `UserRoleChangeResource`, `PasswordRecoveryService.php`, `CorrectionDialogForm`, `vite`, `loan-request-summary-panel.tsx`, `PasswordRecoveryLookupRequest`, `LinkMembershipRequest`, `loan-request-step-indicator.tsx`, `branding.ts`, `.grant`, `LoanRequestRecommendationPreviewRequest`, `LoanRequestKindOfLoanTest.php`?**
+  _High betweenness centrality (0.116) - this node is a cross-community bridge._
+- **Why does `AppUser` connect `vite` to `cn`, `types/admin.ts`, `AppUser`, `staff/loan-request-show.tsx`, `Illuminate\Database\Eloquent\Factories\Factory`, `ApprovedLoanPdfTemplateService`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Illuminate\Support\Collection`, `Illuminate\Http\Resources\Json\JsonResource`, `Illuminate\Database\Schema\Builder`, `AppUser.php`, `CorrectionReportContextCard`, `PasswordValidationRules.php`, `MemberApplicationProfile`, `Wmaster`, `MemberLoansRepository`, `PasswordRecoveryState`, `PasswordRecoveryOtpFactory`, `MemberVerificationMatcher`, `SendLoanDecisionSmsJob`, `MemberLoanPaymentsExportRequest`, `PhpOffice\PhpSpreadsheet\Worksheet\Worksheet`, `@fullcalendar/core`, `validateAllRequiredFields`, `@fullcalendar/react`, `globals`, `@headlessui/react`, `tailwind-merge`, `use-appearance.tsx`, `use-staff-directory.ts`, `NotificationResource`, `react-dom`, `toggle-group.tsx`, `LoanRequestStoreRequest`, `CorrectionDialogForm`, `loan-request-summary-panel.tsx`, `LinkMembershipRequest`, `app.tsx`, `loan-request-step-indicator.tsx`, `branding.ts`, `UsernameSuggestionController`, `MemberDetailResource`, `.grant`, `LoanRequestRecommendationPreviewRequest`, `UserMenuContent`, `LoanRequestKindOfLoanTest.php`?**
+  _High betweenness centrality (0.090) - this node is a cross-community bridge._
+- **Are the 30 inferred relationships involving `AppUser` (e.g. with `.handle()` and `.handle()`) actually correct?**
+  _`AppUser` has 30 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 27 inferred relationships involving `LoanRequest` (e.g. with `.handle()` and `.handle()`) actually correct?**
+  _`LoanRequest` has 27 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `format-on-edit.sh script`, `stop-check.sh script`, `@playwright/mcp` to the rest of the system?**
-  _2522 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _2535 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `cn` be split into smaller, more focused modules?**
-  _Cohesion score 0.04156862745098039 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.03470661672908864 - nodes in this community are weakly interconnected._

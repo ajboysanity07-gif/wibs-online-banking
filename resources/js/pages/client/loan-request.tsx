@@ -1339,6 +1339,18 @@ export default function LoanRequestPage({
                                                 'banking',
                                             )}
                                             applicantFullName={member.name}
+                                            applicantEmployerBusinessName={
+                                                form.data.applicant
+                                                    .employer_business_name
+                                            }
+                                            applicantEmploymentType={
+                                                form.data.applicant
+                                                    .employment_type
+                                            }
+                                            applicantNatureOfBusiness={
+                                                form.data.applicant
+                                                    .nature_of_business
+                                            }
                                         />
 
                                         {bankingPrefilledFromProfile &&

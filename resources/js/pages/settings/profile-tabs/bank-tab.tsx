@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { TabsContent } from '@/components/ui/tabs';
+import { resolveInstitutionalEmployerCategory } from '@/lib/institutional-employer-category';
 import { cn } from '@/lib/utils';
 import type { MemberApplicationProfileData } from '../profile-shared';
 import {
@@ -245,6 +246,17 @@ export function BankTab({
     const showPaymentAtmFields = paymentOption === 'ATM Deduction';
     const canUseSameDetails =
         releaseMethod === 'ATM' && paymentOption === 'ATM Deduction';
+    const isInstitutionalEmployer =
+        resolveInstitutionalEmployerCategory(
+            memberApplicationProfile?.employer_business_name,
+            memberApplicationProfile?.employment_type,
+            memberApplicationProfile?.nature_of_business,
+        ) !== null;
+    const paymentOptionChoices = isInstitutionalEmployer
+        ? PAYMENT_OPTION_OPTIONS
+        : PAYMENT_OPTION_OPTIONS.filter(
+              (option) => option !== 'Salary Deduction',
+          );
 
     const [useSameDetailsChecked, setUseSameDetailsChecked] = useState(false);
     // Derived rather than synced via effect: once the checkbox's
@@ -530,7 +542,7 @@ export function BankTab({
                                 <SelectValue placeholder="Select payment option" />
                             </SelectTrigger>
                             <SelectContent>
-                                {PAYMENT_OPTION_OPTIONS.map((option) => (
+                                {paymentOptionChoices.map((option) => (
                                     <SelectItem key={option} value={option}>
                                         {option}
                                     </SelectItem>
@@ -547,6 +559,12 @@ export function BankTab({
                             className="mt-2"
                             message={formErrors.payment_option}
                         />
+                        {!isInstitutionalEmployer && (
+                            <p className="text-xs text-muted-foreground">
+                                Salary Deduction is only available for BLGU,
+                                LGU, LDH, or MRDINC employees.
+                            </p>
+                        )}
                     </div>
 
                     {canUseSameDetails && (

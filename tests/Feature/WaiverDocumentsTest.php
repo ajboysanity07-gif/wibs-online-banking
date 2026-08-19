@@ -11,7 +11,6 @@ use App\Models\LoanRequestPerson;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
-use App\Services\LoanRequests\PdfFieldMaps\AtmSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
 use Illuminate\Database\Schema\Blueprint;
@@ -277,48 +276,6 @@ test('deduction block formats the pension amount with words', function () {
         ->and($documentData['deduction']['pension_provider'])->toBe('Social Security System')
         ->and($documentData['deduction']['pension_bank_name'])->toBe('Land Bank')
         ->and($documentData['deduction']['pension_atm_card_number'])->toBe('1234-5678-9012');
-});
-
-test('deduction block formats the atm salary deduction amount with words and includes the applicant employer', function () {
-    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
-        'employer_business_name' => 'Some Private Company',
-    ]);
-    waiverDocumentsPersistDataEntry($loanRequest, 'atm_salary_deduction_amount', 'number', 3500);
-    waiverDocumentsPersistDataEntry($loanRequest, 'atm_salary_deduction_bank_name', 'string', 'Land Bank');
-    waiverDocumentsPersistDataEntry($loanRequest, 'atm_salary_deduction_card_number', 'string', '1234-5678-9012');
-
-    $documentData = waiverDocumentsBuildDocumentData($loanRequest->fresh());
-
-    expect($documentData['deduction']['atm_salary_deduction_amount'])->toBe('3,500.00')
-        ->and($documentData['deduction']['atm_salary_deduction_amount_words'])->toBe('THREE THOUSAND FIVE HUNDRED PESOS ONLY.')
-        ->and($documentData['deduction']['atm_salary_deduction_bank_name'])->toBe('Land Bank')
-        ->and($documentData['deduction']['atm_salary_deduction_card_number'])->toBe('1234-5678-9012')
-        ->and($documentData['applicant']['employer_or_business'])->toBe('Some Private Company');
-});
-
-test('atm salary deduction waiver field map declares the header image, employer, and deduction fields', function () {
-    $fields = collect((new AtmSalaryDeductionWaiverPdfFieldMap)->fields());
-
-    $header = $fields->first(fn (array $field): bool => ($field['type'] ?? null) === 'image');
-    expect($header)->toBeArray();
-    expect($header['value'])->toBe('organization.report_header.designPath');
-
-    foreach ([
-        'applicant.full_name',
-        'applicant.address',
-        'applicant.employer_or_business',
-        'deduction.atm_salary_deduction_bank_name',
-        'deduction.atm_salary_deduction_card_number',
-        'deduction.atm_salary_deduction_amount_words',
-        'deduction.atm_salary_deduction_amount',
-        'loan.approved_date_day',
-        'loan.approved_date_month_year',
-        'notarial.signing_place',
-    ] as $expectedValue) {
-        expect($fields->contains(
-            fn (array $field): bool => ($field['value'] ?? null) === $expectedValue,
-        ))->toBeTrue("Expected field map to contain a field for {$expectedValue}");
-    }
 });
 
 test('deped salary deduction waiver field map declares the header image and deduction fields', function () {
@@ -632,7 +589,7 @@ test('approved documents zip omits authority to deduct for a private employer wi
     expect($entries)->not->toHaveKey('11-Authority-to-Deduct.pdf');
 });
 
-test('approved documents zip safely omits the ATM salary deduction waiver until its real PDF template is supplied, without crashing the download', function () {
+test('approved documents zip includes the affidavit of undertaking for a private employer on ATM Deduction', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
@@ -648,5 +605,5 @@ test('approved documents zip safely omits the ATM salary deduction waiver until 
     $response->assertOk();
     $entries = waiverDocumentsOpenZipEntries($response);
 
-    expect($entries)->not->toHaveKey('15-ATM-Salary-Deduction-Waiver.pdf');
+    expect($entries)->toHaveKey('03-Affidavit-of-Undertaking.pdf');
 });

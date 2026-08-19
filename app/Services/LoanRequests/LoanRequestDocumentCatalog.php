@@ -103,7 +103,7 @@ class LoanRequestDocumentCatalog
         ],
         'affidavit_undertaking' => [
             'template_version' => 'affidavit-undertaking-v6',
-            'applicability' => 'atm_payment_option',
+            'applicability' => 'atm_payout_employee',
             'required_fields' => [],
             'source_fields' => [
                 'payout_bank_name',
@@ -480,29 +480,6 @@ class LoanRequestDocumentCatalog
             ],
             'requires_financials' => false,
         ],
-        'atm_salary_deduction_waiver' => [
-            'template_version' => 'atm-salary-deduction-waiver-v1',
-            'applicability' => 'atm_payout_employee',
-            'required_fields' => [
-                'atm_salary_deduction_amount',
-            ],
-            'source_fields' => [
-                'payment_option',
-                'atm_salary_deduction_bank_name',
-                'atm_salary_deduction_card_number',
-                'atm_salary_deduction_amount',
-            ],
-            'source_paths' => [
-                'applicant.',
-            ],
-            'template_files' => [
-                [
-                    'path' => 'storage/app/templates/approved-loan-documents/pdf/atm-salary-deduction-waiver.pdf',
-                    'description' => 'ATM Salary Deduction Waiver PDF template',
-                ],
-            ],
-            'requires_financials' => false,
-        ],
         'generali_application_form' => [
             'template_version' => 'generali-application-form-v2',
             'applicability' => 'not_lumpsum',
@@ -647,7 +624,6 @@ class LoanRequestDocumentCatalog
             'institutional_payroll' => $this->authorityToDeductCategory($loanRequest, $flatValues) !== null
                 && ($flatValues['payment_option'] ?? null) === LoanPaymentOption::SalaryDeduction->value,
             'atm_payout_employee' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues),
-            'atm_payment_option' => ($flatValues['payment_option'] ?? null) === LoanPaymentOption::AtmDeduction->value,
             'not_lumpsum' => ! $this->isOneMonthLumpsum($loanRequest),
             default => true,
         };
@@ -766,18 +742,28 @@ class LoanRequestDocumentCatalog
 
     /**
      * Mirrors authorityToDeductGuidance()'s applicable/note shape, but for
-     * Affidavit of Undertaking: gated purely on payment_option being ATM
-     * Deduction (see the 'atm_payment_option' rule in isApplicable()).
+     * Affidavit of Undertaking: applies to the "otherwise uncategorized"
+     * ATM Deduction bucket (see the 'atm_payout_employee' rule in
+     * isApplicable() / atmPayoutWaiverApplicable()) -- DepEd employees,
+     * pensioners, and institutional-payroll employees use their own
+     * Waiver/Authority to Deduct document instead.
      *
      * @param  array<string, mixed>  $flatValues
      * @return array{applicable: bool, note: string}
      */
-    public function affidavitUndertakingGuidance(array $flatValues): array
+    public function affidavitUndertakingGuidance(LoanRequest $loanRequest, array $flatValues): array
     {
         if (($flatValues['payment_option'] ?? null) !== LoanPaymentOption::AtmDeduction->value) {
             return [
                 'applicable' => false,
                 'note' => 'Only available for members using ATM as their payment option.',
+            ];
+        }
+
+        if (! $this->atmPayoutWaiverApplicable($loanRequest, $flatValues)) {
+            return [
+                'applicable' => false,
+                'note' => 'Not applicable -- this applicant belongs to a DepEd, pensioner, or institutional payroll category and uses that category\'s Waiver or Authority to Deduct document instead.',
             ];
         }
 
@@ -807,8 +793,8 @@ class LoanRequestDocumentCatalog
 
                 return $guidance['applicable'] ? null : $guidance['note'];
             })(),
-            LoanRequestDocumentKey::AffidavitUndertaking => (function () use ($flatValues): ?string {
-                $guidance = $this->affidavitUndertakingGuidance($flatValues);
+            LoanRequestDocumentKey::AffidavitUndertaking => (function () use ($loanRequest, $flatValues): ?string {
+                $guidance = $this->affidavitUndertakingGuidance($loanRequest, $flatValues);
 
                 return $guidance['applicable'] ? null : $guidance['note'];
             })(),
@@ -819,15 +805,15 @@ class LoanRequestDocumentCatalog
     /**
      * Surfaces which Waiver document (if any) the applicant's category calls
      * for, so staff-facing UI can show only the relevant field group instead
-     * of all three at once. Mutually exclusive with each other and with
-     * Authority to Deduct -- see depedEmployeeApplicable(), pensionerApplicable(),
-     * and atmPayoutWaiverApplicable() for the underlying category rules.
+     * of both at once. Mutually exclusive with each other, with Authority to
+     * Deduct, and with Affidavit of Undertaking -- see depedEmployeeApplicable(),
+     * pensionerApplicable(), and atmPayoutWaiverApplicable() for the underlying
+     * category rules.
      *
      * @param  array<string, mixed>  $flatValues
      * @return array{
      *     deped: array{applicable: bool},
-     *     pension: array{applicable: bool},
-     *     atm: array{applicable: bool}
+     *     pension: array{applicable: bool}
      * }
      */
     public function waiverApplicability(LoanRequest $loanRequest, array $flatValues): array
@@ -835,7 +821,6 @@ class LoanRequestDocumentCatalog
         return [
             'deped' => ['applicable' => $this->depedEmployeeApplicable($loanRequest, $flatValues)],
             'pension' => ['applicable' => $this->pensionerApplicable($loanRequest, $flatValues)],
-            'atm' => ['applicable' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues)],
         ];
     }
 
@@ -951,26 +936,12 @@ class LoanRequestDocumentCatalog
     private function barangayApplicable(LoanRequest $loanRequest, array $flatValues): bool
     {
         $applicant = $loanRequest->applicant;
-        $employer = $applicant?->employer_business_name;
 
-        if (! is_string($employer)) {
-            return false;
-        }
-
-        $needle = mb_strtolower($employer);
-
-        if (str_contains($needle, 'barangay')) {
-            return true;
-        }
-
-        $isGovernmentSector = $applicant?->employment_type === 'Government'
-            && $applicant?->nature_of_business === 'Government';
-
-        if (! $isGovernmentSector) {
-            return false;
-        }
-
-        return str_contains($needle, 'brgy') || str_contains($needle, 'bgy');
+        return InstitutionalEmployerCategoryResolver::isBarangayEmployer(
+            $applicant?->employer_business_name,
+            $applicant?->employment_type,
+            $applicant?->nature_of_business,
+        );
     }
 
     /**
@@ -978,63 +949,30 @@ class LoanRequestDocumentCatalog
      * belongs to -- the only categories the Authority to Deduct document applies
      * to. Teachers, pensioners, ATM-payout private employees, and self-employed
      * applicants are excluded here even if they'd otherwise match, since those
-     * borrowers use a Waiver document instead (see atmPayoutWaiverApplicable(),
-     * depedEmployeeApplicable(), pensionerApplicable()).
+     * borrowers use a Waiver document or Affidavit of Undertaking instead (see
+     * atmPayoutWaiverApplicable(), depedEmployeeApplicable(), pensionerApplicable()).
      *
      * @param  array<string, mixed>  $flatValues
      */
     private function authorityToDeductCategory(LoanRequest $loanRequest, array $flatValues): ?string
     {
-        if ($this->barangayApplicable($loanRequest, $flatValues)) {
-            return 'blgu';
-        }
-
         $applicant = $loanRequest->applicant;
-        $employer = $applicant?->employer_business_name;
-        $needle = is_string($employer) ? mb_strtolower($employer) : '';
 
-        if ($needle !== '' && str_contains($needle, 'mrdinc')) {
-            return 'mrdinc';
-        }
-
-        if (
-            $applicant?->nature_of_business === 'Healthcare'
-            || ($needle !== '' && (
-                str_contains($needle, 'ldh')
-                || str_contains($needle, 'hospital')
-                || str_contains($needle, 'medical')
-                || str_contains($needle, 'clinic')
-            ))
-        ) {
-            return 'ldh';
-        }
-
-        $isGovernmentSector = $applicant?->employment_type === 'Government'
-            && $applicant?->nature_of_business === 'Government';
-
-        if (
-            $isGovernmentSector
-            || ($needle !== '' && (
-                str_contains($needle, 'lgu')
-                || str_contains($needle, 'municipal government')
-                || str_contains($needle, 'city government')
-                || str_contains($needle, 'provincial government')
-            ))
-        ) {
-            return 'lgu';
-        }
-
-        return null;
+        return InstitutionalEmployerCategoryResolver::resolve(
+            $applicant?->employer_business_name,
+            $applicant?->employment_type,
+            $applicant?->nature_of_business,
+        );
     }
 
     /**
-     * True for the "otherwise uncategorized" employee bucket that needs a Waiver
-     * (rather than Authority to Deduct) because their loan is repaid via ATM
-     * deduction with no institutional payroll office in the loop: a
-     * non-pensioner, non-DepEd, non-institutional-payroll applicant whose
-     * payment option is ATM Deduction. Self-employed applicants are excluded --
-     * like Authority to Deduct, there's no employer to authorize a deduction
-     * against.
+     * True for the "otherwise uncategorized" employee bucket that needs an
+     * Affidavit of Undertaking (rather than Authority to Deduct or a
+     * DepEd/Pension Waiver) because their loan is repaid via ATM deduction
+     * with no institutional payroll office in the loop: a non-pensioner,
+     * non-DepEd, non-institutional-payroll applicant whose payment option is
+     * ATM Deduction. Self-employed applicants are excluded -- like Authority
+     * to Deduct, there's no employer to authorize a deduction against.
      *
      * @param  array<string, mixed>  $flatValues
      */

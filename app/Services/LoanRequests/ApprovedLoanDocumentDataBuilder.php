@@ -274,9 +274,6 @@ class ApprovedLoanDocumentDataBuilder
         $pensionDeductionAmountRaw = $this->normalizeNumericValue(
             $overrideProcessing['pension_deduction_amount'] ?? $flatValues['pension_deduction_amount'] ?? null,
         );
-        $atmSalaryDeductionAmountRaw = $this->normalizeNumericValue(
-            $overrideProcessing['atm_salary_deduction_amount'] ?? $flatValues['atm_salary_deduction_amount'] ?? null,
-        );
         $authorityToDeductOfficersUnknown = (bool) (
             $overrideProcessing['authority_to_deduct_officers_unknown'] ?? $flatValues['authority_to_deduct_officers_unknown'] ?? false
         );
@@ -465,15 +462,6 @@ class ApprovedLoanDocumentDataBuilder
                 'pension_deduction_amount_raw' => $pensionDeductionAmountRaw,
                 'pension_deduction_amount' => $this->formatCurrencyValue($pensionDeductionAmountRaw),
                 'pension_deduction_amount_words' => $this->formatCurrencyWords($pensionDeductionAmountRaw),
-                'atm_salary_deduction_bank_name' => $this->normalizeText(
-                    $overrideProcessing['atm_salary_deduction_bank_name'] ?? $flatValues['atm_salary_deduction_bank_name'] ?? null,
-                ),
-                'atm_salary_deduction_card_number' => $this->normalizeText(
-                    $overrideProcessing['atm_salary_deduction_card_number'] ?? $flatValues['atm_salary_deduction_card_number'] ?? null,
-                ),
-                'atm_salary_deduction_amount_raw' => $atmSalaryDeductionAmountRaw,
-                'atm_salary_deduction_amount' => $this->formatCurrencyValue($atmSalaryDeductionAmountRaw),
-                'atm_salary_deduction_amount_words' => $this->formatCurrencyWords($atmSalaryDeductionAmountRaw),
             ],
             'notarial' => [
                 // Place of signing is the notary's own fixed office fact, not per-loan

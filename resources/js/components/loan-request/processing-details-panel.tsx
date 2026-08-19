@@ -174,18 +174,11 @@ const SNAPSHOT_PENSION_FIELDS = [
     'pension_deduction_amount',
 ];
 
-const SNAPSHOT_ATM_FIELDS = [
-    'atm_salary_deduction_bank_name',
-    'atm_salary_deduction_card_number',
-    'atm_salary_deduction_amount',
-];
-
 const SNAPSHOT_GATED_FIELDS = new Set([
     ...SNAPSHOT_BARANGAY_FIELDS,
     ...SNAPSHOT_AUTHORITY_TO_DEDUCT_FIELDS,
     ...SNAPSHOT_DEPED_FIELDS,
     ...SNAPSHOT_PENSION_FIELDS,
-    ...SNAPSHOT_ATM_FIELDS,
 ]);
 
 const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
@@ -1585,25 +1578,6 @@ export function ProcessingDetailsPanel({
                             </>
                         )}
 
-                        {loanRequest.waiver_applicability?.atm.applicable && (
-                            <>
-                                {renderProcessingSectionLabel(
-                                    'ATM Salary Deduction Waiver',
-                                )}
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {renderProcessingField(
-                                        'atm_salary_deduction_bank_name',
-                                    )}
-                                    {renderProcessingField(
-                                        'atm_salary_deduction_card_number',
-                                    )}
-                                    {renderProcessingField(
-                                        'atm_salary_deduction_amount',
-                                    )}
-                                </div>
-                            </>
-                        )}
-
                         <Separator className="bg-border/40" />
                         <div className="grid gap-2">
                             <Label htmlFor="inline_processing_reason">
@@ -1738,18 +1712,6 @@ export function ProcessingDetailsPanel({
                             </>
                         )}
 
-                        {loanRequest.waiver_applicability?.atm.applicable && (
-                            <>
-                                {renderProcessingSectionLabel(
-                                    'ATM Salary Deduction Waiver',
-                                )}
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {SNAPSHOT_ATM_FIELDS.map((fieldKey) =>
-                                        renderSnapshotField(fieldKey),
-                                    )}
-                                </div>
-                            </>
-                        )}
                         <p className="text-xs text-muted-foreground">
                             Only the assigned loan processor can edit processing
                             terms.

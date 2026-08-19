@@ -293,7 +293,6 @@ export type LoanRequestDocumentKey =
     | 'authority_to_deduct'
     | 'deped_salary_deduction_waiver'
     | 'pension_deduction_waiver'
-    | 'atm_salary_deduction_waiver'
     | 'generali_application_form';
 
 export type LoanRequestDocumentReadinessStatus =
@@ -399,7 +398,6 @@ export type AuthorityToDeductGuidance = {
 export type WaiverApplicability = {
     deped: { applicable: boolean };
     pension: { applicable: boolean };
-    atm: { applicable: boolean };
 };
 
 export type LoanRequestDetail = {

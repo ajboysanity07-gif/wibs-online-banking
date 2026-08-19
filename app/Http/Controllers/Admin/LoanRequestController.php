@@ -536,26 +536,6 @@ class LoanRequestController extends Controller
         return $documentService->pensionDeductionWaiver($loanRequestRecord);
     }
 
-    public function atmSalaryDeductionWaiverDocument(
-        int $loanRequest,
-        ApprovedLoanDocumentService $documentService,
-    ): HttpResponse {
-        $loanRequestRecord = $this->findLoanRequest($loanRequest);
-
-        if ($loanRequestRecord === null) {
-            abort(404);
-        }
-
-        Gate::authorize('view', $loanRequestRecord);
-        $this->authorizeAdminDocumentAccess($loanRequestRecord);
-
-        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
-            abort(404);
-        }
-
-        return $documentService->atmSalaryDeductionWaiver($loanRequestRecord);
-    }
-
     public function generaliApplicationFormDocument(
         int $loanRequest,
         ApprovedLoanDocumentService $documentService,
