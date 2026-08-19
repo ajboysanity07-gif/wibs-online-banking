@@ -65,6 +65,13 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
 
 COPY --from=vendor /app /var/www/html
 
+# storage/ is overlaid by the laravel_storage named volume at runtime, which only
+# auto-seeds from the image the first time the volume is created — later images
+# with new/updated templates never reach it. Keep an out-of-band copy here so
+# entrypoint.sh can sync new templates into the live volume on every start.
+RUN mkdir -p /opt/loan-document-templates \
+ && cp -a /var/www/html/storage/app/templates/. /opt/loan-document-templates/
+
 COPY docker/entrypoint.sh /usr/local/bin/app-entrypoint
 RUN chmod +x /usr/local/bin/app-entrypoint \
  && mkdir -p storage bootstrap/cache \
