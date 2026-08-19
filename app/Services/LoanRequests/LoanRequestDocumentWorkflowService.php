@@ -244,6 +244,7 @@ class LoanRequestDocumentWorkflowService
         return LoanRequestDocument::query()
             ->with('generatedBy.adminProfile')
             ->where('loan_request_id', $loanRequest->id)
+            ->whereIn('document_key', LoanRequestDocumentKey::values())
             ->orderBy('document_key')
             ->get();
     }

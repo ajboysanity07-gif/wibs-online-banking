@@ -8,6 +8,7 @@ use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestDataEntry;
+use App\Models\LoanRequestDocument;
 use App\Models\LoanRequestPerson;
 use App\Models\Role;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
@@ -216,4 +217,26 @@ test('legacy_v1 workflow records keep the legacy data blocker regardless of subm
 
     expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::LegacyDataIncomplete->value)
         ->and($entry['blockers'])->toContain('Historical document data unavailable.');
+});
+
+test('orphaned document rows for removed keys are ignored by the checklist and recommendation blockers', function (): void {
+    [$loanRequest] = oldRecordExemptionLoanRequest('2026-08-03 00:00:00');
+
+    LoanRequestDocument::factory()
+        ->create([
+            'loan_request_id' => $loanRequest->id,
+            'document_key' => 'atm_salary_deduction_waiver',
+            'readiness_status' => LoanRequestDocumentReadinessStatus::ReadyToGenerate,
+        ]);
+
+    $service = app(LoanRequestDocumentWorkflowService::class);
+
+    expect(fn () => $service->blockersForRecommendation($loanRequest))
+        ->not->toThrow(ValueError::class);
+
+    $checklistKeys = collect($service->serializeChecklist($loanRequest))
+        ->pluck('key')
+        ->all();
+
+    expect($checklistKeys)->not->toContain('atm_salary_deduction_waiver');
 });
