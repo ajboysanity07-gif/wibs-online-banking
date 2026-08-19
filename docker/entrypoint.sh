@@ -19,6 +19,12 @@ if [ -d /opt/loan-document-templates ]; then
   chown -R www-data:www-data storage/app/templates
 fi
 
+if [ -d /opt/loan-document-fonts ]; then
+  mkdir -p storage/app/fonts
+  cp -rn /opt/loan-document-fonts/. storage/app/fonts/
+  chown -R www-data:www-data storage/app/fonts
+fi
+
 if [ -f .env ] && ! grep -q '^APP_KEY=base64:' .env; then
   php artisan key:generate --force
 fi
