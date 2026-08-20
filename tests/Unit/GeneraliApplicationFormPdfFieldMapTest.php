@@ -133,6 +133,16 @@ test('generali application form map places street/purok and barangay under their
         ->toBeFalse();
 });
 
+test('generali application form map keeps the cycle number inside the "(3rd cycle & up ___)" blank, not past the closing parenthesis', function (): void {
+    $fields = generaliApplicationFormMapFields();
+
+    $cycleNumber = collect($fields)->first(fn (array $f) => ($f['value'] ?? null) === 'application_form.cycle_number');
+
+    expect($cycleNumber)->not->toBeNull()
+        ->and($cycleNumber['x'])->toBe(172.0)
+        ->and($cycleNumber['y'])->toBe(84.0);
+});
+
 test('generali application form map aligns SIGNED AT / ON onto the label line on page 3', function (): void {
     $fields = collect(generaliApplicationFormMapFields());
 

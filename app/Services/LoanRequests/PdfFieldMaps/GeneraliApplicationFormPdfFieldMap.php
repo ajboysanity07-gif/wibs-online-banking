@@ -44,7 +44,7 @@ class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
             // (distinct from each dependent's own cycle checkbox below).
             ['page' => 1, 'type' => 'check', 'x' => 142.7, 'y' => 78.6, 'size' => 9, 'value' => static fn (array $d): bool => data_get($d, 'application_form.cycle_status') === 'New'],
             ['page' => 1, 'type' => 'check', 'x' => 142.7, 'y' => 83.1, 'size' => 9, 'value' => static fn (array $d): bool => data_get($d, 'application_form.cycle_status') === 'Old'],
-            ['page' => 1, 'x' => 178.0, 'y' => 84.0, 'size' => 9, 'width' => 6, 'value' => 'application_form.cycle_number'],
+            ['page' => 1, 'x' => 172.0, 'y' => 84.0, 'size' => 9, 'width' => 6, 'value' => 'application_form.cycle_number'],
 
             // Street value goes under the "(Street No.)" caption, not under
             // the "Residence Address" row label -- applicants almost always
