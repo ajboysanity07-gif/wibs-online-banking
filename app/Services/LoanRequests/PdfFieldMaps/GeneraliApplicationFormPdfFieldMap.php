@@ -2,6 +2,8 @@
 
 namespace App\Services\LoanRequests\PdfFieldMaps;
 
+use App\Services\LoanRequests\PdfFieldMaps\Concerns\UppercasesFieldValues;
+
 /**
  * Generali (GLAPI) "Individual Application Form" (Form No: 005) -- distinct
  * from GeneraliPdfFieldMap's "Individual Application and Health Statement
@@ -17,6 +19,8 @@ namespace App\Services\LoanRequests\PdfFieldMaps;
  */
 class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
 {
+    use UppercasesFieldValues;
+
     public function fields(): array
     {
         return [
@@ -49,12 +53,12 @@ class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
             // Street value goes under the "(Street No.)" caption, not under
             // the "Residence Address" row label -- applicants almost always
             // give a Purok name rather than a numbered street.
-            ['page' => 1, 'x' => 92.7, 'y' => 95.5, 'size' => 9, 'width' => 68, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_street'],
-            ['page' => 1, 'x' => 163.8, 'y' => 95.5, 'size' => 9, 'width' => 24, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_barangay'],
-            ['page' => 1, 'x' => 43.1, 'y' => 101.5, 'size' => 9, 'width' => 48, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_city'],
-            ['page' => 1, 'x' => 94.0, 'y' => 101.5, 'size' => 9, 'width' => 34, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_province'],
-            ['page' => 1, 'x' => 130.5, 'y' => 101.5, 'size' => 9, 'width' => 24, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (): string => 'Philippines'],
-            ['page' => 1, 'x' => 165.6, 'y' => 101.5, 'size' => 9, 'width' => 22, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_zip'],
+            ['page' => 1, 'x' => 92.7, 'y' => 93.2, 'size' => 9, 'width' => 68, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_street'],
+            ['page' => 1, 'x' => 163.8, 'y' => 93.2, 'size' => 9, 'width' => 24, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_barangay'],
+            ['page' => 1, 'x' => 43.1, 'y' => 101.0, 'size' => 9, 'width' => 48, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_city'],
+            ['page' => 1, 'x' => 94.0, 'y' => 101.0, 'size' => 9, 'width' => 34, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_province'],
+            ['page' => 1, 'x' => 130.5, 'y' => 101.0, 'size' => 9, 'width' => 24, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (): string => 'Philippines'],
+            ['page' => 1, 'x' => 165.6, 'y' => 101.0, 'size' => 9, 'width' => 22, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_zip'],
 
             // "Home"/"Office" are landline-type columns the app doesn't distinguish
             // from mobile beyond work_phone -- mobile goes under Cell Phone only.
@@ -215,14 +219,16 @@ class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
 
     /**
      * Signature block: "SIGNED AT ___ ON ___", witness printed name baked into
-     * the template artwork (like AU/the health-statement form), borrower
-     * signature left blank for physical signing.
+     * the template artwork (like AU/the health-statement form). The applicant's
+     * hand signature stroke is still left blank for physical signing -- only the
+     * printed name beneath it is rendered, same size as the signing-place line.
      *
      * @return list<array<string, mixed>>
      */
     private function signatureFields(): array
     {
         return [
+            ['page' => 3, 'x' => 108.1, 'y' => 244.1, 'size' => 9, 'width' => 76.5, 'align' => 'C', 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.full_name', 'transform' => $this->upperTransform()],
             ['page' => 3, 'x' => 40.0, 'y' => 237.2, 'size' => 9, 'width' => 65, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'notarial.signing_place'],
             ['page' => 3, 'x' => 112.0, 'y' => 237.2, 'size' => 9, 'width' => 70, 'value' => 'loan.approved_date'],
         ];

@@ -2,8 +2,12 @@
 
 namespace App\Services\LoanRequests\PdfFieldMaps;
 
+use App\Services\LoanRequests\PdfFieldMaps\Concerns\UppercasesFieldValues;
+
 class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
 {
+    use UppercasesFieldValues;
+
     /**
      * Shared Y/N checkbox + "details of yes answer" text column, identical
      * on both pages of the template (same table design repeats on page 2).
@@ -47,8 +51,8 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             // Street value goes under the "(Street No.)" caption, not under
             // the "Residence Address" row label -- applicants almost always
             // give a Purok name rather than a numbered street.
-            ['page' => 1, 'x' => 92.7, 'y' => 83.0, 'size' => 9, 'width' => 68, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_street'],
-            ['page' => 1, 'x' => 163.8, 'y' => 83.0, 'size' => 9, 'width' => 24, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_barangay'],
+            ['page' => 1, 'x' => 92.7, 'y' => 82.1, 'size' => 9, 'width' => 68, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_street'],
+            ['page' => 1, 'x' => 163.8, 'y' => 82.1, 'size' => 9, 'width' => 24, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_barangay'],
             ['page' => 1, 'x' => 43.1, 'y' => 90.0, 'size' => 9, 'width' => 40, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_city'],
             ['page' => 1, 'x' => 94.0, 'y' => 90.0, 'size' => 9, 'width' => 45, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_province'],
             ['page' => 1, 'x' => 130.5, 'y' => 90.0, 'size' => 9, 'value' => static fn (): string => 'Philippines'],
@@ -67,7 +71,7 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
 
             ['page' => 1, 'x' => 27.3, 'y' => 125.0, 'size' => 9, 'value' => 'applicant.nationality'],
             ['page' => 1, 'x' => 76.5, 'y' => 125.0, 'size' => 9, 'value' => 'applicant.nationality'],
-            ['page' => 1, 'x' => 116.2, 'y' => 126.0, 'size' => 9, 'width' => 55, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.position_or_designation'],
+            ['page' => 1, 'x' => 116.2, 'y' => 125.0, 'size' => 9, 'width' => 55, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.position_or_designation'],
 
             ['page' => 1, 'x' => 27.3, 'y' => 134.2, 'size' => 8, 'width' => 18, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'application_form.source_of_fund_wealth'],
             [
@@ -94,8 +98,8 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
 
             // Only meaningful for a Credit Life rider on this loan -- reuses the same
             // recommended amount/term already printed on the other approved documents.
-            ['page' => 1, 'x' => 27.3, 'y' => 170.5, 'size' => 9, 'value' => 'loan.approved_amount'],
-            ['page' => 1, 'x' => 124.1, 'y' => 170.5, 'size' => 9, 'value' => 'loan.approved_term_label'],
+            ['page' => 1, 'x' => 27.3, 'y' => 170.0, 'size' => 9, 'value' => 'loan.approved_amount'],
+            ['page' => 1, 'x' => 124.1, 'y' => 170.0, 'size' => 9, 'value' => 'loan.approved_term_label'],
         ];
     }
 
@@ -197,9 +201,10 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
     {
         return [
             // "OF WITNESS" printed name (ANNABELLE M. AMORA) is baked into the source
-            // template artwork itself, not rendered here. "OF PROPOSED INSURED
-            // INDIVIDUAL" is the borrower's own hand signature -- left blank, same as
-            // AU's notarial hand-fill blanks.
+            // template artwork itself, not rendered here. The proposed insured's own
+            // hand signature is still left blank -- only the printed name beneath it
+            // is rendered, same size as the signing-place line below.
+            ['page' => 2, 'x' => 107.1, 'y' => 259.8, 'size' => 9, 'width' => 76.7, 'align' => 'C', 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.full_name', 'transform' => $this->upperTransform()],
             ['page' => 2, 'x' => 37.5, 'y' => 250.5, 'size' => 9, 'width' => 66, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'notarial.signing_place'],
             ['page' => 2, 'x' => 112.4, 'y' => 250.5, 'size' => 9, 'width' => 69, 'value' => 'loan.approved_date'],
         ];

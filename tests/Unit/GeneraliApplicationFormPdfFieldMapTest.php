@@ -106,13 +106,13 @@ test('generali application form map fills the address zip column and positions c
     $zip = collect($fields)->first(fn (array $f) => ($f['value'] ?? null) === 'applicant.address_zip');
     expect($zip)->not->toBeNull()
         ->and($zip['x'])->toBe(165.6)
-        ->and($zip['y'])->toBe(101.5);
+        ->and($zip['y'])->toBe(101.0);
 
     $city = collect($fields)->first(fn (array $f) => ($f['value'] ?? null) === 'applicant.address_city');
     $province = collect($fields)->first(fn (array $f) => ($f['value'] ?? null) === 'applicant.address_province');
 
-    expect($city['x'])->toBe(43.1)->and($city['y'])->toBe(101.5);
-    expect($province['x'])->toBe(94.0)->and($province['y'])->toBe(101.5);
+    expect($city['x'])->toBe(43.1)->and($city['y'])->toBe(101.0);
+    expect($province['x'])->toBe(94.0)->and($province['y'])->toBe(101.0);
 });
 
 test('generali application form map places street/purok and barangay under their own printed captions, not under the row label', function (): void {
@@ -123,11 +123,11 @@ test('generali application form map places street/purok and barangay under their
 
     expect($street)->not->toBeNull()
         ->and($street['x'])->toBe(92.7)
-        ->and($street['y'])->toBe(95.5);
+        ->and($street['y'])->toBe(93.2);
 
     expect($barangay)->not->toBeNull()
         ->and($barangay['x'])->toBe(163.8)
-        ->and($barangay['y'])->toBe(95.5);
+        ->and($barangay['y'])->toBe(93.2);
 
     expect(collect($fields)->contains(fn (array $f) => ($f['value'] ?? null) === 'applicant.address_line'))
         ->toBeFalse();
@@ -151,4 +151,18 @@ test('generali application form map aligns SIGNED AT / ON onto the label line on
 
     expect($signingPlace)->not->toBeNull()->and($signingPlace['page'])->toBe(3)->and($signingPlace['y'])->toBe(237.2);
     expect($approvedDate)->not->toBeNull()->and($approvedDate['page'])->toBe(3)->and($approvedDate['y'])->toBe(237.2);
+});
+
+test('generali application form map prints the proposed insured printed name over the right-hand signature line', function (): void {
+    $fields = collect(generaliApplicationFormMapFields());
+
+    $printedName = $fields->first(fn (array $f) => ($f['value'] ?? null) === 'applicant.full_name');
+
+    expect($printedName)->not->toBeNull()
+        ->and($printedName['page'])->toBe(3)
+        ->and($printedName['size'])->toBe(9)
+        ->and($printedName['x'])->toBe(108.1)
+        ->and($printedName['y'])->toBe(244.1);
+
+    expect(($printedName['transform'])('juan dela cruz'))->toBe('JUAN DELA CRUZ');
 });

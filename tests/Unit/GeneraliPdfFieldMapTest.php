@@ -27,14 +27,34 @@ test('generali map places street/purok and barangay under their own printed capt
 
     expect($street)->not->toBeNull()
         ->and($street['x'])->toBe(92.7)
-        ->and($street['y'])->toBe(83.0);
+        ->and($street['y'])->toBe(82.1);
 
     expect($barangay)->not->toBeNull()
         ->and($barangay['x'])->toBe(163.8)
-        ->and($barangay['y'])->toBe(83.0);
+        ->and($barangay['y'])->toBe(82.1);
 
     expect(collect($fields)->contains(fn (array $f) => ($f['value'] ?? null) === 'applicant.address_line'))
         ->toBeFalse();
+});
+
+test('generali map aligns the occupation column, loan amount, and loan term inside their own rows', function (): void {
+    $fields = (new GeneraliPdfFieldMap)->fields();
+
+    $occupation = collect($fields)->first(fn (array $f) => ($f['value'] ?? null) === 'applicant.position_or_designation' && ($f['x'] ?? null) === 116.2);
+    $amount = collect($fields)->first(fn (array $f) => ($f['value'] ?? null) === 'loan.approved_amount');
+    $term = collect($fields)->first(fn (array $f) => ($f['value'] ?? null) === 'loan.approved_term_label');
+
+    expect($occupation)->not->toBeNull()
+        ->and($occupation['x'])->toBe(116.2)
+        ->and($occupation['y'])->toBe(125.0);
+
+    expect($amount)->not->toBeNull()
+        ->and($amount['x'])->toBe(27.3)
+        ->and($amount['y'])->toBe(170.0);
+
+    expect($term)->not->toBeNull()
+        ->and($term['x'])->toBe(124.1)
+        ->and($term['y'])->toBe(170.0);
 });
 
 test('generali map prints source of fund and the composed government id', function (): void {
@@ -137,6 +157,20 @@ test('generali map derives the item 2 header Yes/No across every sub-question', 
 
     expect(($q2Y['value'])($doc(['gl_health_q02g_oncology_blood' => null])))->toBeFalse();
     expect(($q2N['value'])($doc(['gl_health_q02g_oncology_blood' => null])))->toBeFalse();
+});
+
+test('generali map prints the proposed insured printed name over the right-hand signature line', function (): void {
+    $fields = collect((new GeneraliPdfFieldMap)->fields());
+
+    $printedName = $fields->first(fn (array $f) => ($f['value'] ?? null) === 'applicant.full_name');
+
+    expect($printedName)->not->toBeNull()
+        ->and($printedName['page'])->toBe(2)
+        ->and($printedName['size'])->toBe(9)
+        ->and($printedName['x'])->toBe(107.1)
+        ->and($printedName['y'])->toBe(259.8);
+
+    expect(($printedName['transform'])('juan dela cruz'))->toBe('JUAN DELA CRUZ');
 });
 
 test('generali health rows were recalibrated onto the template checkbox glyphs', function (): void {
