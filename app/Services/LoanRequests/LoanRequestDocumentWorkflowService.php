@@ -97,6 +97,8 @@ class LoanRequestDocumentWorkflowService
                 return [
                     'key' => $document->document_key,
                     'label' => $documentKey->label(),
+                    'group' => $documentKey->group(),
+                    'group_label' => $documentKey->groupLabel(),
                     'is_applicable' => $document->is_applicable,
                     'unavailable_reason' => $document->is_applicable
                         ? null

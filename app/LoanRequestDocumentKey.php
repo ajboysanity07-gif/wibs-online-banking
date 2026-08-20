@@ -24,19 +24,57 @@ enum LoanRequestDocumentKey: string
         return match ($this) {
             self::ApplicationForm => 'Application Form',
             self::Grepalife => 'GREPALIFE',
-            self::AffidavitUndertaking => 'Affidavit of Undertaking',
+            self::AffidavitUndertaking => 'Affidavit of Undertaking (ATM Payout)',
             self::LoanInformation => 'Loan Information',
             self::PlanOfPayment => 'Plan of Payment',
             self::DisclosureStatement => 'Disclosure Statement',
             self::PromissoryNote => 'Promissory Note',
-            self::UndertakingBarangay => 'Undertaking - Barangay',
+            self::UndertakingBarangay => 'Undertaking (BLGU)',
             self::LoanSecurityAgreement => 'Loan Security Agreement',
             self::Generali => 'Generali (GLAPI) Health Statement',
-            self::AuthorityToDeduct => 'Authority to Deduct',
-            self::DepedSalaryDeductionWaiver => 'DepEd Salary Deduction Waiver',
-            self::PensionDeductionWaiver => 'Pension Deduction Waiver',
+            self::AuthorityToDeduct => 'Authority to Deduct (Salary Deduction)',
+            self::DepedSalaryDeductionWaiver => 'Waiver (DepEd)',
+            self::PensionDeductionWaiver => 'Waiver (Pensioners)',
             self::GeneraliApplicationForm => 'Generali (GLAPI) Individual Application Form',
         };
+    }
+
+    public function group(): string
+    {
+        return match ($this) {
+            self::ApplicationForm,
+            self::LoanInformation,
+            self::PlanOfPayment,
+            self::DisclosureStatement,
+            self::PromissoryNote,
+            self::LoanSecurityAgreement => 'loan_paperwork',
+            self::Grepalife,
+            self::Generali,
+            self::GeneraliApplicationForm => 'insurance',
+            self::AffidavitUndertaking,
+            self::UndertakingBarangay,
+            self::AuthorityToDeduct,
+            self::DepedSalaryDeductionWaiver,
+            self::PensionDeductionWaiver => 'repayment_authorization',
+        };
+    }
+
+    public function groupLabel(): string
+    {
+        return match ($this->group()) {
+            'loan_paperwork' => 'Loan Paperwork',
+            'insurance' => 'Insurance',
+            'repayment_authorization' => 'Repayment Authorization',
+            default => 'Other',
+        };
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function groupOrder(): array
+    {
+        return ['loan_paperwork', 'insurance', 'repayment_authorization'];
     }
 
     /**

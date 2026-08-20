@@ -57,6 +57,7 @@ import { formatDateTime } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type {
     LoanRequestDocumentChecklistItem,
+    LoanRequestDocumentGroup,
     LoanRequestDocumentReadinessStatus,
 } from '@/types/loan-requests';
 
@@ -65,6 +66,12 @@ const WORKBOOK_DOCUMENT_KEYS = [
     'plan_of_payment',
     'disclosure_statement',
     'promissory_note',
+];
+
+const DOCUMENT_GROUP_ORDER: LoanRequestDocumentGroup[] = [
+    'loan_paperwork',
+    'insurance',
+    'repayment_authorization',
 ];
 
 const checklistStatusIcon = (status: LoanRequestDocumentReadinessStatus) => {
@@ -160,6 +167,16 @@ export const LoanRequestDocumentChecklistCard = ({
 
             return bIncomplete - aIncomplete;
         });
+
+    const groupedChecklist = DOCUMENT_GROUP_ORDER.map((group) => ({
+        group,
+        label:
+            sortedChecklist.find((document) => document.group === group)
+                ?.group_label ?? group,
+        documents: sortedChecklist.filter(
+            (document) => document.group === group,
+        ),
+    })).filter((group) => group.documents.length > 0);
 
     const isDocumentLocked = (
         document: LoanRequestDocumentChecklistItem,
@@ -361,8 +378,14 @@ export const LoanRequestDocumentChecklistCard = ({
                         Select all
                     </Label>
                 ) : null}
-                <div className="flex flex-col divide-y divide-border/40">
-                    {sortedChecklist.map((document) => {
+                <div className="flex flex-col">
+                    {groupedChecklist.map((group) => (
+                        <div key={group.group} className="flex flex-col">
+                            <p className="py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                {group.label}
+                            </p>
+                            <div className="flex flex-col divide-y divide-border/40">
+                    {group.documents.map((document) => {
                         const viewHref = `${generatedDocumentBaseHref}/${document.key}`;
                         const isWorkbookDocument =
                             WORKBOOK_DOCUMENT_KEYS.includes(document.key);
@@ -692,6 +715,9 @@ export const LoanRequestDocumentChecklistCard = ({
                             </div>
                         );
                     })}
+                            </div>
+                        </div>
+                    ))}
                 </div>
                 {packageZipDownload ? (
                     <div className="mt-4 border-t border-border/40 pt-4">

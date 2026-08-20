@@ -307,9 +307,16 @@ export type LoanRequestDocumentReadinessStatus =
     | 'not_applicable'
     | 'legacy_data_incomplete';
 
+export type LoanRequestDocumentGroup =
+    | 'loan_paperwork'
+    | 'insurance'
+    | 'repayment_authorization';
+
 export type LoanRequestDocumentChecklistItem = {
     key: LoanRequestDocumentKey;
     label: string;
+    group: LoanRequestDocumentGroup;
+    group_label: string;
     is_applicable: boolean;
     unavailable_reason: string | null;
     status: LoanRequestDocumentReadinessStatus;

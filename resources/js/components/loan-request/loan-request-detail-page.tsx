@@ -1082,7 +1082,7 @@ export function LoanRequestDetailPage({
                   format: 'PDF',
               },
               {
-                  label: 'Affidavit of Undertaking PDF',
+                  label: 'Affidavit of Undertaking (ATM Payout) PDF',
                   href: approvedDocumentHrefs.affidavitUndertaking,
                   format: 'PDF',
               },
@@ -1107,7 +1107,7 @@ export function LoanRequestDetailPage({
                   format: 'XLSX',
               },
               {
-                  label: 'Undertaking - Barangay PDF',
+                  label: 'Undertaking (BLGU) PDF',
                   href: approvedDocumentHrefs.undertakingBarangay,
                   format: 'PDF',
               },
@@ -1122,17 +1122,17 @@ export function LoanRequestDetailPage({
                   format: 'PDF',
               },
               {
-                  label: 'Authority to Deduct PDF',
+                  label: 'Authority to Deduct (Salary Deduction) PDF',
                   href: approvedDocumentHrefs.authorityToDeduct,
                   format: 'PDF',
               },
               {
-                  label: 'DepEd Salary Deduction Waiver PDF',
+                  label: 'Waiver (DepEd) PDF',
                   href: approvedDocumentHrefs.depedSalaryDeductionWaiver,
                   format: 'PDF',
               },
               {
-                  label: 'Pension Deduction Waiver PDF',
+                  label: 'Waiver (Pensioners) PDF',
                   href: approvedDocumentHrefs.pensionDeductionWaiver,
                   format: 'PDF',
               },

@@ -1386,7 +1386,7 @@ export function ProcessingDetailsPanel({
                             ?.applicable !== false && (
                             <>
                                 {renderProcessingSectionLabel(
-                                    'Authority to Deduct',
+                                    'Authority to Deduct (Salary Deduction)',
                                 )}
                                 {loanRequest.authority_to_deduct_guidance
                                     ?.note && (
@@ -1546,7 +1546,7 @@ export function ProcessingDetailsPanel({
                         {loanRequest.waiver_applicability?.deped.applicable && (
                             <>
                                 {renderProcessingSectionLabel(
-                                    'DepEd Salary Deduction Waiver',
+                                    'Waiver (DepEd)',
                                 )}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {renderProcessingField(
@@ -1563,7 +1563,7 @@ export function ProcessingDetailsPanel({
                             .applicable && (
                             <>
                                 {renderProcessingSectionLabel(
-                                    'Pension Deduction Waiver',
+                                    'Waiver (Pensioners)',
                                 )}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {renderProcessingField('pension_provider')}
@@ -1674,7 +1674,7 @@ export function ProcessingDetailsPanel({
                             ?.applicable !== false && (
                             <>
                                 {renderProcessingSectionLabel(
-                                    'Authority to Deduct',
+                                    'Authority to Deduct (Salary Deduction)',
                                 )}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {SNAPSHOT_AUTHORITY_TO_DEDUCT_FIELDS.map(
@@ -1688,7 +1688,7 @@ export function ProcessingDetailsPanel({
                         {loanRequest.waiver_applicability?.deped.applicable && (
                             <>
                                 {renderProcessingSectionLabel(
-                                    'DepEd Salary Deduction Waiver',
+                                    'Waiver (DepEd)',
                                 )}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {SNAPSHOT_DEPED_FIELDS.map((fieldKey) =>
@@ -1702,7 +1702,7 @@ export function ProcessingDetailsPanel({
                             .applicable && (
                             <>
                                 {renderProcessingSectionLabel(
-                                    'Pension Deduction Waiver',
+                                    'Waiver (Pensioners)',
                                 )}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {SNAPSHOT_PENSION_FIELDS.map((fieldKey) =>

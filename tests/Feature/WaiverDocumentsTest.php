@@ -11,6 +11,7 @@ use App\Models\LoanRequestPerson;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
+use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
 use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
 use Illuminate\Database\Schema\Blueprint;
@@ -325,6 +326,46 @@ test('pension deduction waiver field map declares the header image and deduction
             fn (array $field): bool => ($field['value'] ?? null) === $expectedValue,
         ))->toBeTrue("Expected field map to contain a field for {$expectedValue}");
     }
+});
+
+test('category-specific deduction documents use identifying labels in the checklist', function () {
+    expect(LoanRequestDocumentKey::AuthorityToDeduct->label())->toBe('Authority to Deduct (Salary Deduction)')
+        ->and(LoanRequestDocumentKey::UndertakingBarangay->label())->toBe('Undertaking (BLGU)')
+        ->and(LoanRequestDocumentKey::DepedSalaryDeductionWaiver->label())->toBe('Waiver (DepEd)')
+        ->and(LoanRequestDocumentKey::PensionDeductionWaiver->label())->toBe('Waiver (Pensioners)')
+        ->and(LoanRequestDocumentKey::AffidavitUndertaking->label())->toBe('Affidavit of Undertaking (ATM Payout)');
+});
+
+test('every checklist document belongs to a named group', function () {
+    foreach (LoanRequestDocumentKey::cases() as $documentKey) {
+        expect($documentKey->group())->toBeString()
+            ->and($documentKey->groupLabel())->toBeString()
+            ->and($documentKey->groupLabel())->not->toBe('Other');
+
+        expect(in_array($documentKey->group(), LoanRequestDocumentKey::groupOrder(), true))->toBeTrue();
+    }
+});
+
+test('serialized checklist includes the document group for each entry', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'DepEd Division of Surigao del Sur',
+    ]);
+    waiverDocumentsPersistDataEntry($loanRequest, 'deped_deduction_amount', 'number', 28000);
+    waiverDocumentsPersistDataEntry($loanRequest, 'deped_school_id_number', 'string', '123456');
+
+    $checklist = app(LoanRequestDocumentWorkflowService::class)->serializeChecklist($loanRequest);
+
+    foreach ($checklist as $entry) {
+        expect($entry)->toHaveKey('group')
+            ->toHaveKey('group_label')
+            ->and($entry['group'])->toBeString()
+            ->and($entry['group_label'])->toBeString();
+    }
+
+    $depedEntry = collect($checklist)->firstWhere('key', LoanRequestDocumentKey::DepedSalaryDeductionWaiver->value);
+    expect($depedEntry['label'])->toBe('Waiver (DepEd)')
+        ->and($depedEntry['group'])->toBe('repayment_authorization')
+        ->and($depedEntry['group_label'])->toBe('Repayment Authorization');
 });
 
 test('deped salary deduction waiver downloads as a real pdf for an applicable deped borrower', function () {
