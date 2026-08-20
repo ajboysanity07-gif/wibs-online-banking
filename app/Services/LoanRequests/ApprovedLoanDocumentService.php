@@ -16,6 +16,7 @@ use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
 use App\Services\OrganizationSettingsService;
 use App\Support\DocumentFilename;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Concurrency;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -402,7 +403,47 @@ class ApprovedLoanDocumentService
             $pensionDeductionWaiverPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['pension_deduction_waiver'];
             $generaliApplicationFormPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['generali_application_form'];
 
-            $this->loanRequestPdfService->saveToPath($loanRequest, $applicationFormPath);
+            $bladeDocumentClosures = [
+                fn () => app(LoanRequestPdfService::class)->saveToPath(
+                    LoanRequest::query()
+                        ->with(['people', 'assignedProcessor.adminProfile', 'reviewedBy.adminProfile', 'user'])
+                        ->findOrFail($loanRequest->getKey()),
+                    $applicationFormPath,
+                ),
+                fn () => app(PlanOfPaymentPdfService::class)->generate(
+                    $planOfPaymentPath,
+                    $documentData,
+                ),
+                fn () => app(DisclosureStatementPdfService::class)->generate(
+                    $disclosureStatementPath,
+                    $documentData,
+                ),
+                fn () => app(PromissoryNotePdfService::class)->generate(
+                    $promissoryNotePath,
+                    $documentData,
+                ),
+                fn () => app(LoanSecurityAgreementPdfService::class)->generate(
+                    $loanSecurityAgreementPath,
+                    $documentData,
+                ),
+            ];
+            if ($includeAuthorityToDeduct) {
+                $bladeDocumentClosures[] = fn () => app(AuthorityToDeductPdfService::class)->generate(
+                    $authorityToDeductPath,
+                    $documentData,
+                );
+            }
+
+            if (app()->runningUnitTests()) {
+                foreach ($bladeDocumentClosures as $closure) {
+                    $closure();
+                }
+            } else {
+                foreach (array_chunk($bladeDocumentClosures, 2) as $closureChunk) {
+                    Concurrency::run($closureChunk);
+                }
+            }
+
             $this->approvedLoanImageTemplatePdfService->generate(
                 self::GREPALIFE_IMAGE_TEMPLATE_PAGES,
                 $grepalifePath,
@@ -423,18 +464,6 @@ class ApprovedLoanDocumentService
                 $documentData,
                 $this->loanInformationPdfFieldMap,
             );
-            $this->planOfPaymentPdfService->generate(
-                $planOfPaymentPath,
-                $documentData,
-            );
-            $this->disclosureStatementPdfService->generate(
-                $disclosureStatementPath,
-                $documentData,
-            );
-            $this->promissoryNotePdfService->generate(
-                $promissoryNotePath,
-                $documentData,
-            );
             if ($includeUndertakingBarangay) {
                 $this->approvedLoanPdfTemplateService->generate(
                     self::PDF_TEMPLATE_FILENAMES['undertaking_barangay'],
@@ -443,22 +472,12 @@ class ApprovedLoanDocumentService
                     $this->undertakingBarangayPdfFieldMap,
                 );
             }
-            $this->loanSecurityAgreementPdfService->generate(
-                $loanSecurityAgreementPath,
-                $documentData,
-            );
             $this->approvedLoanPdfTemplateService->generate(
                 self::PDF_TEMPLATE_FILENAMES['generali'],
                 $generaliPath,
                 $documentData,
                 $this->generaliPdfFieldMap,
             );
-            if ($includeAuthorityToDeduct) {
-                $this->authorityToDeductPdfService->generate(
-                    $authorityToDeductPath,
-                    $documentData,
-                );
-            }
             if ($includeDepedSalaryDeductionWaiver) {
                 $this->approvedLoanPdfTemplateService->generate(
                     self::PDF_TEMPLATE_FILENAMES['deped_salary_deduction_waiver'],

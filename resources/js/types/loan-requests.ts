@@ -198,6 +198,7 @@ export type LoanRequestWorkflowPermission =
     | 'loan.manage_assignment'
     | 'loan.request_revision'
     | 'loan.reject'
+    | 'loan.correct'
     | 'loan.recommend_approval'
     | 'loan.approve'
     | 'loan.decline'

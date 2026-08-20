@@ -91,7 +91,6 @@ class DisclosureStatementPdfService
         $shot = Browsershot::html($html)
             ->showBackground()
             ->emulateMedia('print')
-            ->waitUntilNetworkIdle()
             ->waitForFunction(
                 '!document.fonts || document.fonts.status === "loaded"',
                 null,
