@@ -220,9 +220,9 @@ class CalibrateApprovedLoanPdfFieldsCommand extends Command
             $pdf->Rect($x - 0.5, $y - 0.5, 1.0, 1.0, 'F');
 
             // Label: field name and coordinates above the box
-            $label = is_string($value)
-                ? $this->shortFieldName($value)
-                : '['.$type.']';
+            $label = is_string($field['label'] ?? null)
+                ? $field['label']
+                : (is_string($value) ? $this->shortFieldName($value) : '['.$type.']');
             $coords = sprintf('(%.1f, %.1f) sz:%d', $x, $y, $size);
 
             $pdf->SetFont('helvetica', '', 3.5);

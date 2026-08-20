@@ -44,7 +44,11 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             // Fax: intentionally omitted -- not applicable to a loan application.
             // See WIBS_DOCUMENT_FIELD_MAP.md, Generali Health Statement section.
 
-            ['page' => 1, 'x' => 27.3, 'y' => 83.0, 'size' => 9, 'width' => 57, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_line'],
+            // Street value goes under the "(Street No.)" caption, not under
+            // the "Residence Address" row label -- applicants almost always
+            // give a Purok name rather than a numbered street.
+            ['page' => 1, 'x' => 92.7, 'y' => 83.0, 'size' => 9, 'width' => 68, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_street'],
+            ['page' => 1, 'x' => 163.8, 'y' => 83.0, 'size' => 9, 'width' => 24, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_barangay'],
             ['page' => 1, 'x' => 43.1, 'y' => 90.0, 'size' => 9, 'width' => 40, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_city'],
             ['page' => 1, 'x' => 94.0, 'y' => 90.0, 'size' => 9, 'width' => 45, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_province'],
             ['page' => 1, 'x' => 130.5, 'y' => 90.0, 'size' => 9, 'value' => static fn (): string => 'Philippines'],
@@ -67,12 +71,12 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
 
             ['page' => 1, 'x' => 27.3, 'y' => 134.2, 'size' => 8, 'width' => 18, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'application_form.source_of_fund_wealth'],
             [
-                'page' => 1, 'x' => 150.0, 'y' => 129.2, 'size' => 8, 'width' => 37,
+                'page' => 1, 'x' => 150.0, 'y' => 130.3, 'size' => 8, 'width' => 37,
                 'shrink_to_fit' => true, 'min_size' => 6.0,
                 'value' => static fn (array $d): ?string => self::composeGovernmentId($d),
             ],
             [
-                'page' => 1, 'x' => 150.0, 'y' => 133.1, 'size' => 9, 'width' => 37,
+                'page' => 1, 'x' => 150.0, 'y' => 134.2, 'size' => 9, 'width' => 37,
                 'shrink_to_fit' => true, 'min_size' => 6.0,
                 'value' => static fn (array $d): ?string => data_get($d, 'application_form.id_type') === 'Others'
                     ? data_get($d, 'application_form.id_type_other')
@@ -86,7 +90,7 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             ['page' => 1, 'x' => 124.1, 'y' => 149.0, 'size' => 9, 'width' => 75, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.email'],
 
             ['page' => 1, 'x' => 27.3, 'y' => 157.0, 'size' => 9, 'width' => 100, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.position_or_designation'],
-            ['page' => 1, 'x' => 166.0, 'y' => 157.0, 'size' => 8, 'width' => 18, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.employer_date_employed'],
+            ['page' => 1, 'x' => 125.1, 'y' => 157.0, 'size' => 8, 'width' => 37, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.employer_date_employed'],
 
             // Only meaningful for a Credit Life rider on this loan -- reuses the same
             // recommended amount/term already printed on the other approved documents.
@@ -173,7 +177,7 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'page' => 2, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => 139.15, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, 'health_glapi.gl_health_q17_with_glapi') === false,
             ],
-            ['page' => 2, 'x' => 64.0, 'y' => 137.5, 'size' => 8, 'width' => 65, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'health_glapi.gl_health_q17_with_glapi_amount'],
+            ['page' => 2, 'x' => 67.0, 'y' => 138.7, 'size' => 8, 'width' => 60, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'health_glapi.gl_health_q17_with_glapi_amount'],
             [
                 'page' => 2, 'type' => 'check', 'x' => self::HEALTH_Y_X, 'y' => 143.45, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, 'health_glapi.gl_health_q17_with_other_companies') === true,
@@ -182,7 +186,7 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'page' => 2, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => 143.45, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, 'health_glapi.gl_health_q17_with_other_companies') === false,
             ],
-            ['page' => 2, 'x' => 64.0, 'y' => 141.5, 'size' => 8, 'width' => 65, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'health_glapi.gl_health_q17_with_other_companies_amount'],
+            ['page' => 2, 'x' => 67.0, 'y' => 143.0, 'size' => 8, 'width' => 60, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'health_glapi.gl_health_q17_with_other_companies_amount'],
         ];
     }
 

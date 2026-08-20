@@ -270,6 +270,8 @@ test('applicant address line folds in barangay for documents with separate city/
     $documentData = generaliApplicationFormBuildDocumentData($loanRequest->fresh());
 
     expect($documentData['applicant']['address_line'])->toBe('123 Loan Street, Barangay Uno')
+        ->and($documentData['applicant']['address_street'])->toBe('123 Loan Street')
+        ->and($documentData['applicant']['address_barangay'])->toBe('Barangay Uno')
         ->and($documentData['applicant']['address_city'])->toBe('Loan City')
         ->and($documentData['applicant']['address_province'])->toBe('Loan Province')
         ->and($documentData['applicant']['office_address_line'])->toBe('Office Plaza, Barangay Dos');

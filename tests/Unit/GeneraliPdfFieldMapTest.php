@@ -19,12 +19,30 @@ test('generali map prints height and weight with units from the application form
     expect(($weight['value'])(['application_form' => ['weight_kg' => '']]))->toBeNull();
 });
 
+test('generali map places street/purok and barangay under their own printed captions, not under the row label', function (): void {
+    $fields = (new GeneraliPdfFieldMap)->fields();
+
+    $street = collect($fields)->first(fn (array $f) => ($f['value'] ?? null) === 'applicant.address_street');
+    $barangay = collect($fields)->first(fn (array $f) => ($f['value'] ?? null) === 'applicant.address_barangay');
+
+    expect($street)->not->toBeNull()
+        ->and($street['x'])->toBe(92.7)
+        ->and($street['y'])->toBe(83.0);
+
+    expect($barangay)->not->toBeNull()
+        ->and($barangay['x'])->toBe(163.8)
+        ->and($barangay['y'])->toBe(83.0);
+
+    expect(collect($fields)->contains(fn (array $f) => ($f['value'] ?? null) === 'applicant.address_line'))
+        ->toBeFalse();
+});
+
 test('generali map prints source of fund and the composed government id', function (): void {
     $fields = (new GeneraliPdfFieldMap)->fields();
 
     $source = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 27.3 && ($f['y'] ?? null) === 134.2);
-    $id = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 150.0 && ($f['y'] ?? null) === 129.2);
-    $idOther = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 150.0 && ($f['y'] ?? null) === 133.1);
+    $id = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 150.0 && ($f['y'] ?? null) === 130.3);
+    $idOther = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 150.0 && ($f['y'] ?? null) === 134.2);
 
     expect($source)->not->toBeNull();
     expect($id)->not->toBeNull();
@@ -62,11 +80,11 @@ test('generali map prints source of fund and the composed government id', functi
     expect($resolve($id, ['application_form' => ['id_type' => 'SSS', 'id_number' => null]]))->toBeNull();
 });
 
-test('generali map prints the employer date employed beside the occupation row', function (): void {
+test('generali map prints the employer date employed below the date employed label', function (): void {
     $fields = (new GeneraliPdfFieldMap)->fields();
 
     $date = collect($fields)->first(
-        fn (array $f) => ($f['x'] ?? null) === 166.0 && ($f['y'] ?? null) === 157.0,
+        fn (array $f) => ($f['x'] ?? null) === 125.1 && ($f['y'] ?? null) === 157.0,
     );
 
     expect($date)->not->toBeNull();

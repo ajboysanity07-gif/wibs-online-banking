@@ -342,6 +342,7 @@ class ApprovedLoanDocumentDataBuilder
                 'payment_mode_workbook' => $paymentMode,
                 'lumpsum_months' => $lumpsumMonths,
                 'purpose' => $this->normalizeText($loanRequest->loan_purpose),
+                'kind_of_loan' => $this->normalizeText($loanRequest->kind_of_loan),
                 'approved_date' => $documentDate?->format('F d, Y'),
                 'approved_date_short' => $documentDate?->format('m/d/Y'),
                 'approved_date_day' => $documentDate?->format('d'),
@@ -544,6 +545,11 @@ class ApprovedLoanDocumentDataBuilder
             ),
             'address' => $composedAddress,
             'address_line' => $addressLine,
+            // Split out from address_line for templates (GA/GE) with a
+            // dedicated "(Street No.)" / "(Brgy.)" column pair -- address1 is
+            // almost always a Purok name in practice, not a numbered street.
+            'address_street' => $this->normalizeText($person?->address1),
+            'address_barangay' => $this->normalizeText($person?->address_barangay),
             'address_city' => $this->normalizeText($person?->address2),
             'address_province' => $this->normalizeText($person?->address3),
             'address_country' => null,
