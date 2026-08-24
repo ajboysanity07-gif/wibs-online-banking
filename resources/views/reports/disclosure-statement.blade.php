@@ -504,7 +504,7 @@
                     <td class="nw" colspan="3">b. Total Installment Payment</td>
                     <td class="r">P</td>
                     <td class="b10 bold r ub">&nbsp;</td>
-                    <td class="b10 bold l" colspan="2">{{ $paymentMode !== '' ? $paymentMode : '' }}</td>
+                    <td class="b10 bold l" colspan="2">&nbsp;</td>
                     <td colspan="7"></td>
                 </tr>
             @endif
