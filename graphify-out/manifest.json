@@ -30,7 +30,7 @@
     "semantic_hash": "5cd9ae4fc688353236c3b92e8f06dfcc"
   },
   ".mcp.json": {
-    "mtime": 1787202559.9286408,
+    "mtime": 1787554160.4726448,
     "ast_hash": "030ab164e1f60092f336315d80fc1523",
     "semantic_hash": ""
   },
@@ -1445,7 +1445,7 @@
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanSecurityAgreementPdfService.php": {
-    "mtime": 1787552428.7084093,
+    "mtime": 1787554160.4759476,
     "ast_hash": "06b286e9004270c7499e6f0bcccc5511",
     "semantic_hash": ""
   },
@@ -1470,7 +1470,7 @@
     "semantic_hash": "dc9bdc0ff8bd44694885f881e9661388"
   },
   "app/Services/LoanRequests/PdfFieldMaps/AffidavitUndertakingPdfFieldMap.php": {
-    "mtime": 1787551707.7600598,
+    "mtime": 1787554160.4774532,
     "ast_hash": "6b78c358041d9b5b711fe69797c87b52",
     "semantic_hash": ""
   },
@@ -1485,7 +1485,7 @@
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/PdfFieldMaps/GrepalifePdfFieldMap.php": {
-    "mtime": 1787552470.6182866,
+    "mtime": 1787554160.4785252,
     "ast_hash": "722916eda058f4d1af344ebb39aa684f",
     "semantic_hash": ""
   },
@@ -1500,7 +1500,7 @@
     "semantic_hash": "f11706f4b476c60b8d94b3962f584a8a"
   },
   "app/Services/LoanRequests/PdfFieldMaps/UndertakingBarangayPdfFieldMap.php": {
-    "mtime": 1787552152.913148,
+    "mtime": 1787554160.4810858,
     "ast_hash": "01b03bfa39c79d4eaf51eba9b553a3ad",
     "semantic_hash": ""
   },
@@ -3395,7 +3395,7 @@
     "semantic_hash": "652daf2f3d8cb757fcad50517460c8e7"
   },
   "resources/views/reports/disclosure-statement.blade.php": {
-    "mtime": 1787552561.089634,
+    "mtime": 1787554160.5562952,
     "ast_hash": "b3e85e71c983571ce45ee259746d4a7e",
     "semantic_hash": ""
   },
@@ -3415,7 +3415,7 @@
     "semantic_hash": ""
   },
   "resources/views/reports/loan-security-agreement.blade.php": {
-    "mtime": 1787552457.829278,
+    "mtime": 1787554160.5572958,
     "ast_hash": "8f87302760c10b7a86fa12c44a29c5ec",
     "semantic_hash": ""
   },
@@ -3440,12 +3440,12 @@
     "semantic_hash": "d14909541d7ea4ade7511282cb5094e0"
   },
   "resources/views/reports/plan-of-payment.blade.php": {
-    "mtime": 1787551601.4618561,
+    "mtime": 1787554160.5572958,
     "ast_hash": "da2dbd7303080fde2220ebc85c283611",
     "semantic_hash": ""
   },
   "resources/views/reports/promissory-note.blade.php": {
-    "mtime": 1787552106.748976,
+    "mtime": 1787554160.5583754,
     "ast_hash": "51ce893f5bdc28015e328a2f9fa13370",
     "semantic_hash": ""
   },
@@ -3530,8 +3530,8 @@
     "semantic_hash": "6041fa99842bc1de088a8fbfc81c3b67"
   },
   "tests/Feature/ApprovedLoanDocumentPackageDownloadTest.php": {
-    "mtime": 1787552576.1171305,
-    "ast_hash": "ac4309989e2950f8f4ca5cfe125a5baa",
+    "mtime": 1787554160.5622454,
+    "ast_hash": "f2da7edb7e8ca2d981ab502da2443ea7",
     "semantic_hash": ""
   },
   "tests/Feature/ApprovedLoanPdfTemplateServiceBoldFontTest.php": {
@@ -3815,8 +3815,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/OrganizationBrandingReportTest.php": {
-    "mtime": 1787549492.9733655,
-    "ast_hash": "7ecc89c7aed39a1010b18b90555cb7c3",
+    "mtime": 1787554937.1713543,
+    "ast_hash": "198f6698960f8ff74b4f196da5bd2cc1",
     "semantic_hash": ""
   },
   "tests/Feature/OrganizationSettingsTest.php": {
@@ -5755,8 +5755,8 @@
     "semantic_hash": ""
   },
   "WIBS_DOCUMENT_FIELD_MAP.md": {
-    "mtime": 1785596546.2223656,
-    "ast_hash": "d7a9833512bde504d8d342c20c37a23d",
+    "mtime": 1787554160.4738944,
+    "ast_hash": "60eac0ec86fb0d3e5cff73d80ee53548",
     "semantic_hash": ""
   },
   "WIBS_LOAN_WIZARD_UX_ARCHITECTURE_PLAN.md": {
@@ -6140,12 +6140,12 @@
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/AuthorityToDeductPdfService.php": {
-    "mtime": 1787552174.2141225,
+    "mtime": 1787554160.4759476,
     "ast_hash": "a4aa9d6efcf2ed5300d620f572b12868",
     "semantic_hash": ""
   },
   "resources/views/reports/authority-to-deduct.blade.php": {
-    "mtime": 1787552255.3311806,
+    "mtime": 1787554160.5552957,
     "ast_hash": "69eb5e6e6148a501fcbd79cf17635a50",
     "semantic_hash": ""
   },
@@ -6165,8 +6165,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/AuthorityToDeductDocumentTest.php": {
-    "mtime": 1787537678.362163,
-    "ast_hash": "3c7c2189be785a26a9589388bfec7e16",
+    "mtime": 1787554160.5622454,
+    "ast_hash": "3209c49aaf452605bd13c4079644f604",
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestExistingLoansTest.php": {
@@ -6195,18 +6195,18 @@
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/PdfFieldMaps/DepedSalaryDeductionWaiverPdfFieldMap.php": {
-    "mtime": 1787552126.5360236,
+    "mtime": 1787554160.4785252,
     "ast_hash": "26fa5ad9e8983ad5383771b7f0d2dcd8",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/PdfFieldMaps/PensionDeductionWaiverPdfFieldMap.php": {
-    "mtime": 1787552139.1072662,
+    "mtime": 1787554160.4800272,
     "ast_hash": "d0c99720a1aa0af7990e0b549340cdf2",
     "semantic_hash": ""
   },
   "tests/Feature/WaiverDocumentsTest.php": {
-    "mtime": 1787239955.0309393,
-    "ast_hash": "f0e67798eb6e82297cdec235151deeed",
+    "mtime": 1787554160.565511,
+    "ast_hash": "0d98dead60c256828be6dea017e0dbc1",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/PdfFieldMaps/GeneraliApplicationFormPdfFieldMap.php": {
@@ -6720,7 +6720,7 @@
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/ApprovedLoanDocumentDataBuilder.php": {
-    "mtime": 1787551641.7243824,
+    "mtime": 1787554160.4749017,
     "ast_hash": "c8e01f3f86c9970a4195a6620bc2295c",
     "semantic_hash": ""
   },
@@ -7005,7 +7005,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/PlanOfPaymentReportTest.php": {
-    "mtime": 1787551624.3628836,
+    "mtime": 1787554160.5643241,
     "ast_hash": "b941f8e1a35f61cd0c8f19d771eaef2e",
     "semantic_hash": ""
   },
@@ -7017,6 +7017,11 @@
   "database/migrations/2026_08_24_120000_add_other_loan_type_name_to_loan_requests_table.php": {
     "mtime": 1787542885.7016768,
     "ast_hash": "a76dc86b9688fa954d8a6b1a9daff484",
+    "semantic_hash": ""
+  },
+  "tests/Feature/PromissoryNoteReportTest.php": {
+    "mtime": 1787553406.757065,
+    "ast_hash": "723a270b39b4aef80327385831fb26e8",
     "semantic_hash": ""
   }
 }

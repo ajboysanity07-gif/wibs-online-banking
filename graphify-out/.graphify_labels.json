@@ -643,7 +643,6 @@
   "641": "2026_08_18_100000_add_kind_of_loan_to_loan_requests_table.php",
   "642": "2026_08_18_110000_normalize_lumpsum_payment_frequency_value.php",
   "643": "axios",
-  "644": "ApprovedLoanDocumentServiceDeductionStartDateTest.php",
   "645": "2026_08_05_130000_add_civil_status_housing_status_spouse_birthdate_to_member_application_profiles_table.php",
   "646": "input-otp",
   "647": "BackfillZipCodesCommand",
