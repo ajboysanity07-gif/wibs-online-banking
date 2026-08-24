@@ -374,6 +374,7 @@ class SaveDraftRequest extends FormRequest
             'requested_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'requested_term' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:360'],
             'loan_purpose' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'other_loan_type_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'availment_status' => [
                 'sometimes',
                 'nullable',

@@ -491,6 +491,7 @@ export type LoanRequestSummaryHeaderProps = {
     requestedTerm: string;
     availmentStatus: string;
     loanPurpose?: string;
+    otherLoanTypeName?: string;
 };
 
 export const LoanRequestSummaryHeader = ({
@@ -502,6 +503,7 @@ export const LoanRequestSummaryHeader = ({
     requestedTerm,
     availmentStatus,
     loanPurpose,
+    otherLoanTypeName,
 }: LoanRequestSummaryHeaderProps) => (
     <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -533,6 +535,13 @@ export const LoanRequestSummaryHeader = ({
                 <SummaryStat label="Loan type" value={loanTypeLabel} />
                 <SummaryStat label="Requested term" value={requestedTerm} />
                 <SummaryStat label="Availment status" value={availmentStatus} />
+                {otherLoanTypeName ? (
+                    <SummaryStat
+                        label="Loan name"
+                        value={otherLoanTypeName}
+                        className="col-span-2"
+                    />
+                ) : null}
                 {loanPurpose ? (
                     <SummaryStat
                         label="Loan purpose"
@@ -1048,6 +1057,8 @@ export function LoanRequestDetailPage({
             : '--';
     const availmentStatus = displayValue(loanRequest.availment_status);
     const loanPurpose = displayText(loanRequest.loan_purpose);
+    const otherLoanTypeName =
+        loanRequest.other_loan_type_name?.trim() || undefined;
     const submittedLabel = submittedAt
         ? `Submitted ${submittedAt}`
         : 'Not submitted yet';
@@ -1354,6 +1365,7 @@ export function LoanRequestDetailPage({
                     requestedTerm={requestedTerm}
                     availmentStatus={availmentStatus}
                     loanPurpose={loanPurpose}
+                    otherLoanTypeName={otherLoanTypeName}
                 />
             ) : null}
 

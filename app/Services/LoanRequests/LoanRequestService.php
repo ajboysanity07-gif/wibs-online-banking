@@ -611,6 +611,7 @@ class LoanRequestService
             $corrected->requested_amount = $sourceRequest->requested_amount;
             $corrected->requested_term = (int) $sourceRequest->requested_term;
             $corrected->loan_purpose = (string) $sourceRequest->loan_purpose;
+            $corrected->other_loan_type_name = $sourceRequest->other_loan_type_name;
             $corrected->availment_status = (string) $sourceRequest->availment_status;
             $corrected->status = LoanRequestStatus::UnderReview;
             $corrected->workflow_version = $sourceRequest->workflow_version
@@ -730,6 +731,7 @@ class LoanRequestService
             $draft->requested_amount = $sourceRequest->requested_amount;
             $draft->requested_term = (int) $sourceRequest->requested_term;
             $draft->loan_purpose = (string) $sourceRequest->loan_purpose;
+            $draft->other_loan_type_name = $sourceRequest->other_loan_type_name;
             $draft->availment_status = (string) $sourceRequest->availment_status;
             $draft->status = LoanRequestStatus::Draft;
             $draft->workflow_version = $sourceRequest->workflow_version
@@ -1007,6 +1009,7 @@ class LoanRequestService
             'requested_amount' => $loanRequest->requested_amount ?? '0',
             'requested_term' => $loanRequest->requested_term ?? 0,
             'loan_purpose' => $loanRequest->loan_purpose ?? '',
+            'other_loan_type_name' => $loanRequest->other_loan_type_name,
             'availment_status' => $loanRequest->availment_status ?? '',
             'requested_payment_frequency' => $loanRequest->requested_payment_frequency,
             'kind_of_loan' => $loanRequest->kind_of_loan,
@@ -1019,6 +1022,9 @@ class LoanRequestService
         $loanRequest->requested_amount = $this->normalizeDecimal($payload['requested_amount'] ?? null) ?? '0';
         $loanRequest->requested_term = (int) ($payload['requested_term'] ?? 0);
         $loanRequest->loan_purpose = (string) ($payload['loan_purpose'] ?? '');
+        $loanRequest->other_loan_type_name = $payload['other_loan_type_name'] !== null
+            ? (string) $payload['other_loan_type_name']
+            : null;
         $loanRequest->availment_status = (string) ($payload['availment_status'] ?? '');
         $loanRequest->requested_payment_frequency = $payload['requested_payment_frequency'] !== null
             ? (string) $payload['requested_payment_frequency']
@@ -1261,6 +1267,7 @@ class LoanRequestService
      *     requested_amount: string|float|int|null,
      *     requested_term: int|string|null,
      *     loan_purpose: string|null,
+     *     other_loan_type_name: string|null,
      *     availment_status: string|null,
      *     requested_payment_frequency: string|null,
      *     kind_of_loan: string|null,
@@ -1276,6 +1283,7 @@ class LoanRequestService
 
         $typecode = $this->normalizeDraftString($loanRequest->typecode, $isDraft);
         $loanPurpose = $this->normalizeDraftString($loanRequest->loan_purpose, $isDraft);
+        $otherLoanTypeName = $this->normalizeDraftString($loanRequest->other_loan_type_name, $isDraft);
         $availmentStatus = $this->normalizeDraftString($loanRequest->availment_status, $isDraft);
         $requestedPaymentFrequency = $this->normalizeDraftString(
             $loanRequest->requested_payment_frequency,
@@ -1309,6 +1317,7 @@ class LoanRequestService
             'requested_amount' => $requestedAmount,
             'requested_term' => $requestedTerm,
             'loan_purpose' => $loanPurpose,
+            'other_loan_type_name' => $otherLoanTypeName,
             'availment_status' => $availmentStatus,
             'requested_payment_frequency' => $requestedPaymentFrequency,
             'kind_of_loan' => $kindOfLoan,

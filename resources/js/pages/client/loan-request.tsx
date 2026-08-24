@@ -102,6 +102,7 @@ type LoanDetailField =
     | 'requested_amount'
     | 'requested_term'
     | 'loan_purpose'
+    | 'other_loan_type_name'
     | 'availment_status'
     | 'requested_payment_frequency'
     | 'kind_of_loan';
@@ -288,6 +289,7 @@ const resolveStepFromErrors = (
             key === 'requested_amount' ||
             key === 'requested_term' ||
             key === 'loan_purpose' ||
+            key === 'other_loan_type_name' ||
             key === 'availment_status'
         ) {
             stepMatches.push(STEP_INDEX['loan-details']);
@@ -463,6 +465,7 @@ export default function LoanRequestPage({
         requested_amount: toStringValue(draft?.requested_amount),
         requested_term: toStringValue(draft?.requested_term),
         loan_purpose: draft?.loan_purpose ?? '',
+        other_loan_type_name: draft?.other_loan_type_name ?? '',
         availment_status: draft?.availment_status ?? '',
         requested_payment_frequency: draft?.requested_payment_frequency ?? '',
         kind_of_loan: draft?.kind_of_loan ?? '',

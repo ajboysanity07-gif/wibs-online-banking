@@ -265,7 +265,9 @@ test('kind of loan is not required for a non-Micro-Business loan type', function
         'lntype' => 'OTHER LOAN',
     ]);
 
-    $payload = kindOfLoanStorePayload('01');
+    $payload = kindOfLoanStorePayload('01', [
+        'other_loan_type_name' => 'Miscellaneous Loan',
+    ]);
 
     $response = $this
         ->actingAs($user)

@@ -127,6 +127,7 @@ type LoanDetailField =
     | 'requested_amount'
     | 'requested_term'
     | 'loan_purpose'
+    | 'other_loan_type_name'
     | 'availment_status'
     | 'requested_payment_frequency'
     | 'kind_of_loan';
@@ -159,6 +160,12 @@ export function LoanRequestLoanDetailsStep({
             onChange('requested_payment_frequency', '');
         }
     }, [isOtherLoan, data.requested_payment_frequency, onChange]);
+
+    useEffect(() => {
+        if (!isOtherLoan && data.other_loan_type_name) {
+            onChange('other_loan_type_name', '');
+        }
+    }, [isOtherLoan, data.other_loan_type_name, onChange]);
 
     useEffect(() => {
         if (!isMicroBusinessLoan && data.kind_of_loan) {
@@ -194,6 +201,28 @@ export function LoanRequestLoanDetailsStep({
                     </Select>
                     <InputError message={errors.typecode} />
                 </div>
+
+                {isOtherLoan && (
+                    <div className="grid gap-2">
+                        <Label htmlFor="other_loan_type_name">
+                            Name this loan
+                        </Label>
+                        <Input
+                            id="other_loan_type_name"
+                            value={data.other_loan_type_name}
+                            className="mt-1 block w-full"
+                            placeholder="e.g. Motorcycle Loan"
+                            required
+                            onChange={(event) =>
+                                onChange(
+                                    'other_loan_type_name',
+                                    event.target.value,
+                                )
+                            }
+                        />
+                        <InputError message={errors.other_loan_type_name} />
+                    </div>
+                )}
 
                 {isMicroBusinessLoan && (
                     <div className="grid gap-2">
@@ -2502,6 +2531,14 @@ export function LoanRequestReviewStep({
                   {
                       label: 'Kind of loan',
                       value: displayValue(data.kind_of_loan),
+                  },
+              ]
+            : []),
+        ...(data.typecode === OTHER_LOAN_TYPECODE
+            ? [
+                  {
+                      label: 'Loan name',
+                      value: displayText(data.other_loan_type_name),
                   },
               ]
             : []),

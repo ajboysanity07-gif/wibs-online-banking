@@ -25,6 +25,7 @@ import {
     LoanRequestDependentsStep,
     LoanRequestInsuranceBeneficiariesStep,
     LoanRequestLoanDetailsStep,
+    OTHER_LOAN_TYPECODE,
 } from '@/components/loan-request/loan-request-steps';
 import { LoanRequestWizardShell } from '@/components/loan-request/loan-request-wizard-shell';
 import type { LoanRequestWizardStep } from '@/components/loan-request/loan-request-wizard-steps';
@@ -69,6 +70,7 @@ type LoanDetailField =
     | 'requested_amount'
     | 'requested_term'
     | 'loan_purpose'
+    | 'other_loan_type_name'
     | 'availment_status'
     | 'requested_payment_frequency'
     | 'kind_of_loan';
@@ -213,6 +215,7 @@ const loanFieldLabels: Record<LoanDetailField, string> = {
     requested_amount: 'Requested amount',
     requested_term: 'Requested term',
     loan_purpose: 'Loan purpose',
+    other_loan_type_name: 'Loan name',
     availment_status: 'Availment status',
     requested_payment_frequency: 'Requested repayment frequency',
     kind_of_loan: 'Kind of loan',
@@ -356,6 +359,7 @@ const loanStepFieldKeys: string[] = [
     'requested_amount',
     'requested_term',
     'loan_purpose',
+    'other_loan_type_name',
     'availment_status',
 ];
 
@@ -573,6 +577,7 @@ const buildInitialFormData = (
     requested_amount: toStringValue(loanRequest.requested_amount),
     requested_term: toStringValue(loanRequest.requested_term),
     loan_purpose: loanRequest.loan_purpose ?? '',
+    other_loan_type_name: loanRequest.other_loan_type_name ?? '',
     availment_status: loanRequest.availment_status ?? '',
     requested_payment_frequency: '',
     kind_of_loan: loanRequest.kind_of_loan ?? '',
@@ -830,6 +835,13 @@ const validateLoanDetails = (data: CorrectionFormData): ValidationErrors => {
         validationErrors.loan_purpose = 'Loan purpose is required.';
     }
 
+    if (
+        data.typecode === OTHER_LOAN_TYPECODE &&
+        isBlank(data.other_loan_type_name)
+    ) {
+        validationErrors.other_loan_type_name = 'Loan name is required.';
+    }
+
     if (isBlank(data.availment_status)) {
         validationErrors.availment_status = 'Availment status is required.';
     } else if (!AVAILMENT_OPTIONS.has(data.availment_status.trim())) {
@@ -959,6 +971,7 @@ const resolveStepFromErrors = (
             field === 'requested_amount' ||
             field === 'requested_term' ||
             field === 'loan_purpose' ||
+            field === 'other_loan_type_name' ||
             field === 'availment_status'
         ) {
             matchedSteps.push(stepIndexOf('loan'));
@@ -1503,6 +1516,7 @@ function CorrectionDialogForm({
             requested_amount: formData.requested_amount,
             requested_term: formData.requested_term,
             loan_purpose: formData.loan_purpose,
+            other_loan_type_name: formData.other_loan_type_name,
             availment_status: formData.availment_status,
             applicant: formData.applicant,
             co_maker_1: formData.co_maker_1,

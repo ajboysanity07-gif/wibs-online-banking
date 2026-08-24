@@ -104,6 +104,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             'requested_amount' => ['required', 'numeric', 'min:1'],
             'requested_term' => ['required', 'integer', 'min:1', 'max:360'],
             'loan_purpose' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'other_loan_type_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'availment_status' => [
                 'sometimes',
                 'nullable',

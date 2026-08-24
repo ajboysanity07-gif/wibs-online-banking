@@ -631,6 +631,11 @@ export function ProcessingDetailsPanel({
             passthrough.loan_purpose = loanRequest.loan_purpose as string;
         }
 
+        if ((loanRequest.other_loan_type_name ?? '').trim() !== '') {
+            passthrough.other_loan_type_name =
+                loanRequest.other_loan_type_name as string;
+        }
+
         if ((loanRequest.availment_status ?? '').trim() !== '') {
             passthrough.availment_status =
                 loanRequest.availment_status as string;
@@ -951,6 +956,11 @@ export function ProcessingDetailsPanel({
                                                     Member&apos;s payday:{' '}
                                                     {applicant?.payday || '—'}
                                                 </p>
+                                                <p>
+                                                    Member requested:{' '}
+                                                    {loanRequest.requested_payment_frequency ||
+                                                        '—'}
+                                                </p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
@@ -1007,6 +1017,14 @@ export function ProcessingDetailsPanel({
                                         )}
                                     </SelectContent>
                                 </Select>
+                                {loanRequest.requested_payment_frequency && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Member requested:{' '}
+                                        {
+                                            loanRequest.requested_payment_frequency
+                                        }
+                                    </p>
+                                )}
                             </div>
                             {processingForm.recommended_payment_frequency ===
                                 'Lump sum' && (
@@ -1545,9 +1563,7 @@ export function ProcessingDetailsPanel({
                         )}
                         {loanRequest.waiver_applicability?.deped.applicable && (
                             <>
-                                {renderProcessingSectionLabel(
-                                    'Waiver (DepEd)',
-                                )}
+                                {renderProcessingSectionLabel('Waiver (DepEd)')}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {renderProcessingField(
                                         'deped_school_id_number',
@@ -1687,9 +1703,7 @@ export function ProcessingDetailsPanel({
 
                         {loanRequest.waiver_applicability?.deped.applicable && (
                             <>
-                                {renderProcessingSectionLabel(
-                                    'Waiver (DepEd)',
-                                )}
+                                {renderProcessingSectionLabel('Waiver (DepEd)')}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {SNAPSHOT_DEPED_FIELDS.map((fieldKey) =>
                                         renderSnapshotField(fieldKey),

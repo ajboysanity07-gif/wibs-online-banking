@@ -224,6 +224,7 @@ class LoanRequestPayloadSerializer
             'requested_amount' => $loanRequest->requested_amount,
             'requested_term' => $loanRequest->requested_term,
             'loan_purpose' => $loanRequest->loan_purpose,
+            'other_loan_type_name' => $loanRequest->other_loan_type_name,
             'availment_status' => $loanRequest->availment_status,
             'requested_payment_frequency' => $loanRequest->requested_payment_frequency,
             'kind_of_loan' => $loanRequest->kind_of_loan,

@@ -1,5 +1,8 @@
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
-import { resolveLoanTypeAbbreviation } from '@/components/loan-request/loan-request-steps';
+import {
+    OTHER_LOAN_TYPECODE,
+    resolveLoanTypeAbbreviation,
+} from '@/components/loan-request/loan-request-steps';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
@@ -135,6 +138,14 @@ export function LoanRequestSummaryPanel({
                                 label="Availment status"
                                 value={displayValue(data.availment_status)}
                             />
+                            {data.typecode === OTHER_LOAN_TYPECODE && (
+                                <SummaryRow
+                                    label="Loan name"
+                                    value={displayText(
+                                        data.other_loan_type_name,
+                                    )}
+                                />
+                            )}
                             <SummaryRow
                                 label="Loan purpose"
                                 value={displayText(data.loan_purpose)}

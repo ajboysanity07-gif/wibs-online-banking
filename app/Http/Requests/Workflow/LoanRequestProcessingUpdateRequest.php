@@ -59,11 +59,12 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
                     && LoanRequestChange::hasProcessingUpdate($this->loanRequest)),
                 'nullable', 'string', 'max:1000',
             ],
-            'loan_request' => ['sometimes', 'array:typecode,requested_amount,requested_term,loan_purpose,availment_status'],
+            'loan_request' => ['sometimes', 'array:typecode,requested_amount,requested_term,loan_purpose,other_loan_type_name,availment_status'],
             'loan_request.typecode' => ['sometimes', 'string', 'max:255'],
             'loan_request.requested_amount' => ['sometimes', 'numeric', 'min:1'],
             'loan_request.requested_term' => ['sometimes', 'integer', 'min:1', 'max:360'],
             'loan_request.loan_purpose' => ['sometimes', 'string', 'max:255'],
+            'loan_request.other_loan_type_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'loan_request.availment_status' => [
                 'sometimes',
                 'string',

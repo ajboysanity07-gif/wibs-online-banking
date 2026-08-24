@@ -35,6 +35,7 @@ class LoanRequest extends Model
         'requested_amount',
         'requested_term',
         'loan_purpose',
+        'other_loan_type_name',
         'availment_status',
         'status',
         'workflow_version',

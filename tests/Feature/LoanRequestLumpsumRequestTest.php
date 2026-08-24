@@ -214,6 +214,7 @@ test('member can submit a 1-month Lumpsum Other Loan request without insurance o
         'requested_amount' => 15000,
         'requested_term' => 1,
         'loan_purpose' => 'Emergency expenses',
+        'other_loan_type_name' => 'Emergency Loan',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
         'requested_payment_frequency' => 'Lump sum',

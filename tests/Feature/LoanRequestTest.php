@@ -1304,6 +1304,290 @@ test('loan request submissions persist snapshots and enter pending review', func
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBeNull();
 });
 
+test('Other Loan submission requires a loan name', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create([
+        'acctno' => '000712',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => '01',
+        'lntype' => 'OTHER LOAN',
+    ]);
+
+    $payload = [
+        'typecode' => '01',
+        'requested_amount' => 15000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Medical expenses',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
+        'applicant' => [
+            'first_name' => 'Loan',
+            'last_name' => 'Member',
+            'middle_name' => 'Q',
+            'nickname' => 'LM',
+            'birthdate' => '1990-04-10',
+            'birthplace_city' => 'Manila',
+            'birthplace_province' => 'Metro Manila',
+            'address1' => 'Loan Street',
+            'address2' => 'Manila',
+            'address3' => 'Metro Manila',
+            'length_of_stay' => '5 years',
+            'housing_status' => 'OWNED',
+            'cell_no' => '09123456789',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'College',
+            'number_of_children' => 0,
+            'spouse_name' => null,
+            'spouse_age' => null,
+            'spouse_cell_no' => null,
+            'employment_type' => 'Private',
+            'employer_business_name' => 'Loan Company',
+            'employer_business_address1' => 'Loan City Center',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
+            'telephone_no' => '021234567',
+            'current_position' => 'Analyst',
+            'nature_of_business' => 'Finance',
+            'years_in_work_business' => '3 years',
+            'employer_date_employed' => '2018-03-15',
+            'gross_monthly_income' => 25000,
+            'payday' => '15th & 30th',
+        ],
+        'co_maker_1' => [
+            'first_name' => 'Co',
+            'last_name' => 'Maker',
+            'middle_name' => 'One',
+            'nickname' => null,
+            'birthdate' => '1989-03-12',
+            'birthplace_city' => 'Cebu',
+            'birthplace_province' => 'Cebu',
+            'address1' => 'Co Maker Street',
+            'address2' => 'Cebu City',
+            'address3' => 'Cebu',
+            'length_of_stay' => '4 years',
+            'housing_status' => 'RENT',
+            'cell_no' => '09998887777',
+            'civil_status' => 'Married',
+            'educational_attainment' => 'College',
+            'employment_type' => 'Government',
+            'employer_business_name' => 'Co Maker Office',
+            'employer_business_address1' => 'Co Maker Plaza',
+            'employer_business_address2' => 'Cebu City',
+            'employer_business_address3' => 'Cebu',
+            'telephone_no' => '021234567',
+            'current_position' => 'Clerk',
+            'nature_of_business' => 'Government',
+            'years_in_work_business' => '6 years',
+            'gross_monthly_income' => 18000,
+            'payday' => '30th',
+        ],
+        'co_maker_2' => [
+            'first_name' => 'Second',
+            'last_name' => 'Maker',
+            'middle_name' => 'Two',
+            'nickname' => null,
+            'birthdate' => '1987-02-12',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address1' => 'Second Street',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
+            'length_of_stay' => '2 years',
+            'housing_status' => 'OWNED',
+            'cell_no' => '09111112222',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'High School',
+            'employment_type' => 'Self Employed',
+            'employer_business_name' => 'Second Store',
+            'employer_business_address1' => 'Davao Store',
+            'employer_business_address2' => 'Davao City',
+            'employer_business_address3' => 'Davao del Sur',
+            'telephone_no' => '021234567',
+            'current_position' => 'Owner',
+            'nature_of_business' => 'Retail',
+            'years_in_work_business' => '8 years',
+            'gross_monthly_income' => 22000,
+            'payday' => '15th',
+        ],
+    ];
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $response->assertSessionHasErrors('other_loan_type_name');
+    expect(LoanRequest::query()->count())->toBe(0);
+});
+
+test('Other Loan submission with a loan name persists and is exposed to staff', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create([
+        'acctno' => '000713',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => '01',
+        'lntype' => 'OTHER LOAN',
+    ]);
+
+    $payload = [
+        'typecode' => '01',
+        'requested_amount' => 15000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Medical expenses',
+        'other_loan_type_name' => 'Motorcycle Loan',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
+        'applicant' => [
+            'first_name' => 'Loan',
+            'last_name' => 'Member',
+            'middle_name' => 'Q',
+            'nickname' => 'LM',
+            'birthdate' => '1990-04-10',
+            'birthplace_city' => 'Manila',
+            'birthplace_province' => 'Metro Manila',
+            'address1' => 'Loan Street',
+            'address2' => 'Manila',
+            'address3' => 'Metro Manila',
+            'length_of_stay' => '5 years',
+            'housing_status' => 'OWNED',
+            'cell_no' => '09123456789',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'College',
+            'number_of_children' => 0,
+            'spouse_name' => null,
+            'spouse_age' => null,
+            'spouse_cell_no' => null,
+            'employment_type' => 'Private',
+            'employer_business_name' => 'Loan Company',
+            'employer_business_address1' => 'Loan City Center',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
+            'telephone_no' => '021234567',
+            'current_position' => 'Analyst',
+            'nature_of_business' => 'Finance',
+            'years_in_work_business' => '3 years',
+            'employer_date_employed' => '2018-03-15',
+            'gross_monthly_income' => 25000,
+            'payday' => '15th & 30th',
+        ],
+        'co_maker_1' => [
+            'first_name' => 'Co',
+            'last_name' => 'Maker',
+            'middle_name' => 'One',
+            'nickname' => null,
+            'birthdate' => '1989-03-12',
+            'birthplace_city' => 'Cebu',
+            'birthplace_province' => 'Cebu',
+            'address1' => 'Co Maker Street',
+            'address2' => 'Cebu City',
+            'address3' => 'Cebu',
+            'length_of_stay' => '4 years',
+            'housing_status' => 'RENT',
+            'cell_no' => '09998887777',
+            'civil_status' => 'Married',
+            'educational_attainment' => 'College',
+            'employment_type' => 'Government',
+            'employer_business_name' => 'Co Maker Office',
+            'employer_business_address1' => 'Co Maker Plaza',
+            'employer_business_address2' => 'Cebu City',
+            'employer_business_address3' => 'Cebu',
+            'telephone_no' => '021234567',
+            'current_position' => 'Clerk',
+            'nature_of_business' => 'Government',
+            'years_in_work_business' => '6 years',
+            'gross_monthly_income' => 18000,
+            'payday' => '30th',
+        ],
+        'co_maker_2' => [
+            'first_name' => 'Second',
+            'last_name' => 'Maker',
+            'middle_name' => 'Two',
+            'nickname' => null,
+            'birthdate' => '1987-02-12',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address1' => 'Second Street',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
+            'length_of_stay' => '2 years',
+            'housing_status' => 'OWNED',
+            'cell_no' => '09111112222',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'High School',
+            'employment_type' => 'Self Employed',
+            'employer_business_name' => 'Second Store',
+            'employer_business_address1' => 'Davao Store',
+            'employer_business_address2' => 'Davao City',
+            'employer_business_address3' => 'Davao del Sur',
+            'telephone_no' => '021234567',
+            'current_position' => 'Owner',
+            'nature_of_business' => 'Retail',
+            'years_in_work_business' => '8 years',
+            'gross_monthly_income' => 22000,
+            'payday' => '15th',
+        ],
+    ];
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $loanRequest = LoanRequest::query()->first();
+
+    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
+    expect($loanRequest)->not->toBeNull();
+    expect($loanRequest->other_loan_type_name)->toBe('Motorcycle Loan');
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+    Role::ensureWorkflowDefaults();
+    Role::attachNamedRole($admin, Role::LOAN_PROCESSOR);
+
+    $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.show', $loanRequest))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('loanRequest.other_loan_type_name', 'Motorcycle Loan'));
+});
+
 test('salary deduction is rejected for a non-institutional employer', function () {
     $user = User::factory()->create(['acctno' => '000712']);
     UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);

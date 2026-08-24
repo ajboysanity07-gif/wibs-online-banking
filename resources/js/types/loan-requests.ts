@@ -417,6 +417,7 @@ export type LoanRequestDetail = {
     requested_amount: number | string | null;
     requested_term: number | string | null;
     loan_purpose: string | null;
+    other_loan_type_name: string | null;
     availment_status: string | null;
     requested_payment_frequency: string | null;
     kind_of_loan: string | null;
@@ -512,6 +513,7 @@ export type LoanRequestDraft = {
     requested_amount: number | string | null;
     requested_term: number | string | null;
     loan_purpose: string | null;
+    other_loan_type_name: string | null;
     availment_status: string | null;
     requested_payment_frequency: string | null;
     kind_of_loan: string | null;
@@ -570,6 +572,7 @@ export type LoanRequestFormData = {
     requested_amount: string;
     requested_term: string;
     loan_purpose: string;
+    other_loan_type_name: string;
     availment_status: string;
     requested_payment_frequency: string;
     kind_of_loan: string;
@@ -591,6 +594,7 @@ export type LoanRequestCorrectionPayload = Pick<
     | 'requested_amount'
     | 'requested_term'
     | 'loan_purpose'
+    | 'other_loan_type_name'
     | 'availment_status'
     | 'applicant'
     | 'co_maker_1'
