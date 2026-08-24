@@ -201,8 +201,8 @@
             <tr>
                 <td class="bold nw" colspan="3">NAME OF BORROWER:</td>
                 <td class="u" colspan="8">&nbsp;{{ $borrowerName !== '' ? $borrowerName : '' }}</td>
-                <td class="bold c nw" colspan="2">LOAN NUMBER:</td>
-                <td class="u">&nbsp;{{ $reference !== '' ? $reference : '' }}</td>
+                <td class="bold c nw">LOAN NUMBER:</td>
+                <td class="u" colspan="2">&nbsp;{{ $reference !== '' ? $reference : '' }}</td>
                 <td></td>
             </tr>
 
@@ -253,15 +253,18 @@
             {{-- Row 14: a. Interest --}}
             <tr>
                 <td class="r">a.</td>
-                <td class="nw" colspan="2">Interest</td>
+                <td class="nw">Interest</td>
                 <td></td>
                 <td class="b9 bold c u">{{ $interestRate !== null ? $pct($interestRate) : '' }}</td>
                 <td class="c nw">% p.a. From</td>
                 <td class="b7 u">&nbsp;</td>
                 <td class="c">To</td>
                 <td class="b7 u">&nbsp;</td>
-                <td class="b9 bold r u" colspan="2">{{ $isEmergencyLoan && $interestNotDeducted !== null ? 'P '.$fmt($interestNotDeducted) : '' }}</td>
-                <td class="b9 bold u" colspan="2">&nbsp;</td>
+                <td class="c">P</td>
+                <td class="b9 bold r u">{{ $isEmergencyLoan && $interestNotDeducted !== null ? $fmt($interestNotDeducted) : '' }}</td>
+                <td class="c">P</td>
+                <td class="b9 bold u">&nbsp;</td>
+                <td></td>
                 <td></td>
                 <td></td>
             </tr>

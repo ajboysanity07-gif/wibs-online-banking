@@ -446,15 +446,16 @@ test('blade reports use calibri as the font family by default', function () {
     // non-breaking space, so the printed line always reads
     // "NAME OF BORROWER: <name>", "ADDRESS: <address>", and
     // "LOAN NUMBER: <reference>" with a visible gap in both PDF engines --
-    // never a collapsed trailing space. LOAN NUMBER spans L+M so its label
-    // never overflows into the reference value.
+    // never a collapsed trailing space. The LOAN NUMBER label sits in a
+    // single column (workbook L) so it never overflows into the reference
+    // value underlined across M+N.
     expect($dsHtml)
         ->toContain('>NAME OF BORROWER:</td>')
         ->toContain('>ADDRESS:</td>')
-        ->toContain('nw" colspan="2">LOAN NUMBER:</td>')
+        ->toContain('bold c nw">LOAN NUMBER:</td>')
         ->toContain('class="u" colspan="8">&nbsp;</td>')
         ->toContain('class="u" colspan="12">&nbsp;</td>')
-        ->toContain('LOAN NUMBER:</td>'."\n".'                <td class="u">&nbsp;</td>');
+        ->toContain('LOAN NUMBER:</td>'."\n".'                <td class="u" colspan="2">&nbsp;</td>');
 
     // Empty value cells render blank. The old Blade-escaped '&nbsp;' fallbacks
     // emitted "&amp;nbsp;" -- literal text in the PDF -- which must never
