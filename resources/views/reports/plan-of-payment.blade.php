@@ -113,6 +113,7 @@
             .mop-box {
                 border: 0.8pt solid #444;
                 margin: 5pt 0 6pt;
+                padding: 0 0 6pt;
                 font-size: 9pt;
             }
 
@@ -228,7 +229,7 @@
 
                 <div class="mop-box">
                     <div class="mop-title">MODE OF PAYMENT</div>
-                    <div class="mop-subtitle">{{ $paymentMode !== '' ? strtoupper($paymentMode) : '&nbsp;' }}</div>
+                    <div class="mop-subtitle">{{ $isLumpsum && $paymentMode !== '' ? strtoupper($paymentMode) : '&nbsp;' }}</div>
                     <table class="mop-rows">
                         <colgroup>
                             <col style="width:90pt" />
@@ -317,7 +318,7 @@
 
                 <div class="mop-box">
                     <div class="mop-title">MODE OF PAYMENT</div>
-                    <div class="mop-subtitle">{{ $paymentMode !== '' ? strtoupper($paymentMode) : '&nbsp;' }}</div>
+                    <div class="mop-subtitle">{{ $isLumpsum && $paymentMode !== '' ? strtoupper($paymentMode) : '&nbsp;' }}</div>
                     <table class="mop-rows">
                         <colgroup>
                             <col style="width:90pt" />

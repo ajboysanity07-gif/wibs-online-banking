@@ -100,6 +100,27 @@ test('generali application form map pins the recalibrated dependents row text po
     }
 });
 
+test('generali application form map renders dependent ages as shrink-to-fit so two-digit ages never wrap onto the next row', function (): void {
+    $fields = collect(generaliApplicationFormMapFields());
+
+    $ageRows = [
+        [2, 181.6, 50.1],  // children.0 age
+        [2, 181.6, 54.8],  // children.1 age
+        [2, 181.6, 59.4],  // children.2 age
+    ];
+
+    foreach ($ageRows as [$page, $x, $y]) {
+        $field = $fields->first(fn (array $f): bool => ($f['type'] ?? null) !== 'check'
+            && ($f['page'] ?? null) === $page
+            && abs(($f['x'] ?? 0) - $x) < 0.05
+            && abs(($f['y'] ?? 0) - $y) < 0.05);
+
+        expect($field)->not->toBeNull("expected an age field at page $page ($x, $y)")
+            ->and($field['shrink_to_fit'] ?? false)->toBeTrue()
+            ->and($field['width'] ?? 0)->toBeGreaterThanOrEqual(10);
+    }
+});
+
 test('generali application form map fills the address zip column and positions city/province/country under their printed captions', function (): void {
     $fields = generaliApplicationFormMapFields();
 

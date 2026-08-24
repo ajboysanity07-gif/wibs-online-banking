@@ -191,6 +191,7 @@
                 font-size: 11pt;
                 font-weight: 700;
                 text-align: center;
+                text-transform: uppercase;
             }
 
             .signature-line {

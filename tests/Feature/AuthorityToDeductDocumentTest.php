@@ -165,6 +165,21 @@ it('leaves the start date blank until the release date is known', function () {
     expect($html)->toContain('agreement-blank');
 });
 
+it('always renders signature-line names in capital letters', function () {
+    $viewData = authorityToDeductBuildViewData([
+        'institution_name' => 'Lianga District Hospital',
+        'officer_1_name' => 'Cristy S. Samarah',
+        'officer_1_title' => 'Administrative 1/Cashier',
+    ]);
+
+    $html = view('reports.authority-to-deduct', $viewData)->render();
+
+    preg_match('/\.signature-name\s*\{([^}]*)\}/', $html, $matches);
+
+    expect($matches)->not->toBeEmpty();
+    expect($matches[1])->toContain('text-transform: uppercase');
+});
+
 it('generates a real PDF file end to end', function () {
     config()->set('reports.pdf_driver', 'dompdf');
 

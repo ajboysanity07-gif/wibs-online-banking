@@ -211,7 +211,7 @@ class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
         return [
             ['page' => $page, 'label' => "{$path}.name", 'x' => 28.5, 'y' => $y, 'size' => 9, 'width' => $nameWidth, 'shrink_to_fit' => true, 'min_size' => 5.5, 'value' => static fn (array $d) => data_get($d, "{$path}.name")],
             ['page' => $page, 'label' => "{$path}.birthdate", 'x' => 156.9, 'y' => $y, 'size' => 9, 'width' => 15, 'shrink_to_fit' => true, 'min_size' => 5.5, 'value' => static fn (array $d) => data_get($d, "{$path}.birthdate")],
-            ['page' => $page, 'label' => "{$path}.age", 'x' => 181.6, 'y' => $y, 'size' => 9, 'width' => 5, 'value' => static fn (array $d) => data_get($d, "{$path}.age")],
+            ['page' => $page, 'label' => "{$path}.age", 'x' => 181.6, 'y' => $y, 'size' => 9, 'width' => 10, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (array $d) => data_get($d, "{$path}.age")],
             ['page' => $page, 'type' => 'check', 'label' => "{$path}.cycle_status=New", 'x' => 98.8, 'y' => $checkY, 'size' => 9, 'value' => static fn (array $d) => data_get($d, "{$path}.cycle_status") === 'New'],
             ['page' => $page, 'type' => 'check', 'label' => "{$path}.cycle_status=Old", 'x' => 122.6, 'y' => $checkY, 'size' => 9, 'value' => static fn (array $d) => data_get($d, "{$path}.cycle_status") === 'Old'],
         ];

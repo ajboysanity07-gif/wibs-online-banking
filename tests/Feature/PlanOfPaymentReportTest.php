@@ -20,12 +20,12 @@ test('plan of payment report shows the static mode-of-payment box instead of com
     ])->render();
 
     expect($html)->toContain('MODE OF PAYMENT')
-        ->toContain('MONTHLY')
         ->toContain('PLEASE SEE ATTACHED')
         ->toContain('LOAN AMORTIZATION')
         ->toContain('SCHEDULE')
         ->toContain('Starting:')
         ->toContain('Ending:')
+        ->not->toContain('MONTHLY')
         ->not->toContain('Total Amortization')
         ->not->toContain('Date Granted');
 });
