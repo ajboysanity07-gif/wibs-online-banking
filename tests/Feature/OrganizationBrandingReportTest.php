@@ -287,7 +287,6 @@ test('loan security agreement report renders uploaded header design when availab
         'loan' => [
             'type' => 'SALARY LOAN',
             'approved_amount' => '25,000.00',
-            'approved_date' => 'May 22, 2026',
             'approved_term_label' => '12 months',
         ],
         'applicant' => [
@@ -302,7 +301,6 @@ test('loan security agreement report renders uploaded header design when availab
         'reportHeader' => $branding['reportHeader'],
         'reportTypography' => $branding['reportTypography'],
         'organizationLogoDataUri' => null,
-        'placeOfSigning' => 'Sample City, Sample Province',
     ])->render();
 
     expect($html)->toContain('class="report-header-design"');
@@ -318,7 +316,6 @@ test('loan security agreement report keeps printed names and blank signature lin
         'loan' => [
             'type' => 'SALARY LOAN',
             'approved_amount' => '25,000.00',
-            'approved_date' => 'May 22, 2026',
             'approved_term_label' => '12 months',
         ],
         'applicant' => [
@@ -335,7 +332,6 @@ test('loan security agreement report keeps printed names and blank signature lin
             'designData' => null,
         ],
         'organizationLogoDataUri' => null,
-        'placeOfSigning' => 'Lianga, Surigao del Sur',
     ])->render();
 
     expect($html)
@@ -346,8 +342,10 @@ test('loan security agreement report keeps printed names and blank signature lin
         ->toContain('<span class="agreement-fill">SALARY LOAN</span>')
         ->toContain('Acme Cooperative')
         ->toContain('Annabelle M. Amora, Authorized Representative')
-        ->toContain('this 22 day of')
-        ->toContain('May, 2026 at')
+        ->toContain('day of')
+        ->toContain('at')
+        ->not->toContain('May, 2026')
+        ->not->toContain('Lianga, Surigao del Sur at')
         ->toContain('class="signature-layout"')
         ->toContain('width: 76%;')
         ->toContain('margin: 20pt auto 0;')
@@ -383,13 +381,12 @@ test('blade reports use calibri as the font family by default', function () {
 
     $lsaHtml = view('reports.loan-security-agreement', [
         'organization' => ['company_name' => 'Acme Cooperative'],
-        'loan' => ['type' => 'SALARY LOAN', 'approved_amount' => '25,000.00', 'approved_date' => 'May 22, 2026', 'approved_term_label' => '12 months'],
+        'loan' => ['type' => 'SALARY LOAN', 'approved_amount' => '25,000.00', 'approved_term_label' => '12 months'],
         'applicant' => ['full_name' => 'Loan Member', 'address' => 'Sample Address', 'signature_data' => null],
         'reviewer' => ['name' => 'Annabelle M. Amora', 'position' => 'Authorized Representative'],
         'reportHeader' => ['designData' => null],
         'reportTypography' => $branding['reportTypography'],
         'organizationLogoDataUri' => null,
-        'placeOfSigning' => 'Sample City',
     ])->render();
 
     $pnHtml = view('reports.promissory-note', [
@@ -596,13 +593,12 @@ test('promissory note addresses and signature names fit on one line without clip
 test('loan security agreement page size is 8.5in by 13in, not letter', function () {
     $html = view('reports.loan-security-agreement', [
         'organization' => ['company_name' => 'Acme Cooperative'],
-        'loan' => ['type' => 'SALARY LOAN', 'approved_amount' => '25,000.00', 'approved_date' => 'May 22, 2026', 'approved_term_label' => '12 months'],
+        'loan' => ['type' => 'SALARY LOAN', 'approved_amount' => '25,000.00', 'approved_term_label' => '12 months'],
         'applicant' => ['full_name' => 'Loan Member', 'address' => 'Sample Address', 'signature_data' => null],
         'reviewer' => ['name' => 'Annabelle M. Amora', 'position' => 'Authorized Representative'],
         'reportHeader' => ['designData' => null],
         'reportTypography' => [],
         'organizationLogoDataUri' => null,
-        'placeOfSigning' => 'Sample City',
     ])->render();
 
     expect($html)
@@ -665,13 +661,12 @@ test('blade reports embed the real calibri font program as a standalone style ta
 
     $lsaHtml = view('reports.loan-security-agreement', [
         'organization' => ['company_name' => 'Acme Cooperative'],
-        'loan' => ['type' => 'SALARY LOAN', 'approved_amount' => '25,000.00', 'approved_date' => 'May 22, 2026', 'approved_term_label' => '12 months'],
+        'loan' => ['type' => 'SALARY LOAN', 'approved_amount' => '25,000.00', 'approved_term_label' => '12 months'],
         'applicant' => ['full_name' => 'Loan Member', 'address' => 'Sample Address', 'signature_data' => null],
         'reviewer' => ['name' => 'Annabelle M. Amora', 'position' => 'Authorized Representative'],
         'reportHeader' => ['designData' => null],
         'reportTypography' => $branding['reportTypography'],
         'organizationLogoDataUri' => null,
-        'placeOfSigning' => 'Sample City',
     ])->render();
 
     // LSA embeds the font-face as a sibling <style> tag in <head>, since it

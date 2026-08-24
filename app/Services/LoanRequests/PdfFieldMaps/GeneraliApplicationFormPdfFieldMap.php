@@ -229,8 +229,6 @@ class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
     {
         return [
             ['page' => 3, 'x' => 108.1, 'y' => 244.1, 'size' => 9, 'width' => 76.5, 'align' => 'C', 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.full_name', 'transform' => $this->upperTransform()],
-            ['page' => 3, 'x' => 40.0, 'y' => 237.2, 'size' => 9, 'width' => 65, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'notarial.signing_place'],
-            ['page' => 3, 'x' => 112.0, 'y' => 237.2, 'size' => 9, 'width' => 70, 'value' => 'loan.approved_date'],
         ];
     }
 }

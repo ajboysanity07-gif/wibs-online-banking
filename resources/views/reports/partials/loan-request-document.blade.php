@@ -6,6 +6,13 @@
 
         return trim((string) $value);
     };
+    $titleCase = static function (string $value): string {
+        return preg_replace_callback(
+            '/[\p{L}\p{M}\p{N}\'’]+/u',
+            static fn (array $m) => mb_strtoupper(mb_substr($m[0], 0, 1)).mb_strtolower(mb_substr($m[0], 1)),
+            $value,
+        );
+    };
     $formatDate = fn ($value) => $value
         ? \Illuminate\Support\Carbon::parse($value)->format('m/d/Y')
         : '';
@@ -23,7 +30,7 @@
 
         return \App\Support\DisplayText::normalize($text) ?? $fallback;
     };
-    $displayProperText = static function (mixed $value, string $fallback = '') use ($displayText, $normalizeValue): string {
+    $displayProperText = static function (mixed $value, string $fallback = '') use ($displayText, $normalizeValue, $titleCase): string {
         $text = $normalizeValue($value);
 
         if ($text === '') {
@@ -36,7 +43,7 @@
             return $fallback;
         }
 
-        return \Illuminate\Support\Str::of($normalized)->squish()->title()->value();
+        return $titleCase(\Illuminate\Support\Str::of($normalized)->squish()->value());
     };
     $extractPersonName = static function (array $person) use ($normalizeValue): string {
         $fullName = trim(implode(' ', array_filter([

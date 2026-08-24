@@ -143,14 +143,17 @@ test('generali application form map keeps the cycle number inside the "(3rd cycl
         ->and($cycleNumber['y'])->toBe(84.0);
 });
 
-test('generali application form map aligns SIGNED AT / ON onto the label line on page 3', function (): void {
+test('generali application form map leaves the signing date and place blank on page 3', function (): void {
     $fields = collect(generaliApplicationFormMapFields());
 
-    $signingPlace = $fields->first(fn (array $f) => ($f['value'] ?? null) === 'notarial.signing_place');
-    $approvedDate = $fields->first(fn (array $f) => ($f['value'] ?? null) === 'loan.approved_date');
-
-    expect($signingPlace)->not->toBeNull()->and($signingPlace['page'])->toBe(3)->and($signingPlace['y'])->toBe(237.2);
-    expect($approvedDate)->not->toBeNull()->and($approvedDate['page'])->toBe(3)->and($approvedDate['y'])->toBe(237.2);
+    // The date and place of signing are left blank on the printed form for hand-filling;
+    // only the signature-row printed name (applicant.full_name) is still stamped.
+    expect($fields->contains(
+        fn (array $f) => ($f['value'] ?? null) === 'notarial.signing_place',
+    ))->toBeFalse();
+    expect($fields->contains(
+        fn (array $f) => ($f['value'] ?? null) === 'loan.approved_date',
+    ))->toBeFalse();
 });
 
 test('generali application form map prints the proposed insured printed name over the right-hand signature line', function (): void {

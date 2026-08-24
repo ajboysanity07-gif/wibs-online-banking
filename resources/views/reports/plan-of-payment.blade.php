@@ -4,16 +4,11 @@
     $headerLogo      = $organizationLogoDataUri ?? null;
     $borrowerName    = trim((string) ($applicant['full_name'] ?? ''));
     $borrowerAddress = trim((string) ($applicant['address'] ?? ''));
-    $approvedAmount  = $loan['amortization_principal_raw'] !== null
-        ? $loan['approved_amount_raw'] ?? null
-        : ($loan['approved_amount_raw'] ?? null);
     $approvedAmount  = $loan['approved_amount_raw'] ?? null;
     $loanType        = trim((string) ($loan['type'] ?? ''));
     $paymentMode     = trim((string) ($loan['payment_mode_workbook'] ?? ''));
+    $isLumpsum       = $paymentMode === 'LUMPSUM';
     $principalAmt    = $loan['amortization_principal_raw'] ?? null;
-    $interestAmt     = $loan['amortization_interest_raw'] ?? null;
-    $loanSecurityAmt = $loan['amortization_loan_security_raw'] ?? null;
-    $totalAmt        = $loan['amortization_total_raw'] ?? null;
     $reviewerName    = trim((string) ($reviewer['name'] ?? ''));
 
     $fmt = static function (mixed $value): string {
@@ -115,27 +110,38 @@
             .fl .lbl { white-space: nowrap; font-weight: 600; padding-right: 4pt; }
             .fl .val { border-bottom: 0.6pt solid #333; font-weight: 700; }
 
-            .amort-table {
-                width: 100%;
-                border-collapse: collapse;
+            .mop-box {
+                border: 0.8pt solid #444;
                 margin: 5pt 0 6pt;
                 font-size: 9pt;
             }
 
-            .amort-table th, .amort-table td {
-                border: 0.6pt solid #555;
-                padding: 2pt 5pt;
-            }
-
-            .amort-table th {
-                background: #f0f0f0;
-                font-weight: 700;
+            .mop-title {
                 text-align: center;
-                font-size: 8pt;
+                font-weight: 700;
+                padding: 2pt 4pt;
+                border-bottom: 0.8pt solid #444;
+                text-transform: uppercase;
             }
 
-            .amort-table td:first-child { text-align: left; }
-            .amort-table td:last-child  { text-align: right; }
+            .mop-subtitle {
+                text-align: center;
+                font-weight: 700;
+                padding: 2pt 4pt;
+                border-bottom: 0.8pt solid #444;
+                text-transform: uppercase;
+            }
+
+            .mop-rows {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 0;
+            }
+
+            .mop-rows td { padding: 3pt 6pt; }
+            .mop-rows .mop-lbl { white-space: nowrap; font-weight: 600; }
+            .mop-rows .mop-val { border-bottom: 0.6pt solid #333; font-weight: 700; }
+            .mop-rows.mop-dates { margin-top: 8pt; }
 
             .sig-layout {
                 width: 100%;
@@ -218,40 +224,50 @@
                         <td class="lbl">Loan Type:</td>
                         <td class="val">{{ $loanType !== '' ? $loanType : ' ' }}</td>
                     </tr>
-                    <tr>
-                        <td class="lbl">Mode of Payment:</td>
-                        <td class="val" colspan="4">{{ $paymentMode !== '' ? $paymentMode : ' ' }}</td>
-                    </tr>
                 </table>
 
-                <table class="amort-table">
-                    <thead>
-                        <tr><th>Description</th><th>Amortization Amount (P)</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>Principal</td><td>{{ $principalAmt !== null ? $fmt($principalAmt) : '' }}</td></tr>
-                        <tr><td>Interest</td><td>{{ $interestAmt !== null ? $fmt($interestAmt) : '' }}</td></tr>
-                        <tr><td>Loan Security</td><td>{{ $loanSecurityAmt !== null ? $fmt($loanSecurityAmt) : '' }}</td></tr>
-                        <tr style="font-weight:700;"><td>Total Amortization</td><td>{{ $totalAmt !== null ? $fmt($totalAmt) : '' }}</td></tr>
-                    </tbody>
-                </table>
-
-                <table class="fl">
-                    <colgroup>
-                        <col style="width:100pt" />
-                        <col />
-                        <col style="width:10pt" />
-                        <col style="width:85pt" />
-                        <col />
-                    </colgroup>
-                    <tr>
-                        <td class="lbl">Date Granted:</td>
-                        <td class="val">&nbsp;</td>
-                        <td></td>
-                        <td class="lbl">Maturity Date:</td>
-                        <td class="val">&nbsp;</td>
-                    </tr>
-                </table>
+                <div class="mop-box">
+                    <div class="mop-title">MODE OF PAYMENT</div>
+                    <div class="mop-subtitle">{{ $paymentMode !== '' ? strtoupper($paymentMode) : '&nbsp;' }}</div>
+                    <table class="mop-rows">
+                        <colgroup>
+                            <col style="width:90pt" />
+                            <col />
+                        </colgroup>
+                        <tr>
+                            <td class="mop-lbl">Principal:</td>
+                            <td class="mop-val">{!! $isLumpsum ? ('&#8369; '.($principalAmt !== null ? $fmt($principalAmt) : '')) : 'PLEASE SEE ATTACHED' !!}</td>
+                        </tr>
+                        <tr>
+                            <td class="mop-lbl">Interest:</td>
+                            <td class="mop-val">{!! $isLumpsum ? '&nbsp;' : 'LOAN AMORTIZATION' !!}</td>
+                        </tr>
+                        <tr>
+                            <td class="mop-lbl">Loan Security:</td>
+                            <td class="mop-val">{!! $isLumpsum ? '&nbsp;' : 'SCHEDULE' !!}</td>
+                        </tr>
+                        <tr>
+                            <td class="mop-lbl">Total:</td>
+                            <td class="mop-val">{!! $isLumpsum ? '&nbsp;' : '&#8369; -' !!}</td>
+                        </tr>
+                    </table>
+                    <table class="mop-rows mop-dates">
+                        <colgroup>
+                            <col style="width:55pt" />
+                            <col />
+                            <col style="width:10pt" />
+                            <col style="width:45pt" />
+                            <col />
+                        </colgroup>
+                        <tr>
+                            <td class="mop-lbl">Starting:</td>
+                            <td class="mop-val">&nbsp;</td>
+                            <td></td>
+                            <td class="mop-lbl">Ending:</td>
+                            <td class="mop-val">&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
 
                 <table class="sig-layout">
                     <tr>
@@ -297,40 +313,50 @@
                         <td class="lbl">Loan Type:</td>
                         <td class="val">{{ $loanType !== '' ? $loanType : ' ' }}</td>
                     </tr>
-                    <tr>
-                        <td class="lbl">Mode of Payment:</td>
-                        <td class="val" colspan="4">{{ $paymentMode !== '' ? $paymentMode : ' ' }}</td>
-                    </tr>
                 </table>
 
-                <table class="amort-table">
-                    <thead>
-                        <tr><th>Description</th><th>Amortization Amount (P)</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>Principal</td><td>{{ $principalAmt !== null ? $fmt($principalAmt) : '' }}</td></tr>
-                        <tr><td>Interest</td><td>{{ $interestAmt !== null ? $fmt($interestAmt) : '' }}</td></tr>
-                        <tr><td>Loan Security</td><td>{{ $loanSecurityAmt !== null ? $fmt($loanSecurityAmt) : '' }}</td></tr>
-                        <tr style="font-weight:700;"><td>Total Amortization</td><td>{{ $totalAmt !== null ? $fmt($totalAmt) : '' }}</td></tr>
-                    </tbody>
-                </table>
-
-                <table class="fl">
-                    <colgroup>
-                        <col style="width:100pt" />
-                        <col />
-                        <col style="width:10pt" />
-                        <col style="width:85pt" />
-                        <col />
-                    </colgroup>
-                    <tr>
-                        <td class="lbl">Date Granted:</td>
-                        <td class="val">&nbsp;</td>
-                        <td></td>
-                        <td class="lbl">Maturity Date:</td>
-                        <td class="val">&nbsp;</td>
-                    </tr>
-                </table>
+                <div class="mop-box">
+                    <div class="mop-title">MODE OF PAYMENT</div>
+                    <div class="mop-subtitle">{{ $paymentMode !== '' ? strtoupper($paymentMode) : '&nbsp;' }}</div>
+                    <table class="mop-rows">
+                        <colgroup>
+                            <col style="width:90pt" />
+                            <col />
+                        </colgroup>
+                        <tr>
+                            <td class="mop-lbl">Principal:</td>
+                            <td class="mop-val">{!! $isLumpsum ? ('&#8369; '.($principalAmt !== null ? $fmt($principalAmt) : '')) : 'PLEASE SEE ATTACHED' !!}</td>
+                        </tr>
+                        <tr>
+                            <td class="mop-lbl">Interest:</td>
+                            <td class="mop-val">{!! $isLumpsum ? '&nbsp;' : 'LOAN AMORTIZATION' !!}</td>
+                        </tr>
+                        <tr>
+                            <td class="mop-lbl">Loan Security:</td>
+                            <td class="mop-val">{!! $isLumpsum ? '&nbsp;' : 'SCHEDULE' !!}</td>
+                        </tr>
+                        <tr>
+                            <td class="mop-lbl">Total:</td>
+                            <td class="mop-val">{!! $isLumpsum ? '&nbsp;' : '&#8369; -' !!}</td>
+                        </tr>
+                    </table>
+                    <table class="mop-rows mop-dates">
+                        <colgroup>
+                            <col style="width:55pt" />
+                            <col />
+                            <col style="width:10pt" />
+                            <col style="width:45pt" />
+                            <col />
+                        </colgroup>
+                        <tr>
+                            <td class="mop-lbl">Starting:</td>
+                            <td class="mop-val">&nbsp;</td>
+                            <td></td>
+                            <td class="mop-lbl">Ending:</td>
+                            <td class="mop-val">&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
 
                 <table class="sig-layout">
                     <tr>

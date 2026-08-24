@@ -162,33 +162,6 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'value' => 'applicant.full_name',
                 'transform' => $this->upperTransform(),
             ],
-            [
-                'page' => 1,
-                'x' => 83,
-                'y' => 250.75,
-                'size' => 11,
-                'style' => 'B',
-                'width' => 50,
-                'align' => 'C',
-                'value' => 'loan.approved_date',
-            ],
-            [
-                'page' => 1,
-                'x' => 133,
-                'y' => 250.75,
-                // Carries the full composed org address (street/barangay, city, province),
-                // not just a short city name -- shrinks to fit this ~50mm-wide column
-                // instead of wrapping to multiple lines (which risked colliding with the
-                // "Place of Signing" caption directly beneath it, confirmed by rendering
-                // against the real production artwork, not the test placeholder).
-                'size' => 11,
-                'style' => 'B',
-                'width' => 50,
-                'align' => 'C',
-                'shrink_to_fit' => true,
-                'min_size' => 6.0,
-                'value' => 'notarial.signing_place',
-            ],
             // notarial.province is intentionally not wired here -- the "for and in ___"
             // blank is filled by hand by the notary, same as valid_id_number/
             // valid_id_issued_at/doc_number/etc below.

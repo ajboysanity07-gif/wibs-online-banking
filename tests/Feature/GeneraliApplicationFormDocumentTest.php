@@ -193,7 +193,6 @@ test('generali application form field map declares identity and static-path fiel
         'application_form.pep_status_details',
         'application_form.source_of_fund_wealth',
         'application_form.employer_date_employed',
-        'notarial.signing_place',
     ] as $expectedValue) {
         expect($fields->contains(
             fn (array $field): bool => ($field['value'] ?? null) === $expectedValue,

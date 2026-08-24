@@ -86,7 +86,6 @@ class LoanSecurityAgreementPdfService
             )
                 ? $organization['logo_data_uri']
                 : null,
-            'placeOfSigning' => $this->resolvePlaceOfSigning($organization),
         ];
     }
 
@@ -126,44 +125,6 @@ class LoanSecurityAgreementPdfService
     private function shouldUseChromium(): bool
     {
         return config('reports.pdf_driver', 'chromium') === 'chromium';
-    }
-
-    /**
-     * @param  array<string, mixed>  $organization
-     */
-    private function resolvePlaceOfSigning(array $organization): ?string
-    {
-        $businessAddress = $this->blank(
-            is_string($organization['business_address'] ?? null)
-                ? $organization['business_address']
-                : null,
-        );
-        if ($businessAddress !== null) {
-            return $businessAddress;
-        }
-
-        $addressLine = $this->blank(
-            is_string($organization['business_address1'] ?? null)
-                ? $organization['business_address1']
-                : null,
-        );
-        $city = $this->blank(
-            is_string($organization['business_address2'] ?? null)
-                ? $organization['business_address2']
-                : null,
-        );
-        $province = $this->blank(
-            is_string($organization['business_address3'] ?? null)
-                ? $organization['business_address3']
-                : null,
-        );
-        $parts = array_values(array_filter([$addressLine, $city, $province]));
-
-        if ($parts === []) {
-            return null;
-        }
-
-        return implode(', ', $parts);
     }
 
     private function blank(?string $value): ?string

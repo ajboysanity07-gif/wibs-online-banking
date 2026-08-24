@@ -543,16 +543,6 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'value' => 'organization.business_address',
                 'transform' => $this->upperTransform(),
             ],
-            [
-                'page' => 2,
-                'x' => 108.8,
-                'y' => 101.5,
-                'size' => 7.0,
-                'width' => 44,
-                'line_height' => 2.3,
-                'align' => 'L',
-                'value' => 'loan.approved_date_short',
-            ],
             // Section 2 -- Health questionnaire (page 1). Each of Q1-Q4 is a Yes/No
             // checkbox pair in the template's right-hand columns (grepalife-page-1.png).
             // Coordinates are the detected top-left corners of the four checkbox

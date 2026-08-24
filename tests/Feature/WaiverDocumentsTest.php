@@ -292,9 +292,6 @@ test('deped salary deduction waiver field map declares the header image and dedu
         'deduction.deped_school_id_number',
         'deduction.deped_deduction_amount_words',
         'deduction.deped_deduction_amount',
-        'loan.approved_date_day',
-        'loan.approved_date_month_year',
-        'notarial.signing_place',
         'reviewer.name',
     ] as $expectedValue) {
         expect($fields->contains(
@@ -318,9 +315,6 @@ test('pension deduction waiver field map declares the header image and deduction
         'deduction.pension_atm_card_number',
         'deduction.pension_deduction_amount_words',
         'deduction.pension_deduction_amount',
-        'loan.approved_date_day',
-        'loan.approved_date_month_year',
-        'notarial.signing_place',
     ] as $expectedValue) {
         expect($fields->contains(
             fn (array $field): bool => ($field['value'] ?? null) === $expectedValue,
@@ -635,6 +629,10 @@ test('approved documents zip includes the affidavit of undertaking for a private
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        // employment_type is randomized by the factory default; pin it so the
+        // ATM-payout applicability check is deterministic (see
+        // LoanRequestDocumentCatalog::atmPayoutWaiverApplicable()).
+        'employment_type' => 'Private',
         'employer_business_name' => 'Some Private Company',
     ]);
     waiverDocumentsPersistDataEntry($loanRequest, 'payment_option', 'string', \App\LoanPaymentOption::AtmDeduction->value);

@@ -205,8 +205,6 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             // hand signature is still left blank -- only the printed name beneath it
             // is rendered, same size as the signing-place line below.
             ['page' => 2, 'x' => 107.1, 'y' => 259.8, 'size' => 9, 'width' => 76.7, 'align' => 'C', 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.full_name', 'transform' => $this->upperTransform()],
-            ['page' => 2, 'x' => 37.5, 'y' => 250.5, 'size' => 9, 'width' => 66, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'notarial.signing_place'],
-            ['page' => 2, 'x' => 112.4, 'y' => 250.5, 'size' => 9, 'width' => 69, 'value' => 'loan.approved_date'],
         ];
     }
 

@@ -1,5 +1,4 @@
 @php
-    use Illuminate\Support\Carbon;
     use Illuminate\Support\HtmlString;
 
     $companyName = trim((string) ($organization['company_name'] ?? ''));
@@ -8,27 +7,12 @@
     $borrowerName = trim((string) ($applicant['full_name'] ?? ''));
     $borrowerAddress = trim((string) ($applicant['address'] ?? ''));
     $loanType = trim((string) ($loan['type'] ?? ''));
-    $approvedDate = trim((string) ($loan['approved_date'] ?? ''));
     $reviewerName = trim((string) ($reviewer['name'] ?? ''));
     $reviewerTitle = trim((string) ($reviewer['position'] ?? ''));
     $lenderSignatureName = $reviewerName !== '' ? $reviewerName : $companyName;
     $lenderRepresentationClause = $reviewerName !== ''
         ? trim($reviewerName.($reviewerTitle !== '' ? ', '.$reviewerTitle : ''))
         : 'its duly authorized representative';
-    $placeOfSigning = trim((string) ($placeOfSigning ?? ''));
-
-    $signingDate = null;
-    if ($approvedDate !== '') {
-        try {
-            $signingDate = Carbon::parse($approvedDate);
-        } catch (Throwable) {
-            $signingDate = null;
-        }
-    }
-
-    $signingDay = $signingDate?->format('j');
-    $signingMonth = $signingDate?->format('F');
-    $signingYear = $signingDate?->format('Y');
 
     $renderValue = static function (
         ?string $value,
@@ -306,9 +290,9 @@
             </ol>
 
             <p class="paragraph paragraph--closing">
-                In witness thereof, we have signed this Agreement this {!! $renderValue($signingDay, '2.8em') !!} day of
-                {!! $renderValue($signingMonth, '8em') !!}, {!! $renderValue($signingYear, '4.5em') !!} at
-                {!! $renderValue($placeOfSigning, '12em') !!}.
+                In witness thereof, we have signed this Agreement this {!! $renderValue(null, '2.8em') !!} day of
+                {!! $renderValue(null, '8em') !!}, {!! $renderValue(null, '4.5em') !!} at
+                {!! $renderValue(null, '12em') !!}.
             </p>
 
             <table class="signature-layout">

@@ -1,5 +1,4 @@
 @php
-    use Illuminate\Support\Carbon;
     use Illuminate\Support\HtmlString;
 
     $companyName = trim((string) ($organization['company_name'] ?? ''));
@@ -9,8 +8,6 @@
     $deductionAmount = trim((string) ($loan['amortization_total'] ?? ''));
     $deductionAmountWords = trim((string) ($loan['amortization_total_words'] ?? ''));
     $deductionStartDate = trim((string) ($loan['deduction_start_date'] ?? ''));
-    $approvedDate = trim((string) ($loan['approved_date'] ?? ''));
-    $placeOfSigning = trim((string) ($placeOfSigning ?? ''));
     $institutionName = trim((string) ($institution['name'] ?? ''));
     $officers = is_array($institution['officers'] ?? null) ? $institution['officers'] : [];
 
@@ -22,15 +19,6 @@
     $representationClause = $officerNames !== []
         ? implode(' and ', $officerNames)
         : null;
-
-    $signingDate = null;
-    if ($approvedDate !== '') {
-        try {
-            $signingDate = Carbon::parse($approvedDate);
-        } catch (Throwable) {
-            $signingDate = null;
-        }
-    }
 
     $renderValue = static function (
         ?string $value,
@@ -252,8 +240,8 @@
                         </div>
                     </td>
                     <td style="width: 40%; text-align: center;">
-                        {!! $renderValue($signingDate?->format('F d, Y'), '12em') !!}
-                        at {!! $renderValue($placeOfSigning, '12em') !!}
+                        {!! $renderValue(null, '12em') !!}
+                        {!! $renderValue(null, '12em') !!}
                     </td>
                 </tr>
             </table>

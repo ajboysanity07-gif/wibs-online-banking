@@ -162,28 +162,6 @@ class UndertakingBarangayPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'value' => 'applicant.full_name',
                 'transform' => $this->upperTransform(),
             ],
-            [
-                'page' => 1,
-                'x' => 85,
-                'y' => 205,
-                'size' => 10,
-                'style' => 'B',
-                'width' => 45,
-                'align' => 'C',
-                'value' => 'loan.approved_date',
-            ],
-            [
-                'page' => 1,
-                'x' => 135,
-                'y' => 205,
-                'size' => 11,
-                'style' => 'B',
-                'width' => 45,
-                'align' => 'C',
-                'shrink_to_fit' => true,
-                'min_size' => 6.0,
-                'value' => 'notarial.signing_place',
-            ],
             // notarial_province ("for and in ___") is intentionally not wired here -- same
             // hand-fill convention as AU. Series of ___ sits on the last blank line of the
             // Doc/Page/Book/Series stack (y=282.6 label, underline at y=286.6).

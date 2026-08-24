@@ -25,6 +25,7 @@
     $amortizationTotal   = $loan['amortization_total_raw'] ?? null;
     $paymentMode         = trim((string) ($loan['payment_mode_workbook'] ?? ''));
     $isLumpsum           = $paymentMode === 'LUMPSUM';
+    $isEmergencyLoan     = trim((string) ($loan['kind_of_loan'] ?? '')) === 'Emergency';
     $approvedTerm        = $loan['approved_term_raw'] ?? null;
 
     // "Certified Correct" is always signed by the bookkeeper, not the loan
@@ -259,10 +260,8 @@
                 <td class="b7 u">&nbsp;</td>
                 <td class="c">To</td>
                 <td class="b7 u">&nbsp;</td>
-                <td class="r">P</td>
-                <td class="b9 bold r u">{{ $interestNotDeducted !== null ? $fmt($interestNotDeducted) : '' }}</td>
-                <td class="r">P</td>
-                <td class="b9 bold u">&nbsp;</td>
+                <td class="b9 bold r u" colspan="2">{{ $isEmergencyLoan && $interestNotDeducted !== null ? 'P '.$fmt($interestNotDeducted) : '' }}</td>
+                <td class="b9 bold u" colspan="2">&nbsp;</td>
                 <td></td>
                 <td></td>
             </tr>
@@ -504,7 +503,7 @@
                     <td></td>
                     <td class="nw" colspan="3">b. Total Installment Payment</td>
                     <td class="r">P</td>
-                    <td class="b10 bold r ub">{{ $amortizationTotal !== null ? $fmt($amortizationTotal) : '' }}</td>
+                    <td class="b10 bold r ub">&nbsp;</td>
                     <td class="b10 bold l" colspan="2">{{ $paymentMode !== '' ? $paymentMode : '' }}</td>
                     <td colspan="7"></td>
                 </tr>

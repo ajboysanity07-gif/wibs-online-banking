@@ -405,9 +405,9 @@ test('loan security agreement pdf includes borrower and agreement details', func
         ->toContain('LOANSECURITYAGREEMENT')
         ->toContain('ACMECOOPERATIVE')
         ->toContain('HELARIOB.TEJERO')
-        ->toContain('TAGUMCITY,DAVAODELNORTE')
         ->toContain('SALARYLOAN')
-        ->toContain('22DAYOFMAY,2026')
+        ->not->toContain('TAGUMCITY,DAVAODELNORTE')
+        ->not->toContain('22DAYOFMAY,2026')
         ->not->toContain('25,000.00');
 });
 
@@ -879,7 +879,6 @@ test('grepalife pdf includes structured applicant fields when available', functi
         ->toContain('02-123-4567')
         ->toContain('TRANSPORT SERVICES')
         ->toContain('7 YEARS')
-        ->toContain('05/22/2026')
         ->toContain('P25,000.00');
     // 'SALARY LOAN' is no longer asserted here: the existing/previous-loan
     // table's Type-of-Loan column used to fake-reuse loan.type (this loan's
@@ -1003,14 +1002,6 @@ test('grepalife signature section keeps printed names and blank signature areas 
         ),
         $documentData,
     ))->toBe('123 MAIN STREET, TAGUM CITY, DAVAO DEL NORTE');
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
-        approvedLoanDocumentsFindGrepalifeField(
-            $fieldMap,
-            2,
-            'loan.approved_date_short',
-        ),
-        $documentData,
-    ))->toBe('05/22/2026');
 
     $response = $this
         ->actingAs($admin)
@@ -1027,7 +1018,6 @@ test('grepalife signature section keeps printed names and blank signature areas 
         ->not->toContain('MARIA LOAN OFFICER')
         ->toContain('WIBS COOPERATIVE')
         ->toContain('123 MAIN STREET, TAGUM CITY, DAVAO DEL NORTE')
-        ->toContain('05/22/2026')
         ->not->toContain('Input Data')
         ->not->toContain('No Input Data');
 });
@@ -1094,14 +1084,6 @@ test('grepalife signature section keeps the official loan manager name when appr
         ),
         $documentData,
     ))->toBe('');
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
-        approvedLoanDocumentsFindGrepalifeField(
-            $fieldMap,
-            2,
-            'loan.approved_date_short',
-        ),
-        $documentData,
-    ))->toBeNull();
 
     $response = $this
         ->actingAs($admin)
@@ -1200,10 +1182,6 @@ test('grepalife field map keeps applicant values aligned with label padding', fu
         fn (array $field): bool => ($field['page'] ?? null) === 2
             && ($field['value'] ?? null) === 'organization.company_name',
     );
-    $pageTwoDateField = $fields->first(
-        fn (array $field): bool => ($field['page'] ?? null) === 2
-            && ($field['value'] ?? null) === 'loan.approved_date_short',
-    );
 
     expect((float) $lastNameField['x'])->toBe(11.8);
     expect((float) $firstNameField['x'])->toBe(11.8);
@@ -1228,8 +1206,6 @@ test('grepalife field map keeps applicant values aligned with label padding', fu
     expect((float) $pageTwoCompanyField['x'])->toBe(141.5);
     expect((float) $pageTwoCompanyField['y'])->toBe(91.5);
     expect($pageTwoCompanyField['align'] ?? 'L')->toBe('L');
-    expect((float) $pageTwoDateField['x'])->toBe(108.8);
-    expect($pageTwoDateField['align'] ?? 'L')->toBe('L');
 });
 
 test('affidavit undertaking field map pins all field coordinates to calibrated values', function () {
@@ -1335,27 +1311,9 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     expect((int) $bankBranch['size'])->toBe(11);
 
     // Signature/Date/Place-of-Signing row: bordered 3-column table (x=18-192, y=252-268),
-    // three equal ~50mm columns (x=33/83/133, y=250.75) -- coordinates remeasured fresh
-    // against the new cell geometry, not reused from the old freeform layout.
-    $date = $find('loan.approved_date');
-    expect((float) $date['x'])->toBe(83.0);
-    expect((float) $date['y'])->toBe(250.75);
-    expect((int) $date['size'])->toBe(11);
-    expect((float) $date['width'])->toBe(50.0);
-
-    // A width so signing_place can carry the full composed org address, not just a short
-    // city name -- shrinks to fit this column on one line instead of wrapping (which risked
-    // colliding with the "Place of Signing" caption directly beneath it).
-    $signingPlace = $find('notarial.signing_place');
-    expect((float) $signingPlace['x'])->toBe(133.0);
-    expect((float) $signingPlace['y'])->toBe(250.75);
-    expect((int) $signingPlace['size'])->toBe(11);
-    expect((float) $signingPlace['width'])->toBe(50.0);
-    expect($signingPlace['shrink_to_fit'] ?? false)->toBeTrue();
-    expect((float) $signingPlace['min_size'])->toBe(6.0);
-
-    // The signature-row applicant.full_name (distinct from the "Name of Affiant:" one
-    // above) also shrinks to fit -- a long name shouldn't overflow into the Date column.
+    // three equal ~50mm columns (x=33/83/133, y=250.75). The date and place of signing
+    // are intentionally left blank -- the affiant/notary fill them by hand -- so only the
+    // signature-row applicant.full_name is still stamped into this row.
     $signatureRowFullName = $fields
         ->filter(fn (array $f): bool => ($f['value'] ?? null) === 'applicant.full_name')
         ->values()
@@ -1421,13 +1379,6 @@ test('undertaking barangay field map pins all field coordinates to calibrated va
     expect($amount['shrink_to_fit'] ?? false)->toBeTrue();
     expect((float) $amount['min_size'])->toBe(6.0);
 
-    // loan.approved_date's only active entry is now on the signature line (see below) --
-    // the old paragraph-position entry is dead code, removed alongside loan.type/
-    // organization.company_name above.
-    $date = $find('loan.approved_date');
-    expect((float) $date['x'])->toBe(85.0);
-    expect((float) $date['y'])->toBe(205.0);
-
     // Age/Civil Status/Nationality -- new row occupying the space vacated by the three
     // dead barangay.* fields (removed, see LoanRequestDocumentCatalog and
     // buildDocumentData()).
@@ -1479,15 +1430,13 @@ test('undertaking barangay field map pins all field coordinates to calibrated va
     expect((bool) $gnthp['shrink_to_fit'])->toBeTrue();
     expect((float) $gnthp['min_size'])->toBe(6.0);
 
-    // Signature/notarial block -- new fields, new positions.
+    // Signature/notarial block -- new fields, new positions. The date and place of signing
+    // are intentionally left blank for hand-filling.
     $signatureName = $fields->first(
         fn (array $f): bool => ($f['value'] ?? null) === 'applicant.full_name'
             && ($f['align'] ?? null) === 'C',
     );
     expect($signatureName)->not->toBeNull();
-
-    $signingPlace = $find('notarial.signing_place');
-    expect($signingPlace)->not->toBeNull();
 
     $seriesYear = $find('notarial.series_year');
     expect($seriesYear)->not->toBeNull();
@@ -1580,7 +1529,6 @@ test('grepalife field map pins all field coordinates to calibrated values', func
     $reviewerP2 = $findByPageValue(2, 'reviewer.name');
     $companyNameP2 = $findByPageValue(2, 'organization.company_name');
     $businessAddress = $findByPageValue(2, 'organization.business_address');
-    $dateP2 = $findByPageValue(2, 'loan.approved_date_short');
 
     // --- Assertions: page 1 text string fields ---
     expect((float) $lastName['x'])->toBe(11.8);
@@ -1788,11 +1736,6 @@ test('grepalife field map pins all field coordinates to calibrated values', func
     expect((float) $businessAddress['y'])->toBe(101.5);
     expect((float) $businessAddress['width'])->toBe(86.0);
     expect($businessAddress['align'] ?? 'L')->toBe('L');
-
-    expect((float) $dateP2['x'])->toBe(108.8);
-    expect((float) $dateP2['y'])->toBe(101.5);
-    expect((float) $dateP2['width'])->toBe(44.0);
-    expect($dateP2['align'] ?? 'L')->toBe('L');
 
     // --- Assertions: page 1 health check fields (Q1-Q4) ---
     // Each question is a Yes/No checkbox pair: Yes at x=163.78, No at x=176.48,
@@ -2016,13 +1959,10 @@ test('affidavit undertaking pdf prints notarization details', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
-    // Place of signing is the notary's own fixed office fact — it comes from the org's
-    // full configured business address (street/barangay, city, province), not a per-loan
-    // staff input. Doc/Page/Book No. and valid ID number/issuance location have no
-    // reference-document equivalent and are no longer wired into AU at all (see
-    // AffidavitUndertakingPdfFieldMap) — the notary fills them by hand. The separate
-    // notarial_province "for and in ___" blank stays unwired too, unaffected by
-    // signing_place now carrying the full composed address (province included).
+    // Doc/Page/Book No., signing date/place, and valid ID number/issuance location have
+    // no reference-document equivalent on AU (see AffidavitUndertakingPdfFieldMap) and are
+    // left blank on the printed form for the notary to fill by hand. Only the series year
+    // is stamped from app data.
     OrganizationSetting::factory()->create([
         'business_address1' => 'Purok 1, Barangay Poblacion',
         'business_address2' => 'Tagum City',
@@ -2039,17 +1979,17 @@ test('affidavit undertaking pdf prints notarization details', function () {
     $text = approvedLoanDocumentsExtractPdfText($response);
 
     expect($text)
-        ->toContain('Purok 1, Barangay Poblacion, Tagum City, Davao del Norte')
-        ->toContain((string) now()->year);
+        ->toContain((string) now()->year)
+        ->not->toContain('Purok 1, Barangay Poblacion, Tagum City, Davao del Norte');
 });
 
-test('affidavit undertaking pdf composes the full org address for signing place, not just the city', function () {
+test('affidavit undertaking pdf no longer stamps the org address as the place of signing', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
-    // Same "don't silently drop a blank component" precedent as
-    // composedEmployerBusinessAddress() -- business_address1 left blank here should not
-    // produce a leading ", " before the city.
+    // The org's configured business address used to be stamped as the signing place; it
+    // is now left blank for the notary to fill by hand, so the composed address must not
+    // appear anywhere on the page.
     OrganizationSetting::factory()->create([
         'business_address1' => null,
         'business_address2' => 'Lianga',
@@ -2066,7 +2006,7 @@ test('affidavit undertaking pdf composes the full org address for signing place,
     $text = approvedLoanDocumentsExtractPdfText($response);
 
     expect($text)
-        ->toContain('Lianga, Surigao del Sur')
+        ->not->toContain('Lianga, Surigao del Sur')
         ->not->toContain(', Lianga, Surigao del Sur, ')
         ->not->toContain(' , Lianga');
 });
@@ -2113,12 +2053,12 @@ test('affidavit undertaking pdf renders an unusually long name, address, and GNT
         ->actingAs($admin)
         ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
 
-    // The shrink-to-fit fields (applicant.full_name signature row, notarial.signing_place,
-    // loan.gnthp) reduce font size rather than wrap or truncate -- the full value should
-    // still reach the page and be extractable in full, just rendered smaller. The actual
-    // font-size-shrinking behavior itself is covered directly in
-    // ApprovedLoanPdfTemplateServiceShrinkToFitTest; this only proves the real document
-    // generation path doesn't drop or break on an unusually long real-world value.
+    // The shrink-to-fit fields (applicant.full_name signature row, loan.gnthp) reduce
+    // font size rather than wrap or truncate -- the full value should still reach the page
+    // and be extractable in full, just rendered smaller. The actual font-size-shrinking
+    // behavior itself is covered directly in ApprovedLoanPdfTemplateServiceShrinkToFitTest;
+    // this only proves the real document generation path doesn't drop or break on an
+    // unusually long real-world value.
     $response->assertOk();
     $text = approvedLoanDocumentsExtractPdfText($response);
 
@@ -2126,8 +2066,8 @@ test('affidavit undertaking pdf renders an unusually long name, address, and GNT
     // enough to force the signature-row shrink-to-fit field to shrink.
     expect($text)
         ->toContain('Maria Concepcion V. de la Santisima Trinidad')
-        ->toContain('Purok 2, Barangay San Isidro, Cagayan de Oro City, Misamis Oriental')
-        ->toContain('1,250,000.00');
+        ->toContain('1,250,000.00')
+        ->not->toContain('Purok 2, Barangay San Isidro, Cagayan de Oro City, Misamis Oriental');
 });
 
 test('affidavit undertaking pdf stamps GNTHP and account number inline for paragraph 1', function () {
@@ -2991,6 +2931,12 @@ test('approved document zip omits undertaking-barangay when the borrower has no 
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    // employment_type is randomized by the factory default; pin it so the
+    // Affidavit-of-Undertaking inclusion (see atmPayoutWaiverApplicable) is
+    // deterministic.
+    $loanRequest->applicant()->first()->update([
+        'employment_type' => 'Private',
+    ]);
 
     $response = $this
         ->actingAs($admin)

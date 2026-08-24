@@ -22,10 +22,6 @@ function authorityToDeductDocumentData(array $authorityToDeduct = []): array
             'amortization_total' => '2,500.00',
             'amortization_total_words' => 'TWO THOUSAND FIVE HUNDRED PESOS ONLY.',
             'deduction_start_date' => 'August 15, 2026',
-            'approved_date' => '2026-07-28',
-        ],
-        'notarial' => [
-            'signing_place' => 'Lianga, Surigao del Sur',
         ],
         'authority_to_deduct' => $authorityToDeduct,
     ];
@@ -123,6 +119,19 @@ it('renders blank underline fields instead of institution text when not filled i
     expect($html)->not->toContain('Eva T. Cabuñas');
     expect($html)->not->toContain('Juliet S. Sarausad');
     expect($html)->toContain('agreement-blank');
+});
+
+it('leaves the signing date and place blank on the signature row', function () {
+    $viewData = authorityToDeductBuildViewData([
+        'institution_name' => 'Lianga District Hospital',
+        'officer_1_name' => 'Cristy S. Samarah',
+        'officer_1_title' => 'Administrative 1/Cashier',
+    ]);
+
+    $html = view('reports.authority-to-deduct', $viewData)->render();
+
+    expect($html)->not->toContain('2026-07-28');
+    expect($html)->not->toContain('Lianga, Surigao del Sur');
 });
 
 it('renders the periodic deduction amount, words, and start date when available', function () {
