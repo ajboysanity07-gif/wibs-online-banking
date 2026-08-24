@@ -194,6 +194,11 @@ class ApprovedLoanPdfTemplateService
         }
 
         $value = $this->resolveValue($field['value'] ?? null, $documentData);
+
+        if (is_callable($field['transform'] ?? null)) {
+            $value = $field['transform']($value);
+        }
+
         $text = $this->blank(is_scalar($value) ? (string) $value : null);
 
         if ($text === '') {

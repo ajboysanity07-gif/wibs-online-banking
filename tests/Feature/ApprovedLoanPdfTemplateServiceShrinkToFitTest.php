@@ -119,6 +119,41 @@ test('shrink to fit never renders below the configured minimum size, even for an
     expect(approvedLoanPdfTemplateServiceLastFontSize($content))->toBe(6.0);
 });
 
+test('a field-map transform is actually applied to the resolved value before rendering', function () {
+    // Field maps set 'transform' => $this->upperTransform() to force signature-line names
+    // to render in capital letters, but renderField() previously resolved $field['value']
+    // and rendered it as-is without ever reading $field['transform'] -- the key was silently
+    // ignored. Proven indirectly here: a transform that lengthens the value must force
+    // shrink-to-fit to kick in and reduce the font size below the declared size; if the
+    // transform were still being ignored, the short untransformed value would fit at the
+    // declared size and no shrinking would occur.
+    $fieldMap = approvedLoanPdfTemplateServiceShrinkFieldMap([
+        'page' => 1,
+        'x' => 10,
+        'y' => 10,
+        'size' => 11,
+        'style' => 'B',
+        'width' => 30,
+        'shrink_to_fit' => true,
+        'min_size' => 6.0,
+        'value' => 'sample.text',
+        'transform' => fn (mixed $value): string => str_repeat((string) $value, 10),
+    ]);
+
+    $service = app(ApprovedLoanPdfTemplateService::class);
+
+    $content = $service->renderContent(
+        'loan-security-agreement.pdf',
+        ['sample' => ['text' => 'Hi']],
+        $fieldMap,
+    );
+
+    $size = approvedLoanPdfTemplateServiceLastFontSize($content);
+
+    expect($size)->not->toBeNull();
+    expect($size)->toBeLessThan(11.0);
+});
+
 test('shrink to fit without a width throws a catchable exception instead of silently ignoring it', function () {
     $fieldMap = approvedLoanPdfTemplateServiceShrinkFieldMap([
         'page' => 1,
