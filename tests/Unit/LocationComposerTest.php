@@ -70,3 +70,28 @@ test('composeUnique drops a barangay repeated inside the street line', function 
 test('composeUnique returns an empty string when no parts are provided', function (): void {
     expect(LocationComposer::composeUnique(null, null, null))->toBe('');
 });
+
+test('recomposeLegacyAddress normalizes spacing around existing commas', function (): void {
+    expect(LocationComposer::recomposeLegacyAddress('Purok 4 ,Tagbina,   Surigao del Sur'))
+        ->toBe('Purok 4, Tagbina, Surigao del Sur');
+});
+
+test('recomposeLegacyAddress falls back to the raw string when there are no separators to parse', function (): void {
+    expect(LocationComposer::recomposeLegacyAddress('Purok 4 Tagbina Surigao del Sur'))
+        ->toBe('Purok 4 Tagbina Surigao del Sur');
+});
+
+test('recomposeLegacyAddress returns an empty string for blank input', function (): void {
+    expect(LocationComposer::recomposeLegacyAddress(null))->toBe('');
+    expect(LocationComposer::recomposeLegacyAddress(''))->toBe('');
+});
+
+test('recomposeLegacyBirthplace normalizes spacing around existing commas', function (): void {
+    expect(LocationComposer::recomposeLegacyBirthplace('Cebu City ,Cebu'))
+        ->toBe('Cebu City, Cebu');
+});
+
+test('recomposeLegacyBirthplace falls back to the raw string when there are no separators to parse', function (): void {
+    expect(LocationComposer::recomposeLegacyBirthplace('Cebu City Cebu'))
+        ->toBe('Cebu City Cebu');
+});

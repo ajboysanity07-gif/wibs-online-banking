@@ -76,7 +76,7 @@ class LoanRequestPerson extends Model
             return $composed;
         }
 
-        return trim((string) $this->birthplace);
+        return LocationComposer::recomposeLegacyBirthplace($this->birthplace);
     }
 
     public function composedAddress(): string
@@ -92,7 +92,7 @@ class LoanRequestPerson extends Model
             return $composed;
         }
 
-        return trim((string) $this->address);
+        return LocationComposer::recomposeLegacyAddress($this->address);
     }
 
     public function composedEmployerBusinessAddress(): string
@@ -108,7 +108,7 @@ class LoanRequestPerson extends Model
             return $composed;
         }
 
-        return trim((string) $this->employer_business_address);
+        return LocationComposer::recomposeLegacyAddress($this->employer_business_address);
     }
 
     /**

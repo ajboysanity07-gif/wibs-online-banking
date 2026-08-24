@@ -213,6 +213,44 @@ class LocationComposer
     }
 
     /**
+     * Re-joins a legacy free-text address with consistent ", " separators.
+     * Falls back to the trimmed original text when it carries no recognizable
+     * separators to parse (e.g. no commas at all).
+     */
+    public static function recomposeLegacyAddress(?string $value): string
+    {
+        $legacy = trim((string) $value);
+
+        if ($legacy === '') {
+            return '';
+        }
+
+        $parsed = self::parseLegacyAddress($legacy);
+        $recomposed = self::compose($parsed['address1'], $parsed['address2'], $parsed['address3']);
+
+        return $recomposed !== '' ? $recomposed : $legacy;
+    }
+
+    /**
+     * Re-joins a legacy free-text birthplace with consistent ", " separators.
+     * Falls back to the trimmed original text when it carries no recognizable
+     * separators to parse (e.g. no commas at all).
+     */
+    public static function recomposeLegacyBirthplace(?string $value): string
+    {
+        $legacy = trim((string) $value);
+
+        if ($legacy === '') {
+            return '';
+        }
+
+        $parsed = self::parseLegacyBirthplace($legacy);
+        $recomposed = self::compose($parsed['city'], $parsed['province'], null);
+
+        return $recomposed !== '' ? $recomposed : $legacy;
+    }
+
+    /**
      * @return list<string>
      */
     private static function splitParts(?string $value): array

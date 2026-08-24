@@ -2,7 +2,7 @@
 
 use App\Services\OrganizationSettingsService;
 
-test('promissory note leaves the amortization amount and frequency hand-fill for installment loans', function () {
+test('promissory note leaves the amortization amount hand-fill but prints the payment frequency for installment loans', function () {
     $branding = app(OrganizationSettingsService::class)->branding();
 
     $html = view('reports.promissory-note', [
@@ -23,13 +23,14 @@ test('promissory note leaves the amortization amount and frequency hand-fill for
     ])->render();
 
     // Same convention as the Disclosure Statement's blanked "Total Installment
-    // Payment" figure: the per-installment amount and payment-frequency label are
-    // filled in by hand -- only lumpsum loans print the computed value.
+    // Payment" figure: the per-installment amount is filled in by hand -- only
+    // lumpsum loans print the computed value. The payment-frequency label
+    // always prints, regardless of lumpsum.
     expect($html)
         ->toContain('Amortization/Installment payment of')
         ->toContain('note-blank')
         ->not->toContain('note-fill">2,083.33</span>')
-        ->not->toContain('>SEMI-MONTHLY<');
+        ->toContain('note-fill">SEMI-MONTHLY</span>');
 });
 
 test('promissory note prints the computed single-payment value for lumpsum loans', function () {
@@ -54,5 +55,5 @@ test('promissory note prints the computed single-payment value for lumpsum loans
 
     expect($html)
         ->toContain('note-fill">51,500.00</span>')
-        ->not->toContain('note-fill">SEMI-MONTHLY</span>');
+        ->toContain('note-fill">LUMPSUM</span>');
 });

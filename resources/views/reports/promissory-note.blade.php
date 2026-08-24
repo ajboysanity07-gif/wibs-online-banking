@@ -114,10 +114,10 @@
         ));
     };
 
-    // The per-installment amount and payment-frequency label are hand-filled on
-    // installment loans (same convention as the Disclosure Statement's blanked
-    // "Total Installment Payment" figure). Only lumpsum loans print the computed
-    // single-payment value.
+    // The per-installment amount is hand-filled on installment loans (same
+    // convention as the Disclosure Statement's blanked "Total Installment
+    // Payment" figure). Only lumpsum loans print the computed single-payment
+    // value. The payment-frequency label always prints, regardless of lumpsum.
     $isLumpsum = $paymentMode === 'LUMPSUM';
     $installmentAmountValue = $isLumpsum && $amortizationTotal !== null
         ? $formatAmount($amortizationTotal)
@@ -432,7 +432,7 @@
                     per annum. Amortization/Installment payment of
                     {!! $renderValue($installmentAmountValue, '7em') !!}
                     inclusive of interest every
-                    {!! $renderValue(null, '7em') !!}
+                    {!! $renderValue($paymentMode, '7em') !!}
                     starting
                     {!! $renderValue(null, '7em') !!}
                     to

@@ -164,7 +164,7 @@ class MemberApplicationProfile extends Model
             return $composed;
         }
 
-        return trim((string) $this->birthplace);
+        return LocationComposer::recomposeLegacyBirthplace($this->birthplace);
     }
 
     public function composedEmployerBusinessAddress(): string
@@ -180,7 +180,7 @@ class MemberApplicationProfile extends Model
             return $composed;
         }
 
-        return trim((string) $this->employer_business_address);
+        return LocationComposer::recomposeLegacyAddress($this->employer_business_address);
     }
 
     public function composedHomeAddress(): string
@@ -196,7 +196,7 @@ class MemberApplicationProfile extends Model
             return $composed;
         }
 
-        return trim((string) $this->home_address);
+        return LocationComposer::recomposeLegacyAddress($this->home_address);
     }
 
     /**
