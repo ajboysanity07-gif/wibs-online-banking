@@ -17,6 +17,14 @@
         "@upstash/context7-mcp"
       ],
       "env": {}
+    },
+    "pdf-forms": {
+      "type": "stdio",
+      "command": "C:\\Users\\ACER Predator\\AppData\\Local\\mcp-pdf-forms\\venv\\Scripts\\mcp-pdf-forms.exe",
+      "args": [
+        "C:\\laragon\\www\\wibs-online-banking\\storage\\app\\templates\\approved-loan-documents\\pdf"
+      ],
+      "env": {}
     }
   }
 }

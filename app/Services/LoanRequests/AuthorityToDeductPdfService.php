@@ -67,6 +67,9 @@ class AuthorityToDeductPdfService
         $applicant = is_array($applicant) ? $applicant : [];
         $applicant['signature_data'] = null;
 
+        $notarial = $documentData['notarial'] ?? [];
+        $notarial = is_array($notarial) ? $notarial : [];
+
         $loan = $documentData['loan'] ?? [];
         $loan = is_array($loan) ? $loan : [];
 
@@ -86,6 +89,12 @@ class AuthorityToDeductPdfService
             )
                 ? $organization['logo_data_uri']
                 : null,
+            // Signing date stays hand-fill; only the venue is system-printed.
+            'placeOfSigning' => $this->blank(
+                is_string($notarial['signing_place'] ?? null)
+                    ? $notarial['signing_place']
+                    : null,
+            ),
             'institution' => $this->buildInstitution($documentData),
         ];
     }

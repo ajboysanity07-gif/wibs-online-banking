@@ -292,6 +292,7 @@ test('deped salary deduction waiver field map declares the header image and dedu
         'deduction.deped_school_id_number',
         'deduction.deped_deduction_amount_words',
         'deduction.deped_deduction_amount',
+        'notarial.signing_place',
         'reviewer.name',
     ] as $expectedValue) {
         expect($fields->contains(
@@ -315,6 +316,7 @@ test('pension deduction waiver field map declares the header image and deduction
         'deduction.pension_atm_card_number',
         'deduction.pension_deduction_amount_words',
         'deduction.pension_deduction_amount',
+        'notarial.signing_place',
     ] as $expectedValue) {
         expect($fields->contains(
             fn (array $field): bool => ($field['value'] ?? null) === $expectedValue,

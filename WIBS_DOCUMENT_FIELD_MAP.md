@@ -165,6 +165,12 @@ gone; see git history (commit range around this note) if it's ever needed for re
 > x=163.78, No at x=176.48, rows at y=192.26/200.88/212.80/218.89 (detected from grepalife-page-1.png
 > and pinned by the "grepalife field map pins all field coordinates to calibrated values" test).
 > Note: field key is `health_recent_hospitalization` (not `health_hospitalization`) in the GL map.
+>
+> **Page-2 signature area:** only the three printed names are wired (applicant, reviewer,
+> co-op company). The org-address line that used to sit beneath the signature block
+> (y=101.5) was removed — it read as a system-stamped place of signing on an insurance
+> form — and the old approved-date stamp beside it is gone too. The GL signature area is
+> hand-fill, consistent with GE/GA.
 
 ### Personal Data
 
@@ -278,8 +284,8 @@ well. No field in this section has a staff UI input; the table below reflects th
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Place of signing | — | ✅ | Not staff data — the notary's own fixed office fact. `OrganizationSetting.business_address2` (city) → `notarial.signing_place` |
-| Notarial province | — | ✅ | Not staff data — fixed office fact. `OrganizationSetting.business_address3` (province) → `notarial.province` |
+| Place of signing | — | ✅ | Not staff data — the notary's own fixed office fact. Composed `OrganizationSettingsService::branding()['businessAddress']` (street/barangay, city, province) → `notarial.signing_place`, shrink-to-fit in the bordered signature table's third column. The signing **date** column beside it is deliberately left blank for hand-fill |
+| Notarial province | — | ❌ | **Not wired, intentionally.** The "for and in ___" blank is filled by hand by the notary |
 | Valid ID number | — | ❌ | **Not wired, intentionally.** Left blank on the artwork for the notary to fill by hand |
 | Valid ID issued at | — | ✅ | Not staff data — fixed office fact, same source as place of signing. `OrganizationSetting.business_address2` (city) → `notarial.valid_id_issued_at` |
 | Document number | — | ❌ | **Not wired, intentionally.** The notary's own private register counter — unknowable to WIBS staff. Phase 1's blank space on the artwork is reserved for the notary to fill by hand |
@@ -560,7 +566,7 @@ investigation/conversion history (coordinate map, font/embedding notes, phase br
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Place of signing | — | ✅ | Not staff data — the notary's own fixed office fact, same source as AU. `notarial.signing_place` |
+| Place of signing | — | ✅ | Not staff data — the notary's own fixed office fact, same source as AU. Composed `branding()['businessAddress']` → `notarial.signing_place`, shrink-to-fit in the signature row's Place column. The signing **date** blank beside it stays hand-fill |
 | Series year | — | ✅ | Computed from the document date, same as AU. `notarial.series_year` |
 | Document/Page/Book number | — | ❌ | **Not wired, intentionally.** Left blank on the artwork for the notary to fill by hand, same convention as AU |
 

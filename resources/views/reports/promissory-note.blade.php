@@ -113,6 +113,15 @@
             e($trimmed),
         ));
     };
+
+    // The per-installment amount and payment-frequency label are hand-filled on
+    // installment loans (same convention as the Disclosure Statement's blanked
+    // "Total Installment Payment" figure). Only lumpsum loans print the computed
+    // single-payment value.
+    $isLumpsum = $paymentMode === 'LUMPSUM';
+    $installmentAmountValue = $isLumpsum && $amortizationTotal !== null
+        ? $formatAmount($amortizationTotal)
+        : null;
 @endphp
 <!doctype html>
 <html lang="en">
@@ -421,9 +430,9 @@
                     Philippine Currency with an interest rate of
                     {!! $renderValue($interestRateWords, '14em') !!}
                     per annum. Amortization/Installment payment of
-                    {!! $renderValue($amortizationTotal !== null ? $formatAmount($amortizationTotal) : null, '7em') !!}
+                    {!! $renderValue($installmentAmountValue, '7em') !!}
                     inclusive of interest every
-                    {!! $renderValue($paymentMode, '7em') !!}
+                    {!! $renderValue(null, '7em') !!}
                     starting
                     {!! $renderValue(null, '7em') !!}
                     to

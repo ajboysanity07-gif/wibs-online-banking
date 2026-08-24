@@ -209,14 +209,15 @@
             {{-- Row 8: Address --}}
             <tr>
                 <td class="bold nw" colspan="2">ADDRESS:</td>
-                <td class="u" colspan="12">&nbsp;{{ $address !== '' ? $address : '' }}</td>
-                <td></td>
+                <td class="u" colspan="9">&nbsp;{{ $address !== '' ? $address : '' }}</td>
+                <td colspan="4"></td>
             </tr>
 
             {{-- Row 9: 1. Loan Granted (A) --}}
             <tr>
                 <td class="r">1</td>
-                <td class="bold nw" colspan="6">LOAN GRANTED (Amount to be financed)</td>
+                <td class="bold nw" colspan="4">LOAN GRANTED (Amount to be financed)</td>
+                <td class="u" colspan="2">&nbsp;</td>
                 <td class="ub" colspan="5">&nbsp;</td>
                 <td class="bold nw">(Php)</td>
                 <td class="b10 bold r ub">{{ $approvedAmount !== null ? $fmt($approvedAmount) : '' }}</td>
@@ -367,12 +368,13 @@
                 <td colspan="3"></td>
                 <td class="ub" colspan="3">&nbsp;</td>
                 <td colspan="2"></td>
-                <td class="ub">&nbsp;</td>
                 <td></td>
                 <td class="ub">&nbsp;</td>
                 <td></td>
                 <td class="ub">&nbsp;</td>
-                <td colspan="2"></td>
+                <td></td>
+                <td class="ub">&nbsp;</td>
+                <td></td>
             </tr>
 
             {{-- Row 25: Total Finance Charges (B) --}}
@@ -604,6 +606,7 @@
             <tr>
                 <td colspan="11"></td>
                 <td class="c nw ut" colspan="3">Signature of Borrower Over Printed Name</td>
+                <td></td>
             </tr>
 
             {{-- Row 59: Notice --}}

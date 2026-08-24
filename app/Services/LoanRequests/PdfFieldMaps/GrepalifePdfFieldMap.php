@@ -532,17 +532,10 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'value' => 'organization.company_name',
                 'transform' => $this->upperTransform(),
             ],
-            [
-                'page' => 2,
-                'x' => 15.0,
-                'y' => 101.5,
-                'size' => 7.0,
-                'width' => 86,
-                'line_height' => 2.3,
-                'align' => 'L',
-                'value' => 'organization.business_address',
-                'transform' => $this->upperTransform(),
-            ],
+            // The org-address line that used to sit beneath the signature block
+            // (page 2, y=101.5) was removed -- it read as a system-stamped "place of
+            // signing" on an insurance form. The GL signature area is left for
+            // hand-fill, consistent with the other insurance documents (GE/GA).
             // Section 2 -- Health questionnaire (page 1). Each of Q1-Q4 is a Yes/No
             // checkbox pair in the template's right-hand columns (grepalife-page-1.png).
             // Coordinates are the detected top-left corners of the four checkbox

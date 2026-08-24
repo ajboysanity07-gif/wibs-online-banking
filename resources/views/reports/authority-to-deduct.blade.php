@@ -11,6 +11,10 @@
     $institutionName = trim((string) ($institution['name'] ?? ''));
     $officers = is_array($institution['officers'] ?? null) ? $institution['officers'] : [];
 
+    // Signing date stays blank for hand-fill; only the venue is system-printed
+    // (the org's composed business address via notarial.signing_place).
+    $placeOfSigning = trim((string) ($placeOfSigning ?? ''));
+
     $officerNames = array_values(array_filter(array_map(
         static fn (array $officer): string => trim((string) ($officer['name'] ?? '')),
         $officers,
@@ -242,7 +246,7 @@
                     </td>
                     <td style="width: 40%; text-align: center;">
                         {!! $renderValue(null, '12em') !!}
-                        {!! $renderValue(null, '12em') !!}
+                        at {!! $renderValue($placeOfSigning, '12em') !!}
                     </td>
                 </tr>
             </table>

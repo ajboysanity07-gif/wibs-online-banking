@@ -167,6 +167,21 @@ class UndertakingBarangayPdfFieldMap implements ApprovedLoanPdfFieldMap
             // Doc/Page/Book/Series stack (y=282.6 label, underline at y=286.6).
             [
                 'page' => 1,
+                'x' => 135,
+                'y' => 205,
+                // Place of Signing column of the signature row. The Date column beside it
+                // stays blank for hand-fill -- only the venue is system-printed (full
+                // composed org address, shrink-to-fit for this ~45mm column).
+                'size' => 11,
+                'style' => 'B',
+                'width' => 45,
+                'align' => 'C',
+                'shrink_to_fit' => true,
+                'min_size' => 6.0,
+                'value' => 'notarial.signing_place',
+            ],
+            [
+                'page' => 1,
                 'x' => 42,
                 'y' => 254.5,
                 'size' => 11,

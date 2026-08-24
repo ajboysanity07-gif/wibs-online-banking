@@ -20,14 +20,19 @@ test('plan of payment report shows the static mode-of-payment box instead of com
     ])->render();
 
     expect($html)->toContain('MODE OF PAYMENT')
+        ->toContain('MONTHLY')
         ->toContain('PLEASE SEE ATTACHED')
         ->toContain('LOAN AMORTIZATION')
         ->toContain('SCHEDULE')
         ->toContain('Starting:')
         ->toContain('Ending:')
-        ->not->toContain('MONTHLY')
         ->not->toContain('Total Amortization')
         ->not->toContain('Date Granted');
+
+    // The old Blade-escaped {{ ... : '&nbsp;' }} subtitle fallback rendered the
+    // literal text "&nbsp;" beneath the MODE OF PAYMENT title. The rendered PDF
+    // must never contain that literal text again.
+    expect($html)->not->toContain('&amp;nbsp;');
 });
 
 test('plan of payment report shows the actual principal amount for lumpsum loans', function () {
@@ -53,5 +58,6 @@ test('plan of payment report shows the actual principal amount for lumpsum loans
         ->toContain('&#8369; 50,000.00')
         ->not->toContain('PLEASE SEE ATTACHED')
         ->not->toContain('LOAN AMORTIZATION')
-        ->not->toContain('SCHEDULE');
+        ->not->toContain('SCHEDULE')
+        ->not->toContain('&amp;nbsp;');
 });

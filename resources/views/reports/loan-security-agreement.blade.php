@@ -14,6 +14,10 @@
         ? trim($reviewerName.($reviewerTitle !== '' ? ', '.$reviewerTitle : ''))
         : 'its duly authorized representative';
 
+    // Signing date (day/month/year) stays blank for hand-fill; only the venue is
+    // system-printed (the org's business address via placeOfSigning).
+    $placeOfSigning = trim((string) ($placeOfSigning ?? ''));
+
     $renderValue = static function (
         ?string $value,
         string $blankWidth = '7em',
@@ -293,7 +297,7 @@
             <p class="paragraph paragraph--closing">
                 In witness thereof, we have signed this Agreement this {!! $renderValue(null, '2.8em') !!} day of
                 {!! $renderValue(null, '8em') !!}, {!! $renderValue(null, '4.5em') !!} at
-                {!! $renderValue(null, '12em') !!}.
+                {!! $renderValue($placeOfSigning, '12em') !!}.
             </p>
 
             <table class="signature-layout">

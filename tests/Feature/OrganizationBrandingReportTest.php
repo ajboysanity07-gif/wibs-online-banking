@@ -328,6 +328,9 @@ test('loan security agreement report keeps printed names and blank signature lin
             'position' => 'Authorized Representative',
             'signature_data' => null,
         ],
+        // The closing paragraph's signing venue is system-printed again; the
+        // day/month/year blanks beside it stay hand-fill.
+        'placeOfSigning' => 'Lianga, Surigao del Sur',
         'reportHeader' => [
             'designData' => null,
         ],
@@ -345,7 +348,6 @@ test('loan security agreement report keeps printed names and blank signature lin
         ->toContain('day of')
         ->toContain('at')
         ->not->toContain('May, 2026')
-        ->not->toContain('Lianga, Surigao del Sur at')
         ->toContain('class="signature-layout"')
         ->toContain('width: 76%;')
         ->toContain('margin: 20pt auto 0;')
@@ -374,6 +376,13 @@ test('loan security agreement report keeps printed names and blank signature lin
         ->toBeLessThan(strpos($signatureSection, '<div class="signature-label">Borrower</div>'));
     expect(strpos($signatureSection, 'Annabelle M. Amora'))
         ->toBeLessThan(strpos($signatureSection, '<div class="signature-label">Lender</div>'));
+
+    // The closing paragraph prints the venue as plain (non-emphasized) fill
+    // text -- $renderValue only wraps emphasized values in agreement-fill --
+    // so pin the normalized "at <venue>." tail rather than a span.
+    expect(preg_replace('/\s+/', ' ', $html))
+        ->toContain('at Lianga, Surigao del Sur.')
+        ->not->toContain('<span class="agreement-fill">Lianga, Surigao del Sur</span>');
 });
 
 test('blade reports use calibri as the font family by default', function () {
@@ -454,7 +463,7 @@ test('blade reports use calibri as the font family by default', function () {
         ->toContain('>ADDRESS:</td>')
         ->toContain('bold c nw">LOAN NUMBER:</td>')
         ->toContain('class="u" colspan="8">&nbsp;</td>')
-        ->toContain('class="u" colspan="12">&nbsp;</td>')
+        ->toContain('class="u" colspan="9">&nbsp;</td>')
         ->toContain('LOAN NUMBER:</td>'."\n".'                <td class="u" colspan="2">&nbsp;</td>');
 
     // Empty value cells render blank. The old Blade-escaped '&nbsp;' fallbacks

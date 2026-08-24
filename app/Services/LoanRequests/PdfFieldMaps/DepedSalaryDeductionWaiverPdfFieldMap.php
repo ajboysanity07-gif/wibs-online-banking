@@ -75,6 +75,20 @@ class DepedSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
             ],
             [
                 'page' => 1,
+                'x' => 139,
+                'y' => 168,
+                // Place of Signing blank on the "Signed this ___ day of ______ at ___"
+                // row. The day/month-year blanks beside it stay hand-fill -- only the
+                // venue is system-printed (full composed org address, shrink-to-fit).
+                'size' => 11,
+                'width' => 51,
+                'align' => 'C',
+                'shrink_to_fit' => true,
+                'min_size' => 6.0,
+                'value' => 'notarial.signing_place',
+            ],
+            [
+                'page' => 1,
                 'x' => 96,
                 'y' => 206,
                 'size' => 11,

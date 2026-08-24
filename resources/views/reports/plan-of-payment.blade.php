@@ -229,7 +229,7 @@
 
                 <div class="mop-box">
                     <div class="mop-title">MODE OF PAYMENT</div>
-                    <div class="mop-subtitle">{{ $isLumpsum && $paymentMode !== '' ? strtoupper($paymentMode) : '&nbsp;' }}</div>
+                    <div class="mop-subtitle">{{ strtoupper((string) $paymentMode) }}</div>
                     <table class="mop-rows">
                         <colgroup>
                             <col style="width:90pt" />
@@ -318,7 +318,7 @@
 
                 <div class="mop-box">
                     <div class="mop-title">MODE OF PAYMENT</div>
-                    <div class="mop-subtitle">{{ $isLumpsum && $paymentMode !== '' ? strtoupper($paymentMode) : '&nbsp;' }}</div>
+                    <div class="mop-subtitle">{{ strtoupper((string) $paymentMode) }}</div>
                     <table class="mop-rows">
                         <colgroup>
                             <col style="width:90pt" />

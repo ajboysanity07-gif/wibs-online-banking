@@ -165,6 +165,23 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
             // notarial.province is intentionally not wired here -- the "for and in ___"
             // blank is filled by hand by the notary, same as valid_id_number/
             // valid_id_issued_at/doc_number/etc below.
+            [
+                'page' => 1,
+                'x' => 133,
+                'y' => 250.75,
+                // Place of Signing column of the bordered signature table. Carries the
+                // full composed org address (street/barangay, city, province) -- shrinks
+                // to fit this ~50mm-wide column instead of wrapping to multiple lines
+                // (which risked colliding with the "Place of Signing" caption directly
+                // beneath it). The Date column beside it stays blank for hand-fill.
+                'size' => 11,
+                'style' => 'B',
+                'width' => 50,
+                'align' => 'C',
+                'shrink_to_fit' => true,
+                'min_size' => 6.0,
+                'value' => 'notarial.signing_place',
+            ],
             // Doc No. / Page No. / Book No. (x=18, y=297.56/305.56/313.56) are intentionally
             // left blank space on the artwork for the notary to fill by hand — see
             // buildDocumentData()'s 'notarial' block for why.
