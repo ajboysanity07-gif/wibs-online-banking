@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Services\Locations\PsgcService;
+
 class LocationComposer
 {
     public static function compose(
@@ -214,8 +216,11 @@ class LocationComposer
 
     /**
      * Re-joins a legacy free-text address with consistent ", " separators.
-     * Falls back to the trimmed original text when it carries no recognizable
-     * separators to parse (e.g. no commas at all).
+     * When the text has no commas to parse at all, falls back to matching
+     * known PSGC province/city names against the trailing words so a comma
+     * can still be inserted (e.g. "Purok 4 Tagbina Surigao Del Sur" ->
+     * "Purok 4, Tagbina, Surigao Del Sur"). Returns the trimmed original text
+     * unchanged when neither approach recognizes anything to split on.
      */
     public static function recomposeLegacyAddress(?string $value): string
     {
@@ -228,13 +233,32 @@ class LocationComposer
         $parsed = self::parseLegacyAddress($legacy);
         $recomposed = self::compose($parsed['address1'], $parsed['address2'], $parsed['address3']);
 
+        if ($recomposed !== '' && $recomposed !== $legacy) {
+            return $recomposed;
+        }
+
+        if (! str_contains($legacy, ',')) {
+            $split = app(PsgcService::class)->splitFreeTextAddress($legacy);
+
+            if ($split['locality'] !== null || $split['province'] !== null) {
+                $guessed = self::compose($split['street'], $split['locality'], $split['province']);
+
+                if ($guessed !== '') {
+                    return $guessed;
+                }
+            }
+        }
+
         return $recomposed !== '' ? $recomposed : $legacy;
     }
 
     /**
      * Re-joins a legacy free-text birthplace with consistent ", " separators.
-     * Falls back to the trimmed original text when it carries no recognizable
-     * separators to parse (e.g. no commas at all).
+     * When the text has no commas to parse at all, falls back to matching
+     * known PSGC province/city names against the trailing words so a comma
+     * can still be inserted (e.g. "Cebu City Cebu" -> "Cebu City, Cebu").
+     * Returns the trimmed original text unchanged when neither approach
+     * recognizes anything to split on.
      */
     public static function recomposeLegacyBirthplace(?string $value): string
     {
@@ -246,6 +270,23 @@ class LocationComposer
 
         $parsed = self::parseLegacyBirthplace($legacy);
         $recomposed = self::compose($parsed['city'], $parsed['province'], null);
+
+        if ($recomposed !== '' && $recomposed !== $legacy) {
+            return $recomposed;
+        }
+
+        if (! str_contains($legacy, ',')) {
+            $split = app(PsgcService::class)->splitFreeTextAddress($legacy);
+
+            if ($split['locality'] !== null || $split['province'] !== null) {
+                $city = trim(implode(' ', array_filter([$split['street'], $split['locality']])));
+                $guessed = self::compose($city !== '' ? $city : null, $split['province'], null);
+
+                if ($guessed !== '') {
+                    return $guessed;
+                }
+            }
+        }
 
         return $recomposed !== '' ? $recomposed : $legacy;
     }

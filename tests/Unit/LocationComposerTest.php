@@ -2,6 +2,8 @@
 
 use App\Support\LocationComposer;
 
+uses(Tests\TestCase::class);
+
 test('compose joins street, city, and province without barangay', function (): void {
     expect(LocationComposer::compose('123 Main St', 'Manila', 'Metro Manila'))
         ->toBe('123 Main St, Manila, Metro Manila');
@@ -76,9 +78,14 @@ test('recomposeLegacyAddress normalizes spacing around existing commas', functio
         ->toBe('Purok 4, Tagbina, Surigao del Sur');
 });
 
-test('recomposeLegacyAddress falls back to the raw string when there are no separators to parse', function (): void {
-    expect(LocationComposer::recomposeLegacyAddress('Purok 4 Tagbina Surigao del Sur'))
-        ->toBe('Purok 4 Tagbina Surigao del Sur');
+test('recomposeLegacyAddress inserts commas via PSGC place matching when there are no separators at all', function (): void {
+    expect(LocationComposer::recomposeLegacyAddress('Purok 4 Tagbina Surigao Del Sur'))
+        ->toBe('Purok 4, Tagbina, Surigao del Sur');
+});
+
+test('recomposeLegacyAddress falls back to the raw string when nothing recognizable can be split out', function (): void {
+    expect(LocationComposer::recomposeLegacyAddress('some random text with no place names'))
+        ->toBe('some random text with no place names');
 });
 
 test('recomposeLegacyAddress returns an empty string for blank input', function (): void {
@@ -91,7 +98,12 @@ test('recomposeLegacyBirthplace normalizes spacing around existing commas', func
         ->toBe('Cebu City, Cebu');
 });
 
-test('recomposeLegacyBirthplace falls back to the raw string when there are no separators to parse', function (): void {
+test('recomposeLegacyBirthplace inserts commas via PSGC place matching when there are no separators at all', function (): void {
     expect(LocationComposer::recomposeLegacyBirthplace('Cebu City Cebu'))
-        ->toBe('Cebu City Cebu');
+        ->toBe('City of Cebu, Cebu');
+});
+
+test('recomposeLegacyBirthplace falls back to the raw string when nothing recognizable can be split out', function (): void {
+    expect(LocationComposer::recomposeLegacyBirthplace('nowhere in particular'))
+        ->toBe('nowhere in particular');
 });

@@ -348,7 +348,7 @@ class ApprovedLoanDocumentDataBuilder
                 'approved_date_day' => $documentDate?->format('d'),
                 'approved_date_month_year' => $documentDate?->format('F, Y'),
                 'maturity_date_short' => $maturityDate?->format('m/d/Y'),
-                'term_days' => $approvedTerm !== null ? $approvedTerm * 25 : null,
+                'term_days' => $approvedTerm !== null ? $approvedTerm * 30 : null,
                 'recommended_by' => $processorDisplayName,
                 'insurance_term' => $insuranceTerm,
                 'interest_rate_raw' => $interestRateRaw,

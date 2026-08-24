@@ -79,6 +79,41 @@ test('psgc service recognizes known provinces', function () {
     expect($service->isKnownProvince(''))->toBeFalse();
 });
 
+test('psgc service splits an unpunctuated legacy address into street, locality, and province', function () {
+    $service = app(PsgcService::class);
+
+    expect($service->splitFreeTextAddress('Purok 4 Tagbina Surigao Del Sur'))->toBe([
+        'street' => 'Purok 4',
+        'locality' => 'Tagbina',
+        'province' => 'Surigao del Sur',
+    ]);
+});
+
+test('psgc service split leaves street null when the whole text is city and province', function () {
+    $service = app(PsgcService::class);
+
+    expect($service->splitFreeTextAddress('Cebu City Cebu'))->toBe([
+        'street' => null,
+        'locality' => 'City of Cebu',
+        'province' => 'Cebu',
+    ]);
+});
+
+test('psgc service split returns all null when nothing recognizable is present', function () {
+    $service = app(PsgcService::class);
+
+    expect($service->splitFreeTextAddress('some random text with no place names'))->toBe([
+        'street' => null,
+        'locality' => null,
+        'province' => null,
+    ]);
+    expect($service->splitFreeTextAddress('OnlyOneWord'))->toBe([
+        'street' => null,
+        'locality' => null,
+        'province' => null,
+    ]);
+});
+
 test('psgc service searches barangays scoped to a municipality', function () {
     $service = app(PsgcService::class);
     $result = $service->searchBarangays('Davao City', 'Acacia');

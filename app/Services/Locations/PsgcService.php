@@ -225,6 +225,73 @@ class PsgcService
     }
 
     /**
+     * Best-effort split of an unpunctuated legacy free-text address (e.g.
+     * "Purok 4 Tagbina Surigao Del Sur", with no commas to parse) into
+     * street/locality/province by matching trailing word windows against the
+     * known PSGC province and city/municipality lists. Returns all-null when
+     * neither a province nor a locality can be recognized in the text.
+     *
+     * @return array{street: ?string, locality: ?string, province: ?string}
+     */
+    public function splitFreeTextAddress(string $raw): array
+    {
+        $words = preg_split('/\s+/', trim($raw), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $count = count($words);
+
+        $none = ['street' => null, 'locality' => null, 'province' => null];
+
+        if ($count < 2) {
+            return $none;
+        }
+
+        $province = null;
+        $provinceWordCount = 0;
+
+        for ($window = min(4, $count); $window >= 1; $window--) {
+            $candidate = implode(' ', array_slice($words, $count - $window));
+
+            if ($this->isKnownProvince($candidate)) {
+                $province = $this->resolveProvinceName($candidate);
+                $provinceWordCount = $window;
+                break;
+            }
+        }
+
+        $remaining = $provinceWordCount > 0
+            ? array_slice($words, 0, $count - $provinceWordCount)
+            : $words;
+        $remainingCount = count($remaining);
+
+        $locality = null;
+        $localityWordCount = 0;
+
+        for ($window = min(3, $remainingCount); $window >= 1; $window--) {
+            $candidate = implode(' ', array_slice($remaining, $remainingCount - $window));
+
+            if ($this->isKnownLocality($candidate)) {
+                $locality = $this->resolveLocalityName($candidate);
+                $localityWordCount = $window;
+                break;
+            }
+        }
+
+        if ($province === null && $locality === null) {
+            return $none;
+        }
+
+        $streetWords = $localityWordCount > 0
+            ? array_slice($remaining, 0, $remainingCount - $localityWordCount)
+            : $remaining;
+        $street = trim(implode(' ', $streetWords));
+
+        return [
+            'street' => $street !== '' ? $street : null,
+            'locality' => $locality,
+            'province' => $province,
+        ];
+    }
+
+    /**
      * The real PSGC dataset, used by isKnownLocality()/isKnownProvince() for
      * value-uniformity validation. Unlike dataset() (used by the search
      * endpoints), this deliberately ignores the testing_data_path override

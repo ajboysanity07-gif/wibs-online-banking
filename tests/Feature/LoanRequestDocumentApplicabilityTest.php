@@ -321,7 +321,7 @@ test('a nonzero loan_security_rate passes through unmodified with no flag presen
         ->and($documentData['loan']['loan_security_amount_raw'])->toBe(62500.0);
 });
 
-test('term_days uses a x25 multiplier matching the source workbook (12 month term = 300 days, not 360)', function (): void {
+test('term_days uses a x30 multiplier matching the 30/360 day-count convention (12 month term = 360 days)', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 24000,
@@ -335,7 +335,7 @@ test('term_days uses a x25 multiplier matching the source workbook (12 month ter
 
     $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
 
-    expect($documentData['loan']['term_days'])->toBe(300);
+    expect($documentData['loan']['term_days'])->toBe(360);
 });
 
 test('savings_rate drives the amortization savings figure independently from loan_security_rate', function (): void {

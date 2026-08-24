@@ -13,6 +13,20 @@
     $interestRateWords = trim((string) ($loan['interest_rate_words'] ?? ''));
     $amortizationTotal = $loan['amortization_total_raw'] ?? null;
     $paymentMode = trim((string) ($loan['payment_mode_workbook'] ?? ''));
+    // payment_mode_workbook holds canonical uppercase codes (MONTHLY, SEMI-MONTHLY,
+    // BI-WEEKLY, WEEKLY, LUMPSUM) but this reads inline in a lowercase prose
+    // sentence ("...inclusive of interest every ___"), so print a lowercase,
+    // grammatically-matching label instead of the raw code.
+    $paymentModeUpper = strtoupper($paymentMode);
+    $paymentModeLabel = match (true) {
+        $paymentMode === '' => null,
+        str_contains($paymentModeUpper, 'LUMP') => 'lump sum',
+        str_contains($paymentModeUpper, 'SEMI') => 'semi-monthly',
+        str_contains($paymentModeUpper, 'BI-WEEK') || str_contains($paymentModeUpper, 'BIWEEK') => 'bi-weekly',
+        str_contains($paymentModeUpper, 'WEEK') => 'weekly',
+        str_contains($paymentModeUpper, 'MONTH') => 'monthly',
+        default => strtolower($paymentMode),
+    };
     $amortizationCount = $loan['amortization_count'] ?? null;
     $penaltyRate = $loan['penalty_rate_raw'] ?? null;
 
@@ -432,7 +446,7 @@
                     per annum. Amortization/Installment payment of
                     {!! $renderValue($installmentAmountValue, '7em') !!}
                     inclusive of interest every
-                    {!! $renderValue($paymentMode, '7em') !!}
+                    {!! $renderValue($paymentModeLabel, '7em') !!}
                     starting
                     {!! $renderValue(null, '7em') !!}
                     to
