@@ -424,6 +424,7 @@ export type LoanRequestDetail = {
     submitted_at: string | null;
     assigned_officer_id: number | string | null;
     assigned_processor_id: number | string | null;
+    designated_manager_id: number | string | null;
     assigned_officer: LoanRequestReviewer | null;
     assigned_processor: LoanRequestReviewer | null;
     assignment_state: LoanRequestAssignmentState;

@@ -163,6 +163,20 @@ class LoanRequest extends Model
         return $this->hasMany(LoanRequestDataEntry::class);
     }
 
+    /**
+     * The loan manager the processor designated as reviewer/witness
+     * (processing.witness_two_id). Null means unassigned -- any eligible
+     * manager may act on the request.
+     */
+    public function designatedManagerId(): ?int
+    {
+        $value = $this->dataEntries
+            ->firstWhere('field_key', 'witness_two_id')
+            ?->value_json['value'] ?? null;
+
+        return $value !== null && $value !== '' ? (int) $value : null;
+    }
+
     public function dataChanges(): HasMany
     {
         return $this->hasMany(LoanRequestDataChange::class);

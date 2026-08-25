@@ -608,8 +608,7 @@ test('approval does not overwrite the witness-two manager chosen at processing',
             'approved_payment_frequency' => '15th & 30th',
             'approval_remarks' => 'Approved as recommended.',
         ])
-        ->assertStatus(422)
-        ->assertJsonValidationErrors('witness_two_id');
+        ->assertForbidden();
 
     // The designated manager succeeds.
     $this
@@ -635,6 +634,141 @@ test('approval does not overwrite the witness-two manager chosen at processing',
         ->sole();
 
     expect($witnessTwoEntry->value_json['value'])->toBe($chosenManager->resolvedDisplayName());
+});
+
+test('only the designated manager can decline or return a recommended request for processing', function (): void {
+    config()->set('mail.default', 'array');
+
+    $member = createAcceptanceMember('940011', 'Scoped', 'Manager');
+    $processor = createAcceptanceActor([Role::LOAN_PROCESSOR]);
+    $chosenManager = createAcceptanceActor([Role::LOAN_MANAGER]);
+    $otherManager = createAcceptanceActor([Role::LOAN_MANAGER]);
+
+    $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+
+    $loanRequest = LoanRequest::query()->sole();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.claim', $loanRequest))
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.start-review', $loanRequest), [
+            'remarks' => 'Starting review with a chosen witness manager.',
+        ])
+        ->assertOk();
+
+    $processingPayload = acceptanceProcessingPayload();
+    unset($processingPayload['processing']['witness_one_name']);
+    $processingPayload['processing']['witness_two_name'] = $chosenManager->resolvedDisplayName();
+    $processingPayload['processing']['witness_two_id'] = $chosenManager->user_id;
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $processingPayload)
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->postJson(route('spa.workflow.loan-requests.documents.generate', $loanRequest))
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.recommend-approval', $loanRequest), [
+            'review_remarks' => 'Ready for manager review.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::RecommendedForApproval->value);
+
+    // A manager who isn't the designated witness cannot decline or return it.
+    $this
+        ->actingAs($otherManager)
+        ->patchJson(route('spa.workflow.loan-requests.decline', $loanRequest), [
+            'decline_category' => 'other',
+            'decline_reason' => 'Attempted decline by the wrong manager.',
+        ])
+        ->assertForbidden();
+
+    $this
+        ->actingAs($otherManager)
+        ->patchJson(route('spa.workflow.loan-requests.return-for-processing', $loanRequest), [
+            'reason' => 'Attempted return by the wrong manager.',
+        ])
+        ->assertForbidden();
+
+    // The designated manager can return it for processing.
+    $this
+        ->actingAs($chosenManager)
+        ->patchJson(route('spa.workflow.loan-requests.return-for-processing', $loanRequest), [
+            'reason' => 'Sending back for a correction.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::UnderReview->value);
+});
+
+test('manager queue only lists recommended requests assigned to that manager', function (): void {
+    config()->set('mail.default', 'array');
+
+    $memberOne = createAcceptanceMember('940012', 'Queue', 'One');
+    $memberTwo = createAcceptanceMember('940013', 'Queue', 'Two');
+    $processor = createAcceptanceActor([Role::LOAN_PROCESSOR]);
+    $managerA = createAcceptanceActor([Role::LOAN_MANAGER]);
+    $managerB = createAcceptanceActor([Role::LOAN_MANAGER]);
+
+    foreach ([[$memberOne, $managerA], [$memberTwo, $managerB]] as [$member, $manager]) {
+        $this
+            ->actingAs($member)
+            ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+
+        $loanRequest = LoanRequest::query()->where('user_id', $member->user_id)->sole();
+
+        $this->actingAs($processor)
+            ->patchJson(route('spa.workflow.loan-requests.claim', $loanRequest))
+            ->assertOk();
+
+        $this->actingAs($processor)
+            ->patchJson(route('spa.workflow.loan-requests.start-review', $loanRequest), [
+                'remarks' => 'Starting review.',
+            ])
+            ->assertOk();
+
+        $processingPayload = acceptanceProcessingPayload();
+        unset($processingPayload['processing']['witness_one_name']);
+        $processingPayload['processing']['witness_two_name'] = $manager->resolvedDisplayName();
+        $processingPayload['processing']['witness_two_id'] = $manager->user_id;
+
+        $this->actingAs($processor)
+            ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $processingPayload)
+            ->assertOk();
+
+        $this->actingAs($processor)
+            ->postJson(route('spa.workflow.loan-requests.documents.generate', $loanRequest))
+            ->assertOk();
+
+        $this->actingAs($processor)
+            ->patchJson(route('spa.workflow.loan-requests.recommend-approval', $loanRequest), [
+                'review_remarks' => 'Ready for manager review.',
+            ])
+            ->assertOk();
+    }
+
+    $requestForManagerA = LoanRequest::query()->where('user_id', $memberOne->user_id)->sole();
+    $requestForManagerB = LoanRequest::query()->where('user_id', $memberTwo->user_id)->sole();
+
+    $managerAQueue = $this->actingAs($managerA)
+        ->getJson(route('spa.staff.loan-requests.index', ['perPage' => 50]))
+        ->assertOk()
+        ->json('data.items');
+
+    $managerAIds = array_column($managerAQueue, 'id');
+
+    expect($managerAIds)->toContain($requestForManagerA->id);
+    expect($managerAIds)->not->toContain($requestForManagerB->id);
 });
 
 test('staff show route exposes loan managers with their in-flight loan counts', function (): void {

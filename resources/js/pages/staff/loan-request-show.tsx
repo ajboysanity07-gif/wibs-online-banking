@@ -511,6 +511,12 @@ export default function StaffLoanRequestShow({
     };
     const normalizedAssignedProcessorId = normalizeId(assignedProcessorId);
     const normalizedActorUserId = normalizeId(actorUserId);
+    const normalizedDesignatedManagerId = normalizeId(
+        currentRequest.designated_manager_id,
+    );
+    const isDesignatedManager =
+        normalizedDesignatedManagerId === null ||
+        normalizedDesignatedManagerId === normalizedActorUserId;
     const documentResultSummary =
         lastDocumentResults === null
             ? []
@@ -624,7 +630,8 @@ export default function StaffLoanRequestShow({
     const canManagerCorrect =
         !isOwnRequest &&
         hasWorkflowPermission('loan.correct') &&
-        currentRequest.status === 'recommended_for_approval';
+        currentRequest.status === 'recommended_for_approval' &&
+        isDesignatedManager;
     const canGenerateDocuments =
         canUpdateProcessing ||
         (!isOwnRequest &&
@@ -634,7 +641,8 @@ export default function StaffLoanRequestShow({
             )) ||
         (!isOwnRequest &&
             hasWorkflowPermission('loan.approve') &&
-            currentRequest.status === 'recommended_for_approval');
+            currentRequest.status === 'recommended_for_approval' &&
+            isDesignatedManager);
     const canRecommendApproval =
         !isOwnRequest &&
         currentRequest.status === 'under_review' &&
@@ -643,11 +651,13 @@ export default function StaffLoanRequestShow({
     const canWorkflowApprove =
         !isOwnRequest &&
         currentRequest.status === 'recommended_for_approval' &&
-        hasWorkflowPermission('loan.approve');
+        hasWorkflowPermission('loan.approve') &&
+        isDesignatedManager;
     const canWorkflowDecline =
         !isOwnRequest &&
         currentRequest.status === 'recommended_for_approval' &&
-        hasWorkflowPermission('loan.decline');
+        hasWorkflowPermission('loan.decline') &&
+        isDesignatedManager;
     const canAssign =
         currentRequest.can_assign && currentEligibleOfficers.length > 0;
     const canReassign =
@@ -663,8 +673,9 @@ export default function StaffLoanRequestShow({
             currentRequest.status ?? '',
         ) &&
         (hasWorkflowPermission('loan.manage_assignment') ||
-            hasWorkflowPermission('loan.approve') ||
-            hasWorkflowPermission('loan.decline'));
+            ((hasWorkflowPermission('loan.approve') ||
+                hasWorkflowPermission('loan.decline')) &&
+                isDesignatedManager));
     const canReopenRejectedRequest =
         !isOwnRequest &&
         currentRequest.status === 'rejected' &&

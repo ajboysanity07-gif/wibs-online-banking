@@ -4,6 +4,8 @@ namespace App\Services\LoanRequests;
 
 use App\LoanRequestStatus;
 use App\Models\AppUser;
+use App\Models\LoanRequest;
+use App\Models\LoanRequestDataEntry;
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Builder;
@@ -344,7 +346,25 @@ class LoanWorkflowWorkspaceService
                 return;
             }
 
-            $query->whereIn('status', $statuses);
+            $otherStatuses = array_values(array_diff(
+                $statuses,
+                [LoanRequestStatus::RecommendedForApproval->value],
+            ));
+            $excludedRecommendedIds = $this->recommendedRequestIdsAssignedToOtherManagers($user);
+
+            $query->where(function (Builder $builder) use ($otherStatuses, $excludedRecommendedIds): void {
+                if ($otherStatuses !== []) {
+                    $builder->whereIn('status', $otherStatuses);
+                }
+
+                $builder->orWhere(function (Builder $recommendedQuery) use ($excludedRecommendedIds): void {
+                    $recommendedQuery->where('status', LoanRequestStatus::RecommendedForApproval->value);
+
+                    if ($excludedRecommendedIds !== []) {
+                        $recommendedQuery->whereNotIn('id', $excludedRecommendedIds);
+                    }
+                });
+            });
 
             return;
         }
@@ -376,6 +396,38 @@ class LoanWorkflowWorkspaceService
         }
 
         $query->whereIn('status', $statuses);
+    }
+
+    /**
+     * IDs of recommended-for-approval requests whose designated manager
+     * (processing.witness_two_id) is someone other than $user. value_json is
+     * a TEXT column with an array cast, so filtering happens in PHP rather
+     * than via a JSON-path SQL operator (matches
+     * LoanManagerWitnessResolver::activeLoanCount()).
+     *
+     * @return list<int>
+     */
+    private function recommendedRequestIdsAssignedToOtherManagers(AppUser $user): array
+    {
+        $recommendedIds = LoanRequest::query()
+            ->where('status', LoanRequestStatus::RecommendedForApproval->value)
+            ->pluck('id');
+
+        if ($recommendedIds->isEmpty()) {
+            return [];
+        }
+
+        return LoanRequestDataEntry::query()
+            ->where('field_key', 'witness_two_id')
+            ->whereIn('loan_request_id', $recommendedIds)
+            ->get()
+            ->filter(function (LoanRequestDataEntry $entry) use ($user): bool {
+                $value = $entry->value_json['value'] ?? null;
+
+                return $value !== null && $value !== '' && (int) $value !== (int) $user->user_id;
+            })
+            ->pluck('loan_request_id')
+            ->all();
     }
 
     private function memberWorkspaceRoute(AppUser $user): string

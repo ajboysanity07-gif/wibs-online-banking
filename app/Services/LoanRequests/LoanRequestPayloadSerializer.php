@@ -231,6 +231,7 @@ class LoanRequestPayloadSerializer
             'submitted_at' => $loanRequest->submitted_at?->toDateTimeString(),
             'assigned_officer_id' => $loanRequest->assigned_officer_id,
             'assigned_processor_id' => $loanRequest->assigned_officer_id,
+            'designated_manager_id' => $loanRequest->designatedManagerId(),
             'assigned_officer' => $this->serializeActor($loanRequest->assignedOfficer),
             'assigned_processor' => $this->serializeActor($loanRequest->assignedOfficer),
             'workflow_version' => $loanRequest->workflow_version?->value

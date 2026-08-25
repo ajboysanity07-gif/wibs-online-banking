@@ -171,8 +171,23 @@ class LoanRequestPolicy
         // applicant's own request) are enforced by
         // LoanRequestCorrectionService::ensureCorrectable() as validation
         // errors, not authorization failures.
-        return $user->hasActiveStaffAccess()
-            && $user->hasPermission(Permission::LOAN_CORRECT);
+        if (! $user->hasActiveStaffAccess() || ! $user->hasPermission(Permission::LOAN_CORRECT)) {
+            return false;
+        }
+
+        // At the manager-review stage, corrections are limited to the
+        // designated manager (processing.witness_two_id) so the checker
+        // can't silently edit data assigned to a different manager.
+        if ($this->statusValue($loanRequest) === LoanRequestStatus::RecommendedForApproval->value
+            && $user->hasRole(Role::LOAN_MANAGER)
+            && ! $user->hasRole(Role::SUPERADMIN)
+            && ! $user->isLegacySuperadmin()) {
+            $designatedManagerId = $loanRequest->designatedManagerId();
+
+            return $designatedManagerId === null || $designatedManagerId === (int) $user->user_id;
+        }
+
+        return true;
     }
 
     public function createAdminCorrectedCopy(AppUser $user, LoanRequest $loanRequest): bool
@@ -213,14 +228,14 @@ class LoanRequestPolicy
 
         // A reviewing manager may bring documents current after correcting a
         // mistake spotted during approval, without returning the request to
-        // the processor.
-        return $this->canActOnAnotherUsersRequest($user, $loanRequest, Permission::LOAN_APPROVE)
+        // the processor. Scoped to the designated manager, same as approve().
+        return $this->canActOnDesignatedManagerRequest($user, $loanRequest, Permission::LOAN_APPROVE)
             && $this->statusValue($loanRequest) === LoanRequestStatus::RecommendedForApproval->value;
     }
 
     public function approve(AppUser $user, LoanRequest $loanRequest): bool
     {
-        return $this->canActOnAnotherUsersRequest(
+        return $this->canActOnDesignatedManagerRequest(
             $user,
             $loanRequest,
             Permission::LOAN_APPROVE,
@@ -242,10 +257,17 @@ class LoanRequestPolicy
             return false;
         }
 
-        return $user->hasPermission(Permission::LOAN_MANAGE_ASSIGNMENT)
-            || $user->hasPermission(Permission::LOAN_APPROVE)
-            || $user->hasPermission(Permission::LOAN_DECLINE)
-            || $user->isLegacySuperadmin();
+        if ($user->hasRole(Role::SUPERADMIN) || $user->isLegacySuperadmin()) {
+            return true;
+        }
+
+        if (! $user->hasPermission(Permission::LOAN_APPROVE) && ! $user->hasPermission(Permission::LOAN_DECLINE)) {
+            return false;
+        }
+
+        $designatedManagerId = $loanRequest->designatedManagerId();
+
+        return $designatedManagerId === null || $designatedManagerId === (int) $user->user_id;
     }
 
     public function reopenRejectedRequest(
@@ -283,7 +305,7 @@ class LoanRequestPolicy
 
     public function decline(AppUser $user, LoanRequest $loanRequest): bool
     {
-        return $this->canActOnAnotherUsersRequest(
+        return $this->canActOnDesignatedManagerRequest(
             $user,
             $loanRequest,
             Permission::LOAN_DECLINE,
@@ -358,6 +380,26 @@ class LoanRequestPolicy
     ): bool {
         return $this->canActOnAnotherUsersRequest($user, $loanRequest, $permission)
             && $loanRequest->assigned_officer_id === $user->user_id;
+    }
+
+    /**
+     * Like canActOnAssignedRequest(), but scoped to the loan manager the
+     * processor designated as reviewer (processing.witness_two_id) instead
+     * of assigned_officer_id. An unassigned request (no witness recorded
+     * yet) remains actionable by any eligible manager.
+     */
+    private function canActOnDesignatedManagerRequest(
+        AppUser $user,
+        LoanRequest $loanRequest,
+        string $permission,
+    ): bool {
+        if (! $this->canActOnAnotherUsersRequest($user, $loanRequest, $permission)) {
+            return false;
+        }
+
+        $designatedManagerId = $loanRequest->designatedManagerId();
+
+        return $designatedManagerId === null || $designatedManagerId === (int) $user->user_id;
     }
 
     private function canStartReviewWorkflow(

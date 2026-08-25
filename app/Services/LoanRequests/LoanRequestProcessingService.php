@@ -10,6 +10,7 @@ use App\Models\AuthorityToDeductInstitutionContact;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Models\LoanRequestDataChange;
+use App\Models\Role;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -609,6 +610,20 @@ class LoanRequestProcessingService
 
             $before = $this->editableSnapshot($lockedLoanRequest);
 
+            $designatedWitnessId = $before['processing']['witness_two_id'] ?? null;
+            $designatedWitnessId = $designatedWitnessId !== null && $designatedWitnessId !== ''
+                ? (int) $designatedWitnessId
+                : null;
+
+            if ($designatedWitnessId !== null
+                && ! $actor->hasRole(Role::SUPERADMIN)
+                && ! $actor->isLegacySuperadmin()
+                && (int) $actor->user_id !== $designatedWitnessId) {
+                throw ValidationException::withMessages([
+                    'witness_two_id' => 'Only the designated loan manager can return this request for processing.',
+                ]);
+            }
+
             $lockedLoanRequest->fill([
                 'status' => LoanRequestStatus::UnderReview,
                 'member_action_type' => null,
@@ -887,6 +902,17 @@ class LoanRequestProcessingService
             }
 
             $before = $this->editableSnapshot($lockedLoanRequest);
+
+            $designatedWitnessId = $before['processing']['witness_two_id'] ?? null;
+            $designatedWitnessId = $designatedWitnessId !== null && $designatedWitnessId !== ''
+                ? (int) $designatedWitnessId
+                : null;
+
+            if ($designatedWitnessId !== null && (int) $actor->user_id !== $designatedWitnessId) {
+                throw ValidationException::withMessages([
+                    'witness_two_id' => 'Only the designated loan manager can decline this request.',
+                ]);
+            }
 
             $lockedLoanRequest->fill([
                 'status' => LoanRequestStatus::Declined,

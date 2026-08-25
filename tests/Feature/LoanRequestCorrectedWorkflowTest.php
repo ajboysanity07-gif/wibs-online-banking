@@ -896,6 +896,67 @@ test('loan manager cannot correct their own recommended for approval request', f
         ->assertJsonValidationErrors('correction');
 });
 
+test('loan manager cannot correct a recommended request assigned to a different manager', function () {
+    $assignedManager = User::factory()->create(['acctno' => '000529']);
+    AdminProfile::factory()->admin()->create(['user_id' => $assignedManager->user_id]);
+    Role::attachNamedRole($assignedManager, Role::LOAN_MANAGER);
+
+    $otherManager = User::factory()->create(['acctno' => '000530']);
+    AdminProfile::factory()->admin()->create(['user_id' => $otherManager->user_id]);
+    Role::attachNamedRole($otherManager, Role::LOAN_MANAGER);
+
+    $member = User::factory()->create(['acctno' => '000531']);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'typecode' => 'LN-COR',
+        'requested_amount' => 15000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Original purpose',
+        'availment_status' => 'New',
+        'status' => LoanRequestStatus::RecommendedForApproval,
+        'submitted_at' => now(),
+        'assigned_officer_id' => null,
+    ]);
+
+    LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::Applicant)->create();
+    LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::CoMakerOne)->create();
+    LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::CoMakerTwo)->create();
+
+    LoanRequestDataEntry::create([
+        'loan_request_id' => $loanRequest->id,
+        'section_key' => 'processing',
+        'field_key' => 'witness_two_id',
+        'owner_type' => 'staff',
+        'value_json' => ['value' => $assignedManager->user_id],
+    ]);
+
+    $this
+        ->actingAs($otherManager)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/corrections", [
+            'change_reason' => 'Attempted correction on someone else\'s assigned request.',
+            'typecode' => 'LN-COR',
+            'requested_amount' => 20000,
+            'requested_term' => 12,
+            'loan_purpose' => 'Original purpose',
+            'availment_status' => 'New',
+            ...correctedWorkflowFullPersonPayload(),
+        ])
+        ->assertForbidden();
+
+    $this
+        ->actingAs($assignedManager)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/corrections", [
+            'change_reason' => 'Correction by the designated manager.',
+            'typecode' => 'LN-COR',
+            'requested_amount' => 20000,
+            'requested_term' => 12,
+            'loan_purpose' => 'Original purpose',
+            'availment_status' => 'New',
+            ...correctedWorkflowFullPersonPayload(),
+        ])
+        ->assertOk();
+});
+
 test('staff without loan review permission cannot correct an under review request', function () {
     $staff = User::factory()->create(['acctno' => '000524']);
     AdminProfile::factory()->create(['user_id' => $staff->user_id]);
