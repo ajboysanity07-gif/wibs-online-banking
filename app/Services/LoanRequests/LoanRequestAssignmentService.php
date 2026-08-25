@@ -10,13 +10,16 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\StaffAccessControl;
 use App\Support\SchemaCapabilities;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Throwable;
 
 class LoanRequestAssignmentService
 {
@@ -45,6 +48,67 @@ class LoanRequestAssignmentService
 
             return $this->claimLockedLoanRequest($lockedLoanRequest, $actor);
         });
+    }
+
+    /**
+     * Claims each given loan request independently, so a few ineligible or
+     * stale rows in a bulk selection don't block the rest from succeeding.
+     *
+     * @param  array<int, int>  $loanRequestIds
+     * @return array{
+     *     succeeded: array<int, int>,
+     *     failed: array<int, array{id:int, message:string}>,
+     *     total:int,
+     *     succeeded_count:int,
+     *     failed_count:int
+     * }
+     */
+    public function bulkClaim(array $loanRequestIds, AppUser $actor): array
+    {
+        $succeeded = [];
+        $failed = [];
+
+        foreach (array_unique($loanRequestIds) as $loanRequestId) {
+            try {
+                $loanRequest = LoanRequest::query()->findOrFail($loanRequestId);
+                $this->claim($loanRequest, $actor);
+                $succeeded[] = (int) $loanRequestId;
+            } catch (Throwable $e) {
+                $failed[] = [
+                    'id' => (int) $loanRequestId,
+                    'message' => $this->bulkFailureMessage($e),
+                ];
+            }
+        }
+
+        return [
+            'succeeded' => $succeeded,
+            'failed' => $failed,
+            'total' => count($succeeded) + count($failed),
+            'succeeded_count' => count($succeeded),
+            'failed_count' => count($failed),
+        ];
+    }
+
+    private function bulkFailureMessage(Throwable $e): string
+    {
+        if ($e instanceof ValidationException) {
+            return collect($e->errors())->flatten()->first() ?? $e->getMessage();
+        }
+
+        if ($e instanceof AuthorizationException) {
+            return $e->getMessage() !== ''
+                ? $e->getMessage()
+                : 'You are not authorized to claim this request.';
+        }
+
+        if ($e instanceof ModelNotFoundException) {
+            return 'Loan request not found.';
+        }
+
+        return $e->getMessage() !== ''
+            ? $e->getMessage()
+            : 'This request could not be claimed.';
     }
 
     /**

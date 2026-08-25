@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Spa\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LoanRequestAdminCorrectedCopyRequest;
 use App\Http\Requests\Admin\LoanRequestApproveRequest;
+use App\Http\Requests\Admin\LoanRequestBulkCancelRequest;
 use App\Http\Requests\Admin\LoanRequestCancelRequest;
 use App\Http\Requests\Admin\LoanRequestDeclineRequest;
 use App\Jobs\SendLoanDecisionSmsJob;
@@ -98,6 +99,24 @@ class LoanRequestDecisionController extends Controller
                     $updated,
                 ),
             ],
+        ]);
+    }
+
+    public function bulkCancel(
+        LoanRequestBulkCancelRequest $request,
+        LoanRequestDecisionService $service,
+    ): JsonResponse {
+        $payload = $request->validated();
+
+        $result = $service->bulkCancelByAdmin(
+            $payload['loan_request_ids'],
+            $request->user(),
+            $payload['cancellation_reason'],
+        );
+
+        return response()->json([
+            'ok' => true,
+            'data' => $result,
         ]);
     }
 

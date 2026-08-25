@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import {
     ArrowDown,
     ArrowUp,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AssignOfficerDialog } from '@/components/loan-request/assign-officer-dialog';
+import { BulkCancelDialog } from '@/components/loan-request/bulk-cancel-dialog';
 import {
     LoanRequestPageHero,
     LoanRequestSearchBox,
@@ -26,6 +27,7 @@ import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import {
     DataTablePagination,
@@ -56,15 +58,36 @@ import {
     type TableSkeletonColumn,
 } from '@/components/ui/table-skeleton';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
+import { useBulkLoanRequestActions } from '@/hooks/loan-request/use-bulk-loan-request-actions';
 import { useRequestQueue } from '@/hooks/loan-request/use-request-queue';
 import AppLayout from '@/layouts/app-layout';
 import type { RequestQueueWorkspace } from '@/lib/api/request-queue';
 import { formatCurrency } from '@/lib/formatters';
 import { type LoanRequestQueueStatusFilter } from '@/lib/loan-request-queue';
+import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { RequestPreview } from '@/types/admin';
-import type { LoanRequestAssignmentOfficerOption } from '@/types/loan-requests';
+import type {
+    LoanRequestAssignmentOfficerOption,
+    LoanRequestBulkActionResult,
+    LoanRequestStatusValue,
+} from '@/types/loan-requests';
+
+// Mirrors the backend's cancellable-status gate (LoanRequestDecisionService::
+// isApproved()/isPendingDecision()) so ineligible rows can be disabled
+// client-side. The backend remains the authority -- this is only used to
+// reduce partial-failure noise in the bulk selection UI.
+const cancellableStatuses: LoanRequestStatusValue[] = [
+    'pending_co_maker_signatures',
+    'submitted',
+    'pending_review',
+    'under_review',
+    'needs_revision',
+    'awaiting_member_information',
+    'awaiting_member_acceptance',
+    'approved',
+];
 
 type Props = {
     workspace: RequestQueueWorkspace;
@@ -283,6 +306,8 @@ export function LoanRequestQueuePage({
         currentOfficerName?: string | null;
         officerOptions: LoanRequestAssignmentOfficerOption[];
     } | null>(null);
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+    const [bulkCancelDialogOpen, setBulkCancelDialogOpen] = useState(false);
 
     const toggleSort = (column: string) => {
         if (sortBy === column) {
@@ -326,11 +351,159 @@ export function LoanRequestQueuePage({
     } = useLoanRequestWorkflow({
         onUpdated: () => refetch(),
     });
+    const {
+        bulkClaim,
+        bulkCancel,
+        isSubmitting: isBulkSubmitting,
+    } = useBulkLoanRequestActions();
+
+    const selectedIds = useMemo(
+        () =>
+            Object.keys(rowSelection)
+                .filter((id) => rowSelection[id])
+                .map((id) => Number(id)),
+        [rowSelection],
+    );
+    const itemsById = useMemo(
+        () => new Map(items.map((item) => [item.id, item])),
+        [items],
+    );
+    const claimableSelectedIds = useMemo(
+        () => selectedIds.filter((id) => itemsById.get(id)?.can_claim === true),
+        [selectedIds, itemsById],
+    );
+    const cancellableSelectedIds = useMemo(
+        () =>
+            selectedIds.filter((id) => {
+                const status = itemsById.get(id)?.status;
+
+                return (
+                    status !== null &&
+                    status !== undefined &&
+                    cancellableStatuses.includes(status)
+                );
+            }),
+        [selectedIds, itemsById],
+    );
+
+    const summarizeBulkResult = (
+        result: LoanRequestBulkActionResult,
+        actionLabel: string,
+    ): void => {
+        if (result.failed_count === 0) {
+            showSuccessToast(
+                `${result.succeeded_count} request${result.succeeded_count === 1 ? '' : 's'} ${actionLabel}.`,
+            );
+
+            return;
+        }
+
+        const failureSummary = result.failed
+            .slice(0, 3)
+            .map((failure) => `#${failure.id}: ${failure.message}`)
+            .join(' ');
+
+        if (result.succeeded_count === 0) {
+            showErrorToast(
+                new Error(failureSummary),
+                `Failed to ${actionLabel} the selected requests.`,
+                {
+                    description:
+                        result.failed_count > 3
+                            ? `${failureSummary} (+${result.failed_count - 3} more)`
+                            : failureSummary,
+                },
+            );
+
+            return;
+        }
+
+        showSuccessToast(
+            `${result.succeeded_count} ${actionLabel}, ${result.failed_count} failed.`,
+            {
+                description:
+                    result.failed_count > 3
+                        ? `${failureSummary} (+${result.failed_count - 3} more)`
+                        : failureSummary,
+            },
+        );
+    };
+
+    const handleBulkClaim = async () => {
+        if (claimableSelectedIds.length === 0) {
+            return;
+        }
+
+        const result = await bulkClaim(claimableSelectedIds);
+
+        if (result) {
+            summarizeBulkResult(result, 'claimed');
+            setRowSelection({});
+            refetch();
+        }
+    };
+
+    const handleBulkCancel = async (cancellationReason: string) => {
+        if (cancellableSelectedIds.length === 0) {
+            return;
+        }
+
+        const result = await bulkCancel(
+            cancellableSelectedIds,
+            cancellationReason,
+        );
+
+        if (result) {
+            summarizeBulkResult(result, 'cancelled');
+            setRowSelection({});
+            refetch();
+        }
+    };
 
     // TanStack Table recreates its internal instance when the columns array
     // identity changes, so this must stay memoized.
     const columns = useMemo<ColumnDef<RequestPreview>[]>(
         () => [
+            {
+                id: 'select',
+                header: ({ table }) => (
+                    <Checkbox
+                        aria-label="Select all eligible requests on this page"
+                        checked={
+                            table.getIsAllPageRowsSelected()
+                                ? true
+                                : table.getIsSomePageRowsSelected()
+                                  ? 'indeterminate'
+                                  : false
+                        }
+                        onCheckedChange={(value) =>
+                            table.toggleAllPageRowsSelected(!!value)
+                        }
+                    />
+                ),
+                cell: ({ row }) => {
+                    const request = row.original;
+                    const selectable =
+                        request.can_claim ||
+                        cancellableStatuses.includes(
+                            request.status as LoanRequestStatusValue,
+                        );
+
+                    if (!request.id || !selectable) {
+                        return null;
+                    }
+
+                    return (
+                        <Checkbox
+                            aria-label={`Select request ${request.reference ?? request.id}`}
+                            checked={row.getIsSelected()}
+                            onCheckedChange={(value) =>
+                                row.toggleSelected(!!value)
+                            }
+                        />
+                    );
+                },
+            },
             {
                 accessorKey: 'reference',
                 header: () => (
@@ -931,6 +1104,49 @@ export function LoanRequestQueuePage({
                     </Alert>
                 ) : null}
 
+                {selectedIds.length > 0 ? (
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/40 bg-card/60 p-4 shadow-sm">
+                        <p className="text-sm font-medium">
+                            {formatCountLabel(selectedIds.length, 'request')}{' '}
+                            selected
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setRowSelection({})}
+                                disabled={isBulkSubmitting}
+                            >
+                                Clear selection
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                disabled={
+                                    claimableSelectedIds.length === 0 ||
+                                    isBulkSubmitting
+                                }
+                                onClick={handleBulkClaim}
+                            >
+                                {`Claim selected (${claimableSelectedIds.length})`}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                disabled={
+                                    cancellableSelectedIds.length === 0 ||
+                                    isBulkSubmitting
+                                }
+                                onClick={() => setBulkCancelDialogOpen(true)}
+                            >
+                                {`Cancel selected (${cancellableSelectedIds.length})`}
+                            </Button>
+                        </div>
+                    </div>
+                ) : null}
+
                 <section className="overflow-hidden rounded-2xl border border-border/40 bg-card/60 shadow-sm">
                     <div className="border-b border-border/40 bg-card/70 px-4 py-4 sm:px-6">
                         <h2 className="text-lg font-semibold">
@@ -956,6 +1172,12 @@ export function LoanRequestQueuePage({
                                     data={items}
                                     emptyMessage={emptyMessage}
                                     className="border-0 bg-transparent"
+                                    getRowId={(item, index) =>
+                                        String(item.id ?? index)
+                                    }
+                                    rowSelection={rowSelection}
+                                    onRowSelectionChange={setRowSelection}
+                                    enableRowSelection
                                 />
                             )}
                         </div>
@@ -1173,6 +1395,14 @@ export function LoanRequestQueuePage({
                               reason,
                           });
                 }}
+            />
+
+            <BulkCancelDialog
+                open={bulkCancelDialogOpen}
+                onOpenChange={setBulkCancelDialogOpen}
+                requestCount={cancellableSelectedIds.length}
+                isProcessing={isBulkSubmitting}
+                onSubmit={handleBulkCancel}
             />
         </AppLayout>
     );

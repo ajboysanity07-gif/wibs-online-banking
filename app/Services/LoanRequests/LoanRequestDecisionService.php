@@ -12,9 +12,11 @@ use App\Models\Permission;
 use App\Notifications\LoanRequestCancelledNotification;
 use App\Notifications\LoanRequestDecisionNotification;
 use App\Support\SchemaCapabilities;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class LoanRequestDecisionService
 {
@@ -115,6 +117,61 @@ class LoanRequestDecisionService
             $reason,
             true,
         );
+    }
+
+    /**
+     * Cancels each given loan request independently, so a few ineligible or
+     * stale rows in a bulk selection don't block the rest from succeeding.
+     *
+     * @param  array<int, int>  $loanRequestIds
+     * @return array{
+     *     succeeded: array<int, int>,
+     *     failed: array<int, array{id:int, message:string}>,
+     *     total:int,
+     *     succeeded_count:int,
+     *     failed_count:int
+     * }
+     */
+    public function bulkCancelByAdmin(array $loanRequestIds, AppUser $actor, string $reason): array
+    {
+        $succeeded = [];
+        $failed = [];
+
+        foreach (array_unique($loanRequestIds) as $loanRequestId) {
+            try {
+                $loanRequest = LoanRequest::query()->findOrFail($loanRequestId);
+                $this->cancelByAdmin($loanRequest, $actor, $reason);
+                $succeeded[] = (int) $loanRequestId;
+            } catch (Throwable $e) {
+                $failed[] = [
+                    'id' => (int) $loanRequestId,
+                    'message' => $this->bulkFailureMessage($e),
+                ];
+            }
+        }
+
+        return [
+            'succeeded' => $succeeded,
+            'failed' => $failed,
+            'total' => count($succeeded) + count($failed),
+            'succeeded_count' => count($succeeded),
+            'failed_count' => count($failed),
+        ];
+    }
+
+    private function bulkFailureMessage(Throwable $e): string
+    {
+        if ($e instanceof ValidationException) {
+            return collect($e->errors())->flatten()->first() ?? $e->getMessage();
+        }
+
+        if ($e instanceof ModelNotFoundException) {
+            return 'Loan request not found.';
+        }
+
+        return $e->getMessage() !== ''
+            ? $e->getMessage()
+            : 'This request could not be cancelled.';
     }
 
     public function cancelByMember(

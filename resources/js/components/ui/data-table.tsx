@@ -3,6 +3,8 @@ import {
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
+  type OnChangeFn,
+  type RowSelectionState,
 } from "@tanstack/react-table"
 
 import {
@@ -20,6 +22,10 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   emptyMessage?: string
   className?: string
+  getRowId?: (row: TData, index: number) => string
+  rowSelection?: RowSelectionState
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>
+  enableRowSelection?: boolean | ((row: { original: TData }) => boolean)
 }
 
 export function DataTable<TData, TValue>({
@@ -27,12 +33,20 @@ export function DataTable<TData, TValue>({
   data,
   emptyMessage = "No results.",
   className,
+  getRowId,
+  rowSelection,
+  onRowSelectionChange,
+  enableRowSelection,
 }: DataTableProps<TData, TValue>) {
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table returns non-memoizable helpers.
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getRowId,
+    state: rowSelection ? { rowSelection } : undefined,
+    onRowSelectionChange,
+    enableRowSelection,
   })
 
   return (

@@ -39,6 +39,7 @@ import type {
     StaffHistoryEntry,
 } from '@/types/admin';
 import type {
+    LoanRequestBulkActionResult,
     LoanRequestCorrectionReport,
     LoanRequestCorrectionReportDismissPayload,
     LoanRequestCorrectionPayload,
@@ -132,6 +133,11 @@ type LoanRequestDeclinePayload = {
 };
 
 type LoanRequestCancellationPayload = {
+    cancellation_reason: string;
+};
+
+type LoanRequestBulkCancellationPayload = {
+    loan_request_ids: number[];
     cancellation_reason: string;
 };
 
@@ -422,6 +428,20 @@ export const adminApi = {
 
         return unwrap(response);
     },
+    async bulkCancelLoanRequests(
+        loanRequestIds: number[],
+        cancellationReason: string,
+    ): Promise<LoanRequestBulkActionResult> {
+        const payload: LoanRequestBulkCancellationPayload = {
+            loan_request_ids: loanRequestIds,
+            cancellation_reason: cancellationReason,
+        };
+        const response = await client.patch<
+            ApiResponse<LoanRequestBulkActionResult>
+        >('/spa/admin/requests/bulk-cancel', payload);
+
+        return unwrap(response);
+    },
     async dismissLoanRequestCorrectionReport(
         loanRequestId: number,
         reportId: number,
@@ -463,6 +483,17 @@ export const adminApi = {
         const response = await client.patch<
             ApiResponse<LoanRequestWorkflowResponse>
         >(workflowClaimRoute(loanRequestId).url, payload);
+
+        return unwrap(response);
+    },
+    async bulkClaimLoanRequests(
+        loanRequestIds: number[],
+    ): Promise<LoanRequestBulkActionResult> {
+        const response = await client.patch<
+            ApiResponse<LoanRequestBulkActionResult>
+        >('/spa/workflow/loan-requests/bulk-claim', {
+            loan_request_ids: loanRequestIds,
+        });
 
         return unwrap(response);
     },

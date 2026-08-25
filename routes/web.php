@@ -130,6 +130,8 @@ Route::prefix('spa')->middleware('web')->group(function () {
         ->prefix('workflow/loan-requests')
         ->name('spa.workflow.loan-requests.')
         ->group(function () {
+            Route::patch('bulk-claim', [SpaLoanRequestWorkflowController::class, 'bulkClaim'])
+                ->name('bulk-claim');
             Route::patch('{loanRequest}/claim', [SpaLoanRequestWorkflowController::class, 'claim'])
                 ->name('claim');
             Route::patch('{loanRequest}/assignment', [SpaLoanRequestWorkflowController::class, 'updateAssignment'])
@@ -229,6 +231,7 @@ Route::prefix('spa')->middleware('web')->group(function () {
             'admin/requests/{loanRequest}/correction-reports/{report}/dismiss',
             [SpaLoanRequestCorrectionReportController::class, 'dismiss'],
         );
+        Route::patch('admin/requests/bulk-cancel', [SpaLoanRequestDecisionController::class, 'bulkCancel']);
         Route::patch('admin/requests/{loanRequest}/cancel', [SpaLoanRequestDecisionController::class, 'cancel']);
         Route::post('admin/requests/{loanRequest}/admin-corrected-copy', [SpaLoanRequestDecisionController::class, 'createAdminCorrectedCopy']);
         Route::get('admin/watchlist', SpaWatchlistController::class);

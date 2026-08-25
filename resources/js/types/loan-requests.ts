@@ -646,6 +646,19 @@ export type LoanRequestCancellationResult = {
     auditTrail: LoanRequestAuditEntry[];
 };
 
+export type LoanRequestBulkActionFailure = {
+    id: number;
+    message: string;
+};
+
+export type LoanRequestBulkActionResult = {
+    succeeded: number[];
+    failed: LoanRequestBulkActionFailure[];
+    total: number;
+    succeeded_count: number;
+    failed_count: number;
+};
+
 export type LoanRequestMemberCancellationResult = {
     loanRequest: LoanRequestDetail;
     auditTrail: LoanRequestAuditEntry[];

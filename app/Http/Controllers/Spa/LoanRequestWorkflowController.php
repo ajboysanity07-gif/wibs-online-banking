@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Spa;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Workflow\LoanRequestAssignmentUpdateRequest;
+use App\Http\Requests\Workflow\LoanRequestBulkClaimRequest;
 use App\Http\Requests\Workflow\LoanRequestClaimRequest;
 use App\Http\Requests\Workflow\LoanRequestGenerateDocumentsRequest;
 use App\Http\Requests\Workflow\LoanRequestProcessingUpdateRequest;
@@ -55,6 +56,25 @@ class LoanRequestWorkflowController extends Controller
             $documentWorkflowService,
             $dataService,
         );
+    }
+
+    public function bulkClaim(
+        LoanRequestBulkClaimRequest $request,
+        LoanRequestAssignmentService $assignmentService,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        $result = $assignmentService->bulkClaim(
+            $request->validated('loan_request_ids'),
+            $actor,
+        );
+
+        return response()->json([
+            'ok' => true,
+            'data' => $result,
+        ]);
     }
 
     public function updateAssignment(
