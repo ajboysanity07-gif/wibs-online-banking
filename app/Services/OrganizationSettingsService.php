@@ -573,8 +573,14 @@ class OrganizationSettingsService
 
     private function resolveFaviconUrl(?string $faviconPath): string
     {
-        if ($faviconPath !== null) {
+        if ($faviconPath !== null && Storage::disk('public')->exists($faviconPath)) {
             return Storage::disk('public')->url($faviconPath);
+        }
+
+        if ($faviconPath !== null) {
+            Log::warning('Favicon path is configured but the file is missing. Falling back to the default favicon.', [
+                'path' => $faviconPath,
+            ]);
         }
 
         return asset(self::DEFAULT_FAVICON_ASSET);

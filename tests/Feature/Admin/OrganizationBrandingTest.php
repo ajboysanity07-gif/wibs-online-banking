@@ -107,6 +107,51 @@ test('superadmin can update organization branding logo and name', function () {
     Storage::disk('public')->assertExists($setting->favicon_path);
 });
 
+test('favicon upload always stores a valid image extension regardless of detected mime type', function () {
+    Storage::fake('public');
+
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $response = $this->actingAs($admin)->patch(
+        route('admin.settings.organization.update'),
+        [
+            'company_name' => 'Acme Cooperative',
+            'favicon' => UploadedFile::fake()->create('favicon.ico', 5, 'image/x-icon'),
+        ],
+    );
+
+    $response->assertRedirect(route('admin.settings.organization'));
+
+    $setting = OrganizationSetting::query()->first();
+
+    expect($setting)->not->toBeNull();
+    expect($setting->favicon_path)->toEndWith('.ico');
+
+    Storage::disk('public')->assertExists($setting->favicon_path);
+});
+
+test('favicon with a missing stored file falls back to the default favicon url', function () {
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    OrganizationSetting::factory()->create([
+        'favicon_path' => 'branding/favicons/nonexistent-icon.ico',
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->get(route('admin.settings.organization'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('branding.faviconUrl', asset('favicon.ico')));
+});
+
 test('superadmin can update organization business address', function () {
     $admin = AppUser::factory()->create();
     AdminProfile::factory()->superadmin()->create([

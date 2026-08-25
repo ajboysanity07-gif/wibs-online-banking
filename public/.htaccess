@@ -5,6 +5,11 @@
 
     RewriteEngine On
 
+    # Canonicalize the bare domain to the www subdomain so APP_URL-based
+    # asset/storage URLs always match the host being browsed.
+    RewriteCond %{HTTP_HOST} ^mrdinc\.net$ [NC]
+    RewriteRule ^(.*)$ https://www.mrdinc.net/$1 [L,R=301]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -114,8 +115,18 @@ class OrganizationSettingsController extends Controller
                 Storage::disk('public')->delete($setting->favicon_path);
             }
 
-            $payload['favicon_path'] = $request->file('favicon')
-                ->store('branding/favicons', 'public');
+            $faviconFile = $request->file('favicon');
+            $faviconExtension = strtolower((string) $faviconFile->getClientOriginalExtension());
+
+            if (! in_array($faviconExtension, ['jpg', 'jpeg', 'png', 'webp', 'ico'], true)) {
+                $faviconExtension = 'png';
+            }
+
+            $payload['favicon_path'] = $faviconFile->storeAs(
+                'branding/favicons',
+                Str::random(40).'.'.$faviconExtension,
+                'public',
+            );
         } elseif ($shouldResetFavicon) {
             if ($setting->favicon_path) {
                 Storage::disk('public')->delete($setting->favicon_path);
