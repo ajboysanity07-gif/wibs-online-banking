@@ -1105,7 +1105,7 @@ export function LoanRequestQueuePage({
                 ) : null}
 
                 {selectedIds.length > 0 ? (
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/40 bg-card/60 p-4 shadow-sm">
+                    <div className="flex animate-in flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/40 bg-card/60 p-4 shadow-sm duration-150 fade-in slide-in-from-top-1">
                         <p className="text-sm font-medium">
                             {formatCountLabel(selectedIds.length, 'request')}{' '}
                             selected
