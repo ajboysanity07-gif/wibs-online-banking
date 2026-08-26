@@ -128,7 +128,7 @@ test('draft endpoint rejects a cycle status outside New/Old', function (): void 
         ->assertUnprocessable();
 });
 
-test('store endpoint requires cycle number when cycle status is Old', function (): void {
+test('store endpoint accepts cycle status without cycle number (auto-computed server-side)', function (): void {
     $member = createDependentsCycleTestMember('002202');
 
     $person = fn (array $overrides = []) => array_merge([
@@ -158,7 +158,7 @@ test('store endpoint requires cycle number when cycle status is Old', function (
         'nature_of_business' => 'Finance',
         'years_in_work_business' => '3 years',
         'gross_monthly_income' => 25000,
-        'payday' => '15th & 30th',
+        'payday' => 'Quincenal',
     ], $overrides);
 
     $response = $this->actingAs($member)
@@ -219,7 +219,7 @@ test('store endpoint requires cycle number when cycle status is Old', function (
             'co_maker_2' => $person(),
         ]);
 
-    $response->assertSessionHasErrors(['dependents.dependent_sibling_1_cycle_number']);
+    $response->assertSessionDoesntHaveErrors(['dependents.dependent_sibling_1_cycle_number']);
 });
 
 /**
@@ -257,7 +257,7 @@ function submitLoanRequestForCycleStatusTest(
         'nature_of_business' => 'Finance',
         'years_in_work_business' => '3 years',
         'gross_monthly_income' => 25000,
-        'payday' => '15th & 30th',
+        'payday' => 'Quincenal',
     ], $overrides);
 
     return test()->actingAs($member)

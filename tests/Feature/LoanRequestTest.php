@@ -123,7 +123,7 @@ function validLoanRequestCorrectionPayload(array $overrides = []): array
             'years_in_work_business' => '5 years',
             'employer_date_employed' => '2017-05-20',
             'gross_monthly_income' => 32000,
-            'payday' => '15th & 30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_1' => [
             'first_name' => 'Corrected',
@@ -151,7 +151,7 @@ function validLoanRequestCorrectionPayload(array $overrides = []): array
             'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
             'gross_monthly_income' => 18000,
-            'payday' => '30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_2' => [
             'first_name' => 'Corrected',
@@ -179,7 +179,7 @@ function validLoanRequestCorrectionPayload(array $overrides = []): array
             'nature_of_business' => 'Retail',
             'years_in_work_business' => '8 years',
             'gross_monthly_income' => 22000,
-            'payday' => '15th',
+            'payday' => 'Quincenal',
         ],
         'dependents' => [
             'applicant_cycle_status' => 'New',
@@ -949,7 +949,7 @@ test('clients can save a loan request draft', function () {
             'years_in_work_business' => '3 years',
             'employer_date_employed' => '2018-03-15',
             'gross_monthly_income' => 25000,
-            'payday' => '15th & 30th',
+            'payday' => 'Quincenal',
         ],
     ];
 
@@ -1049,7 +1049,7 @@ test('clients can save applicant PEP status and cycle status via the loan reques
             'years_in_work_business' => '3 years',
             'employer_date_employed' => '2018-03-15',
             'gross_monthly_income' => 25000,
-            'payday' => '15th & 30th',
+            'payday' => 'Quincenal',
         ],
     ];
 
@@ -1144,14 +1144,14 @@ test('loan request form resumes existing draft', function () {
             ->where('applicant.birthdate', '1990-04-10')
             ->where('applicant.housing_status', 'RENT')
             ->where('applicant.civil_status', 'Married')
-            ->where('applicant.payday', '15th & 30th')
+            ->where('applicant.payday', 'Quincenal')
             ->where('coMakerOne.birthdate', '1989-03-12')
             ->where('coMakerOne.housing_status', 'RENT')
             ->where('coMakerOne.payday', 'Weekly')
             ->where('coMakerTwo.birthdate', '1987-02-12')
             ->where('coMakerTwo.housing_status', 'OWNED')
             ->where('coMakerTwo.civil_status', 'Widowed')
-            ->where('coMakerTwo.payday', 'Bi-Weekly'));
+            ->where('coMakerTwo.payday', 'Weekly'));
 });
 
 test('loan request submissions persist snapshots and enter pending review', function () {
@@ -1220,7 +1220,7 @@ test('loan request submissions persist snapshots and enter pending review', func
             'years_in_work_business' => '3 years',
             'employer_date_employed' => '2018-03-15',
             'gross_monthly_income' => 25000,
-            'payday' => '15th & 30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_1' => [
             'first_name' => 'Co',
@@ -1248,7 +1248,7 @@ test('loan request submissions persist snapshots and enter pending review', func
             'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
             'gross_monthly_income' => 18000,
-            'payday' => '30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_2' => [
             'first_name' => 'Second',
@@ -1276,7 +1276,7 @@ test('loan request submissions persist snapshots and enter pending review', func
             'nature_of_business' => 'Retail',
             'years_in_work_business' => '8 years',
             'gross_monthly_income' => 22000,
-            'payday' => '15th',
+            'payday' => 'Quincenal',
         ],
     ];
 
@@ -1370,7 +1370,7 @@ test('Other Loan submission requires a loan name', function () {
             'years_in_work_business' => '3 years',
             'employer_date_employed' => '2018-03-15',
             'gross_monthly_income' => 25000,
-            'payday' => '15th & 30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_1' => [
             'first_name' => 'Co',
@@ -1398,7 +1398,7 @@ test('Other Loan submission requires a loan name', function () {
             'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
             'gross_monthly_income' => 18000,
-            'payday' => '30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_2' => [
             'first_name' => 'Second',
@@ -1426,7 +1426,7 @@ test('Other Loan submission requires a loan name', function () {
             'nature_of_business' => 'Retail',
             'years_in_work_business' => '8 years',
             'gross_monthly_income' => 22000,
-            'payday' => '15th',
+            'payday' => 'Quincenal',
         ],
     ];
 
@@ -1505,7 +1505,7 @@ test('Other Loan submission with a loan name persists and is exposed to staff', 
             'years_in_work_business' => '3 years',
             'employer_date_employed' => '2018-03-15',
             'gross_monthly_income' => 25000,
-            'payday' => '15th & 30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_1' => [
             'first_name' => 'Co',
@@ -1533,7 +1533,7 @@ test('Other Loan submission with a loan name persists and is exposed to staff', 
             'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
             'gross_monthly_income' => 18000,
-            'payday' => '30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_2' => [
             'first_name' => 'Second',
@@ -1561,7 +1561,7 @@ test('Other Loan submission with a loan name persists and is exposed to staff', 
             'nature_of_business' => 'Retail',
             'years_in_work_business' => '8 years',
             'gross_monthly_income' => 22000,
-            'payday' => '15th',
+            'payday' => 'Quincenal',
         ],
     ];
 
@@ -1630,7 +1630,7 @@ test('salary deduction is rejected for a non-institutional employer', function (
             'employer_business_address2' => 'Manila', 'employer_business_address3' => 'Metro Manila',
             'current_position' => 'Analyst', 'nature_of_business' => 'Finance',
             'years_in_work_business' => '3 years', 'employer_date_employed' => '2018-03-15',
-            'gross_monthly_income' => 25000, 'payday' => '15th & 30th',
+            'gross_monthly_income' => 25000, 'payday' => 'Quincenal',
         ],
     ];
 
@@ -1685,7 +1685,7 @@ test('salary deduction is accepted for an institutional (MRDINC) employer', func
             'employer_business_address2' => 'Manila', 'employer_business_address3' => 'Metro Manila',
             'current_position' => 'Analyst', 'nature_of_business' => 'Finance',
             'years_in_work_business' => '3 years', 'employer_date_employed' => '2018-03-15',
-            'gross_monthly_income' => 25000, 'payday' => '15th & 30th',
+            'gross_monthly_income' => 25000, 'payday' => 'Quincenal',
         ],
         'co_maker_1' => [
             'first_name' => 'Co', 'last_name' => 'Maker', 'middle_name' => 'One',
@@ -1701,7 +1701,7 @@ test('salary deduction is accepted for an institutional (MRDINC) employer', func
             'employer_business_address2' => 'Cebu City', 'employer_business_address3' => 'Cebu',
             'current_position' => 'Clerk', 'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
-            'gross_monthly_income' => 18000, 'payday' => '30th',
+            'gross_monthly_income' => 18000, 'payday' => 'Quincenal',
         ],
         'co_maker_2' => [
             'first_name' => 'Second', 'last_name' => 'Maker', 'middle_name' => 'Two',
@@ -1717,7 +1717,7 @@ test('salary deduction is accepted for an institutional (MRDINC) employer', func
             'employer_business_address2' => 'Davao City', 'employer_business_address3' => 'Davao del Sur',
             'current_position' => 'Owner', 'nature_of_business' => 'Retail',
             'years_in_work_business' => '8 years',
-            'gross_monthly_income' => 22000, 'payday' => '15th',
+            'gross_monthly_income' => 22000, 'payday' => 'Quincenal',
         ],
     ];
 
@@ -1761,7 +1761,7 @@ function pensionerPersonPayload(array $overrides = []): array
         'nature_of_business' => '',
         'years_in_work_business' => '',
         'gross_monthly_income' => 15000,
-        'payday' => '30th',
+        'payday' => 'Quincenal',
     ], $overrides);
 }
 
@@ -1809,7 +1809,7 @@ test('pensioner applicant may submit without employer fields', function () {
         'nature_of_business' => 'Government',
         'years_in_work_business' => '10 years',
         'gross_monthly_income' => 18000,
-        'payday' => '30th',
+        'payday' => 'Quincenal',
     ];
 
     $payload = [
@@ -2334,7 +2334,7 @@ test('applicant legacy location values need not be selected from the PSGC sugges
         'nature_of_business' => 'Government',
         'years_in_work_business' => '10 years',
         'gross_monthly_income' => 18000,
-        'payday' => '30th',
+        'payday' => 'Quincenal',
     ];
 
     $payload = [
@@ -2375,7 +2375,7 @@ test('applicant legacy location values need not be selected from the PSGC sugges
             'years_in_work_business' => '5 years',
             'employer_date_employed' => '2018-03-15',
             'gross_monthly_income' => 30000,
-            'payday' => '15th & 30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_1' => $coMakerPayload,
         'co_maker_2' => array_merge($coMakerPayload, [
@@ -2528,7 +2528,7 @@ test('legacy applicant signature payload is ignored when signatures are collecte
             'years_in_work_business' => '3 years',
             'employer_date_employed' => '2018-03-15',
             'gross_monthly_income' => 25000,
-            'payday' => '15th & 30th',
+            'payday' => 'Quincenal',
         ],
     ];
 
@@ -2798,7 +2798,7 @@ test('loan request submission validates housing status values', function () {
             'years_in_work_business' => '3 years',
             'employer_date_employed' => '2018-03-15',
             'gross_monthly_income' => 25000,
-            'payday' => '15th & 30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_1' => [
             'first_name' => 'Co',
@@ -2826,7 +2826,7 @@ test('loan request submission validates housing status values', function () {
             'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
             'gross_monthly_income' => 18000,
-            'payday' => '30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_2' => [
             'first_name' => 'Second',
@@ -2854,7 +2854,7 @@ test('loan request submission validates housing status values', function () {
             'nature_of_business' => 'Retail',
             'years_in_work_business' => '8 years',
             'gross_monthly_income' => 22000,
-            'payday' => '15th',
+            'payday' => 'Quincenal',
         ],
     ];
 
@@ -3485,14 +3485,14 @@ test('admin can view loan request details page', function () {
             ->where('applicant.birthdate', '1990-04-10')
             ->where('applicant.housing_status', 'OWNED')
             ->where('applicant.civil_status', 'Married')
-            ->where('applicant.payday', '15th & 30th')
+            ->where('applicant.payday', 'Quincenal')
             ->where('coMakerOne.birthdate', '1989-03-12')
             ->where('coMakerOne.housing_status', 'RENT')
             ->where('coMakerOne.payday', 'Monthly')
             ->where('coMakerTwo.birthdate', '1987-02-12')
             ->where('coMakerTwo.housing_status', 'RENT')
             ->where('coMakerTwo.civil_status', 'Widowed')
-            ->where('coMakerTwo.payday', 'Bi-Weekly'));
+            ->where('coMakerTwo.payday', 'Weekly'));
 });
 
 /**

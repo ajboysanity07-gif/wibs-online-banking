@@ -98,6 +98,7 @@ function lumpsumMemberSectionPayload(array $overrides = []): array
         ],
         'dependents' => [
             'applicant_cycle_status' => 'New',
+            'applicant_cycle_number' => 1,
         ],
     ];
 
@@ -137,7 +138,7 @@ function lumpsumApplicantPayload(array $overrides = []): array
         'years_in_work_business' => '3 years',
         'employer_date_employed' => '2018-03-15',
         'gross_monthly_income' => 25000,
-        'payday' => '15th & 30th',
+        'payday' => 'Quincenal',
     ], $overrides);
 }
 
@@ -169,7 +170,7 @@ function lumpsumCoMakerPayload(string $seed): array
         'nature_of_business' => 'Government',
         'years_in_work_business' => '6 years',
         'gross_monthly_income' => 18000,
-        'payday' => '30th',
+        'payday' => 'Quincenal',
     ];
 }
 
@@ -217,7 +218,7 @@ test('member can submit a 1-month Lumpsum Other Loan request without insurance o
         'other_loan_type_name' => 'Emergency Loan',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        'requested_payment_frequency' => 'Lump sum',
+        'requested_payment_frequency' => 'Due date',
         ...lumpsumMemberSectionPayload([
             'insurance' => [],
             'health' => [],
@@ -237,7 +238,7 @@ test('member can submit a 1-month Lumpsum Other Loan request without insurance o
 
     $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
     expect($loanRequest)->not->toBeNull();
-    expect($loanRequest->requested_payment_frequency)->toBe('Lump sum');
+    expect($loanRequest->requested_payment_frequency)->toBe('Due date');
     expect($loanRequest->requested_term)->toBe(1);
 });
 
@@ -258,7 +259,7 @@ test('member requesting 2-month Lumpsum still requires insurance and health data
         'loan_purpose' => 'Emergency expenses',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        'requested_payment_frequency' => 'Lump sum',
+        'requested_payment_frequency' => 'Due date',
         ...lumpsumMemberSectionPayload([
             'insurance' => [],
             'health' => [],
@@ -280,7 +281,7 @@ test('member requesting 2-month Lumpsum still requires insurance and health data
     expect(LoanRequest::query()->count())->toBe(0);
 });
 
-test('member cannot request Lumpsum for a loan type other than Other Loan', function () {
+test('member can request Due date for any loan type (no type restriction)', function () {
     Storage::fake('public');
 
     $user = setUpLumpsumMember('000803');
@@ -295,21 +296,29 @@ test('member cannot request Lumpsum for a loan type other than Other Loan', func
         'requested_amount' => 15000,
         'requested_term' => 1,
         'loan_purpose' => 'Emergency expenses',
+        'kind_of_loan' => 'Emergency',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        'requested_payment_frequency' => 'Lump sum',
-        ...lumpsumMemberSectionPayload(),
+        'requested_payment_frequency' => 'Due date',
+        ...lumpsumMemberSectionPayload([
+            'insurance' => [],
+            'health' => [],
+        ]),
         'applicant' => lumpsumApplicantPayload(),
         'co_maker_1' => lumpsumCoMakerPayload('CoOne'),
         'co_maker_2' => lumpsumCoMakerPayload('CoTwo'),
     ];
+    unset($payload['insurance'], $payload['health']);
 
     $response = $this
         ->actingAs($user)
         ->post(route('client.loan-requests.store'), $payload);
 
-    $response->assertSessionHasErrors('requested_payment_frequency');
-    expect(LoanRequest::query()->count())->toBe(0);
+    $loanRequest = LoanRequest::query()->first();
+
+    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
+    expect($loanRequest)->not->toBeNull();
+    expect($loanRequest->requested_payment_frequency)->toBe('Due date');
 });
 
 test('staff cannot approve a non-lumpsum recommended frequency when insurance data is missing', function () {
@@ -325,7 +334,7 @@ test('staff cannot approve a non-lumpsum recommended frequency when insurance da
         'acctno' => $member->acctno,
         'status' => LoanRequestStatus::RecommendedForApproval,
         'submitted_at' => now(),
-        'requested_payment_frequency' => 'Lump sum',
+        'requested_payment_frequency' => 'Due date',
         'requested_term' => 1,
         'recommended_payment_frequency' => 'Monthly',
     ]);

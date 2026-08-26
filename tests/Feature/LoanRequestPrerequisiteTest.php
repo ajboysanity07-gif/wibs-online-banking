@@ -173,7 +173,7 @@ function prerequisiteTestStorePayload(): array
             'years_in_work_business' => '4 years',
             'employer_date_employed' => '2019-05-10',
             'gross_monthly_income' => 20000,
-            'payday' => '15th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_1' => [
             'first_name' => 'Co',
@@ -201,7 +201,7 @@ function prerequisiteTestStorePayload(): array
             'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
             'gross_monthly_income' => 18000,
-            'payday' => '30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_2' => [
             'first_name' => 'Second',
@@ -229,7 +229,7 @@ function prerequisiteTestStorePayload(): array
             'nature_of_business' => 'Retail',
             'years_in_work_business' => '8 years',
             'gross_monthly_income' => 22000,
-            'payday' => '15th',
+            'payday' => 'Quincenal',
         ],
     ];
 }

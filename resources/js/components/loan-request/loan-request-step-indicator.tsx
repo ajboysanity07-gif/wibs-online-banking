@@ -26,7 +26,7 @@ type GroupMeta = { label: string; icon: LucideIcon };
 
 /**
  * Steps present in the full step list but currently skipped (e.g. insurance
- * & health steps when the member requested a 1-month Lumpsum repayment).
+ * & health steps when the member requested a 1-month Due date repayment).
  * Hidden from the sidebar entirely, but their index in `steps` is preserved
  * so it keeps lining up with the wizard's `currentStep` -- callers must not
  * pass a pre-filtered `steps` array.

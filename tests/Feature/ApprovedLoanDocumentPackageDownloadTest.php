@@ -538,7 +538,7 @@ test('plan of payment pdf includes borrower and amortization values', function (
         'approved_amount' => 25000,
         'approved_term' => 12,
         'approved_interest_rate' => 0.36,
-        'recommended_payment_frequency' => 'SEMI-MONTHLY',
+        'recommended_payment_frequency' => 'QUINCENAL',
         'reviewed_at' => '2026-05-22 10:00:00',
     ]);
 
@@ -602,7 +602,7 @@ test('loan information pdf includes borrower financial and approval values', fun
         'approved_amount' => 25000,
         'approved_term' => 12,
         'approved_interest_rate' => 0.36,
-        'recommended_payment_frequency' => 'SEMI-MONTHLY',
+        'recommended_payment_frequency' => 'QUINCENAL',
         'reviewed_at' => '2026-05-22 10:00:00',
     ]);
 
@@ -683,7 +683,7 @@ test('disclosure statement pdf includes statutory labels and computed totals', f
         'approved_amount' => 25000,
         'approved_term' => 12,
         'approved_interest_rate' => 0.36,
-        'recommended_payment_frequency' => 'SEMI-MONTHLY',
+        'recommended_payment_frequency' => 'QUINCENAL',
         'reviewed_at' => '2026-05-22 10:00:00',
     ]);
 

@@ -59,7 +59,7 @@ test('processing update with loan_request passthrough preserves loan details whi
         'recommended_amount' => 24000,
         'recommended_term' => 10,
         'recommended_interest_rate' => 1.5,
-        'recommended_payment_frequency' => '15th & 30th',
+        'recommended_payment_frequency' => 'Quincenal',
     ];
 
     $this
@@ -107,7 +107,7 @@ test('processing update rejects a non-canonical recommended_payment_frequency va
             'loan_purpose' => 'Home improvement',
             'availment_status' => 'New',
         ],
-        'recommended_payment_frequency' => 'SEMI-MONTHLY',
+        'recommended_payment_frequency' => 'QUINCENAL',
     ];
 
     $this
@@ -141,7 +141,7 @@ test('processing update rejects Lumpsum without a recommended term', function ()
             'loan_purpose' => 'Home improvement',
             'availment_status' => 'New',
         ],
-        'recommended_payment_frequency' => 'Lump sum',
+        'recommended_payment_frequency' => 'Due date',
     ];
 
     $this

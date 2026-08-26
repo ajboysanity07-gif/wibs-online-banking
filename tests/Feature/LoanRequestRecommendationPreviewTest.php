@@ -14,7 +14,7 @@ beforeEach(function (): void {
 });
 
 /**
- * Standard charge overrides shared by the MONTHLY and BI-WEEKLY cases so the
+ * Standard charge overrides shared by the MONTHLY and WEEKLY cases so the
  * only thing that differs between them is recommended_payment_frequency.
  *
  * @return array<string, int|float>
@@ -85,7 +85,7 @@ test('happy path preview computes net proceeds and suggested GNTHP for MONTHLY f
     expect($response->json('data.failure_information'))->toBeNull();
 });
 
-test('non-monthly frequency converts the suggested GNTHP using the x30/14 bi-weekly multiplier', function (): void {
+test('non-monthly frequency converts the suggested GNTHP using the x30/7 weekly multiplier', function (): void {
     $processor = previewCreateActor([Role::LOAN_PROCESSOR]);
     $member = previewCreateActor([Role::MEMBER], '950102');
 
@@ -93,7 +93,7 @@ test('non-monthly frequency converts the suggested GNTHP using the x30/14 bi-wee
         'status' => LoanRequestStatus::UnderReview,
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'assigned_officer_id' => $processor->user_id,
-        'recommended_payment_frequency' => 'Bi-Weekly',
+        'recommended_payment_frequency' => 'Weekly',
         'submitted_at' => now(),
     ]);
 
@@ -114,16 +114,12 @@ test('non-monthly frequency converts the suggested GNTHP using the x30/14 bi-wee
     // match the MONTHLY case exactly (interest is not deducted from proceeds).
     $this->assertEqualsWithDelta(22662.5, $response->json('data.net_proceeds_raw'), 0.01);
 
-    // BI-WEEKLY amortizationCount = round(12*30/14) = round(25.714...) = 26.
-    // principal 25000/26=961.54, interest 9000/26=346.15,
-    // savings 961.54*0.02=19.23 -> per-payment total 1326.92.
-    // Monthly-equivalent multiplier is x30/14 (NOT x30) -> 1326.92*30/14=2843.4.
-    // suggested GNTHP = 15000 - 2843.4 = 12156.6.
-    //
-    // This is the exact discrepancy the planning decision log calls out: a
-    // naive x30 multiplier would have produced 1326.92*30=39807.6, an
-    // absurd ~14x overstatement, yielding a deeply negative GNTHP instead.
-    $this->assertEqualsWithDelta(12156.6, $response->json('data.suggested_gnthp_raw'), 0.01);
+    // WEEKLY amortizationCount = round(12*30/7) = round(51.428...) = 51.
+    // principal 25000/51=490.20, interest 9000/51=176.47,
+    // savings 490.20*0.02=9.80 -> per-payment total 676.47.
+    // Monthly-equivalent multiplier is x30/7 -> 676.47*30/7=2899.16.
+    // suggested GNTHP = 15000 - 2899.16 = 12100.84.
+    $this->assertEqualsWithDelta(12100.84, $response->json('data.suggested_gnthp_raw'), 0.01);
 
     expect($response->json('data.failure_information'))->toBeNull();
 });
@@ -133,7 +129,7 @@ test('unsaved recommended_payment_frequency override is used instead of the pers
     $member = previewCreateActor([Role::MEMBER], '950108');
 
     // Persisted frequency is MONTHLY; the request below overrides it to
-    // BI-WEEKLY, simulating an unsaved dropdown change on the staff screen.
+    // WEEKLY, simulating an unsaved dropdown change on the staff screen.
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::UnderReview,
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
@@ -153,7 +149,7 @@ test('unsaved recommended_payment_frequency override is used instead of the pers
             route('spa.workflow.loan-requests.processing-details.preview', $loanRequest),
             [
                 ...previewChargesOverridePayload(),
-                'recommended_payment_frequency' => 'Bi-Weekly',
+                'recommended_payment_frequency' => 'Weekly',
             ],
         )
         ->assertOk();
@@ -162,10 +158,10 @@ test('unsaved recommended_payment_frequency override is used instead of the pers
     // MONTHLY-frequency happy-path case exactly (interest not deducted).
     $this->assertEqualsWithDelta(22662.5, $response->json('data.net_proceeds_raw'), 0.01);
 
-    // If the stale persisted MONTHLY value were used instead of the BI-WEEKLY
+    // If the stale persisted MONTHLY value were used instead of the WEEKLY
     // override, this would equal the MONTHLY case's 12125.0 rather than the
-    // BI-WEEKLY case's 12156.6 (see the two happy-path tests above).
-    $this->assertEqualsWithDelta(12156.6, $response->json('data.suggested_gnthp_raw'), 0.01);
+    // WEEKLY case's 12100.84 (see the two happy-path tests above).
+    $this->assertEqualsWithDelta(12100.84, $response->json('data.suggested_gnthp_raw'), 0.01);
 
     $loanRequest->refresh();
     expect($loanRequest->recommended_payment_frequency)->toBe('Monthly');
@@ -179,7 +175,7 @@ test('preview never persists POSTed override values to the database', function (
         'status' => LoanRequestStatus::UnderReview,
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'assigned_officer_id' => $processor->user_id,
-        'recommended_payment_frequency' => '15th & 30th',
+        'recommended_payment_frequency' => 'Quincenal',
         'recommended_amount' => 10000,
         'recommended_term' => 6,
         'recommended_interest_rate' => 0.10,
@@ -352,7 +348,7 @@ test('preview accepts Lumpsum frequency, derives the lumpsum month count from th
         'status' => LoanRequestStatus::UnderReview,
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'assigned_officer_id' => $processor->user_id,
-        'recommended_payment_frequency' => 'Lump sum',
+        'recommended_payment_frequency' => 'Due date',
         'recommended_term' => 1,
         'submitted_at' => now(),
     ]);
@@ -368,7 +364,7 @@ test('preview accepts Lumpsum frequency, derives the lumpsum month count from th
             route('spa.workflow.loan-requests.processing-details.preview', $loanRequest),
             [
                 ...previewChargesOverridePayload(),
-                'recommended_payment_frequency' => 'Lump sum',
+                'recommended_payment_frequency' => 'Due date',
             ],
         )
         ->assertOk();
@@ -390,7 +386,7 @@ test('preview zeroes both loan security and insurance for a 1-month Lumpsum', fu
         'status' => LoanRequestStatus::UnderReview,
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'assigned_officer_id' => $processor->user_id,
-        'recommended_payment_frequency' => 'Lump sum',
+        'recommended_payment_frequency' => 'Due date',
         'recommended_term' => 1,
         'submitted_at' => now(),
     ]);
@@ -408,7 +404,7 @@ test('preview zeroes both loan security and insurance for a 1-month Lumpsum', fu
                 ...previewChargesOverridePayload(),
                 'recommended_amount' => 25000,
                 'recommended_term' => 1,
-                'recommended_payment_frequency' => 'Lump sum',
+                'recommended_payment_frequency' => 'Due date',
             ],
         )
         ->assertOk();
@@ -441,7 +437,7 @@ test('preview rejects Lumpsum frequency without a recommended term to derive the
             route('spa.workflow.loan-requests.processing-details.preview', $loanRequest),
             [
                 ...$payload,
-                'recommended_payment_frequency' => 'Lump sum',
+                'recommended_payment_frequency' => 'Due date',
             ],
         )
         ->assertInvalid(['recommended_term']);

@@ -281,15 +281,11 @@ export type LoanRequestDataSections = Record<
 >;
 
 /**
- * Group Life Insurance (Generali) cycle state for one slot -- the
- * applicant, spouse, or a dependent_{category}_{slot} key. `locked` is true
- * once a loan processor has confirmed this person's cycle on an earlier
- * processed loan: `cycle_status`/`cycle_number` are then the computed
- * next-cycle values and the field must be read-only. The Generali form
+ * Group Life Insurance (Generali/Grepalife) cycle state for one slot -- the
+ * applicant, spouse, or a dependent_{category}_{slot} key. `locked` is always
+ * true: cycle values are auto-computed from the member's wlnmaster loan
+ * history (total loans minus Due date term-1 loans). The Generali form
  * labels: New (1st-2nd), Old (3rd cycle & up ___).
- *
- * When unlocked, `cycle_status`/`cycle_number` are sensible defaults
- * (New/1) the processor can still change.
  */
 export type LoanRequestCycleSlotState = {
     locked: boolean;

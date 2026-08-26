@@ -29,7 +29,7 @@ class LoanRequestRecommendationPreviewRequest extends FormRequest
         return [
             'recommended_amount' => ['sometimes', 'nullable', 'numeric', 'min:1'],
             'recommended_term' => [
-                Rule::requiredIf(fn (): bool => $this->input('recommended_payment_frequency') === LoanPaydayOption::Lumpsum->value),
+                Rule::requiredIf(fn (): bool => $this->input('recommended_payment_frequency') === LoanPaydayOption::DueDate->value),
                 'nullable', 'integer', 'min:1', 'max:360',
             ],
             'recommended_interest_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],

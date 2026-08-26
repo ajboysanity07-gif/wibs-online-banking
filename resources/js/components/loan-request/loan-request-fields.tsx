@@ -59,12 +59,12 @@ const HOUSING_STATUS_OPTIONS = [
 ] as const;
 const SEX_OPTIONS = ['Male', 'Female'] as const;
 export const PAYDAY_OPTIONS = [
+    'Daily',
     'Weekly',
-    '15th',
-    '30th',
-    '15th & 30th',
-    'Bi-Weekly',
     'Monthly',
+    'Quincenal',
+    'Semi-annual',
+    'Yearly',
 ] as const;
 const NATURE_OF_BUSINESS_OTHER_VALUE = 'Other';
 const NATURE_OF_BUSINESS_OPTIONS = [

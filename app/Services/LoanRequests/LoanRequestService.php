@@ -1619,31 +1619,17 @@ class LoanRequestService
         $upper = strtoupper($trimmed);
         $compact = preg_replace('/[^0-9A-Z]/', '', $upper) ?? '';
 
-        if ($upper === 'WEEKLY') {
-            return 'Weekly';
-        }
-
-        if ($upper === 'MONTHLY') {
-            return 'Monthly';
-        }
-
-        if ($compact === 'BIWEEKLY') {
-            return 'Bi-Weekly';
-        }
-
-        if ($compact === '15') {
-            return '15th';
-        }
-
-        if ($compact === '30') {
-            return '30th';
-        }
-
-        if (str_contains($upper, '15') && str_contains($upper, '30')) {
-            return '15th & 30th';
-        }
-
-        return null;
+        return match (true) {
+            $upper === 'WEEKLY' => 'Weekly',
+            $upper === 'MONTHLY' => 'Monthly',
+            $compact === 'BIWEEKLY' => 'Weekly',
+            $compact === '15' => 'Quincenal',
+            $compact === '30' => 'Quincenal',
+            str_contains($upper, '15') && str_contains($upper, '30') => 'Quincenal',
+            $compact === 'SEMIMONTHLY' => 'Quincenal',
+            str_contains($upper, 'LUMP') => 'Due date',
+            default => null,
+        };
     }
 
     /**

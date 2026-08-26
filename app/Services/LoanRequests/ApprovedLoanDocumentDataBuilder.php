@@ -70,9 +70,9 @@ class ApprovedLoanDocumentDataBuilder
                     : null,
             ) ?? $this->normalizeText($loanRequest->recommended_payment_frequency),
         );
-        $isLumpsum = $paymentMode === 'LUMPSUM';
+        $isLumpsum = $paymentMode === 'DUE-DATE';
         // The approved/recommended term is the sole source of truth for how
-        // many months a Lumpsum payment covers -- it can no longer disagree
+        // many months a Due date payment covers -- it can no longer disagree
         // with the amortization count or maturity date, which both derive
         // from the same $approvedTerm.
         $lumpsumMonths = $isLumpsum
@@ -81,12 +81,12 @@ class ApprovedLoanDocumentDataBuilder
                 $approvedTerm,
             )
             : null;
-        // Only a 1-month Lumpsum skips insurance entirely (mirrors
-        // LoanRequestDecisionService::isOneMonthLumpsum(), which exempts the
+        // Only a 1-month Due date skips insurance entirely (mirrors
+        // LoanRequestDecisionService::isDueDateNoInsurance(), which exempts the
         // member from the insurance/health wizard on submission for the same
         // case). A 2-month-or-longer Lumpsum still carries an insurance
         // premium and requires the insurance document.
-        $isOneMonthLumpsum = $isLumpsum && $lumpsumMonths === 1;
+        $isDueDateNoInsurance = $isLumpsum && $lumpsumMonths === 1;
         $officialLoanManager = $this->officialLoanManagerResolver->documentData();
         $overrideLoan = is_array($overrides['loan'] ?? null)
             ? $overrides['loan']
@@ -128,13 +128,13 @@ class ApprovedLoanDocumentDataBuilder
                 ?? null,
             null,
         );
-        $insuranceRateRaw = $isOneMonthLumpsum ? 0.0 : $this->resolveNumericOverride(
+        $insuranceRateRaw = $isDueDateNoInsurance ? 0.0 : $this->resolveNumericOverride(
             $overrideLoan['insurance_rate_raw']
                 ?? $flatValues['insurance_rate']
                 ?? null,
             0.0,
         );
-        $insuranceTerm = $isOneMonthLumpsum ? 0 : $this->resolveIntegerOverride(
+        $insuranceTerm = $isDueDateNoInsurance ? 0 : $this->resolveIntegerOverride(
             $overrideLoan['insurance_term']
                 ?? $flatValues['insurance_term']
                 ?? null,
@@ -1293,7 +1293,7 @@ class ApprovedLoanDocumentDataBuilder
             return null;
         }
 
-        if (in_array($trimmed, ['Weekly', '15th', '30th', '15th & 30th', 'Bi-Weekly', 'Monthly', 'Lump sum'], true)) {
+        if (in_array($trimmed, ['Daily', 'Due date', 'Monthly', 'Quincenal', 'Semi-annual', 'Weekly', 'Yearly'], true)) {
             return $trimmed;
         }
 
@@ -1303,10 +1303,15 @@ class ApprovedLoanDocumentDataBuilder
         return match (true) {
             $upper === 'WEEKLY' => 'Weekly',
             $upper === 'MONTHLY' => 'Monthly',
-            $compact === 'BIWEEKLY' => 'Bi-Weekly',
-            $compact === '15' => '15th',
-            $compact === '30' => '30th',
-            str_contains($upper, '15') && str_contains($upper, '30') => '15th & 30th',
+            $compact === 'BIWEEKLY' => 'Weekly',
+            $compact === '15' => 'Quincenal',
+            $compact === '30' => 'Quincenal',
+            str_contains($upper, '15') && str_contains($upper, '30') => 'Quincenal',
+            $compact === 'SEMIMONTHLY' => 'Quincenal',
+            str_contains($upper, 'LUMP') => 'Due date',
+            $upper === 'DAILY' => 'Daily',
+            $upper === 'SEMIANNUAL' || $compact === 'SEMIA' => 'Semi-annual',
+            $upper === 'YEARLY' || $upper === 'ANNUAL' => 'Yearly',
             default => null,
         };
     }
@@ -1316,13 +1321,13 @@ class ApprovedLoanDocumentDataBuilder
         $payday = $this->normalizePaydayValue($value);
 
         return match ($payday) {
+            'Daily' => 'DAILY',
+            'Due date' => 'DUE-DATE',
+            'Quincenal' => 'QUINCENAL',
+            'Semi-annual' => 'SEMI-ANNUAL',
             'Weekly' => 'WEEKLY',
-            'Bi-Weekly' => 'BI-WEEKLY',
-            '15th & 30th' => 'SEMI-MONTHLY',
-            '15th',
-            '30th',
             'Monthly' => 'MONTHLY',
-            'Lump sum' => 'LUMPSUM',
+            'Yearly' => 'YEARLY',
             default => null,
         };
     }
@@ -1337,7 +1342,7 @@ class ApprovedLoanDocumentDataBuilder
         ?string $paymentMode,
         ?int $lumpsumMonths = null,
     ): ?int {
-        if ($paymentMode === 'LUMPSUM') {
+        if ($paymentMode === 'DUE-DATE') {
             return $lumpsumMonths ?? 1;
         }
 
@@ -1346,9 +1351,11 @@ class ApprovedLoanDocumentDataBuilder
         }
 
         return match ($paymentMode) {
+            'DAILY' => $approvedTerm * 30,
+            'QUINCENAL' => $approvedTerm * 2,
+            'SEMI-ANNUAL' => max(1, (int) round($approvedTerm / 6)),
             'WEEKLY' => max(1, (int) round(($approvedTerm * 30) / 7)),
-            'BI-WEEKLY' => max(1, (int) round(($approvedTerm * 30) / 14)),
-            'SEMI-MONTHLY' => $approvedTerm * 2,
+            'YEARLY' => max(1, (int) round($approvedTerm / 12)),
             default => $approvedTerm,
         };
     }
@@ -1385,10 +1392,12 @@ class ApprovedLoanDocumentDataBuilder
         }
 
         return match ($paymentMode) {
+            'DAILY' => $releaseDate->copy()->addDays(1),
             'WEEKLY' => $releaseDate->copy()->addDays(7),
-            'BI-WEEKLY' => $releaseDate->copy()->addDays(14),
-            'SEMI-MONTHLY' => $this->resolveNextSemiMonthlyPayday($releaseDate),
-            'LUMPSUM' => $releaseDate->copy()->addMonthsNoOverflow($lumpsumMonths ?? 1),
+            'QUINCENAL' => $this->resolveNextSemiMonthlyPayday($releaseDate),
+            'DUE-DATE' => $releaseDate->copy()->addMonthsNoOverflow($lumpsumMonths ?? 1),
+            'SEMI-ANNUAL' => $releaseDate->copy()->addMonthsNoOverflow(6),
+            'YEARLY' => $releaseDate->copy()->addMonthsNoOverflow(12),
             default => $releaseDate->copy()->addMonthNoOverflow(),
         };
     }

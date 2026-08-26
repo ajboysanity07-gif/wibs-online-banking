@@ -252,17 +252,17 @@ class LoanRequestDecisionService
         LoanRequest $loanRequest,
     ): bool {
         // Only relevant when the member's own submission skipped insurance
-        // by requesting a 1-month Lumpsum -- unrelated requests were never
+        // by requesting a 1-month Due date -- unrelated requests were never
         // exempted from insurance/health at submission time, so missing
         // data there is out of scope for this guardrail.
-        if (! $this->isOneMonthLumpsum(
+        if (! $this->isDueDateNoInsurance(
             $loanRequest->requested_payment_frequency,
             $loanRequest->requested_term,
         )) {
             return false;
         }
 
-        if ($this->isOneMonthLumpsum(
+        if ($this->isDueDateNoInsurance(
             $loanRequest->recommended_payment_frequency,
             $loanRequest->recommended_term,
         )) {
@@ -280,9 +280,9 @@ class LoanRequestDecisionService
             ->exists();
     }
 
-    private function isOneMonthLumpsum(?string $frequency, int|string|null $term): bool
+    private function isDueDateNoInsurance(?string $frequency, int|string|null $term): bool
     {
-        return $frequency === LoanPaydayOption::Lumpsum->value
+        return $frequency === LoanPaydayOption::DueDate->value
             && (int) $term === 1;
     }
 

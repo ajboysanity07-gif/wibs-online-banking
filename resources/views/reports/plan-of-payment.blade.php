@@ -7,7 +7,7 @@
     $approvedAmount  = $loan['approved_amount_raw'] ?? null;
     $loanType        = trim((string) ($loan['type'] ?? ''));
     $paymentMode     = trim((string) ($loan['payment_mode_workbook'] ?? ''));
-    $isLumpsum       = $paymentMode === 'LUMPSUM';
+    $isLumpsum       = $paymentMode === 'DUE-DATE';
     $principalAmt    = $loan['amortization_principal_raw'] ?? null;
     $reviewerName    = trim((string) ($reviewer['name'] ?? ''));
 

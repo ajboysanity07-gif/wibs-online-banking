@@ -90,7 +90,7 @@ test('v2 workflow happy path reaches final approval after revised terms are acce
         ->assertJsonPath('data.loanRequest.recommended_amount', '25000.00')
         ->assertJsonPath('data.loanRequest.recommended_term', 12)
         ->assertJsonPath('data.loanRequest.recommended_interest_rate', '1.5000')
-        ->assertJsonPath('data.loanRequest.recommended_payment_frequency', '15th & 30th');
+        ->assertJsonPath('data.loanRequest.recommended_payment_frequency', 'Quincenal');
 
     $documentGenerationResponse = $this
         ->actingAs($processor)
@@ -443,7 +443,7 @@ test('single loan manager is auto-assigned as witness two at processing, and app
             'approved_amount' => 25000,
             'approved_term' => 12,
             'approved_interest_rate' => 1.5,
-            'approved_payment_frequency' => '15th & 30th',
+            'approved_payment_frequency' => 'Quincenal',
             'approval_remarks' => 'Approved as recommended.',
         ])
         ->assertOk()
@@ -605,7 +605,7 @@ test('approval does not overwrite the witness-two manager chosen at processing',
             'approved_amount' => 25000,
             'approved_term' => 12,
             'approved_interest_rate' => 1.5,
-            'approved_payment_frequency' => '15th & 30th',
+            'approved_payment_frequency' => 'Quincenal',
             'approval_remarks' => 'Approved as recommended.',
         ])
         ->assertForbidden();
@@ -617,7 +617,7 @@ test('approval does not overwrite the witness-two manager chosen at processing',
             'approved_amount' => 25000,
             'approved_term' => 12,
             'approved_interest_rate' => 1.5,
-            'approved_payment_frequency' => '15th & 30th',
+            'approved_payment_frequency' => 'Quincenal',
             'approval_remarks' => 'Approved as recommended.',
         ])
         ->assertOk()
@@ -894,7 +894,7 @@ test('manager approval rolls back completely when document regeneration fails', 
                 'approved_amount' => 25000,
                 'approved_term' => 12,
                 'approved_interest_rate' => 1.5,
-                'approved_payment_frequency' => '15th & 30th',
+                'approved_payment_frequency' => 'Quincenal',
                 'approval_remarks' => 'Approved as recommended.',
             ])
             ->assertStatus(500);
@@ -1136,6 +1136,7 @@ function acceptanceLoanRequestPayload(): array
         ],
         'dependents' => [
             'applicant_cycle_status' => 'New',
+            'applicant_cycle_number' => 1,
         ],
         'banking' => [
             'payout_bank_name' => 'WIBS Cooperative Bank',
@@ -1195,7 +1196,7 @@ function acceptanceLoanRequestPayload(): array
             'years_in_work_business' => '4 years',
             'employer_date_employed' => '2018-01-15',
             'gross_monthly_income' => 20000,
-            'payday' => '15th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_1' => [
             'first_name' => 'Co',
@@ -1223,7 +1224,7 @@ function acceptanceLoanRequestPayload(): array
             'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
             'gross_monthly_income' => 18000,
-            'payday' => '30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_2' => [
             'first_name' => 'Second',
@@ -1251,7 +1252,7 @@ function acceptanceLoanRequestPayload(): array
             'nature_of_business' => 'Retail',
             'years_in_work_business' => '8 years',
             'gross_monthly_income' => 22000,
-            'payday' => '15th',
+            'payday' => 'Quincenal',
         ],
     ];
 }
@@ -1281,7 +1282,7 @@ function acceptanceProcessingPayload(): array
         'recommended_amount' => 25000,
         'recommended_term' => 12,
         'recommended_interest_rate' => 1.5,
-        'recommended_payment_frequency' => '15th & 30th',
+        'recommended_payment_frequency' => 'Quincenal',
     ];
 }
 

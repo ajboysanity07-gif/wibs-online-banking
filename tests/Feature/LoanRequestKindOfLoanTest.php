@@ -132,7 +132,7 @@ function kindOfLoanApplicantPayload(array $overrides = []): array
         'years_in_work_business' => '3 years',
         'employer_date_employed' => '2018-03-15',
         'gross_monthly_income' => 25000,
-        'payday' => '15th & 30th',
+        'payday' => 'Quincenal',
     ], $overrides);
 }
 
@@ -164,7 +164,7 @@ function kindOfLoanCoMakerPayload(string $seed): array
         'nature_of_business' => 'Government',
         'years_in_work_business' => '6 years',
         'gross_monthly_income' => 18000,
-        'payday' => '30th',
+        'payday' => 'Quincenal',
     ];
 }
 

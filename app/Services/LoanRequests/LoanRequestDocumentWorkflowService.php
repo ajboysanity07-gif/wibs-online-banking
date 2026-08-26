@@ -33,13 +33,13 @@ class LoanRequestDocumentWorkflowService
      * @var list<string>
      */
     private const VALID_PAYMENT_FREQUENCIES = [
-        'Weekly',
-        '15th',
-        '30th',
-        '15th & 30th',
-        'Bi-Weekly',
+        'Daily',
+        'Due date',
         'Monthly',
-        'Lump sum',
+        'Quincenal',
+        'Semi-annual',
+        'Weekly',
+        'Yearly',
     ];
 
     /**
@@ -861,12 +861,13 @@ class LoanRequestDocumentWorkflowService
 
         // Monthly-equivalent multiplier, matching the day-based convention
         // resolveAmortizationCount() already uses to derive payment counts
-        // (round(term*30/7) for WEEKLY, round(term*30/14) for BI-WEEKLY) —
-        // not calendar-accurate 52/12 ratios.
+        // (round(term*30/7) for WEEKLY, etc.) — not calendar-accurate ratios.
         $monthlyMultiplier = match ($workbookPaymentMode) {
+            'DAILY' => 30.0,
             'WEEKLY' => 30 / 7,
-            'BI-WEEKLY' => 30 / 14,
-            'SEMI-MONTHLY' => 2.0,
+            'QUINCENAL' => 2.0,
+            'SEMI-ANNUAL' => 1.0 / 6,
+            'YEARLY' => 1.0 / 12,
             default => 1.0, // MONTHLY and null
         };
         $monthlyAmortizationRaw = $amortizationTotalRaw !== null
@@ -1011,11 +1012,33 @@ class LoanRequestDocumentWorkflowService
             $conditionalFields[] = 'applicant_pep_status_details';
         }
 
-        if (($flatValues['applicant_cycle_status'] ?? null) === 'Old') {
+        if ($this->hasAnyCycleStatus($flatValues)) {
             $conditionalFields[] = 'applicant_cycle_number';
         }
 
         return array_values(array_unique($conditionalFields));
+    }
+
+    private function hasAnyCycleStatus(array $flatValues): bool
+    {
+        $keys = [
+            'applicant_cycle_status',
+            'dependent_spouse_cycle_status',
+            'dependent_child_1_cycle_status',
+            'dependent_child_2_cycle_status',
+            'dependent_child_3_cycle_status',
+            'dependent_sibling_1_cycle_status',
+            'dependent_sibling_2_cycle_status',
+            'dependent_sibling_3_cycle_status',
+        ];
+
+        foreach ($keys as $key) {
+            if (! empty($flatValues[$key])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

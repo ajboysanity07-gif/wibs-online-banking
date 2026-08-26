@@ -131,32 +131,30 @@ export const formatPayday = (value: string): string => {
         return '--';
     }
 
+    const valid = [
+        'Daily',
+        'Due date',
+        'Monthly',
+        'Quincenal',
+        'Semi-annual',
+        'Weekly',
+        'Yearly',
+    ];
+    if (valid.includes(trimmed)) {
+        return trimmed;
+    }
+
     const upper = trimmed.toUpperCase();
     const compact = upper.replace(/[^0-9A-Z]/g, '');
 
-    if (upper === 'WEEKLY') {
-        return 'Weekly';
-    }
-
-    if (upper === 'MONTHLY') {
-        return 'Monthly';
-    }
-
-    if (compact === 'BIWEEKLY') {
-        return 'Bi-Weekly';
-    }
-
-    if (compact === '15') {
-        return '15th';
-    }
-
-    if (compact === '30') {
-        return '30th';
-    }
-
-    if (upper.includes('15') && upper.includes('30')) {
-        return '15th & 30th';
-    }
+    if (upper === 'WEEKLY' || compact === 'BIWEEKLY') return 'Weekly';
+    if (upper === 'MONTHLY') return 'Monthly';
+    if (compact === '15' || compact === '30' || (upper.includes('15') && upper.includes('30')) || compact === 'SEMIMONTHLY')
+        return 'Quincenal';
+    if (upper.includes('LUMP')) return 'Due date';
+    if (upper === 'DAILY') return 'Daily';
+    if (upper === 'SEMIANNUAL' || compact === 'SEMIA') return 'Semi-annual';
+    if (upper === 'YEARLY' || upper === 'ANNUAL') return 'Yearly';
 
     return trimmed;
 };

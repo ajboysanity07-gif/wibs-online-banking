@@ -43,7 +43,7 @@ test('plan of payment report shows the actual principal amount for lumpsum loans
         'loan' => [
             'approved_amount_raw' => 50000,
             'type' => 'SALARY LOAN',
-            'payment_mode_workbook' => 'LUMPSUM',
+            'payment_mode_workbook' => 'DUE-DATE',
             'amortization_principal_raw' => 50000,
         ],
         'applicant' => ['full_name' => 'Loan Member', 'address' => 'Sample Address'],
@@ -54,7 +54,7 @@ test('plan of payment report shows the actual principal amount for lumpsum loans
     ])->render();
 
     expect($html)->toContain('MODE OF PAYMENT')
-        ->toContain('LUMPSUM')
+        ->toContain('DUE-DATE')
         ->toContain('&#8369; 50,000.00')
         ->not->toContain('PLEASE SEE ATTACHED')
         ->not->toContain('LOAN AMORTIZATION')

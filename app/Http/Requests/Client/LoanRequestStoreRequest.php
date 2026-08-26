@@ -255,12 +255,12 @@ class LoanRequestStoreRequest extends FormRequest
     ];
 
     /**
-     * True when the member requested Lumpsum repayment over a single month --
+     * True when the member requested Due date repayment over a single month --
      * the only combination that skips the insurance/health wizard steps.
      */
-    private function isOneMonthLumpsumRequested(): bool
+    private function isDueDateNoInsuranceRequested(): bool
     {
-        return $this->input('requested_payment_frequency') === LoanPaydayOption::Lumpsum->value
+        return $this->input('requested_payment_frequency') === LoanPaydayOption::DueDate->value
             && (int) $this->input('requested_term') === 1;
     }
 
@@ -342,16 +342,14 @@ class LoanRequestStoreRequest extends FormRequest
             if (in_array($key, self::DEPENDENT_CYCLE_NUMBER_KEYS, true)) {
                 $statusKey = str_replace('_cycle_number', '_cycle_status', $key);
 
-                // No 'sometimes' here: combined with a same-field required_if,
-                // 'sometimes' would skip validation entirely whenever the
-                // key is absent from the payload. Cycle number is always
-                // required when the sibling status is present -- the Generali
-                // form labels them "New (1st-2nd)" / "Old (3rd cycle & up)".
+                // Cycle number is auto-computed server-side by
+                // LoanRequestCycleComputeService and locked, so client
+                // submissions treat it as optional (the backend always
+                // overwrites).
                 $rules["dependents.{$key}"] = [
                     'nullable',
                     'integer',
                     'min:1',
-                    Rule::requiredIf(filled($this->input("dependents.{$statusKey}"))),
                 ];
 
                 continue;
@@ -375,7 +373,7 @@ class LoanRequestStoreRequest extends FormRequest
     private function cycleStatusRequiredRule(string $key): array
     {
         if ($key === 'applicant_cycle_status') {
-            return [Rule::requiredIf(! $this->isOneMonthLumpsumRequested())];
+            return [Rule::requiredIf(! $this->isDueDateNoInsuranceRequested())];
         }
 
         if ($key === 'dependent_spouse_cycle_status') {
@@ -472,7 +470,7 @@ class LoanRequestStoreRequest extends FormRequest
             }
         }
 
-        $insuranceRequired = $this->isOneMonthLumpsumRequested() ? 'sometimes' : 'required';
+        $insuranceRequired = $this->isDueDateNoInsuranceRequested() ? 'sometimes' : 'required';
 
         return [
             'typecode' => $loanTypeRules,
@@ -495,11 +493,6 @@ class LoanRequestStoreRequest extends FormRequest
                 'nullable',
                 'string',
                 Rule::in(LoanPaydayOption::values()),
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    if ($value === LoanPaydayOption::Lumpsum->value && ! $this->isOtherLoanType()) {
-                        $fail('Lump sum payment frequency is only available for Other Loan applications.');
-                    }
-                },
             ],
             'kind_of_loan' => [
                 Rule::requiredIf(fn () => $this->isMicroBusinessLoanType()),

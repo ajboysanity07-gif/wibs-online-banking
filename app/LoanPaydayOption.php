@@ -4,13 +4,13 @@ namespace App;
 
 enum LoanPaydayOption: string
 {
-    case Weekly = 'Weekly';
-    case Fifteenth = '15th';
-    case Thirtieth = '30th';
-    case FifteenthAndThirtieth = '15th & 30th';
-    case BiWeekly = 'Bi-Weekly';
+    case Daily = 'Daily';
+    case DueDate = 'Due date';
     case Monthly = 'Monthly';
-    case Lumpsum = 'Lump sum';
+    case Quincenal = 'Quincenal';
+    case SemiAnnual = 'Semi-annual';
+    case Weekly = 'Weekly';
+    case Yearly = 'Yearly';
 
     /**
      * @return list<string>

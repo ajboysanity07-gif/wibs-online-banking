@@ -643,7 +643,7 @@
   "641": "2026_08_18_100000_add_kind_of_loan_to_loan_requests_table.php",
   "642": "2026_08_18_110000_normalize_lumpsum_payment_frequency_value.php",
   "643": "axios",
-  "644": "ApprovedLoanDocumentServiceDeductionStartDateTest.php",
+  "644": "LoanRequestReopenRequest",
   "645": "2026_08_05_130000_add_civil_status_housing_status_spouse_birthdate_to_member_application_profiles_table.php",
   "646": "input-otp",
   "647": "BackfillZipCodesCommand",
@@ -652,5 +652,11 @@
   "650": "2026_08_18_104837_create_loan_document_package_jobs_table.php",
   "651": "2026_06_15_081813_add_phase_five_workflow_fields_to_loan_requests_table.php",
   "652": "globals",
-  "653": "cmdk"
+  "653": "cmdk",
+  "654": "LoanRequestReturnForProcessingRequest",
+  "655": "LoanRequestUpgradeWorkflowRequest",
+  "656": "OrganizationSettingsController",
+  "657": "LoanWorkflowRequestsIndexRequest",
+  "658": "MemberLoanSummaryResource",
+  "659": "PromissoryNoteReportTest.php"
 }

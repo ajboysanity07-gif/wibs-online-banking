@@ -464,7 +464,7 @@ test('blade reports use calibri as the font family by default', function () {
         ->toContain('bold c nw">LOAN NUMBER:</td>')
         ->toContain('class="u" colspan="8">&nbsp;</td>')
         ->toContain('class="u" colspan="9">&nbsp;</td>')
-        ->toContain('LOAN NUMBER:</td>'."\n".'                <td class="u" colspan="2">&nbsp;</td>');
+        ->toContain('LOAN NUMBER:</td>'."\n".'                <td class="u" colspan="2" style="padding-left: 4pt;">&nbsp;</td>');
 
     // Empty value cells render blank. The old Blade-escaped '&nbsp;' fallbacks
     // emitted "&amp;nbsp;" -- literal text in the PDF -- which must never

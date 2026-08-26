@@ -624,20 +624,20 @@ class LoanRequestDocumentCatalog
             'institutional_payroll' => $this->authorityToDeductCategory($loanRequest, $flatValues) !== null
                 && ($flatValues['payment_option'] ?? null) === LoanPaymentOption::SalaryDeduction->value,
             'atm_payout_employee' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues),
-            'not_lumpsum' => ! $this->isOneMonthLumpsum($loanRequest),
+            'not_lumpsum' => ! $this->isDueDateNoInsurance($loanRequest),
             default => true,
         };
     }
 
     /**
-     * Only a 1-month Lumpsum skips insurance entirely -- a 2-month-or-longer
-     * Lumpsum still requires the insurance document (mirrors
-     * LoanRequestDecisionService::isOneMonthLumpsum() and the insurance
+     * Only a 1-month Due date skips insurance entirely -- a 2-month-or-longer
+     * Due date still requires the insurance document (mirrors
+     * LoanRequestDecisionService::isDueDateNoInsurance() and the insurance
      * premium waiver in ApprovedLoanDocumentDataBuilder).
      */
-    private function isOneMonthLumpsum(LoanRequest $loanRequest): bool
+    private function isDueDateNoInsurance(LoanRequest $loanRequest): bool
     {
-        return $loanRequest->recommended_payment_frequency === LoanPaydayOption::Lumpsum->value
+        return $loanRequest->recommended_payment_frequency === LoanPaydayOption::DueDate->value
             && (int) $loanRequest->recommended_term === 1;
     }
 

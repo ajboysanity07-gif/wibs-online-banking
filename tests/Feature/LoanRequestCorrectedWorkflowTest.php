@@ -492,7 +492,7 @@ test('admin correction sends member notification', function () {
             'years_in_work_business' => '5 years',
             'employer_date_employed' => '2017-05-20',
             'gross_monthly_income' => 32000,
-            'payday' => '15th & 30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_1' => [
             'first_name' => 'Corrected',
@@ -520,7 +520,7 @@ test('admin correction sends member notification', function () {
             'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
             'gross_monthly_income' => 18000,
-            'payday' => '30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_2' => [
             'first_name' => 'Corrected',
@@ -548,7 +548,7 @@ test('admin correction sends member notification', function () {
             'nature_of_business' => 'Retail',
             'years_in_work_business' => '8 years',
             'gross_monthly_income' => 22000,
-            'payday' => '15th',
+            'payday' => 'Quincenal',
         ],
         'dependents' => [
             'applicant_cycle_status' => 'New',
@@ -634,7 +634,7 @@ test('loan processor correcting an unassigned request becomes its assigned offic
                 'years_in_work_business' => '5 years',
                 'employer_date_employed' => '2017-05-20',
                 'gross_monthly_income' => 32000,
-                'payday' => '15th & 30th',
+                'payday' => 'Quincenal',
             ],
             'co_maker_1' => [
                 'first_name' => 'Corrected',
@@ -662,7 +662,7 @@ test('loan processor correcting an unassigned request becomes its assigned offic
                 'nature_of_business' => 'Government',
                 'years_in_work_business' => '6 years',
                 'gross_monthly_income' => 18000,
-                'payday' => '30th',
+                'payday' => 'Quincenal',
             ],
             'co_maker_2' => [
                 'first_name' => 'Corrected',
@@ -690,7 +690,7 @@ test('loan processor correcting an unassigned request becomes its assigned offic
                 'nature_of_business' => 'Retail',
                 'years_in_work_business' => '8 years',
                 'gross_monthly_income' => 22000,
-                'payday' => '15th',
+                'payday' => 'Quincenal',
             ],
             'dependents' => [
                 'applicant_cycle_status' => 'New',
@@ -746,7 +746,7 @@ function correctedWorkflowFullPersonPayload(): array
             'years_in_work_business' => '5 years',
             'employer_date_employed' => '2017-05-20',
             'gross_monthly_income' => 32000,
-            'payday' => '15th & 30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_1' => [
             'first_name' => 'Corrected',
@@ -774,7 +774,7 @@ function correctedWorkflowFullPersonPayload(): array
             'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
             'gross_monthly_income' => 18000,
-            'payday' => '30th',
+            'payday' => 'Quincenal',
         ],
         'co_maker_2' => [
             'first_name' => 'Corrected',
@@ -802,7 +802,7 @@ function correctedWorkflowFullPersonPayload(): array
             'nature_of_business' => 'Retail',
             'years_in_work_business' => '8 years',
             'gross_monthly_income' => 22000,
-            'payday' => '15th',
+            'payday' => 'Quincenal',
         ],
         'dependents' => [
             'applicant_cycle_status' => 'New',

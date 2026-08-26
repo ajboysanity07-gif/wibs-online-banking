@@ -18,9 +18,6 @@ class MemberDependent extends Model
         'birthdate',
         'cycle_status',
         'cycle_number',
-        'confirmed_cycle_status',
-        'confirmed_cycle_number',
-        'confirmed_by_loan_request_id',
     ];
 
     public function memberDependentProfile(): BelongsTo
@@ -36,8 +33,6 @@ class MemberDependent extends Model
         return [
             'birthdate' => 'date',
             'cycle_number' => 'integer',
-            'confirmed_cycle_number' => 'integer',
-            'confirmed_by_loan_request_id' => 'integer',
         ];
     }
 }

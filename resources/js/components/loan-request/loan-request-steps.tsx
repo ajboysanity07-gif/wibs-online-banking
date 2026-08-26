@@ -87,10 +87,9 @@ const PAYMENT_OPTION_OPTIONS = [
 ] as const;
 const ACCOUNT_TYPE_OPTIONS = ['Savings', 'Checking'] as const;
 
-/** wlntype.typecode for "Other Loan" -- the only type eligible for Lump sum. */
 export const OTHER_LOAN_TYPECODE = '01';
 
-const REPAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Lump sum'] as const;
+const REPAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Due date'] as const;
 
 const KIND_OF_LOAN_OPTIONS = ['Regular', 'Emergency'] as const;
 
@@ -154,12 +153,6 @@ export function LoanRequestLoanDetailsStep({
         selectedLoanTypeLabel,
         data.kind_of_loan,
     );
-
-    useEffect(() => {
-        if (!isOtherLoan && data.requested_payment_frequency) {
-            onChange('requested_payment_frequency', '');
-        }
-    }, [isOtherLoan, data.requested_payment_frequency, onChange]);
 
     useEffect(() => {
         if (!isOtherLoan && data.other_loan_type_name) {
@@ -356,11 +349,10 @@ export function LoanRequestLoanDetailsStep({
                     </div>
                 )}
 
-                {isOtherLoan &&
-                    data.requested_payment_frequency === 'Lump sum' && (
+                {data.requested_payment_frequency === 'Due date' && (
                         <div className="grid gap-2 md:col-span-2">
                             <p className="text-sm text-muted-foreground">
-                                Lump sum is repaid as a single payment after the
+                                Due date is repaid as a single payment after the
                                 loan term above.
                                 {data.requested_term === '1' &&
                                     ' Paying in 1 month skips the insurance and health questionnaire steps below.'}
@@ -2560,8 +2552,8 @@ export function LoanRequestReviewStep({
                   {
                       label: 'Requested repayment frequency',
                       value:
-                          data.requested_payment_frequency === 'Lump sum'
-                              ? `Lump sum (${data.requested_term || '--'} month${data.requested_term === '1' ? '' : 's'})`
+                          data.requested_payment_frequency === 'Due date'
+                              ? `Due date (${data.requested_term || '--'} month${data.requested_term === '1' ? '' : 's'})`
                               : displayText(data.requested_payment_frequency),
                   },
               ]

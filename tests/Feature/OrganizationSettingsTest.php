@@ -113,7 +113,7 @@ test('branding uses stored organization settings when available', function () {
     expect($branding['logoFullIsDefault'])->toBeTrue();
     expect($branding['faviconPath'])->toBe('branding/favicon.ico');
     expect($branding['faviconUrl'])
-        ->toBe(Storage::disk('public')->url('branding/favicon.ico'));
+        ->toBe(asset('favicon.ico'));
     expect($branding['faviconDefaultUrl'])->toBe(asset('favicon.ico'));
     expect($branding['brandPrimaryColor'])->toBe('#111111');
     expect($branding['brandAccentColor'])->toBe('#222222');

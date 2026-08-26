@@ -1727,17 +1727,17 @@ class LoanRequestDataService
      * Sections whose required fields are waived when the member requested a
      * 1-month Lumpsum repayment -- the insurance/health questionnaire is
      * skipped in the wizard for that choice (see
-     * LoanRequestStoreRequest::isOneMonthLumpsumRequested()).
+     * LoanRequestStoreRequest::isDueDateNoInsuranceRequested()).
      *
      * @var list<string>
      */
-    private const LUMPSUM_WAIVED_SECTIONS = ['insurance', 'health', 'dependents'];
+    private const DUE_DATE_WAIVED_SECTIONS = ['insurance', 'health', 'dependents'];
 
     public function missingRequiredMemberFields(LoanRequest $loanRequest): array
     {
         $flatValues = $this->loadFlatValues($loanRequest);
         $missing = [];
-        $isOneMonthLumpsum = $loanRequest->requested_payment_frequency === LoanPaydayOption::Lumpsum->value
+        $isDueDateNoInsurance = $loanRequest->requested_payment_frequency === LoanPaydayOption::DueDate->value
             && (int) $loanRequest->requested_term === 1;
 
         foreach (self::FIELD_DEFINITIONS as $fieldKey => $definition) {
@@ -1749,8 +1749,8 @@ class LoanRequestDataService
             }
 
             if (
-                $isOneMonthLumpsum
-                && in_array($definition['section'], self::LUMPSUM_WAIVED_SECTIONS, true)
+                $isDueDateNoInsurance
+                && in_array($definition['section'], self::DUE_DATE_WAIVED_SECTIONS, true)
             ) {
                 continue;
             }

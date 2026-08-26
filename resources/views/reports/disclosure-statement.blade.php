@@ -24,7 +24,7 @@
     $netProceeds         = $loan['net_proceeds_raw'] ?? null;
     $amortizationTotal   = $loan['amortization_total_raw'] ?? null;
     $paymentMode         = trim((string) ($loan['payment_mode_workbook'] ?? ''));
-    $isLumpsum           = $paymentMode === 'LUMPSUM';
+    $isLumpsum           = $paymentMode === 'DUE-DATE';
     $isEmergencyLoan     = trim((string) ($loan['kind_of_loan'] ?? '')) === 'Emergency';
     $approvedTerm        = $loan['approved_term_raw'] ?? null;
 

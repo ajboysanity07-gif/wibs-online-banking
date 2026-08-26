@@ -249,10 +249,10 @@ const resolveAgeBandedInsuranceRate = (
     return band?.rate ?? null;
 };
 
-// "Lump sum" is a loan-level payment frequency, not a valid personal payday,
+// "Due date" is a loan-level payment frequency, not a valid personal payday,
 // so it is added only for this dropdown rather than to the shared
 // PAYDAY_OPTIONS list (also used by the applicant/co-maker payday pickers).
-const PAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Lump sum'] as const;
+const PAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Due date'] as const;
 
 const withProcessingChargeDefaults = (
     processing: Record<string, string | number | boolean | null>,
@@ -990,7 +990,6 @@ export function ProcessingDetailsPanel({
     const renderCycleStateRow = (slotKey: string, label: string) => {
         const slotState = cycleState[slotKey];
         const [statusKey, numberKey] = cycleSlotFieldKeys(slotKey);
-        const locked = slotState?.locked ?? false;
         const statusValue = processingForm.processing[statusKey];
         const numberValue = processingForm.processing[numberKey];
 
@@ -1001,54 +1000,23 @@ export function ProcessingDetailsPanel({
             >
                 <div className="flex flex-col justify-center">
                     <span className="text-sm font-medium">{label}</span>
-                    {locked && (
-                        <span className="text-xs text-muted-foreground">
-                            Locked — this person's cycle continues from a prior
-                            loan.
-                        </span>
-                    )}
+                    <span className="text-xs text-muted-foreground">
+                        Auto-computed from loan history.
+                    </span>
                 </div>
                 <div className="grid gap-2">
                     <Label className="text-xs text-muted-foreground">
                         Cycle status
                     </Label>
-                    {locked ? (
-                        <Input
-                            value={
-                                typeof statusValue === 'string'
-                                    ? statusValue
-                                    : ''
-                            }
-                            disabled
-                            className={readOnlyProcessingFieldClassName}
-                        />
-                    ) : (
-                        <Select
-                            value={
-                                typeof statusValue === 'string'
-                                    ? statusValue
-                                    : undefined
-                            }
-                            onValueChange={(value) =>
-                                setProcessingForm((current) => ({
-                                    ...current,
-                                    processing: {
-                                        ...current.processing,
-                                        [statusKey]: value,
-                                    },
-                                }))
-                            }
-                            disabled={!canUpdateProcessing}
-                        >
-                            <SelectTrigger className="w-28">
-                                <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="New">New</SelectItem>
-                                <SelectItem value="Old">Old</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    )}
+                    <Input
+                        value={
+                            typeof statusValue === 'string'
+                                ? statusValue
+                                : ''
+                        }
+                        disabled
+                        className={readOnlyProcessingFieldClassName}
+                    />
                 </div>
                 <div className="grid gap-2">
                     <Label className="text-xs text-muted-foreground">
@@ -1062,18 +1030,8 @@ export function ProcessingDetailsPanel({
                                 ? `${numberValue}`
                                 : ''
                         }
-                        disabled={locked || !canUpdateProcessing}
-                        className={
-                            locked
-                                ? readOnlyProcessingFieldClassName
-                                : undefined
-                        }
-                        onChange={(event) =>
-                            updateProcessingSectionField(
-                                numberKey,
-                                event.target.value,
-                            )
-                        }
+                        disabled
+                        className={readOnlyProcessingFieldClassName}
                     />
                 </div>
             </div>
@@ -1200,13 +1158,13 @@ export function ProcessingDetailsPanel({
                                             ...current,
                                             recommended_payment_frequency:
                                                 value,
-                                            // Lump sum forces loan security/savings to 0%;
+                                            // Due date forces loan security/savings to 0%;
                                             // switching away restores the standard default
-                                            // so staff aren't stuck at 0%. The Lump sum month
+                                            // so staff aren't stuck at 0%. The Due date month
                                             // count is derived from "Recommended term", not
                                             // entered separately.
                                             processing:
-                                                value === 'Lump sum'
+                                                value === 'Due date'
                                                     ? {
                                                           ...current.processing,
                                                           loan_security_rate: 0,
@@ -1252,9 +1210,9 @@ export function ProcessingDetailsPanel({
                                 )}
                             </div>
                             {processingForm.recommended_payment_frequency ===
-                                'Lump sum' && (
+                                'Due date' && (
                                 <p className="text-sm text-muted-foreground sm:col-span-2">
-                                    Lump sum is repaid as a single payment after
+                                    Due date is repaid as a single payment after
                                     the recommended term above (
                                     {processingForm.recommended_term || '—'}{' '}
                                     month
@@ -1281,7 +1239,7 @@ export function ProcessingDetailsPanel({
                                 onBlur: scheduleGnthpRecalculation,
                             })}
                             {processingForm.recommended_payment_frequency !==
-                                'Lump sum' && (
+                                'Due date' && (
                                 <div className="grid gap-2">
                                     <Label
                                         htmlFor="inline_processing_loan_security_rate"
@@ -1300,7 +1258,7 @@ export function ProcessingDetailsPanel({
                                                         reference workbook. Not
                                                         editable per loan.
                                                         Zeroed automatically for
-                                                        Lump sum loans.
+                                                        Due date loans.
                                                     </p>
                                                 </TooltipContent>
                                             </Tooltip>
@@ -1628,7 +1586,7 @@ export function ProcessingDetailsPanel({
                         {cycleStateSlots.length > 0 && (
                             <>
                                 {renderProcessingSectionLabel(
-                                    'Group Life Insurance Cycle Verification',
+                                    'Group Life Insurance Cycle (Auto-computed)',
                                 )}
                                 <div className="grid gap-3">
                                     {cycleStateSlots.map(({ slotKey, label }) =>

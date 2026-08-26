@@ -10,7 +10,7 @@ test('promissory note leaves the amortization amount hand-fill but prints the pa
         'loan' => [
             'approved_amount_raw' => 25000,
             'amortization_total_raw' => 2083.33,
-            'payment_mode_workbook' => 'SEMI-MONTHLY',
+            'payment_mode_workbook' => 'QUINCENAL',
             'amortization_count' => 24,
         ],
         'applicant' => [],
@@ -31,7 +31,7 @@ test('promissory note leaves the amortization amount hand-fill but prints the pa
         ->toContain('Amortization/Installment payment of')
         ->toContain('note-blank')
         ->not->toContain('note-fill">2,083.33</span>')
-        ->toContain('note-fill">semi-monthly</span>');
+        ->toContain('note-fill">quincenal</span>');
 });
 
 test('promissory note prints the computed single-payment value for lumpsum loans', function () {
@@ -42,7 +42,7 @@ test('promissory note prints the computed single-payment value for lumpsum loans
         'loan' => [
             'approved_amount_raw' => 50000,
             'amortization_total_raw' => 51500,
-            'payment_mode_workbook' => 'LUMPSUM',
+            'payment_mode_workbook' => 'DUE-DATE',
             'amortization_count' => 1,
         ],
         'applicant' => [],
@@ -56,7 +56,7 @@ test('promissory note prints the computed single-payment value for lumpsum loans
 
     expect($html)
         ->toContain('note-fill">51,500.00</span>')
-        ->toContain('note-fill">lump sum</span>');
+        ->toContain('note-fill">due date</span>');
 });
 
 test('promissory note prints a lowercase payment frequency label for monthly loans', function () {

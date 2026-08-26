@@ -503,7 +503,7 @@ export default function LoanRequestPage({
     const hasLoanTypes = loanTypes.length > 0;
 
     const isOneMonthLumpsumRequested =
-        form.data.requested_payment_frequency === 'Lump sum' &&
+        form.data.requested_payment_frequency === 'Due date' &&
         form.data.requested_term === '1';
 
     const skippedStepIds = useMemo(

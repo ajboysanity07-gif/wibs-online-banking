@@ -13,17 +13,19 @@
     $interestRateWords = trim((string) ($loan['interest_rate_words'] ?? ''));
     $amortizationTotal = $loan['amortization_total_raw'] ?? null;
     $paymentMode = trim((string) ($loan['payment_mode_workbook'] ?? ''));
-    // payment_mode_workbook holds canonical uppercase codes (MONTHLY, SEMI-MONTHLY,
-    // BI-WEEKLY, WEEKLY, LUMPSUM) but this reads inline in a lowercase prose
-    // sentence ("...inclusive of interest every ___"), so print a lowercase,
-    // grammatically-matching label instead of the raw code.
+    // payment_mode_workbook holds canonical uppercase codes (DAILY, DUE-DATE,
+    // QUINCENAL, SEMI-ANNUAL, WEEKLY, MONTHLY, YEARLY) but this reads inline
+    // in a lowercase prose sentence ("...inclusive of interest every ___"), so
+    // print a lowercase, grammatically-matching label instead of the raw code.
     $paymentModeUpper = strtoupper($paymentMode);
     $paymentModeLabel = match (true) {
         $paymentMode === '' => null,
-        str_contains($paymentModeUpper, 'LUMP') => 'lump sum',
-        str_contains($paymentModeUpper, 'SEMI') => 'semi-monthly',
-        str_contains($paymentModeUpper, 'BI-WEEK') || str_contains($paymentModeUpper, 'BIWEEK') => 'bi-weekly',
+        str_contains($paymentModeUpper, 'DUE') => 'due date',
+        str_contains($paymentModeUpper, 'DAILY') => 'daily',
+        str_contains($paymentModeUpper, 'QUINCENAL') || str_contains($paymentModeUpper, 'SEMI') => 'quincenal',
         str_contains($paymentModeUpper, 'WEEK') => 'weekly',
+        str_contains($paymentModeUpper, 'ANNUAL') || str_contains($paymentModeUpper, 'SEMI-ANNUAL') => 'semi-annual',
+        str_contains($paymentModeUpper, 'YEAR') => 'yearly',
         str_contains($paymentModeUpper, 'MONTH') => 'monthly',
         default => strtolower($paymentMode),
     };
@@ -132,7 +134,7 @@
     // convention as the Disclosure Statement's blanked "Total Installment
     // Payment" figure). Only lumpsum loans print the computed single-payment
     // value. The payment-frequency label always prints, regardless of lumpsum.
-    $isLumpsum = $paymentMode === 'LUMPSUM';
+    $isLumpsum = $paymentMode === 'DUE-DATE';
     $installmentAmountValue = $isLumpsum && $amortizationTotal !== null
         ? $formatAmount($amortizationTotal)
         : null;

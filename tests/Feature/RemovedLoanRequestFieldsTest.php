@@ -128,7 +128,7 @@ test('save draft request does not persist co-maker civil_status or housing_statu
             'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
             'gross_monthly_income' => 18000,
-            'payday' => '30th',
+            'payday' => 'Quincenal',
         ],
     ]);
 
@@ -136,10 +136,9 @@ test('save draft request does not persist co-maker civil_status or housing_statu
         ->where('role', LoanRequestPersonRole::CoMakerOne->value)
         ->first();
 
-    if ($coMaker !== null) {
-        expect($coMaker->housing_status)->toBeNull();
-        expect($coMaker->civil_status)->toBeNull();
-    }
+    expect($coMaker)->not->toBeNull();
+    expect($coMaker->housing_status)->toBeNull();
+    expect($coMaker->civil_status)->toBeNull();
 });
 
 // ---------------------------------------------------------------------------

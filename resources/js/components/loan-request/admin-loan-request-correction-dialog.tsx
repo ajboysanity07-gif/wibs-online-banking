@@ -202,12 +202,7 @@ const CIVIL_STATUS_OPTIONS = new Set([
     'Widowed',
 ]);
 const PAYDAY_OPTIONS = new Set([
-    'Weekly',
-    '15th',
-    '30th',
-    '15th & 30th',
-    'Bi-Weekly',
-    'Monthly',
+    'Daily', 'Weekly', 'Monthly', 'Quincenal', 'Semi-annual', 'Yearly', 'Due date',
 ]);
 
 const loanFieldLabels: Record<LoanDetailField, string> = {

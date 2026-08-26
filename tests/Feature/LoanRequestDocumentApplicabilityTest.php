@@ -1225,6 +1225,7 @@ test('generali application form becomes ready once applicant PEP status and cycl
     applicabilityPersistDataEntries($loanRequest, [
         'applicant_pep_status' => ['boolean', false],
         'applicant_cycle_status' => ['string', 'New'],
+        'applicant_cycle_number' => ['integer', 1],
     ]);
 
     $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::GeneraliApplicationForm);
@@ -1279,9 +1280,9 @@ test('generali application form is ready when PEP true and Old cycle status both
     expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value);
 });
 
-test('generali and generali application form are not applicable for a 1-month Lumpsum', function (): void {
+test('generali and generali application form are not applicable for a 1-month Due-date', function (): void {
     $loanRequest = LoanRequest::factory()->make([
-        'recommended_payment_frequency' => 'Lump sum',
+        'recommended_payment_frequency' => 'Due date',
         'recommended_term' => 1,
     ]);
     $catalog = app(LoanRequestDocumentCatalog::class);
@@ -1290,9 +1291,9 @@ test('generali and generali application form are not applicable for a 1-month Lu
         ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeFalse();
 });
 
-test('generali and generali application form remain applicable for a 2-month-or-longer Lumpsum', function (): void {
+test('generali and generali application form remain applicable for a 2-month-or-longer Due-date', function (): void {
     $loanRequest = LoanRequest::factory()->make([
-        'recommended_payment_frequency' => 'Lump sum',
+        'recommended_payment_frequency' => 'Due date',
         'recommended_term' => 2,
     ]);
     $catalog = app(LoanRequestDocumentCatalog::class);
@@ -1301,7 +1302,7 @@ test('generali and generali application form remain applicable for a 2-month-or-
         ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeTrue();
 });
 
-test('generali and generali application form remain applicable for non-Lumpsum frequencies', function (): void {
+test('generali and generali application form remain applicable for non-Due-date frequencies', function (): void {
     $loanRequest = LoanRequest::factory()->make([
         'recommended_payment_frequency' => 'Monthly',
     ]);
@@ -1324,13 +1325,13 @@ test('plan of payment, disclosure statement, and promissory note have no templat
         ->and($catalog->templateBlockers(LoanRequestDocumentKey::PromissoryNote))->toBe([]);
 });
 
-test('a Lumpsum recommended payment frequency does not block promissory note generation', function (): void {
+test('a Due-date recommended payment frequency does not block promissory note generation', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 24000,
         'recommended_term' => 1,
         'recommended_interest_rate' => 0,
-        'recommended_payment_frequency' => 'Lump sum',
+        'recommended_payment_frequency' => 'Due date',
     ]);
 
     applicabilityPersistDataEntries($loanRequest, [
@@ -1349,16 +1350,16 @@ test('a Lumpsum recommended payment frequency does not block promissory note gen
     expect($entry['blockers'])->not->toContain('Recommended payment frequency is not recognized by the official templates.');
 });
 
-test('a 1-month Lumpsum zeroes loan security, savings, and insurance, and derives the amortization/maturity month count from the approved term', function (): void {
+test('a 1-month Due-date zeroes loan security, savings, and insurance, and derives the amortization/maturity month count from the approved term', function (): void {
     // recommended/approved term is the sole source of truth for how many
-    // months a Lumpsum payment covers -- amortization count and maturity
+    // months a Due-date payment covers -- amortization count and maturity
     // date must agree, both driven by the same term (1 month here).
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 24000,
         'recommended_term' => 1,
         'recommended_interest_rate' => 0,
-        'recommended_payment_frequency' => 'Lump sum',
+        'recommended_payment_frequency' => 'Due date',
         'approved_amount' => 24000,
         'approved_term' => 1,
         'approved_interest_rate' => 0,
@@ -1387,20 +1388,20 @@ test('a 1-month Lumpsum zeroes loan security, savings, and insurance, and derive
         ->and($documentData['loan']['insurance_term'])->toBe(0)
         ->and($documentData['loan']['insurance_premium_raw'])->toBe(0.0)
         ->and($documentData['loan']['amortization_count'])->toBe(1)
-        ->and($documentData['loan']['payment_mode_workbook'])->toBe('LUMPSUM')
+        ->and($documentData['loan']['payment_mode_workbook'])->toBe('DUE-DATE')
         ->and($documentData['loan']['lumpsum_months'])->toBe(1)
         ->and($documentData['loan']['maturity_date_short'])->toBe(
             $loanRequest->approved_at->copy()->addMonthsNoOverflow(1)->format('m/d/Y'),
         );
 });
 
-test('a 2-month-or-longer Lumpsum still charges an insurance premium but keeps loan security/savings zeroed', function (): void {
+test('a 2-month-or-longer Due-date still charges an insurance premium but keeps loan security/savings zeroed', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 24000,
         'recommended_term' => 2,
         'recommended_interest_rate' => 0,
-        'recommended_payment_frequency' => 'Lump sum',
+        'recommended_payment_frequency' => 'Due date',
         'approved_amount' => 24000,
         'approved_term' => 2,
         'approved_interest_rate' => 0,
@@ -1430,7 +1431,7 @@ test('a 2-month-or-longer Lumpsum still charges an insurance premium but keeps l
         // (24000/1000) * 2 * 1.0 = 48.0
         ->and($documentData['loan']['insurance_premium_raw'])->toBe(48.0)
         ->and($documentData['loan']['amortization_count'])->toBe(2)
-        ->and($documentData['loan']['payment_mode_workbook'])->toBe('LUMPSUM')
+        ->and($documentData['loan']['payment_mode_workbook'])->toBe('DUE-DATE')
         ->and($documentData['loan']['lumpsum_months'])->toBe(2);
 });
 
