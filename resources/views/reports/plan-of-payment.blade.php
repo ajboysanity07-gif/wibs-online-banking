@@ -287,9 +287,9 @@
 
         <hr class="divider" />
 
-        {{-- ===================== COOPERATIVE'S COPY ===================== --}}
+        {{-- ===================== LENDER'S COPY ===================== --}}
         <div class="copy-section">
-            <div class="copy-label">Cooperative's Copy</div>
+            <div class="copy-label">Lender's Copy</div>
             <div class="copy-body">
                 <table class="fl">
                     <colgroup>

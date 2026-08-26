@@ -816,7 +816,10 @@ export default function StaffLoanRequestShow({
         );
     };
 
-    const submitGenerateSelectedDocuments = async (documentKeys: string[]) => {
+    const submitGenerateSelectedDocuments = async (
+        documentKeys: string[],
+        onDocumentSettled?: (documentKey: string) => void,
+    ) => {
         let successCount = 0;
         let failureCount = 0;
 
@@ -831,6 +834,8 @@ export default function StaffLoanRequestShow({
             } else {
                 failureCount += 1;
             }
+
+            onDocumentSettled?.(documentKey);
         }
 
         if (failureCount === 0) {
@@ -1288,8 +1293,11 @@ export default function StaffLoanRequestShow({
                             generatedDocumentBaseHref={`/staff/loan-requests/${currentRequest.id}/documents/generated`}
                             canGenerateDocuments={canGenerateDocuments}
                             isProcessing={isWorkflowProcessing}
-                            onGenerate={(documentKeys) =>
-                                submitGenerateSelectedDocuments(documentKeys)
+                            onGenerate={(documentKeys, onDocumentSettled) =>
+                                submitGenerateSelectedDocuments(
+                                    documentKeys,
+                                    onDocumentSettled,
+                                )
                             }
                             onRegenerate={async (documentKey) => {
                                 await submitGenerateDocuments(
@@ -1301,6 +1309,9 @@ export default function StaffLoanRequestShow({
                                 'approved',
                                 'converted_to_loan',
                             ].includes(currentRequest.status ?? '')}
+                            processingDetailsSaved={
+                                !currentRequest.is_first_processing_save
+                            }
                         />
                         {showWibsTrackingSection ? (
                             <Card className="border-border/30 bg-card/70 shadow-sm">

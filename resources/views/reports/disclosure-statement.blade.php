@@ -202,7 +202,7 @@
                 <td class="bold nw" colspan="3">NAME OF BORROWER:</td>
                 <td class="u" colspan="8">&nbsp;{{ $borrowerName !== '' ? $borrowerName : '' }}</td>
                 <td class="bold c nw">LOAN NUMBER:</td>
-                <td class="u" colspan="2">&nbsp;{{ $reference !== '' ? $reference : '' }}</td>
+                <td class="u" colspan="2" style="padding-left: 4pt;">&nbsp;{{ $reference !== '' ? $reference : '' }}</td>
                 <td></td>
             </tr>
 

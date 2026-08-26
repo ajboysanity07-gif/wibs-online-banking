@@ -560,7 +560,10 @@ export default function LoanRequestShow({
         );
     };
 
-    const submitGenerateSelectedDocuments = async (documentKeys: string[]) => {
+    const submitGenerateSelectedDocuments = async (
+        documentKeys: string[],
+        onDocumentSettled?: (documentKey: string) => void,
+    ) => {
         let successCount = 0;
         let failureCount = 0;
 
@@ -575,6 +578,8 @@ export default function LoanRequestShow({
             } else {
                 failureCount += 1;
             }
+
+            onDocumentSettled?.(documentKey);
         }
 
         if (failureCount === 0) {
@@ -829,9 +834,10 @@ export default function LoanRequestShow({
                                 generatedDocumentBaseHref={`/admin/requests/${currentRequest.id}/documents/generated`}
                                 canGenerateDocuments={canGenerateDocuments}
                                 isProcessing={isWorkflowProcessing}
-                                onGenerate={(documentKeys) =>
+                                onGenerate={(documentKeys, onDocumentSettled) =>
                                     submitGenerateSelectedDocuments(
                                         documentKeys,
+                                        onDocumentSettled,
                                     )
                                 }
                                 onRegenerate={async (documentKey) => {
@@ -844,6 +850,9 @@ export default function LoanRequestShow({
                                     'approved',
                                     'converted_to_loan',
                                 ].includes(currentRequest.status ?? '')}
+                                processingDetailsSaved={
+                                    !currentRequest.is_first_processing_save
+                                }
                             />
                         </>
                     ) : undefined
