@@ -43,6 +43,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -88,6 +95,7 @@ import type {
     LoanManagerOption,
     LoanRequestAuditEntry,
     LoanRequestAssignmentOfficerOption,
+    LoanRequestCycleState,
     LoanRequestDataSectionDefinitions,
     LoanRequestDataSections,
     LoanRequestDetail,
@@ -112,6 +120,7 @@ type Props = {
     loanManagers: LoanManagerOption[];
     dataSections: LoanRequestDataSections;
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
+    cycleState: LoanRequestCycleState;
     documentChecklist: LoanRequestDocumentChecklistItem[];
     memberAction: LoanRequestMemberAction;
     notificationHistory: LoanRequestNotificationHistoryItem[];
@@ -279,6 +288,7 @@ export default function StaffLoanRequestShow({
     loanManagers,
     dataSections,
     dataSectionDefinitions,
+    cycleState,
     documentChecklist,
     notificationHistory,
     workflowPermissions,
@@ -304,6 +314,8 @@ export default function StaffLoanRequestShow({
         useState<LoanRequestAssignmentOfficerOption[]>(eligibleOfficers);
     const [currentDataSections, setCurrentDataSections] =
         useState<LoanRequestDataSections>(dataSections);
+    const [currentCycleState, setCurrentCycleState] =
+        useState<LoanRequestCycleState>(cycleState);
     const [currentDocumentChecklist, setCurrentDocumentChecklist] =
         useState<LoanRequestDocumentChecklistItem[]>(documentChecklist);
     const [currentNotificationHistory, setCurrentNotificationHistory] =
@@ -367,6 +379,7 @@ export default function StaffLoanRequestShow({
             setCurrentAuditTrail(result.auditTrail);
             setCurrentEligibleOfficers(result.eligibleOfficers);
             setCurrentDataSections(result.dataSections);
+            setCurrentCycleState(result.cycleState);
             setCurrentDocumentChecklist(result.documentChecklist);
             setCurrentNotificationHistory(result.notificationHistory);
             setCurrentWorkflowHealth(result.workflowHealth);
@@ -1280,6 +1293,7 @@ export default function StaffLoanRequestShow({
                                 applicant={currentApplicant}
                                 dataSections={currentDataSections}
                                 dataSectionDefinitions={dataSectionDefinitions}
+                                cycleState={currentCycleState}
                                 canUpdateProcessing={canUpdateProcessing}
                                 isProcessing={isWorkflowProcessing}
                                 updateProcessingDetails={
@@ -1681,19 +1695,19 @@ export default function StaffLoanRequestShow({
                 </div>
             </section>
 
-            <Dialog
+            <Sheet
                 open={isCorrectionDialogOpen}
                 onOpenChange={setIsCorrectionDialogOpen}
             >
-                <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Correct Application Data</DialogTitle>
-                        <DialogDescription>
+                <SheetContent side="right" className="sm:max-w-2xl">
+                    <SheetHeader>
+                        <SheetTitle>Correct Application Data</SheetTitle>
+                        <SheetDescription>
                             Correct the member-supplied request, applicant, and
                             co-maker details when supported by a record. Provide
                             a reason and information source for the audit trail.
-                        </DialogDescription>
-                    </DialogHeader>
+                        </SheetDescription>
+                    </SheetHeader>
                     <form
                         className="flex min-h-0 flex-1 flex-col"
                         onSubmit={submitCorrectionData}
@@ -1856,28 +1870,28 @@ export default function StaffLoanRequestShow({
                                     />
                                 </div>
                             </LoanRequestSectionCard>
-                        </div>
-                        <div className="shrink-0 border-t border-border px-6 py-4">
-                            <div className="grid gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="correction_reason">
-                                        Remarks
-                                    </Label>
-                                    <textarea
-                                        id="correction_reason"
-                                        className={textareaClassName}
-                                        required
-                                        value={correctionForm.reason}
-                                        onChange={(event) =>
-                                            setCorrectionForm((current) => ({
-                                                ...current,
-                                                reason: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
+
+                            <Separator className="bg-border/40" />
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="correction_reason">
+                                    Remarks
+                                </Label>
+                                <textarea
+                                    id="correction_reason"
+                                    className={textareaClassName}
+                                    required
+                                    value={correctionForm.reason}
+                                    onChange={(event) =>
+                                        setCorrectionForm((current) => ({
+                                            ...current,
+                                            reason: event.target.value,
+                                        }))
+                                    }
+                                />
                             </div>
-                            <DialogFooter className="mt-4">
+
+                            <div className="flex items-center justify-end gap-2">
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -1893,11 +1907,11 @@ export default function StaffLoanRequestShow({
                                 >
                                     Save Corrections
                                 </Button>
-                            </DialogFooter>
+                            </div>
                         </div>
                     </form>
-                </DialogContent>
-            </Dialog>
+                </SheetContent>
+            </Sheet>
 
             <Dialog
                 open={isMemberActionDialogOpen}
