@@ -40,6 +40,12 @@ class MemberDependentProfile extends Model
         'member_application_profile_id',
         'spouse_cycle_status',
         'spouse_cycle_number',
+        'applicant_confirmed_cycle_status',
+        'applicant_confirmed_cycle_number',
+        'applicant_confirmed_by_loan_request_id',
+        'spouse_confirmed_cycle_status',
+        'spouse_confirmed_cycle_number',
+        'spouse_confirmed_by_loan_request_id',
     ];
 
     public function memberApplicationProfile(): BelongsTo
@@ -59,6 +65,10 @@ class MemberDependentProfile extends Model
     {
         return [
             'spouse_cycle_number' => 'integer',
+            'applicant_confirmed_cycle_number' => 'integer',
+            'applicant_confirmed_by_loan_request_id' => 'integer',
+            'spouse_confirmed_cycle_number' => 'integer',
+            'spouse_confirmed_by_loan_request_id' => 'integer',
         ];
     }
 

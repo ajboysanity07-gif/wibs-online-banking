@@ -23,6 +23,7 @@ class LoanRequestProcessingService
         private LoanRequestDocumentWorkflowService $documentWorkflowService,
         private LoanRequestNotificationService $notificationService,
         private LoanManagerWitnessResolver $loanManagerWitnessResolver,
+        private LoanRequestCycleStateService $cycleStateService,
     ) {}
 
     /**
@@ -79,6 +80,8 @@ class LoanRequestProcessingService
                 ? $payload['processing']
                 : [];
 
+            $this->cycleStateService->assertNoLockedSlotOverridden($lockedLoanRequest, $processingPayload);
+
             $processorDisplayName = $lockedLoanRequest->assignedProcessor?->resolvedDisplayName();
 
             if ($processorDisplayName !== null) {
@@ -132,6 +135,8 @@ class LoanRequestProcessingService
 
             $lockedLoanRequest->save();
             $lockedLoanRequest->refresh()->loadMissing('people', 'dataEntries');
+
+            $this->cycleStateService->confirm($lockedLoanRequest);
 
             $after = $this->editableSnapshot($lockedLoanRequest);
             $changedFields = $this->recordSnapshotChanges(

@@ -280,6 +280,25 @@ export type LoanRequestDataSections = Record<
     LoanRequestDataSectionValues
 >;
 
+/**
+ * Group Life Insurance (Generali) cycle state for one slot -- the
+ * applicant, spouse, or a dependent_{category}_{slot} key. `locked` is true
+ * once a loan processor has confirmed this person's cycle on an earlier
+ * processed loan: `cycle_status`/`cycle_number` are then the computed
+ * next-cycle values and the field must be read-only. The Generali form
+ * labels: New (1st-2nd), Old (3rd cycle & up ___).
+ *
+ * When unlocked, `cycle_status`/`cycle_number` are sensible defaults
+ * (New/1) the processor can still change.
+ */
+export type LoanRequestCycleSlotState = {
+    locked: boolean;
+    cycle_status: 'New' | 'Old';
+    cycle_number: number;
+};
+
+export type LoanRequestCycleState = Record<string, LoanRequestCycleSlotState>;
+
 export type LoanRequestDocumentKey =
     | 'application_form'
     | 'grepalife'
@@ -628,6 +647,7 @@ export type LoanRequestWorkflowResult = LoanRequestCorrectionResult & {
     eligibleOfficers: LoanRequestAssignmentOfficerOption[];
     dataSections: LoanRequestDataSections;
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
+    cycleState: LoanRequestCycleState;
     documentChecklist: LoanRequestDocumentChecklistItem[];
     notificationHistory: LoanRequestNotificationHistoryItem[];
     workflowHealth: LoanRequestWorkflowHealth;

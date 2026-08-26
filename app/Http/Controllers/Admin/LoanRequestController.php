@@ -15,6 +15,7 @@ use App\Services\LoanRequests\ApprovedLoanDocumentPackageJobService;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanManagerWitnessResolver;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
+use App\Services\LoanRequests\LoanRequestCycleStateService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestDocumentStorage;
@@ -45,6 +46,7 @@ class LoanRequestController extends Controller
         LoanRequestService $loanRequestService,
         LoanRequestDocumentWorkflowService $documentWorkflowService,
         LoanManagerWitnessResolver $loanManagerWitnessResolver,
+        LoanRequestCycleStateService $cycleStateService,
         int $loanRequest,
     ): Response {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
@@ -118,6 +120,7 @@ class LoanRequestController extends Controller
             'loanTypes' => $loanRequestService->getLoanTypes()->values()->all(),
             'dataSections' => $dataService->serializeSections($loanRequestRecord),
             'dataSectionDefinitions' => $dataService->sectionDefinitions(),
+            'cycleState' => $cycleStateService->resolveState($loanRequestRecord),
             'documentChecklist' => $documentWorkflowService->serializeChecklist(
                 $loanRequestRecord,
             ),

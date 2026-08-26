@@ -25,6 +25,7 @@ use App\LoanRequestDocumentKey;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
+use App\Services\LoanRequests\LoanRequestCycleStateService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
@@ -592,6 +593,7 @@ class LoanRequestWorkflowController extends Controller
                     : [],
                 'dataSections' => $dataService->serializeSections($loanRequest),
                 'dataSectionDefinitions' => $dataService->sectionDefinitions(),
+                'cycleState' => app(LoanRequestCycleStateService::class)->resolveState($loanRequest),
                 'documentChecklist' => $documentWorkflowService->serializeChecklist(
                     $loanRequest,
                 ),

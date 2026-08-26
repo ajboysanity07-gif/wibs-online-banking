@@ -344,13 +344,14 @@ class LoanRequestStoreRequest extends FormRequest
 
                 // No 'sometimes' here: combined with a same-field required_if,
                 // 'sometimes' would skip validation entirely whenever the
-                // key is absent from the payload, silently bypassing the
-                // Old-requires-a-cycle-number rule.
+                // key is absent from the payload. Cycle number is always
+                // required when the sibling status is present -- the Generali
+                // form labels them "New (1st-2nd)" / "Old (3rd cycle & up)".
                 $rules["dependents.{$key}"] = [
                     'nullable',
                     'integer',
                     'min:1',
-                    Rule::requiredIf($this->input("dependents.{$statusKey}") === 'Old'),
+                    Rule::requiredIf(filled($this->input("dependents.{$statusKey}"))),
                 ];
 
                 continue;

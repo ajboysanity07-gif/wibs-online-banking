@@ -5,6 +5,7 @@ namespace App\Http\Requests\Workflow;
 use App\LoanPaydayOption;
 use App\Models\AppUser;
 use App\Models\LoanRequestChange;
+use App\Models\MemberDependentProfile;
 use App\Rules\ValidPostalCode;
 use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
@@ -12,6 +13,7 @@ use App\Rules\ValidPsgcProvince;
 use App\Services\LoanRequests\LoanManagerWitnessResolver;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class LoanRequestProcessingUpdateRequest extends FormRequest
@@ -145,7 +147,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'co_maker_2.years_in_work_business' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_2.gross_monthly_income' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'co_maker_2.payday' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'processing' => ['sometimes', 'array:service_charge_rate,insurance_rate,insurance_term,loan_security_rate,savings_rate,documentary_stamp_rate,notarial_fee,other_charges_amount,other_charges_description,penalty_rate_per_month,witness_one_name,witness_two_name,witness_two_id,barangay_official_name,barangay_official_title,barangay_official_designation,barangay_agency_name,barangay_agency_address,authority_to_deduct_institution_name,authority_to_deduct_officer_1_name,authority_to_deduct_officer_1_title,authority_to_deduct_officer_2_name,authority_to_deduct_officer_2_title,authority_to_deduct_officers_unknown,guaranteed_net_take_home_pay,deped_school_id_number,deped_deduction_amount,pension_provider,pension_bank_name,pension_atm_card_number,pension_deduction_amount,employer_date_employed,applicant_pep_status,applicant_pep_status_details,applicant_cycle_status,applicant_cycle_number'],
+            'processing' => ['sometimes', 'array:'.implode(',', $this->processingArrayKeys())],
             'processing.service_charge_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'processing.insurance_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'processing.insurance_term' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:360'],
@@ -184,7 +186,8 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'processing.applicant_pep_status' => ['sometimes', 'nullable', 'boolean'],
             'processing.applicant_pep_status_details' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'processing.applicant_cycle_status' => ['sometimes', 'nullable', 'string', Rule::in(['New', 'Old'])],
-            'processing.applicant_cycle_number' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'processing.applicant_cycle_number' => $this->cycleNumberRules('applicant_cycle_status'),
+            ...$this->dependentCycleFieldRules(),
             'recommended_amount' => ['sometimes', 'nullable', 'numeric', 'min:1'],
             'recommended_term' => [
                 Rule::requiredIf(fn (): bool => $this->input('recommended_payment_frequency') === LoanPaydayOption::Lumpsum->value),
@@ -192,6 +195,82 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             ],
             'recommended_interest_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'recommended_payment_frequency' => ['sometimes', 'nullable', 'string', Rule::in(LoanPaydayOption::values())],
+        ];
+    }
+
+    /**
+     * Every `processing.*` key the panel is allowed to submit -- the static
+     * charges/personnel/waiver fields plus the generated dependent
+     * spouse/{category}_{slot} cycle-status/number keys (see
+     * dependentCycleFieldRules()).
+     *
+     * @return list<string>
+     */
+    private function processingArrayKeys(): array
+    {
+        return [
+            'service_charge_rate', 'insurance_rate', 'insurance_term', 'loan_security_rate',
+            'savings_rate', 'documentary_stamp_rate', 'notarial_fee', 'other_charges_amount',
+            'other_charges_description', 'penalty_rate_per_month', 'witness_one_name',
+            'witness_two_name', 'witness_two_id', 'barangay_official_name', 'barangay_official_title',
+            'barangay_official_designation', 'barangay_agency_name', 'barangay_agency_address',
+            'authority_to_deduct_institution_name', 'authority_to_deduct_officer_1_name',
+            'authority_to_deduct_officer_1_title', 'authority_to_deduct_officer_2_name',
+            'authority_to_deduct_officer_2_title', 'authority_to_deduct_officers_unknown',
+            'guaranteed_net_take_home_pay', 'deped_school_id_number', 'deped_deduction_amount',
+            'pension_provider', 'pension_bank_name', 'pension_atm_card_number',
+            'pension_deduction_amount', 'employer_date_employed', 'applicant_pep_status',
+            'applicant_pep_status_details', 'applicant_cycle_status', 'applicant_cycle_number',
+            ...array_map(
+                static fn (string $key): string => Str::after($key, 'processing.'),
+                array_keys($this->dependentCycleFieldRules()),
+            ),
+        ];
+    }
+
+    /**
+     * Validation rules for the processor-confirmed Group Life Insurance
+     * cycle fields on the spouse and every dependent slot, generated from
+     * MemberDependentProfile::CATEGORY_CAPS rather than hand-typed to avoid
+     * drift if the caps ever change. Mirrors the applicant cycle rules
+     * above -- New/Old status, positive integer number, both optional.
+     * Locked-slot mismatches are rejected separately, after these basic
+     * shape checks pass, by LoanRequestCycleStateService::assertNoLockedSlotOverridden().
+     *
+     * @return array<string, array<mixed>>
+     */
+    private function dependentCycleFieldRules(): array
+    {
+        $rules = [
+            'processing.dependent_spouse_cycle_status' => ['sometimes', 'nullable', 'string', Rule::in(['New', 'Old'])],
+            'processing.dependent_spouse_cycle_number' => $this->cycleNumberRules('dependent_spouse_cycle_status'),
+        ];
+
+        foreach (MemberDependentProfile::CATEGORY_CAPS as $category => $cap) {
+            for ($slot = 1; $slot <= $cap; $slot++) {
+                $rules["processing.dependent_{$category}_{$slot}_cycle_status"] = ['sometimes', 'nullable', 'string', Rule::in(['New', 'Old'])];
+                $rules["processing.dependent_{$category}_{$slot}_cycle_number"] = $this->cycleNumberRules("dependent_{$category}_{$slot}_cycle_status");
+            }
+        }
+
+        return $rules;
+    }
+
+    /**
+     * A cycle number is always required when the sibling cycle_status is
+     * present -- the Generali form labels them "New (1st-2nd)" and
+     * "Old (3rd cycle & up ___)", so every status carries a number.
+     *
+     * @return array<int, ValidationRule|string>
+     */
+    private function cycleNumberRules(string $statusKey): array
+    {
+        return [
+            'sometimes',
+            'nullable',
+            'integer',
+            'min:1',
+            Rule::requiredIf(filled($this->input("processing.{$statusKey}"))),
         ];
     }
 

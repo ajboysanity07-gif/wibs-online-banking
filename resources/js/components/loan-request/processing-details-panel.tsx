@@ -38,8 +38,10 @@ import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type {
     LoanManagerOption,
+    LoanRequestCycleState,
     LoanRequestDataSectionDefinitions,
     LoanRequestDataSections,
+    LoanRequestDataSectionValues,
     LoanRequestDetail,
     LoanRequestPersonData,
     LoanRequestReviewer,
@@ -290,6 +292,67 @@ const withProcessingChargeDefaults = (
     return next;
 };
 
+// Maps a cycleState slot key ('applicant', 'spouse', or 'child_1' /
+// 'sibling_2' / etc) to its [status_field_key, number_field_key] pair
+// within processingForm.processing / the submitted `processing` payload --
+// mirrors LoanRequestCycleStateService::slotFieldKeys() on the backend.
+const cycleSlotFieldKeys = (slotKey: string): [string, string] => {
+    if (slotKey === 'applicant') {
+        return ['applicant_cycle_status', 'applicant_cycle_number'];
+    }
+
+    if (slotKey === 'spouse') {
+        return [
+            'dependent_spouse_cycle_status',
+            'dependent_spouse_cycle_number',
+        ];
+    }
+
+    return [
+        `dependent_${slotKey}_cycle_status`,
+        `dependent_${slotKey}_cycle_number`,
+    ];
+};
+
+// Seeds/refreshes the cycle-status fields inside processingForm.processing.
+// Locked slots always take the server-computed value (never a stale saved
+// one). Unlocked slots keep whatever was last saved for this loan request,
+// falling back to the resolved New/null default so the processor has a legal
+// starting point ("New" never carries a number -- there's no cycle history
+// yet to number).
+const withCycleStateDefaults = (
+    processing: Record<string, string | number | boolean | null>,
+    dependentsSection: LoanRequestDataSectionValues | undefined,
+    cycleState: LoanRequestCycleState,
+): Record<string, string | number | boolean | null> => {
+    let next = processing;
+
+    Object.entries(cycleState).forEach(([slotKey, slotState]) => {
+        const [statusKey, numberKey] = cycleSlotFieldKeys(slotKey);
+
+        if (slotState.locked) {
+            next = {
+                ...next,
+                [statusKey]: slotState.cycle_status,
+                [numberKey]: slotState.cycle_number,
+            };
+
+            return;
+        }
+
+        const currentStatus = dependentsSection?.[statusKey] ?? null;
+        const currentNumber = dependentsSection?.[numberKey] ?? null;
+
+        next = {
+            ...next,
+            [statusKey]: currentStatus ?? slotState.cycle_status,
+            [numberKey]: currentNumber ?? slotState.cycle_number,
+        };
+    });
+
+    return next;
+};
+
 const numericProcessingFieldValue = (
     value: string | number | boolean | null | undefined,
 ): string | number | null =>
@@ -351,6 +414,7 @@ type ProcessingDetailsPanelProps = {
     applicant: LoanRequestPersonData | null;
     dataSections: LoanRequestDataSections;
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
+    cycleState: LoanRequestCycleState;
     canUpdateProcessing: boolean;
     isProcessing: boolean;
     updateProcessingDetails: (
@@ -365,6 +429,7 @@ export function ProcessingDetailsPanel({
     applicant,
     dataSections,
     dataSectionDefinitions,
+    cycleState,
     canUpdateProcessing,
     isProcessing,
     updateProcessingDetails,
@@ -372,15 +437,19 @@ export function ProcessingDetailsPanel({
 }: ProcessingDetailsPanelProps) {
     const [processingForm, setProcessingForm] =
         useState<InlineProcessingFormState>({
-            processing: withProcessingChargeDefaults(
-                withWitnessOneAutoFill(
-                    withWitnessTwoAutoFill(
-                        { ...dataSections.processing },
-                        loanManagers,
+            processing: withCycleStateDefaults(
+                withProcessingChargeDefaults(
+                    withWitnessOneAutoFill(
+                        withWitnessTwoAutoFill(
+                            { ...dataSections.processing },
+                            loanManagers,
+                        ),
+                        loanRequest.assigned_processor,
                     ),
-                    loanRequest.assigned_processor,
+                    applicant?.birthdate ?? null,
                 ),
-                applicant?.birthdate ?? null,
+                dataSections.dependents,
+                cycleState,
             ),
             recommended_amount: toStringValue(loanRequest.recommended_amount),
             recommended_term: toStringValue(loanRequest.recommended_term),
@@ -413,15 +482,19 @@ export function ProcessingDetailsPanel({
 
     useEffect(() => {
         setProcessingForm({
-            processing: withProcessingChargeDefaults(
-                withWitnessOneAutoFill(
-                    withWitnessTwoAutoFill(
-                        { ...dataSections.processing },
-                        loanManagers,
+            processing: withCycleStateDefaults(
+                withProcessingChargeDefaults(
+                    withWitnessOneAutoFill(
+                        withWitnessTwoAutoFill(
+                            { ...dataSections.processing },
+                            loanManagers,
+                        ),
+                        loanRequest.assigned_processor,
                     ),
-                    loanRequest.assigned_processor,
+                    applicant?.birthdate ?? null,
                 ),
-                applicant?.birthdate ?? null,
+                dataSections.dependents,
+                cycleState,
             ),
             recommended_amount: toStringValue(loanRequest.recommended_amount),
             recommended_term: toStringValue(loanRequest.recommended_term),
@@ -438,6 +511,8 @@ export function ProcessingDetailsPanel({
         );
     }, [
         applicant?.birthdate,
+        cycleState,
+        dataSections.dependents,
         dataSections.processing,
         loanManagers,
         loanRequest.assigned_processor,
@@ -603,6 +678,21 @@ export function ProcessingDetailsPanel({
                 }
             },
         );
+
+        // Cycle-status fields live in the 'dependents' data section, not
+        // 'processing', so the loop above (which walks
+        // dataSectionDefinitions.processing.fields) never picks them up --
+        // add them explicitly from the values the cycle-state UI wrote into
+        // processingForm.processing (see withCycleStateDefaults).
+        Object.keys(cycleState).forEach((slotKey) => {
+            const [statusKey, numberKey] = cycleSlotFieldKeys(slotKey);
+
+            [statusKey, numberKey].forEach((fieldKey) => {
+                const raw = values[fieldKey];
+                payload[fieldKey] =
+                    raw === '' || raw === undefined ? null : raw;
+            });
+        });
 
         return payload;
     };
@@ -851,6 +941,141 @@ export function ProcessingDetailsPanel({
                         placeholder={options?.placeholder}
                     />
                 )}
+            </div>
+        );
+    };
+
+    // Only render a cycle-status row for the applicant (always), the spouse
+    // (only when the applicant is married -- mirrors dependent_spouse_*'s
+    // visible_when), and dependent slots that actually have a name filled
+    // in (an "empty" slot has nothing to verify a cycle for).
+    const cycleStateSlots = Object.keys(cycleState)
+        .filter((slotKey) => {
+            if (slotKey === 'applicant') {
+                return true;
+            }
+
+            if (slotKey === 'spouse') {
+                return applicant?.civil_status === 'Married';
+            }
+
+            const name = dataSections.dependents?.[`dependent_${slotKey}_name`];
+
+            return typeof name === 'string' && name.trim() !== '';
+        })
+        .map((slotKey) => {
+            const label =
+                slotKey === 'applicant'
+                    ? 'Applicant'
+                    : slotKey === 'spouse'
+                      ? 'Spouse'
+                      : (
+                            dataSectionDefinitions.dependents.fields[
+                                `dependent_${slotKey}_name`
+                            ]?.label ?? slotKey
+                        ).replace(/ name$/, '');
+
+            return { slotKey, label };
+        })
+        .sort((a, b) => {
+            const rank = (key: string) =>
+                key === 'applicant' ? 0 : key === 'spouse' ? 1 : 2;
+
+            return (
+                rank(a.slotKey) - rank(b.slotKey) ||
+                a.label.localeCompare(b.label)
+            );
+        });
+
+    const renderCycleStateRow = (slotKey: string, label: string) => {
+        const slotState = cycleState[slotKey];
+        const [statusKey, numberKey] = cycleSlotFieldKeys(slotKey);
+        const locked = slotState?.locked ?? false;
+        const statusValue = processingForm.processing[statusKey];
+        const numberValue = processingForm.processing[numberKey];
+
+        return (
+            <div
+                key={slotKey}
+                className="grid gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 sm:grid-cols-[1fr_auto_auto]"
+            >
+                <div className="flex flex-col justify-center">
+                    <span className="text-sm font-medium">{label}</span>
+                    {locked && (
+                        <span className="text-xs text-muted-foreground">
+                            Locked — this person's cycle continues from a prior
+                            loan.
+                        </span>
+                    )}
+                </div>
+                <div className="grid gap-2">
+                    <Label className="text-xs text-muted-foreground">
+                        Cycle status
+                    </Label>
+                    {locked ? (
+                        <Input
+                            value={
+                                typeof statusValue === 'string'
+                                    ? statusValue
+                                    : ''
+                            }
+                            disabled
+                            className={readOnlyProcessingFieldClassName}
+                        />
+                    ) : (
+                        <Select
+                            value={
+                                typeof statusValue === 'string'
+                                    ? statusValue
+                                    : undefined
+                            }
+                            onValueChange={(value) =>
+                                setProcessingForm((current) => ({
+                                    ...current,
+                                    processing: {
+                                        ...current.processing,
+                                        [statusKey]: value,
+                                    },
+                                }))
+                            }
+                            disabled={!canUpdateProcessing}
+                        >
+                            <SelectTrigger className="w-28">
+                                <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="New">New</SelectItem>
+                                <SelectItem value="Old">Old</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
+                <div className="grid gap-2">
+                    <Label className="text-xs text-muted-foreground">
+                        Cycle number
+                    </Label>
+                    <Input
+                        type="number"
+                        min={1}
+                        value={
+                            numberValue !== null && numberValue !== undefined
+                                ? `${numberValue}`
+                                : ''
+                        }
+                        disabled={locked || !canUpdateProcessing}
+                        className={
+                            locked
+                                ? readOnlyProcessingFieldClassName
+                                : undefined
+                        }
+                        onChange={(event) =>
+                            updateProcessingSectionField(
+                                numberKey,
+                                event.target.value,
+                            )
+                        }
+                    />
+                </div>
             </div>
         );
     };
@@ -1399,6 +1624,19 @@ export function ProcessingDetailsPanel({
                                 </>
                             )}
                         </div>
+
+                        {cycleStateSlots.length > 0 && (
+                            <>
+                                {renderProcessingSectionLabel(
+                                    'Group Life Insurance Cycle Verification',
+                                )}
+                                <div className="grid gap-3">
+                                    {cycleStateSlots.map(({ slotKey, label }) =>
+                                        renderCycleStateRow(slotKey, label),
+                                    )}
+                                </div>
+                            </>
+                        )}
 
                         {loanRequest.authority_to_deduct_guidance
                             ?.applicable !== false && (

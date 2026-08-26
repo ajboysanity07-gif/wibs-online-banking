@@ -88,8 +88,16 @@ class LoanRequestPerson extends Model
             $this->address_barangay,
         );
 
-        if ($composed !== '') {
+        if ($composed !== '' && str_contains($composed, ',')) {
             return $composed;
+        }
+
+        if ($composed !== '') {
+            $recomposed = LocationComposer::recomposeLegacyAddress($composed);
+
+            if ($recomposed !== '') {
+                return $recomposed;
+            }
         }
 
         return LocationComposer::recomposeLegacyAddress($this->address);

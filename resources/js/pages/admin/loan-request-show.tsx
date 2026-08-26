@@ -65,6 +65,7 @@ import type {
     LoanRequestAuditEntry,
     LoanRequestCorrectionReport,
     LoanRequestCorrectionPayload,
+    LoanRequestCycleState,
     LoanRequestDataSectionDefinitions,
     LoanRequestDataSections,
     LoanRequestDetail,
@@ -123,6 +124,7 @@ type Props = {
     loanManagers: LoanManagerOption[];
     dataSections: LoanRequestDataSections;
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
+    cycleState: LoanRequestCycleState;
     documentChecklist: LoanRequestDocumentChecklistItem[];
 };
 
@@ -142,6 +144,7 @@ export default function LoanRequestShow({
     loanManagers,
     dataSections,
     dataSectionDefinitions,
+    cycleState,
     documentChecklist,
 }: Props) {
     const { auth } = usePage<{ auth: Auth }>().props;
@@ -165,6 +168,8 @@ export default function LoanRequestShow({
         useState<LoanRequestAuditEntry[]>(auditTrail);
     const [currentDataSections, setCurrentDataSections] =
         useState<LoanRequestDataSections>(dataSections);
+    const [currentCycleState, setCurrentCycleState] =
+        useState<LoanRequestCycleState>(cycleState);
     const [currentDocumentChecklist, setCurrentDocumentChecklist] =
         useState<LoanRequestDocumentChecklistItem[]>(documentChecklist);
     const shouldAutoOpenCorrection =
@@ -216,6 +221,7 @@ export default function LoanRequestShow({
             setCurrentAuditTrail(result.auditTrail);
             setCurrentEligibleOfficers(result.eligibleOfficers);
             setCurrentDataSections(result.dataSections);
+            setCurrentCycleState(result.cycleState);
             setCurrentDocumentChecklist(result.documentChecklist);
             setCancellationReasonPrefill(
                 resolveCancellationReasonPrefill(result.correctionReports),
@@ -822,6 +828,7 @@ export default function LoanRequestShow({
                                 applicant={currentApplicant}
                                 dataSections={currentDataSections}
                                 dataSectionDefinitions={dataSectionDefinitions}
+                                cycleState={currentCycleState}
                                 canUpdateProcessing={canUpdateProcessing}
                                 isProcessing={isWorkflowProcessing}
                                 updateProcessingDetails={

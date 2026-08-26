@@ -15,6 +15,7 @@ use App\Services\LoanRequests\ApprovedLoanDocumentPackageJobService;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanManagerWitnessResolver;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
+use App\Services\LoanRequests\LoanRequestCycleStateService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestDocumentStorage;
@@ -51,6 +52,7 @@ class LoanRequestController extends Controller
         LoanRequestPayloadSerializer $serializer,
         LoanWorkflowWorkspaceService $workspaceService,
         LoanManagerWitnessResolver $loanManagerWitnessResolver,
+        LoanRequestCycleStateService $cycleStateService,
     ): Response {
         if ($this->isDraft($loanRequest)) {
             abort(404);
@@ -93,6 +95,7 @@ class LoanRequestController extends Controller
             'loanManagers' => $loanManagerWitnessResolver->options(),
             'dataSections' => $dataService->serializeSections($loanRequest),
             'dataSectionDefinitions' => $dataService->sectionDefinitions(),
+            'cycleState' => $cycleStateService->resolveState($loanRequest),
             'documentChecklist' => $documentWorkflowService->serializeChecklist(
                 $loanRequest,
             ),
