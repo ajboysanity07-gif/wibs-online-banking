@@ -677,7 +677,7 @@ export function BankTab({
                                         <input
                                             type="hidden"
                                             name="payment_atm_holder_name"
-                                            value={paymentAtmHolderName}
+                                            value={memberDisplayName}
                                         />
                                     ) : (
                                         <>

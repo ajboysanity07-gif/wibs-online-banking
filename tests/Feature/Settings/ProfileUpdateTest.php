@@ -978,6 +978,104 @@ test('profile information can be updated with payout bank details', function () 
     expect($memberProfile->payout_atm_holder_name)->toBe('Test User');
 });
 
+test('payment atm holder name is required for ATM Deduction and persists when own card is used', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => 'Quincenal',
+            'release_method' => 'Cash',
+            'payment_option' => 'ATM Deduction',
+            'payment_bank_name' => 'LANDBANK',
+            'payment_account_name' => 'Test User',
+            'payment_account_number' => '5217-0462-21',
+            'payment_account_type' => 'Savings',
+            'payment_atm_number' => '4748-4452-1004-6567',
+            // payment_atm_holder_name intentionally omitted, matching the
+            // stale "This is my own ATM card" hidden-input bug.
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
+        ]);
+
+    $response->assertSessionHasErrors(['payment_atm_holder_name']);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => 'Quincenal',
+            'release_method' => 'Cash',
+            'payment_option' => 'ATM Deduction',
+            'payment_bank_name' => 'LANDBANK',
+            'payment_account_name' => 'Test User',
+            'payment_account_number' => '5217-0462-21',
+            'payment_account_type' => 'Savings',
+            'payment_atm_number' => '4748-4452-1004-6567',
+            'payment_atm_holder_name' => 'Test User',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('client.dashboard'));
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile)->not->toBeNull();
+    expect($memberProfile->payment_option)->toBe('ATM Deduction');
+    expect($memberProfile->payment_atm_holder_name)->toBe('Test User');
+});
+
 test('optional bank details can be saved even when release method is not bank transfer', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([
@@ -2521,4 +2619,19 @@ test('profile page submits atm card holder name via hidden input when using own 
 
     expect($contents)->toContain('name="payout_atm_holder_name"');
     expect($contents)->toContain('{isOwnAtmCard ? (');
+});
+
+test('profile page submits payment atm card holder name via hidden input carrying the member display name when using own card', function () {
+    $contents = file_get_contents(
+        base_path('resources/js/pages/settings/profile-tabs/bank-tab.tsx'),
+    );
+
+    expect($contents)->toContain(
+        '{isOwnPaymentAtmCard ? (
+                                        <input
+                                            type="hidden"
+                                            name="payment_atm_holder_name"
+                                            value={memberDisplayName}
+                                        />',
+    );
 });
