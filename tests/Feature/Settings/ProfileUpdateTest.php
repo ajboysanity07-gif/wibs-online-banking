@@ -1745,8 +1745,8 @@ test('profile information can be updated', function () {
 
     expect($memberProfile)->not->toBeNull();
     expect($memberProfile->nickname)->toBe('Renee');
-    expect($memberProfile->birthplace)->toBe('Cebu City, Cebu');
-    expect($memberProfile->birthplace_city)->toBe('Cebu City');
+    expect($memberProfile->birthplace)->toBe('City of Cebu, Cebu');
+    expect($memberProfile->birthplace_city)->toBe('City of Cebu');
     expect($memberProfile->birthplace_province)->toBe('Cebu');
     expect($memberProfile->educational_attainment)->toBe('High School');
     expect($memberProfile->length_of_stay)->toBe('2 years');
@@ -1759,11 +1759,11 @@ test('profile information can be updated', function () {
     expect($memberProfile->employment_type)->toBe('Regular');
     expect($memberProfile->employer_business_name)->toBe('Acme Corp');
     expect($memberProfile->employer_business_address)->toBe(
-        'Acme Plaza, Aglipay, Batac City, Ilocos Norte',
+        'Acme Plaza, Aglipay, City of Batac, Ilocos Norte',
     );
     expect($memberProfile->employer_business_address1)->toBe('Acme Plaza');
     expect($memberProfile->employer_business_address_barangay)->toBe('Aglipay');
-    expect($memberProfile->employer_business_address2)->toBe('Batac City');
+    expect($memberProfile->employer_business_address2)->toBe('City of Batac');
     expect($memberProfile->employer_business_address3)->toBe('Ilocos Norte');
     expect($memberProfile->employer_business_address_zip)->toBe('8100');
     expect($memberProfile->telephone_no)->toBe('02-123-4567');
@@ -1991,7 +1991,7 @@ test('hybrid members can update member profile fields', function () {
     $memberProfile = $user->refresh()->memberApplicationProfile;
 
     expect($memberProfile)->not->toBeNull();
-    expect($memberProfile->birthplace_city)->toBe('Cebu City');
+    expect($memberProfile->birthplace_city)->toBe('City of Cebu');
     expect($memberProfile->educational_attainment)->toBe('College');
 });
 

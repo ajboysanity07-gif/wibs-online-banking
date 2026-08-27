@@ -219,6 +219,25 @@ class ProfileUpdateRequest extends FormRequest
             ),
         ]);
 
+        $this->merge([
+            'birthplace' => LocationComposer::composeBirthplace(
+                $this->input('birthplace_city'),
+                $this->input('birthplace_province'),
+            ),
+            'employer_business_address' => LocationComposer::compose(
+                $this->input('employer_business_address1'),
+                $this->input('employer_business_address2'),
+                $this->input('employer_business_address3'),
+                $this->input('employer_business_address_barangay'),
+            ),
+            'home_address' => LocationComposer::compose(
+                $this->input('home_address1'),
+                $this->input('home_address2'),
+                $this->input('home_address3'),
+                $this->input('home_address_barangay'),
+            ),
+        ]);
+
         $this->merge(DisplayText::normalizeFields(
             $this->all(),
             self::NORMALIZED_TEXT_FIELDS,
