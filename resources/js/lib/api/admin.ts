@@ -834,6 +834,7 @@ export const adminApi = {
         const response = await client.post<ApiResponse<{ logged: boolean }>>(
             `/staff/loan-requests/${loanRequestId}/log-warning-viewed`,
             {},
+            { silentForbidden: true },
         );
 
         return unwrap(response);

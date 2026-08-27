@@ -46,6 +46,7 @@ import {
 } from '@/routes/client/loan-requests';
 import {
     affidavitUndertaking as loanRequestAffidavitUndertakingDocument,
+    authorization as loanRequestAuthorizationDocument,
     applicationForm as loanRequestApplicationFormDocument,
     authorityToDeduct as loanRequestAuthorityToDeductDocument,
     depedSalaryDeductionWaiver as loanRequestDepedSalaryDeductionWaiverDocument,
@@ -226,6 +227,9 @@ export default function LoanRequestShow({
                       loanRequestGeneraliApplicationFormDocument(
                           currentLoanRequest.id,
                       ).url,
+                  authorization: loanRequestAuthorizationDocument(
+                      currentLoanRequest.id,
+                  ).url,
                   packageZip: loanRequestApprovedDocuments(
                       currentLoanRequest.id,
                   ).url,

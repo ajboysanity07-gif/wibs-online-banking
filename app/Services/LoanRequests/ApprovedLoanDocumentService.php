@@ -6,6 +6,7 @@ use App\LoanRequestDocumentKey;
 use App\LoanRequestStatus;
 use App\Models\LoanRequest;
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\AuthorizationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GeneraliApplicationFormPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
@@ -48,6 +49,7 @@ class ApprovedLoanDocumentService
         'deped_salary_deduction_waiver' => 'deped-salary-deduction-waiver.pdf',
         'pension_deduction_waiver' => 'pension-deduction-waiver.pdf',
         'generali_application_form' => 'generali-application-form.pdf',
+        'authorization' => 'authorization.pdf',
     ];
 
     /**
@@ -68,6 +70,7 @@ class ApprovedLoanDocumentService
         'deped_salary_deduction_waiver' => '12-DepEd-Salary-Deduction-Waiver.pdf',
         'pension_deduction_waiver' => '13-Pension-Deduction-Waiver.pdf',
         'generali_application_form' => '14-Generali-Application-Form.pdf',
+        'authorization' => '15-Authorization.pdf',
     ];
 
     public function __construct(
@@ -92,6 +95,7 @@ class ApprovedLoanDocumentService
         private DepedSalaryDeductionWaiverPdfFieldMap $depedSalaryDeductionWaiverPdfFieldMap,
         private PensionDeductionWaiverPdfFieldMap $pensionDeductionWaiverPdfFieldMap,
         private GeneraliApplicationFormPdfFieldMap $generaliApplicationFormPdfFieldMap,
+        private AuthorizationPdfFieldMap $authorizationPdfFieldMap,
         private ApprovedLoanDocumentDataBuilder $documentDataBuilder,
     ) {}
 
@@ -188,6 +192,23 @@ class ApprovedLoanDocumentService
                     $outputPath,
                     $documentData,
                     $this->affidavitUndertakingPdfFieldMap,
+                );
+            },
+        );
+    }
+
+    public function authorization(LoanRequest $loanRequest): Response
+    {
+        return $this->downloadApprovedDocument(
+            $loanRequest,
+            'authorization',
+            'application/pdf',
+            function (string $outputPath, array $documentData): void {
+                $this->approvedLoanPdfTemplateService->generate(
+                    self::PDF_TEMPLATE_FILENAMES['authorization'],
+                    $outputPath,
+                    $documentData,
+                    $this->authorizationPdfFieldMap,
                 );
             },
         );
@@ -597,6 +618,18 @@ class ApprovedLoanDocumentService
                         $path,
                         $documentData,
                         $this->affidavitUndertakingPdfFieldMap,
+                    );
+                },
+            ),
+            LoanRequestDocumentKey::Authorization => $this->generatePdfDocumentToPath(
+                $outputPath,
+                $documentKey,
+                function (string $path) use ($documentData): void {
+                    $this->approvedLoanPdfTemplateService->generate(
+                        self::PDF_TEMPLATE_FILENAMES['authorization'],
+                        $path,
+                        $documentData,
+                        $this->authorizationPdfFieldMap,
                     );
                 },
             ),

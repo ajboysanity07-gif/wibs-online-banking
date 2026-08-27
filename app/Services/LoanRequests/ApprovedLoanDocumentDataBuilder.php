@@ -362,6 +362,7 @@ class ApprovedLoanDocumentDataBuilder
                 'service_charge_amount_raw' => $serviceChargeAmountRaw,
                 'insurance_premium_raw' => $insurancePremiumRaw,
                 'loan_security_amount_raw' => $loanSecurityAmountRaw,
+                'loan_security_amount' => $this->formatCurrencyValue($loanSecurityAmountRaw),
                 'documentary_stamp_amount_raw' => $documentaryStampAmountRaw,
                 'notarial_fee_raw' => $notarialFeeRaw,
                 'other_charges_amount_raw' => $otherChargesAmountRaw,
@@ -405,6 +406,9 @@ class ApprovedLoanDocumentDataBuilder
                 ),
                 'payout_bank_branch' => $this->normalizeText(
                     $overrideProcessing['payout_bank_branch'] ?? $flatValues['payout_bank_branch'] ?? null,
+                ),
+                'payout_atm_holder_name' => $this->normalizeText(
+                    $overrideProcessing['payout_atm_holder_name'] ?? $flatValues['payout_atm_holder_name'] ?? null,
                 ),
             ],
             'barangay' => [

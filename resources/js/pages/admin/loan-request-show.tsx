@@ -47,6 +47,7 @@ import {
     authorityToDeduct as requestsAuthorityToDeductDocument,
     depedSalaryDeductionWaiver as requestsDepedSalaryDeductionWaiverDocument,
     disclosureStatement as requestsDisclosureStatementDocument,
+    authorization as requestsAuthorizationDocument,
     generali as requestsGeneraliDocument,
     generaliApplicationForm as requestsGeneraliApplicationFormDocument,
     grepalife as requestsGrepalifeDocument,
@@ -340,6 +341,9 @@ export default function LoanRequestShow({
                   generaliApplicationForm:
                       requestsGeneraliApplicationFormDocument(currentRequest.id)
                           .url,
+                  authorization: requestsAuthorizationDocument(
+                      currentRequest.id,
+                  ).url,
                   packageZip: requestsApprovedDocuments(currentRequest.id).url,
               }
             : null;

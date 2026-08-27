@@ -1,6 +1,17 @@
 import { router } from '@inertiajs/react';
 import axios, { AxiosHeaders, type AxiosError } from 'axios';
 
+declare module 'axios' {
+    export interface AxiosRequestConfig {
+        /**
+         * Skip the global "Access denied" toast for a 403 on this request --
+         * for best-effort background calls (e.g. audit-log pings) that
+         * shouldn't alarm a user who can plainly see the page still works.
+         */
+        silentForbidden?: boolean;
+    }
+}
+
 const client = axios.create({
     baseURL: '/',
     withCredentials: true,
@@ -79,7 +90,11 @@ client.interceptors.response.use(
             router.visit('/login');
         }
 
-        if (status === 403 && typeof window !== 'undefined') {
+        if (
+            status === 403 &&
+            typeof window !== 'undefined' &&
+            !error.config?.silentForbidden
+        ) {
             window.dispatchEvent(new CustomEvent('api:forbidden'));
         }
 

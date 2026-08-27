@@ -139,6 +139,7 @@ type ApprovedDocumentHrefs = {
     depedSalaryDeductionWaiver: string;
     pensionDeductionWaiver: string;
     generaliApplicationForm: string;
+    authorization: string;
     packageZip?: string | null;
 };
 
@@ -1150,6 +1151,11 @@ export function LoanRequestDetailPage({
               {
                   label: 'Generali Individual Application Form PDF',
                   href: approvedDocumentHrefs.generaliApplicationForm,
+                  format: 'PDF',
+              },
+              {
+                  label: 'Authorization PDF',
+                  href: approvedDocumentHrefs.authorization,
                   format: 'PDF',
               },
           ]

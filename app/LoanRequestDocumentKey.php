@@ -7,6 +7,7 @@ enum LoanRequestDocumentKey: string
     case ApplicationForm = 'application_form';
     case Grepalife = 'grepalife';
     case AffidavitUndertaking = 'affidavit_undertaking';
+    case Authorization = 'authorization';
     case LoanInformation = 'loan_information';
     case PlanOfPayment = 'plan_of_payment';
     case DisclosureStatement = 'disclosure_statement';
@@ -25,6 +26,7 @@ enum LoanRequestDocumentKey: string
             self::ApplicationForm => 'Application Form',
             self::Grepalife => 'GREPALIFE',
             self::AffidavitUndertaking => 'Affidavit of Undertaking (ATM Payout)',
+            self::Authorization => 'Authorization',
             self::LoanInformation => 'Loan Information',
             self::PlanOfPayment => 'Plan of Payment',
             self::DisclosureStatement => 'Disclosure Statement',
@@ -52,6 +54,7 @@ enum LoanRequestDocumentKey: string
             self::Generali,
             self::GeneraliApplicationForm => 'insurance',
             self::AffidavitUndertaking,
+            self::Authorization,
             self::UndertakingBarangay,
             self::AuthorityToDeduct,
             self::DepedSalaryDeductionWaiver,

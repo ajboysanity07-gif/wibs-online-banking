@@ -4,6 +4,7 @@ namespace App\Services\LoanRequests;
 
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
+use App\LoanReleaseMethod;
 use App\LoanRequestDocumentKey;
 use App\Models\AuthorityToDeductInstitutionContact;
 use App\Models\LoanRequest;
@@ -121,6 +122,31 @@ class LoanRequestDocumentCatalog
                 [
                     'path' => 'storage/app/templates/approved-loan-documents/pdf/affidavit-undertaking.pdf',
                     'description' => 'Affidavit of Undertaking PDF template',
+                ],
+            ],
+            'requires_financials' => false,
+        ],
+        'authorization' => [
+            'template_version' => 'authorization-v1',
+            'applicability' => 'bank_release',
+            'required_fields' => [
+                'payout_bank_name',
+                'payout_account_number',
+            ],
+            'source_fields' => [
+                'payout_bank_name',
+                'payout_account_number',
+                'payout_bank_branch',
+                'payout_atm_holder_name',
+            ],
+            'source_paths' => [
+                'loan_request.recommended_amount',
+                'applicant.',
+            ],
+            'template_files' => [
+                [
+                    'path' => 'storage/app/templates/approved-loan-documents/pdf/authorization.pdf',
+                    'description' => 'Authorization PDF template',
                 ],
             ],
             'requires_financials' => false,
@@ -624,6 +650,7 @@ class LoanRequestDocumentCatalog
             'institutional_payroll' => $this->authorityToDeductCategory($loanRequest, $flatValues) !== null
                 && ($flatValues['payment_option'] ?? null) === LoanPaymentOption::SalaryDeduction->value,
             'atm_payout_employee' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues),
+            'bank_release' => ($flatValues['release_method'] ?? null) === LoanReleaseMethod::BankTransfer->value,
             'not_lumpsum' => ! $this->isDueDateNoInsurance($loanRequest),
             default => true,
         };

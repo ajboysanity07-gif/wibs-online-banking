@@ -386,6 +386,8 @@ Route::prefix('client/loans/requests/{loanRequest}/documents')
             ->name('client.loan-requests.documents.pension-deduction-waiver');
         Route::get('generali-application-form', [LoanRequestController::class, 'generaliApplicationFormDocument'])
             ->name('client.loan-requests.documents.generali-application-form');
+        Route::get('authorization', [LoanRequestController::class, 'authorizationDocument'])
+            ->name('client.loan-requests.documents.authorization');
     });
 
 Route::get('client/loans/{loanNumber}/schedule', ClientMemberLoanScheduleController::class)
@@ -513,6 +515,8 @@ Route::prefix('staff')->middleware(['auth', 'verified', 'loan-workflow-staff'])-
             ->name('staff.loan-requests.documents.pension-deduction-waiver');
         Route::get('generali-application-form', [StaffLoanRequestController::class, 'generaliApplicationFormDocument'])
             ->name('staff.loan-requests.documents.generali-application-form');
+        Route::get('authorization', [StaffLoanRequestController::class, 'authorizationDocument'])
+            ->name('staff.loan-requests.documents.authorization');
     });
 
     Route::prefix('loan-requests/{loanRequest}/wibs')->group(function () {
@@ -629,6 +633,8 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
             ->name('admin.requests.documents.pension-deduction-waiver');
         Route::get('generali-application-form', [AdminLoanRequestController::class, 'generaliApplicationFormDocument'])
             ->name('admin.requests.documents.generali-application-form');
+        Route::get('authorization', [AdminLoanRequestController::class, 'authorizationDocument'])
+            ->name('admin.requests.documents.authorization');
         Route::get('generated/{documentKey}', [AdminLoanRequestController::class, 'generatedDocument'])
             ->name('admin.requests.documents.generated');
     });

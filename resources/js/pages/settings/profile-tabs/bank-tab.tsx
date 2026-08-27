@@ -187,6 +187,11 @@ function BankAccountFields({
                         ))}
                     </SelectContent>
                 </Select>
+                <input
+                    type="hidden"
+                    name={accountTypeKey}
+                    value={bankingValues[accountTypeKey] ?? ''}
+                />
 
                 <InputError
                     className="mt-2"

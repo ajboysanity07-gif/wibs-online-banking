@@ -43,6 +43,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import {
     Sheet,
     SheetContent,
@@ -50,9 +53,6 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import { useApprovedDocumentPackageDownload } from '@/hooks/loan-request/use-approved-document-package-download';
 import AppLayout from '@/layouts/app-layout';
@@ -71,6 +71,7 @@ import {
     affidavitUndertaking as requestsAffidavitUndertakingDocument,
     applicationForm as requestsApplicationFormDocument,
     authorityToDeduct as requestsAuthorityToDeductDocument,
+    authorization as requestsAuthorizationDocument,
     depedSalaryDeductionWaiver as requestsDepedSalaryDeductionWaiverDocument,
     disclosureStatement as requestsDisclosureStatementDocument,
     generali as requestsGeneraliDocument,
@@ -450,6 +451,9 @@ export default function StaffLoanRequestShow({
                   generaliApplicationForm:
                       requestsGeneraliApplicationFormDocument(currentRequest.id)
                           .url,
+                  authorization: requestsAuthorizationDocument(
+                      currentRequest.id,
+                  ).url,
                   packageZip: requestsApprovedDocuments(currentRequest.id).url,
               }
             : null;
@@ -503,7 +507,11 @@ export default function StaffLoanRequestShow({
 
         const requestId = loanRequest.id;
 
-        void adminApi.logLoanRequestWarningViewed(requestId);
+        // Best-effort audit logging -- never surface the global "Access
+        // denied" toast for this fire-and-forget background call. The page
+        // itself already passed the identical view-authorization check, so
+        // a failure here shouldn't alarm a user who can plainly see the page.
+        adminApi.logLoanRequestWarningViewed(requestId).catch(() => {});
     }, [loanRequest.id, loanRequest.applicant_loan_status]);
 
     const isOwnRequest = workflowContext.isOwnRequest;
