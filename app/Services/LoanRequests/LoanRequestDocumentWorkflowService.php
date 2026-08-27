@@ -894,7 +894,15 @@ class LoanRequestDocumentWorkflowService
 
         return [
             'approved_amount_raw' => data_get($documentData, 'loan.approved_amount_raw'),
+            'service_charge_amount_raw' => data_get($documentData, 'loan.service_charge_amount_raw'),
+            'interest_not_deducted_raw' => data_get($documentData, 'loan.interest_not_deducted_raw'),
             'finance_charge_total_raw' => data_get($documentData, 'loan.finance_charge_total_raw'),
+            'insurance_premium_raw' => data_get($documentData, 'loan.insurance_premium_raw'),
+            'loan_security_amount_raw' => data_get($documentData, 'loan.loan_security_amount_raw'),
+            'documentary_stamp_amount_raw' => data_get($documentData, 'loan.documentary_stamp_amount_raw'),
+            'notarial_fee_raw' => data_get($documentData, 'loan.notarial_fee_raw'),
+            'other_charges_amount_raw' => data_get($documentData, 'loan.other_charges_amount_raw'),
+            'other_charges_description' => data_get($documentData, 'loan.other_charges_description'),
             'non_finance_charge_total_raw' => data_get($documentData, 'loan.non_finance_charge_total_raw'),
             'deductions_total_raw' => data_get($documentData, 'loan.deductions_total_raw'),
             'net_proceeds_raw' => $netProceedsRaw,

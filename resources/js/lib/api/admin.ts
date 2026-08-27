@@ -242,7 +242,15 @@ type LoanRequestRecommendationPreviewFailureInformation = {
 
 type LoanRequestRecommendationPreviewResponse = {
     approved_amount_raw: number | null;
+    service_charge_amount_raw: number | null;
+    interest_not_deducted_raw: number | null;
     finance_charge_total_raw: number | null;
+    insurance_premium_raw: number | null;
+    loan_security_amount_raw: number | null;
+    documentary_stamp_amount_raw: number | null;
+    notarial_fee_raw: number | null;
+    other_charges_amount_raw: number | null;
+    other_charges_description: string | null;
     non_finance_charge_total_raw: number | null;
     deductions_total_raw: number | null;
     net_proceeds_raw: number | null;

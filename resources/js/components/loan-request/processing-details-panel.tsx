@@ -6,6 +6,12 @@ import {
     MonthsInput,
     PercentInput,
 } from '@/components/loan-request/numeric-adorned-inputs';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -401,7 +407,15 @@ const hasSecondOfficerValue = (
 
 type RecommendationPreviewState = {
     approved_amount_raw: number | null;
+    service_charge_amount_raw: number | null;
+    interest_not_deducted_raw: number | null;
     finance_charge_total_raw: number | null;
+    insurance_premium_raw: number | null;
+    loan_security_amount_raw: number | null;
+    documentary_stamp_amount_raw: number | null;
+    notarial_fee_raw: number | null;
+    other_charges_amount_raw: number | null;
+    other_charges_description: string | null;
     non_finance_charge_total_raw: number | null;
     deductions_total_raw: number | null;
     net_proceeds_raw: number | null;
@@ -423,6 +437,25 @@ type ProcessingDetailsPanelProps = {
     ) => Promise<LoanRequestWorkflowResult | null>;
     loanManagers?: LoanManagerOption[];
 };
+
+function ChargeLineItem({
+    label,
+    amount,
+}: {
+    label: string;
+    amount: number | null;
+}) {
+    if (amount === null || amount === undefined) {
+        return null;
+    }
+
+    return (
+        <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="text-muted-foreground">{label}</span>
+            <span className="tabular-nums">{formatCurrency(amount)}</span>
+        </div>
+    );
+}
 
 export function ProcessingDetailsPanel({
     loanRequest,
@@ -1376,26 +1409,88 @@ export function ProcessingDetailsPanel({
                                                 )}
                                             </span>
                                         </div>
-                                        <div className="flex items-center justify-between gap-3 text-sm">
-                                            <span className="text-muted-foreground">
-                                                Finance charges
-                                            </span>
-                                            <span className="font-medium tabular-nums">
-                                                {formatCurrency(
-                                                    recommendationPreview.finance_charge_total_raw,
-                                                )}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-3 text-sm">
-                                            <span className="text-muted-foreground">
-                                                Non-finance charges
-                                            </span>
-                                            <span className="font-medium tabular-nums">
-                                                {formatCurrency(
-                                                    recommendationPreview.non_finance_charge_total_raw,
-                                                )}
-                                            </span>
-                                        </div>
+
+                                        <Accordion
+                                            type="multiple"
+                                            className="w-full"
+                                        >
+                                            <AccordionItem
+                                                value="finance-charges"
+                                                className="border-0"
+                                            >
+                                                <AccordionTrigger className="py-1 text-sm hover:no-underline">
+                                                    <span className="flex flex-1 items-center justify-between gap-3">
+                                                        <span className="text-muted-foreground">
+                                                            Finance charges
+                                                        </span>
+                                                        <span className="font-medium tabular-nums">
+                                                            {formatCurrency(
+                                                                recommendationPreview.finance_charge_total_raw,
+                                                            )}
+                                                        </span>
+                                                    </span>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="pb-1 pt-0">
+                                                    <div className="ml-4 space-y-1 border-l border-border pl-3">
+                                                        <ChargeLineItem
+                                                            label="Service charge"
+                                                            amount={recommendationPreview.service_charge_amount_raw}
+                                                        />
+                                                        <ChargeLineItem
+                                                            label="Interest (not deducted)"
+                                                            amount={recommendationPreview.interest_not_deducted_raw}
+                                                        />
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+
+                                            <AccordionItem
+                                                value="non-finance-charges"
+                                                className="border-0"
+                                            >
+                                                <AccordionTrigger className="py-1 text-sm hover:no-underline">
+                                                    <span className="flex flex-1 items-center justify-between gap-3">
+                                                        <span className="text-muted-foreground">
+                                                            Non-finance charges
+                                                        </span>
+                                                        <span className="font-medium tabular-nums">
+                                                            {formatCurrency(
+                                                                recommendationPreview.non_finance_charge_total_raw,
+                                                            )}
+                                                        </span>
+                                                    </span>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="pb-1 pt-0">
+                                                    <div className="ml-4 space-y-1 border-l border-border pl-3">
+                                                        <ChargeLineItem
+                                                            label="Insurance premium"
+                                                            amount={recommendationPreview.insurance_premium_raw}
+                                                        />
+                                                        <ChargeLineItem
+                                                            label="Loan security"
+                                                            amount={recommendationPreview.loan_security_amount_raw}
+                                                        />
+                                                        <ChargeLineItem
+                                                            label="Documentary stamps"
+                                                            amount={recommendationPreview.documentary_stamp_amount_raw}
+                                                        />
+                                                        <ChargeLineItem
+                                                            label="Notarial fee"
+                                                            amount={recommendationPreview.notarial_fee_raw}
+                                                        />
+                                                        <ChargeLineItem
+                                                            label={
+                                                                recommendationPreview.other_charges_description
+                                                                    ? `Other charges (${recommendationPreview.other_charges_description})`
+                                                                    : 'Other charges'
+                                                            }
+                                                            amount={recommendationPreview.other_charges_amount_raw}
+                                                        />
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        </Accordion>
+
                                         <div className="flex items-center justify-between gap-3 text-sm">
                                             <span className="text-muted-foreground">
                                                 Total charges
