@@ -1710,6 +1710,13 @@ class LoanRequestDataService
         'payment_option',
         'payout_atm_number',
         'payout_atm_holder_name',
+        'payment_bank_name',
+        'payment_account_name',
+        'payment_account_number',
+        'payment_account_type',
+        'payment_atm_number',
+        'payment_bank_branch',
+        'payment_atm_holder_name',
     ];
 
     /**

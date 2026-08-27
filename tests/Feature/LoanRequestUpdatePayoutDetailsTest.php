@@ -28,6 +28,11 @@ test('loan processor can update payout details directly without a member correct
         'payment_option' => 'ATM Deduction',
         'payout_atm_number' => '1234567890',
         'payout_atm_holder_name' => 'Juan Dela Cruz',
+        'payment_bank_name' => 'WIBS Bank',
+        'payment_account_name' => 'Juan Dela Cruz',
+        'payment_account_number' => '00-1122-334455',
+        'payment_account_type' => 'Savings',
+        'payment_atm_number' => '9988776655',
         'reason' => 'Member called to report they now have an ATM card.',
     ];
 
@@ -73,6 +78,84 @@ test('loan processor can update payout details directly without a member correct
         ->first();
 
     expect($notification)->not->toBeNull();
+});
+
+test('loan processor can update the repayment method and its account details', function (): void {
+    $processor = createPayoutDetailsActor([Role::LOAN_PROCESSOR]);
+    $member = createPayoutDetailsActor([Role::MEMBER], '960005');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => now(),
+    ]);
+
+    $payload = [
+        'payment_option' => 'ATM Deduction',
+        'payout_atm_number' => '1234567890',
+        'payment_bank_name' => 'WIBS Bank',
+        'payment_account_name' => 'Juan Dela Cruz',
+        'payment_account_number' => '00-1122-334455',
+        'payment_account_type' => 'Savings',
+        'payment_atm_number' => '9988776655',
+        'payment_bank_branch' => 'Quezon City Branch',
+        'payment_atm_holder_name' => 'Juan Dela Cruz',
+        'reason' => 'Member called to report they switched their repayment method to ATM deduction.',
+    ];
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.payout-details', $loanRequest), $payload)
+        ->assertOk();
+
+    $loanRequest->refresh();
+
+    $flatValues = app(LoanRequestDataService::class)->loadFlatValues($loanRequest);
+
+    expect($flatValues['payment_option'])->toBe('ATM Deduction')
+        ->and($flatValues['payment_bank_name'])->toBe('WIBS Bank')
+        ->and($flatValues['payment_account_name'])->toBe('Juan Dela Cruz')
+        ->and($flatValues['payment_account_number'])->toBe('00-1122-334455')
+        ->and($flatValues['payment_account_type'])->toBe('Savings')
+        ->and($flatValues['payment_atm_number'])->toBe('9988776655')
+        ->and($flatValues['payment_bank_branch'])->toBe('Quezon City Branch')
+        ->and($flatValues['payment_atm_holder_name'])->toBe('Juan Dela Cruz');
+
+    $entry = $loanRequest->dataEntries()
+        ->where('field_key', 'payment_bank_name')
+        ->first();
+
+    expect($entry)->not->toBeNull()
+        ->and($entry->confirmed_by_member)->toBeFalse()
+        ->and($entry->metadata_json['updated_by_actor_type'] ?? null)->toBe('staff')
+        ->and($entry->metadata_json['updated_by_user_id'] ?? null)->toBe($processor->user_id);
+});
+
+test('repayment account fields are required when switching the repayment method to ATM deduction', function (): void {
+    $processor = createPayoutDetailsActor([Role::LOAN_PROCESSOR]);
+    $member = createPayoutDetailsActor([Role::MEMBER], '960006');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.payout-details', $loanRequest), [
+            'payment_option' => 'ATM Deduction',
+            'reason' => 'Missing repayment account details on purpose.',
+        ])
+        ->assertJsonValidationErrors([
+            'payment_bank_name',
+            'payment_account_name',
+            'payment_account_number',
+            'payment_account_type',
+            'payment_atm_number',
+        ]);
 });
 
 test('unassigned processor cannot update payout details', function (): void {

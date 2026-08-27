@@ -87,6 +87,13 @@ export type LoanRequestUpdatePayoutDetailsPayload = {
     payment_option: string;
     payout_atm_number?: string | null;
     payout_atm_holder_name?: string | null;
+    payment_bank_name?: string | null;
+    payment_account_name?: string | null;
+    payment_account_number?: string | null;
+    payment_account_type?: string | null;
+    payment_atm_number?: string | null;
+    payment_bank_branch?: string | null;
+    payment_atm_holder_name?: string | null;
     reason: string;
 };
 

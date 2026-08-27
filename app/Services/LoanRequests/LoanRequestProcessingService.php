@@ -344,7 +344,7 @@ class LoanRequestProcessingService
     }
 
     /**
-     * @param  array{payment_option:string, payout_atm_number?:?string, payout_atm_holder_name?:?string, reason:string}  $payload
+     * @param  array{payment_option:string, payout_atm_number?:?string, payout_atm_holder_name?:?string, payment_bank_name?:?string, payment_account_name?:?string, payment_account_number?:?string, payment_account_type?:?string, payment_atm_number?:?string, payment_bank_branch?:?string, payment_atm_holder_name?:?string, reason:string}  $payload
      */
     public function updatePayoutDetails(
         LoanRequest $loanRequest,
@@ -362,6 +362,13 @@ class LoanRequestProcessingService
                 'payment_option' => $payload['payment_option'],
                 'payout_atm_number' => $payload['payout_atm_number'] ?? null,
                 'payout_atm_holder_name' => $payload['payout_atm_holder_name'] ?? null,
+                'payment_bank_name' => $payload['payment_bank_name'] ?? null,
+                'payment_account_name' => $payload['payment_account_name'] ?? null,
+                'payment_account_number' => $payload['payment_account_number'] ?? null,
+                'payment_account_type' => $payload['payment_account_type'] ?? null,
+                'payment_atm_number' => $payload['payment_atm_number'] ?? null,
+                'payment_bank_branch' => $payload['payment_bank_branch'] ?? null,
+                'payment_atm_holder_name' => $payload['payment_atm_holder_name'] ?? null,
             ];
 
             $before = $this->editableSnapshot($lockedLoanRequest);
@@ -396,9 +403,9 @@ class LoanRequestProcessingService
             $updated,
             LoanRequestNotificationService::EVENT_PAYOUT_DETAILS_UPDATED_BY_STAFF,
             [
-                'title' => 'Your payout details were updated',
-                'message' => 'Our loan processing team updated your ATM/payout details on your behalf. '
-                    .'If this is incorrect, please contact us.',
+                'title' => 'Your payout and repayment details were updated',
+                'message' => 'Our loan processing team updated your payout/ATM details and repayment method '
+                    .'on your behalf. If this is incorrect, please contact us.',
                 'reason' => $payload['reason'],
             ],
             $actor,
