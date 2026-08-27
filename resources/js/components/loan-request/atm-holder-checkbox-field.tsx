@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,17 @@ export function AtmHolderCheckboxField({
     const [isOwnCard, setIsOwnCard] = useState(
         () => value.trim() === '' || value.trim() === applicantFullName.trim(),
     );
+
+    // The default-checked state above doesn't push applicantFullName into the
+    // form's value on its own -- only onCheckedChange does that. Without this,
+    // a submission that never touches the checkbox posts an empty string and
+    // fails backend validation despite the box appearing checked.
+    useEffect(() => {
+        if (isOwnCard && value.trim() === '') {
+            onChange(applicantFullName);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [applicantFullName]);
 
     return (
         <div className="grid gap-2">

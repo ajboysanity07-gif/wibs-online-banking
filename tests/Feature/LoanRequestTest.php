@@ -5890,3 +5890,17 @@ function createApprovedMemberForLoanRequestTests(string $acctno): User
 
     return $user;
 }
+
+test('atm holder checkbox backfills the applicant name when defaulting to checked with an empty value', function () {
+    $contents = file_get_contents(
+        base_path('resources/js/components/loan-request/atm-holder-checkbox-field.tsx'),
+    );
+
+    // Guards against a regression where a fresh ATM release/payment selection
+    // rendered "This is my own ATM card" pre-checked but never wrote
+    // applicantFullName into the submitted value, failing the backend's
+    // Rule::requiredIf(...) on payout/payment_atm_holder_name even though the
+    // checkbox looked correct and required no user action.
+    expect($contents)->toContain('isOwnCard && value.trim() === \'\'')
+        ->and($contents)->toContain('onChange(applicantFullName);');
+});
