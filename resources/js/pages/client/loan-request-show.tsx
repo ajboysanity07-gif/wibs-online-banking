@@ -370,6 +370,21 @@ export default function LoanRequestShow({
         }
     };
 
+    const bankingSection = currentDataSections.banking ?? {};
+    const bankingReleaseMethod = bankingSection.release_method
+        ? `${bankingSection.release_method}`
+        : '';
+    const bankingPaymentOption = bankingSection.payment_option
+        ? `${bankingSection.payment_option}`
+        : '';
+    const bankingAccountNumber =
+        bankingReleaseMethod === 'ATM' ||
+        bankingReleaseMethod === 'Bank Transfer'
+            ? bankingSection.payout_account_number
+                ? `${bankingSection.payout_account_number}`
+                : ''
+            : '';
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
@@ -715,6 +730,15 @@ export default function LoanRequestShow({
                 backHref={loanRequestsIndexHref}
                 backLabel="Back to loan requests"
                 pdfHref={pdfHref}
+                releaseMethod={
+                    bankingReleaseMethod ? bankingReleaseMethod : undefined
+                }
+                paymentOption={
+                    bankingPaymentOption ? bankingPaymentOption : undefined
+                }
+                accountNumber={
+                    bankingAccountNumber ? bankingAccountNumber : undefined
+                }
                 approvedDocumentHrefs={approvedDocumentHrefs}
                 packageZipDownload={
                     approvedDocumentHrefs ? packageZipDownload : null

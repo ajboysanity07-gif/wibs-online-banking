@@ -116,6 +116,9 @@ type Props = {
     hideSummaryHeader?: boolean;
     hideMainColumn?: boolean;
     sidebarFooter?: ReactNode;
+    releaseMethod?: string;
+    paymentOption?: string;
+    accountNumber?: string;
 };
 
 export type LoanRequestStageAlert = {
@@ -493,6 +496,9 @@ export type LoanRequestSummaryHeaderProps = {
     availmentStatus: string;
     loanPurpose?: string;
     otherLoanTypeName?: string;
+    releaseMethod?: string;
+    paymentOption?: string;
+    accountNumber?: string;
 };
 
 export const LoanRequestSummaryHeader = ({
@@ -505,6 +511,9 @@ export const LoanRequestSummaryHeader = ({
     availmentStatus,
     loanPurpose,
     otherLoanTypeName,
+    releaseMethod,
+    paymentOption,
+    accountNumber,
 }: LoanRequestSummaryHeaderProps) => (
     <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -547,6 +556,22 @@ export const LoanRequestSummaryHeader = ({
                     <SummaryStat
                         label="Loan purpose"
                         value={loanPurpose}
+                        className="col-span-2"
+                    />
+                ) : null}
+                {releaseMethod ? (
+                    <SummaryStat label="Release method" value={releaseMethod} />
+                ) : null}
+                {paymentOption ? (
+                    <SummaryStat
+                        label="Repayment method"
+                        value={paymentOption}
+                    />
+                ) : null}
+                {accountNumber ? (
+                    <SummaryStat
+                        label="Account no."
+                        value={accountNumber}
                         className="col-span-2"
                     />
                 ) : null}
@@ -1022,6 +1047,9 @@ export function LoanRequestDetailPage({
     hideSummaryHeader = false,
     hideMainColumn = false,
     sidebarFooter,
+    releaseMethod,
+    paymentOption,
+    accountNumber,
 }: Props) {
     const submittedAt = loanRequest.submitted_at
         ? formatDate(loanRequest.submitted_at)
@@ -1372,6 +1400,9 @@ export function LoanRequestDetailPage({
                     availmentStatus={availmentStatus}
                     loanPurpose={loanPurpose}
                     otherLoanTypeName={otherLoanTypeName}
+                    releaseMethod={releaseMethod}
+                    paymentOption={paymentOption}
+                    accountNumber={accountNumber}
                 />
             ) : null}
 

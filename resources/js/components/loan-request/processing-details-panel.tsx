@@ -189,6 +189,26 @@ const SNAPSHOT_GATED_FIELDS = new Set([
     ...SNAPSHOT_PENSION_FIELDS,
 ]);
 
+const BANKING_PAYOUT_FIELDS = [
+    'payout_bank_name',
+    'payout_account_name',
+    'payout_account_number',
+    'payout_account_type',
+    'payout_atm_number',
+    'payout_bank_branch',
+    'payout_atm_holder_name',
+];
+
+const BANKING_REPAYMENT_FIELDS = [
+    'payment_bank_name',
+    'payment_account_name',
+    'payment_account_number',
+    'payment_account_type',
+    'payment_atm_number',
+    'payment_bank_branch',
+    'payment_atm_holder_name',
+];
+
 const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
     loan_security_rate: 0.02,
     savings_rate: 0.02,
@@ -830,6 +850,24 @@ export function ProcessingDetailsPanel({
         );
     };
 
+    const renderBankingSnapshotField = (fieldKey: string) => {
+        const field = dataSectionDefinitions.banking?.fields[fieldKey];
+
+        if (!field) {
+            return null;
+        }
+
+        const value = dataSections.banking?.[fieldKey];
+
+        return (
+            <SnapshotRow
+                key={fieldKey}
+                label={field.label}
+                value={snapshotDisplay(value as string | number | null)}
+            />
+        );
+    };
+
     const renderProcessingSectionLabel = (
         title: string,
         options?: { first?: boolean },
@@ -1043,9 +1081,7 @@ export function ProcessingDetailsPanel({
                     </Label>
                     <Input
                         value={
-                            typeof statusValue === 'string'
-                                ? statusValue
-                                : ''
+                            typeof statusValue === 'string' ? statusValue : ''
                         }
                         disabled
                         className={readOnlyProcessingFieldClassName}
@@ -1233,14 +1269,6 @@ export function ProcessingDetailsPanel({
                                         )}
                                     </SelectContent>
                                 </Select>
-                                {loanRequest.requested_payment_frequency && (
-                                    <p className="text-xs text-muted-foreground">
-                                        Member requested:{' '}
-                                        {
-                                            loanRequest.requested_payment_frequency
-                                        }
-                                    </p>
-                                )}
                             </div>
                             {processingForm.recommended_payment_frequency ===
                                 'Due date' && (
@@ -1418,7 +1446,7 @@ export function ProcessingDetailsPanel({
                                                 value="finance-charges"
                                                 className="border-0"
                                             >
-                                                <AccordionTrigger className="py-1 text-sm hover:no-underline flex-row-reverse">
+                                                <AccordionTrigger className="flex-row-reverse py-1 text-sm hover:no-underline">
                                                     <span className="flex flex-1 items-center justify-between gap-3">
                                                         <span className="text-muted-foreground">
                                                             Finance charges
@@ -1430,11 +1458,13 @@ export function ProcessingDetailsPanel({
                                                         </span>
                                                     </span>
                                                 </AccordionTrigger>
-                                                <AccordionContent className="pb-1 pt-0">
+                                                <AccordionContent className="pt-0 pb-1">
                                                     <div className="ml-4 space-y-1 border-l border-border pl-3">
                                                         <ChargeLineItem
                                                             label="Service charge"
-                                                            amount={recommendationPreview.service_charge_amount_raw}
+                                                            amount={
+                                                                recommendationPreview.service_charge_amount_raw
+                                                            }
                                                         />
                                                         <ChargeLineItem
                                                             label={
@@ -1443,7 +1473,9 @@ export function ProcessingDetailsPanel({
                                                                     ? 'Interest (advance — deducted)'
                                                                     : 'Interest (not deducted)'
                                                             }
-                                                            amount={recommendationPreview.interest_not_deducted_raw}
+                                                            amount={
+                                                                recommendationPreview.interest_not_deducted_raw
+                                                            }
                                                         />
                                                     </div>
                                                 </AccordionContent>
@@ -1453,7 +1485,7 @@ export function ProcessingDetailsPanel({
                                                 value="non-finance-charges"
                                                 className="border-0"
                                             >
-                                                <AccordionTrigger className="py-1 text-sm hover:no-underline flex-row-reverse">
+                                                <AccordionTrigger className="flex-row-reverse py-1 text-sm hover:no-underline">
                                                     <span className="flex flex-1 items-center justify-between gap-3">
                                                         <span className="text-muted-foreground">
                                                             Non-finance charges
@@ -1465,23 +1497,31 @@ export function ProcessingDetailsPanel({
                                                         </span>
                                                     </span>
                                                 </AccordionTrigger>
-                                                <AccordionContent className="pb-1 pt-0">
+                                                <AccordionContent className="pt-0 pb-1">
                                                     <div className="ml-4 space-y-1 border-l border-border pl-3">
                                                         <ChargeLineItem
                                                             label="Insurance premium"
-                                                            amount={recommendationPreview.insurance_premium_raw}
+                                                            amount={
+                                                                recommendationPreview.insurance_premium_raw
+                                                            }
                                                         />
                                                         <ChargeLineItem
                                                             label="Loan security"
-                                                            amount={recommendationPreview.loan_security_amount_raw}
+                                                            amount={
+                                                                recommendationPreview.loan_security_amount_raw
+                                                            }
                                                         />
                                                         <ChargeLineItem
                                                             label="Documentary stamps"
-                                                            amount={recommendationPreview.documentary_stamp_amount_raw}
+                                                            amount={
+                                                                recommendationPreview.documentary_stamp_amount_raw
+                                                            }
                                                         />
                                                         <ChargeLineItem
                                                             label="Notarial fee"
-                                                            amount={recommendationPreview.notarial_fee_raw}
+                                                            amount={
+                                                                recommendationPreview.notarial_fee_raw
+                                                            }
                                                         />
                                                         <ChargeLineItem
                                                             label={
@@ -1489,7 +1529,9 @@ export function ProcessingDetailsPanel({
                                                                     ? `Other charges (${recommendationPreview.other_charges_description})`
                                                                     : 'Other charges'
                                                             }
-                                                            amount={recommendationPreview.other_charges_amount_raw}
+                                                            amount={
+                                                                recommendationPreview.other_charges_amount_raw
+                                                            }
                                                         />
                                                     </div>
                                                 </AccordionContent>
@@ -1970,6 +2012,25 @@ export function ProcessingDetailsPanel({
                                 )
                                 .map(([fieldKey]) =>
                                     renderSnapshotField(fieldKey),
+                                )}
+                        </div>
+
+                        {renderProcessingSectionLabel(
+                            'Bank & payout information',
+                        )}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {renderBankingSnapshotField('release_method')}
+                            {renderBankingSnapshotField('payment_option')}
+                            {(dataSections.banking?.release_method === 'ATM' ||
+                                dataSections.banking?.release_method ===
+                                    'Bank Transfer') &&
+                                BANKING_PAYOUT_FIELDS.map((fieldKey) =>
+                                    renderBankingSnapshotField(fieldKey),
+                                )}
+                            {dataSections.banking?.payment_option ===
+                                'ATM Deduction' &&
+                                BANKING_REPAYMENT_FIELDS.map((fieldKey) =>
+                                    renderBankingSnapshotField(fieldKey),
                                 )}
                         </div>
 
