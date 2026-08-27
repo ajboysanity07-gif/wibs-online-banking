@@ -156,6 +156,7 @@ type PersonalFieldsProps = {
     includeSpouse?: boolean;
     includeChildren?: boolean;
     includeCivilHousing?: boolean;
+    portal?: boolean;
     section?: 'all' | 'basic' | 'contact' | 'family';
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
 };
@@ -168,6 +169,7 @@ export function LoanRequestPersonalFields({
     includeSpouse = false,
     includeChildren = false,
     includeCivilHousing = false,
+    portal = true,
     section = 'all',
     onChange,
 }: PersonalFieldsProps) {
@@ -397,6 +399,7 @@ export function LoanRequestPersonalFields({
                             placeholder="Select province"
                             required
                             readOnly={isReadOnly('birthplace_province')}
+                            portal={portal}
                             inputClassName={birthplaceProvinceInputClass}
                             loadingMessage="Searching province suggestions..."
                             errorMessage="Province suggestions are temporarily unavailable."
@@ -434,6 +437,7 @@ export function LoanRequestPersonalFields({
                             required
                             readOnly={isReadOnly('birthplace_city')}
                             disabled={!values.birthplace_province}
+                            portal={portal}
                             inputClassName={birthplaceCityInputClass}
                             loadingMessage="Searching city suggestions..."
                             errorMessage="City suggestions are temporarily unavailable."
@@ -518,6 +522,7 @@ export function LoanRequestPersonalFields({
                             placeholder="Select province"
                             required
                             readOnly={isReadOnly('address3')}
+                            portal={portal}
                             inputClassName={addressProvinceInputClass}
                             loadingMessage="Searching province suggestions..."
                             errorMessage="Province suggestions are temporarily unavailable."
@@ -556,6 +561,7 @@ export function LoanRequestPersonalFields({
                             required
                             readOnly={isReadOnly('address2')}
                             disabled={!values.address3}
+                            portal={portal}
                             inputClassName={addressCityInputClass}
                             loadingMessage="Searching city suggestions..."
                             errorMessage="City suggestions are temporarily unavailable."
@@ -620,6 +626,7 @@ export function LoanRequestPersonalFields({
                             placeholder="Select barangay"
                             readOnly={isReadOnly('address_barangay')}
                             disabled={!values.address2}
+                            portal={portal}
                             inputClassName={cn(
                                 'mt-1 block w-full',
                                 isReadOnly('address_barangay') &&
@@ -1003,6 +1010,7 @@ type WorkFieldsProps = {
     prefix: string;
     values: LoanRequestPersonFormData;
     errors: Record<string, string | undefined>;
+    portal?: boolean;
     section?: 'all' | 'employment' | 'income';
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
 };
@@ -1011,6 +1019,7 @@ export function LoanRequestWorkFields({
     prefix,
     values,
     errors,
+    portal = true,
     section = 'all',
     onChange,
 }: WorkFieldsProps) {
@@ -1189,6 +1198,7 @@ export function LoanRequestWorkFields({
                                 )}
                                 search={employerProvinceSearch}
                                 placeholder="Select province"
+                                portal={portal}
                                 inputClassName="mt-1 block w-full"
                                 loadingMessage="Searching province suggestions..."
                                 errorMessage="Province suggestions are temporarily unavailable."
@@ -1239,6 +1249,7 @@ export function LoanRequestWorkFields({
                                 search={employerCitySearch}
                                 placeholder="Select city or municipality"
                                 disabled={!values.employer_business_address3}
+                                portal={portal}
                                 inputClassName="mt-1 block w-full"
                                 loadingMessage="Searching city suggestions..."
                                 errorMessage="City suggestions are temporarily unavailable."
@@ -1329,6 +1340,7 @@ export function LoanRequestWorkFields({
                                 search={employerBarangaySearch}
                                 placeholder="Select barangay"
                                 disabled={!values.employer_business_address2}
+                                portal={portal}
                                 inputClassName="mt-1 block w-full"
                                 loadingMessage="Loading barangays..."
                                 errorMessage="Barangay suggestions are temporarily unavailable."

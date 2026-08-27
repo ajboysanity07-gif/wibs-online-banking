@@ -28,6 +28,7 @@ type Props = {
     ariaLabel?: string;
     readOnly?: boolean;
     disabled?: boolean;
+    portal?: boolean;
     inputClassName?: string;
     onValueChange?: (value: string) => void;
     onSelect?: (suggestion: LocationSuggestion) => void;
@@ -58,6 +59,7 @@ export function LocationCombobox({
     ariaLabel,
     readOnly = false,
     disabled = false,
+    portal = true,
     inputClassName,
     onValueChange,
     onSelect,
@@ -168,6 +170,7 @@ export function LocationCombobox({
                 </button>
             </PopoverTrigger>
             <PopoverContent
+                portal={portal}
                 align="start"
                 className="w-[--radix-popover-trigger-width] p-0"
             >

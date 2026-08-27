@@ -1813,6 +1813,7 @@ export default function StaffLoanRequestShow({
                                         errors={{}}
                                         includeSpouse
                                         includeChildren
+                                        portal={false}
                                         onChange={updateCorrectionPersonField(
                                             'applicant',
                                         )}
@@ -1822,6 +1823,7 @@ export default function StaffLoanRequestShow({
                                         prefix="applicant"
                                         values={correctionForm.applicant}
                                         errors={{}}
+                                        portal={false}
                                         onChange={updateCorrectionPersonField(
                                             'applicant',
                                         )}
@@ -1838,6 +1840,7 @@ export default function StaffLoanRequestShow({
                                         prefix="co_maker_1"
                                         values={correctionForm.co_maker_1}
                                         errors={{}}
+                                        portal={false}
                                         onChange={updateCorrectionPersonField(
                                             'co_maker_1',
                                         )}
@@ -1847,6 +1850,7 @@ export default function StaffLoanRequestShow({
                                         prefix="co_maker_1"
                                         values={correctionForm.co_maker_1}
                                         errors={{}}
+                                        portal={false}
                                         onChange={updateCorrectionPersonField(
                                             'co_maker_1',
                                         )}
@@ -1863,6 +1867,7 @@ export default function StaffLoanRequestShow({
                                         prefix="co_maker_2"
                                         values={correctionForm.co_maker_2}
                                         errors={{}}
+                                        portal={false}
                                         onChange={updateCorrectionPersonField(
                                             'co_maker_2',
                                         )}
@@ -1872,6 +1877,7 @@ export default function StaffLoanRequestShow({
                                         prefix="co_maker_2"
                                         values={correctionForm.co_maker_2}
                                         errors={{}}
+                                        portal={false}
                                         onChange={updateCorrectionPersonField(
                                             'co_maker_2',
                                         )}
