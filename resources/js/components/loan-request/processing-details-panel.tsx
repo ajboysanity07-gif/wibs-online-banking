@@ -1418,7 +1418,7 @@ export function ProcessingDetailsPanel({
                                                 value="finance-charges"
                                                 className="border-0"
                                             >
-                                                <AccordionTrigger className="py-1 text-sm hover:no-underline">
+                                                <AccordionTrigger className="py-1 text-sm hover:no-underline flex-row-reverse">
                                                     <span className="flex flex-1 items-center justify-between gap-3">
                                                         <span className="text-muted-foreground">
                                                             Finance charges
@@ -1448,7 +1448,7 @@ export function ProcessingDetailsPanel({
                                                 value="non-finance-charges"
                                                 className="border-0"
                                             >
-                                                <AccordionTrigger className="py-1 text-sm hover:no-underline">
+                                                <AccordionTrigger className="py-1 text-sm hover:no-underline flex-row-reverse">
                                                     <span className="flex flex-1 items-center justify-between gap-3">
                                                         <span className="text-muted-foreground">
                                                             Non-finance charges
