@@ -138,10 +138,10 @@ export function MonthsInput({
     required,
 }: MonthsInputProps) {
     return (
-        <div className="relative">
+        <div className="relative self-start">
             <NumericFormat
                 id={id}
-                className={cn('pr-16', className)}
+                className={cn('pr-14', className)}
                 value={value}
                 onValueChange={(values) => onChange(values.value)}
                 onBlur={onBlur}
@@ -174,7 +174,7 @@ export function YearsInput({
     required,
 }: YearsInputProps) {
     return (
-        <div className="relative">
+        <div className="relative self-start">
             <NumericFormat
                 id={id}
                 className={cn('pr-14', className)}

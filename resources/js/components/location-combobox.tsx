@@ -173,6 +173,9 @@ export function LocationCombobox({
                 portal={portal}
                 align="start"
                 className="w-[--radix-popover-trigger-width] p-0"
+                onInteractOutside={(e) => {
+                    if (!portal) e.preventDefault();
+                }}
             >
                 <Command>
                     <CommandInput
