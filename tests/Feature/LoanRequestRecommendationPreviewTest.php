@@ -373,9 +373,10 @@ test('preview accepts Lumpsum frequency, derives the lumpsum month count from th
     // insurance (25000/1000)*12*1.0=300 (a 12-month Lumpsum is not the
     // 1-month waiver case, so insurance still applies), loan security is
     // forced to 0 for any Lumpsum, doc stamp 25000*0.0075=187.5, notarial
-    // fee 100 flat. Interest is not deducted from proceeds, so net =
-    // 25000 - (1250+300+187.5+100) = 23162.5.
-    $this->assertEqualsWithDelta(23162.5, $response->json('data.net_proceeds_raw'), 0.01);
+    // fee 100 flat. For lumpsum/Due-date, interest is advance interest
+    // deducted from proceeds, so finance charges = 1250+9000=10250,
+    // net = 25000 - (10250+300+187.5+100) = 14162.5.
+    $this->assertEqualsWithDelta(14162.5, $response->json('data.net_proceeds_raw'), 0.01);
 });
 
 test('preview zeroes both loan security and insurance for a 1-month Lumpsum', function (): void {
@@ -412,9 +413,10 @@ test('preview zeroes both loan security and insurance for a 1-month Lumpsum', fu
     // interest 25000*0.36/12*1=750, service charge 25000*0.05=1250, doc
     // stamp 25000*0.0075=187.5, notarial fee 100 flat; loan
     // security/insurance are forced to 0 for a 1-month Lumpsum only.
-    // Interest is not deducted from proceeds, so net =
-    // 25000 - (1250+187.5+100) = 23462.5.
-    $this->assertEqualsWithDelta(23462.5, $response->json('data.net_proceeds_raw'), 0.01);
+    // For lumpsum/Due-date, interest is advance interest deducted from
+    // proceeds, so finance charges = 1250+750=2000,
+    // net = 25000 - (2000+187.5+100) = 22712.5.
+    $this->assertEqualsWithDelta(22712.5, $response->json('data.net_proceeds_raw'), 0.01);
 });
 
 test('preview rejects Lumpsum frequency without a recommended term to derive the month count from', function (): void {

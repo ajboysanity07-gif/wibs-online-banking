@@ -252,6 +252,10 @@
             </tr>
 
             {{-- Row 14: a. Interest --}}
+            {{-- Monthly loans: interest in "Not Deducted" column (emergency
+                 loans show the amount; others leave it blank per the template).
+                 Lumpsum/Due-date: interest is advance interest, shown in the
+                 "Deducted" column instead. --}}
             <tr>
                 <td class="r">a.</td>
                 <td class="nw">Interest</td>
@@ -262,9 +266,9 @@
                 <td class="c">To</td>
                 <td class="b7 u">&nbsp;</td>
                 <td class="c">P</td>
-                <td class="b9 bold r u">{{ $isEmergencyLoan && $interestNotDeducted !== null ? $fmt($interestNotDeducted) : '' }}</td>
+                <td class="b9 bold r u">{{ !$isLumpsum && $isEmergencyLoan && $interestNotDeducted !== null ? $fmt($interestNotDeducted) : '' }}</td>
                 <td class="c">P</td>
-                <td class="b9 bold u">&nbsp;</td>
+                <td class="b9 bold r u">{{ $isLumpsum && $interestNotDeducted !== null ? $fmt($interestNotDeducted) : '' }}</td>
                 <td></td>
                 <td></td>
                 <td></td>

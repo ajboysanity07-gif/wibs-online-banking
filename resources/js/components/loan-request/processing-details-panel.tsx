@@ -1437,7 +1437,12 @@ export function ProcessingDetailsPanel({
                                                             amount={recommendationPreview.service_charge_amount_raw}
                                                         />
                                                         <ChargeLineItem
-                                                            label="Interest (not deducted)"
+                                                            label={
+                                                                processingForm.recommended_payment_frequency ===
+                                                                'Due date'
+                                                                    ? 'Interest (advance — deducted)'
+                                                                    : 'Interest (not deducted)'
+                                                            }
                                                             amount={recommendationPreview.interest_not_deducted_raw}
                                                         />
                                                     </div>

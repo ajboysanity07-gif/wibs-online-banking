@@ -223,15 +223,21 @@ class ApprovedLoanDocumentDataBuilder
             ),
         );
         // Net proceeds follows the Disclosure Statement workbook (R.A. 3765):
-        // interest is disclosed under "Not Deducted From Proceeds of Loan"
-        // (it is amortized into the payment schedule instead), so only the
-        // service charge counts as a deducted finance charge here. The
-        // workbook's own TOTAL FINANCE CHARGES cell (N25 = N23 = L23 + L14)
-        // sums the service charge with the interest "Deducted" column (L14),
-        // which stays empty because interest lives in the "Not Deducted"
-        // column (J14) -- so matching it means excluding interest.
+        //
+        // Monthly-amortized loans: interest is disclosed under "Not Deducted
+        // From Proceeds of Loan" (it is amortized into the payment schedule
+        // instead), so only the service charge counts as a deducted finance
+        // charge.
+        //
+        // Lumpsum / Due-date loans: interest is advance interest — deducted
+        // upfront from the loan proceeds because the borrower repays it in
+        // full at maturity. This matches the practice of GSIS and Philippine
+        // cooperatives (advance interest as a standard deduction).
         $financeChargeTotalRaw = $this->roundCurrency(
-            $this->sumAmounts($serviceChargeAmountRaw),
+            $this->sumAmounts(
+                $serviceChargeAmountRaw,
+                $isLumpsum ? $interestNotDeductedRaw : null,
+            ),
         );
         $nonFinanceChargeTotalRaw = $this->roundCurrency(
             $this->sumAmounts(

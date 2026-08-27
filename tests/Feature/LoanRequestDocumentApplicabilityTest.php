@@ -545,6 +545,56 @@ test('net proceeds matches the Disclosure Statement workbook: only the service c
         ->and($documentData['loan']['net_proceeds_raw'])->toBe(182000.0);
 });
 
+test('net proceeds deducts interest for lumpsum/Due-date loans (advance interest)', function (): void {
+    // For lumpsum/Due-date loans, interest is treated as advance interest
+    // and deducted from proceeds. Same 200,000 loan scenario as the monthly
+    // test above but with Due-date payment frequency.
+    //
+    // Interest 200000*0.36/12*12 = 72,000 — this is now deducted.
+    // Service charge = 10,000.
+    // Finance charges = 10,000 + 72,000 = 82,000
+    // Non-finance charges = 2,400 + 0 + 1,500 + 100 = 4,000
+    //   (loan security forced to 0 for lumpsum)
+    // Total deductions = 82,000 + 4,000 = 86,000
+    // Net proceeds = 200,000 − 86,000 = 114,000
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 200000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 0.36,
+        'recommended_payment_frequency' => 'Due date',
+        'approved_amount' => 200000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0.36,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 0.05],
+        'insurance_rate' => ['number', 1.0],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0.02],
+        'savings_rate' => ['number', 0.02],
+        'documentary_stamp_rate' => ['number', 0.0075],
+        'notarial_fee' => ['number', 100],
+        'penalty_rate_per_month' => ['number', 0],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    expect($documentData['loan']['interest_not_deducted_raw'])->toBe(72000.0)
+        ->and($documentData['loan']['service_charge_amount_raw'])->toBe(10000.0)
+        ->and($documentData['loan']['insurance_premium_raw'])->toBe(2400.0)
+        ->and($documentData['loan']['loan_security_amount_raw'])->toBe(0.0)
+        ->and($documentData['loan']['documentary_stamp_amount_raw'])->toBe(1500.0)
+        ->and($documentData['loan']['notarial_fee_raw'])->toBe(100.0)
+        ->and($documentData['loan']['finance_charge_total_raw'])->toBe(82000.0)
+        ->and($documentData['loan']['non_finance_charge_total_raw'])->toBe(4000.0)
+        ->and($documentData['loan']['deductions_total_raw'])->toBe(86000.0)
+        ->and($documentData['loan']['net_proceeds_raw'])->toBe(114000.0);
+});
+
 test('grepalife is applicable regardless of insurance_required value', function (): void {
     $loanRequest = LoanRequest::factory()->make();
     $catalog = app(LoanRequestDocumentCatalog::class);
