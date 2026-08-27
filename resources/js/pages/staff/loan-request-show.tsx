@@ -337,6 +337,12 @@ export default function StaffLoanRequestShow({
     >('awaiting_member_information');
     const [memberActionMessage, setMemberActionMessage] = useState('');
     const [memberActionReason, setMemberActionReason] = useState('');
+    const [isPayoutDetailsDialogOpen, setIsPayoutDetailsDialogOpen] =
+        useState(false);
+    const [payoutPaymentOption, setPayoutPaymentOption] = useState('');
+    const [payoutAtmNumber, setPayoutAtmNumber] = useState('');
+    const [payoutAtmHolderName, setPayoutAtmHolderName] = useState('');
+    const [payoutReason, setPayoutReason] = useState('');
     const [selectedMemberFields, setSelectedMemberFields] = useState<string[]>(
         [],
     );
@@ -362,6 +368,7 @@ export default function StaffLoanRequestShow({
         rejectLoanRequest,
         updateProcessingDetails,
         requestMemberAction,
+        updatePayoutDetails,
         rejectLoanRequestDuringProcessing,
         generateDocuments,
         recommendApproval,
@@ -615,6 +622,7 @@ export default function StaffLoanRequestShow({
             'awaiting_member_information',
         ].includes(currentRequest.status ?? '');
     const canRequestMemberAction = canUpdateProcessing;
+    const canUpdatePayoutDetails = canUpdateProcessing;
     const isProcessingStage = [
         'pending_review',
         'under_review',
@@ -823,6 +831,32 @@ export default function StaffLoanRequestShow({
             setMemberActionMessage('');
             setMemberActionReason('');
             setSelectedMemberFields([]);
+        }
+    };
+
+    const openPayoutDetailsDialog = () => {
+        const bankingSection = dataSections.banking ?? {};
+        setPayoutPaymentOption(String(bankingSection.payment_option ?? ''));
+        setPayoutAtmNumber(String(bankingSection.payout_atm_number ?? ''));
+        setPayoutAtmHolderName(
+            String(bankingSection.payout_atm_holder_name ?? ''),
+        );
+        setPayoutReason('');
+        setIsPayoutDetailsDialogOpen(true);
+    };
+
+    const submitPayoutDetails = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        const result = await updatePayoutDetails(currentRequest.id, {
+            payment_option: payoutPaymentOption,
+            payout_atm_number: payoutAtmNumber || null,
+            payout_atm_holder_name: payoutAtmHolderName || null,
+            reason: payoutReason,
+        });
+
+        if (result) {
+            setIsPayoutDetailsDialogOpen(false);
         }
     };
 
@@ -1053,6 +1087,17 @@ export default function StaffLoanRequestShow({
                     onClick={() => setIsMemberActionDialogOpen(true)}
                 >
                     Request Member Action
+                </Button>
+            ) : null}
+            {canUpdatePayoutDetails ? (
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={isWorkflowProcessing}
+                    onClick={openPayoutDetailsDialog}
+                >
+                    Update Payout Details
                 </Button>
             ) : null}
         </>
@@ -2064,6 +2109,111 @@ export default function StaffLoanRequestShow({
                                 disabled={isWorkflowProcessing}
                             >
                                 Send Member Action Request
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={isPayoutDetailsDialogOpen}
+                onOpenChange={setIsPayoutDetailsDialogOpen}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Update Payout Details</DialogTitle>
+                        <DialogDescription>
+                            Update the member&apos;s payout/ATM details directly
+                            on their behalf (e.g. when they let you know by
+                            phone or in person). The member will be notified of
+                            this change; it does not require them to log back
+                            in.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form className="space-y-5" onSubmit={submitPayoutDetails}>
+                        <div className="grid gap-2">
+                            <Label htmlFor="payout_payment_option">
+                                Payment option
+                            </Label>
+                            <select
+                                id="payout_payment_option"
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                                required
+                                value={payoutPaymentOption}
+                                onChange={(event) =>
+                                    setPayoutPaymentOption(event.target.value)
+                                }
+                            >
+                                <option value="" disabled>
+                                    Select payment option
+                                </option>
+                                <option value="Salary Deduction">
+                                    Salary Deduction
+                                </option>
+                                <option value="ATM Deduction">
+                                    ATM Deduction
+                                </option>
+                                <option value="Check">Check</option>
+                                <option value="Cash">Cash</option>
+                            </select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="payout_atm_number">
+                                ATM card number
+                            </Label>
+                            <Input
+                                id="payout_atm_number"
+                                value={payoutAtmNumber}
+                                required={
+                                    payoutPaymentOption === 'ATM Deduction'
+                                }
+                                onChange={(event) =>
+                                    setPayoutAtmNumber(event.target.value)
+                                }
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="payout_atm_holder_name">
+                                ATM card holder name (if not the borrower)
+                            </Label>
+                            <Input
+                                id="payout_atm_holder_name"
+                                value={payoutAtmHolderName}
+                                onChange={(event) =>
+                                    setPayoutAtmHolderName(event.target.value)
+                                }
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="payout_reason">
+                                Internal reason
+                            </Label>
+                            <textarea
+                                id="payout_reason"
+                                className={textareaClassName}
+                                rows={3}
+                                required
+                                value={payoutReason}
+                                onChange={(event) =>
+                                    setPayoutReason(event.target.value)
+                                }
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                    setIsPayoutDetailsDialogOpen(false)
+                                }
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={isWorkflowProcessing}
+                            >
+                                Save Payout Details
                             </Button>
                         </DialogFooter>
                     </form>

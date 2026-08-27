@@ -1704,6 +1704,38 @@ class LoanRequestDataService
     }
 
     /**
+     * @var list<string>
+     */
+    private const STAFF_MANAGED_BANKING_FIELDS = [
+        'payment_option',
+        'payout_atm_number',
+        'payout_atm_holder_name',
+    ];
+
+    /**
+     * @param  array<string, mixed>  $fields
+     */
+    public function updateStaffManagedBankingFields(
+        LoanRequest $loanRequest,
+        array $fields,
+        AppUser $actor,
+    ): void {
+        foreach ($fields as $fieldKey => $value) {
+            if (! in_array($fieldKey, self::STAFF_MANAGED_BANKING_FIELDS, true)) {
+                continue;
+            }
+
+            $this->persistField(
+                $loanRequest,
+                $fieldKey,
+                $value,
+                confirmedByMember: false,
+                updatedByStaff: $actor,
+            );
+        }
+    }
+
+    /**
      * @return list<string>
      */
     private const PAYOUT_BANK_ACCOUNT_FIELDS = [
@@ -2011,6 +2043,7 @@ class LoanRequestDataService
         ?string $ownerType = null,
         bool $confirmedByMember = false,
         Carbon|string|null $confirmedAt = null,
+        ?AppUser $updatedByStaff = null,
     ): LoanRequestDataEntry {
         $definition = self::FIELD_DEFINITIONS[$fieldKey] ?? null;
 
@@ -2037,6 +2070,10 @@ class LoanRequestDataService
         $entry->metadata_json = [
             'label' => $definition['label'],
             'type' => $definition['type'],
+            ...($updatedByStaff !== null ? [
+                'updated_by_actor_type' => 'staff',
+                'updated_by_user_id' => $updatedByStaff->user_id,
+            ] : []),
         ];
         $entry->save();
 

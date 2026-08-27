@@ -156,6 +156,8 @@ Route::prefix('spa')->middleware('web')->group(function () {
                 ->name('processing-details.preview');
             Route::patch('{loanRequest}/request-member-action', [SpaLoanRequestWorkflowController::class, 'requestMemberAction'])
                 ->name('request-member-action');
+            Route::patch('{loanRequest}/payout-details', [SpaLoanRequestWorkflowController::class, 'updatePayoutDetails'])
+                ->name('payout-details');
             Route::patch('{loanRequest}/reject-during-processing', [SpaLoanRequestWorkflowController::class, 'rejectDuringProcessing'])
                 ->name('reject-during-processing');
             Route::post('{loanRequest}/documents/generate', [SpaLoanRequestWorkflowController::class, 'generateDocuments'])

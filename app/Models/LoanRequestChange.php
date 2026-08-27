@@ -41,6 +41,8 @@ class LoanRequestChange extends Model
 
     public const ACTION_PROCESSING_DETAILS_UPDATED = 'processing_details_updated';
 
+    public const ACTION_UPDATE_PAYOUT_DETAILS = 'update_payout_details';
+
     public const ACTION_APPROVE = 'approve';
 
     public const ACTION_DECLINE = 'decline';

@@ -14,8 +14,10 @@ use App\Models\LoanRequestChange;
 use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
+use App\Models\Wmaster;
 use App\Notifications\LoanRequestAdminCorrectedCreatedNotification;
 use App\Notifications\LoanRequestSubmittedNotification;
+use App\Services\Locations\PsgcService;
 use App\Services\Notifications\NotificationRecipientService;
 use App\Support\LocationComposer;
 use App\Support\SchemaCapabilities;
@@ -51,6 +53,7 @@ class LoanRequestService
         private SavedCoMakersService $savedCoMakers,
         private LoanDeclarationAutoFillService $declarationAutoFillService,
         private LoanRequestLookupService $lookupService,
+        private PsgcService $psgcService,
     ) {}
 
     /**
@@ -1635,6 +1638,47 @@ class LoanRequestService
     /**
      * @return array<string, mixed>
      */
+    /**
+     * Resolve address1/address2(city)/address3(province)/barangay as one
+     * paired group instead of falling back per-field. This keeps barangay
+     * from being taken from a different (wmaster vs. profile) source than
+     * city/province, which previously produced mismatched pairs the
+     * barangay dropdown couldn't resolve/preselect.
+     *
+     * @return array{0: ?string, 1: ?string, 2: ?string, 3: ?string}
+     */
+    private function resolvePairedApplicantAddress(
+        ?Wmaster $wmaster,
+        ?MemberApplicationProfile $profile,
+    ): array {
+        $wmasterAddress1 = $this->normalizeOptionalString($wmaster?->address1);
+        $wmasterBarangay = $this->normalizeOptionalString($wmaster?->address2);
+        $wmasterAddress2 = $this->normalizeOptionalString($wmaster?->address3);
+        $wmasterAddress3 = $this->normalizeOptionalString($wmaster?->address4);
+
+        if ($wmasterAddress1 === null && $wmasterAddress2 === null && $wmasterAddress3 === null) {
+            $legacyAddress = $this->normalizeOptionalString($wmaster?->address);
+
+            if ($legacyAddress !== null) {
+                $parsedAddress = LocationComposer::parseLegacyAddress($legacyAddress);
+                $wmasterAddress1 = $parsedAddress['address1'];
+                $wmasterAddress2 = $parsedAddress['address2'];
+                $wmasterAddress3 = $parsedAddress['address3'];
+            }
+        }
+
+        if ($wmasterAddress2 !== null || $wmasterAddress3 !== null) {
+            return [$wmasterAddress1, $wmasterAddress2, $wmasterAddress3, $wmasterBarangay];
+        }
+
+        return [
+            $this->normalizeOptionalString($profile?->home_address1),
+            $this->normalizeOptionalString($profile?->home_address2),
+            $this->normalizeOptionalString($profile?->home_address3),
+            $this->normalizeOptionalString($profile?->home_address_barangay),
+        ];
+    }
+
     private function buildApplicantSnapshot(AppUser $user): array
     {
         $wmaster = $user->wmaster;
@@ -1697,40 +1741,25 @@ class LoanRequestService
                 : $this->normalizeOptionalString($profile?->birthplace);
         }
 
-        $address1 = $this->normalizeOptionalString($wmaster?->address1);
-        $addressBarangay = $this->normalizeOptionalString($wmaster?->address2);
-        $address2 = $this->normalizeOptionalString($wmaster?->address3);
-        $address3 = $this->normalizeOptionalString($wmaster?->address4);
+        [$address1, $address2, $address3, $addressBarangay] = $this->resolvePairedApplicantAddress(
+            $wmaster,
+            $profile,
+        );
 
-        if ($address1 === null && $address2 === null && $address3 === null) {
-            $legacyAddress = $this->normalizeOptionalString($wmaster?->address);
-
-            if ($legacyAddress !== null) {
-                $parsedAddress = LocationComposer::parseLegacyAddress(
-                    $legacyAddress,
-                );
-                $address1 = $parsedAddress['address1'];
-                $address2 = $parsedAddress['address2'];
-                $address3 = $parsedAddress['address3'];
-            }
+        if ($address2 !== null) {
+            $address2 = $this->psgcService->resolveLocalityName($address2);
         }
 
-        if ($address1 === null) {
-            $address1 = $this->normalizeOptionalString($profile?->home_address1);
+        if ($address3 !== null) {
+            $address3 = $this->psgcService->resolveProvinceName($address3);
         }
 
-        if ($addressBarangay === null) {
-            $addressBarangay = $this->normalizeOptionalString(
-                $profile?->home_address_barangay,
+        if ($addressBarangay !== null && $address2 !== null) {
+            $addressBarangay = $this->psgcService->resolveBarangayName(
+                $addressBarangay,
+                $address2,
+                $address3,
             );
-        }
-
-        if ($address2 === null) {
-            $address2 = $this->normalizeOptionalString($profile?->home_address2);
-        }
-
-        if ($address3 === null) {
-            $address3 = $this->normalizeOptionalString($profile?->home_address3);
         }
 
         $address = LocationComposer::compose($address1, $address2, $address3, $addressBarangay);

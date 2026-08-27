@@ -344,6 +344,70 @@ class LoanRequestProcessingService
     }
 
     /**
+     * @param  array{payment_option:string, payout_atm_number?:?string, payout_atm_holder_name?:?string, reason:string}  $payload
+     */
+    public function updatePayoutDetails(
+        LoanRequest $loanRequest,
+        AppUser $actor,
+        array $payload,
+    ): LoanRequest {
+        $updated = DB::transaction(function () use ($loanRequest, $actor, $payload): LoanRequest {
+            $lockedLoanRequest = $this->lockLoanRequest($loanRequest);
+            $this->ensureProcessorEditableStatus($lockedLoanRequest);
+
+            $reason = trim((string) $payload['reason']);
+            $fromStatus = $this->statusValue($lockedLoanRequest);
+
+            $fields = [
+                'payment_option' => $payload['payment_option'],
+                'payout_atm_number' => $payload['payout_atm_number'] ?? null,
+                'payout_atm_holder_name' => $payload['payout_atm_holder_name'] ?? null,
+            ];
+
+            $before = $this->editableSnapshot($lockedLoanRequest);
+
+            $this->dataService->updateStaffManagedBankingFields(
+                $lockedLoanRequest,
+                $fields,
+                $actor,
+            );
+
+            $lockedLoanRequest->unsetRelation('dataEntries');
+
+            $after = $this->editableSnapshot($lockedLoanRequest);
+
+            $this->recordAudit(
+                $lockedLoanRequest,
+                $actor,
+                LoanRequestChange::ACTION_UPDATE_PAYOUT_DETAILS,
+                $reason,
+                $fromStatus,
+                $fromStatus,
+                array_keys($fields),
+                ['updated_fields' => $this->dataService->fieldDescriptors(array_keys($fields))],
+                $before,
+                $after,
+            );
+
+            return $lockedLoanRequest->refresh();
+        });
+
+        $this->notificationService->notifyMember(
+            $updated,
+            LoanRequestNotificationService::EVENT_PAYOUT_DETAILS_UPDATED_BY_STAFF,
+            [
+                'title' => 'Your payout details were updated',
+                'message' => 'Our loan processing team updated your ATM/payout details on your behalf. '
+                    .'If this is incorrect, please contact us.',
+                'reason' => $payload['reason'],
+            ],
+            $actor,
+        );
+
+        return $updated;
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      */
     public function resolveMemberInformation(

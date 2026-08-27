@@ -18,6 +18,8 @@ class LoanRequestNotificationService
 
     public const EVENT_AWAITING_MEMBER_ACCEPTANCE = 'awaiting_member_acceptance';
 
+    public const EVENT_PAYOUT_DETAILS_UPDATED_BY_STAFF = 'payout_details_updated_by_staff';
+
     public const EVENT_REJECTED_DURING_PROCESSING = 'rejected_during_processing';
 
     public const EVENT_DECLINED_BY_MANAGER = 'declined_by_manager';
