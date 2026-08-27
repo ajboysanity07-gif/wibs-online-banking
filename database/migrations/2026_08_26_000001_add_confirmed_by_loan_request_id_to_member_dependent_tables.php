@@ -16,25 +16,43 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('member_dependent_profiles', function (Blueprint $table) {
-            $table->foreignId('applicant_confirmed_by_loan_request_id')
+        $isSqlServer = Schema::getConnection()->getDriverName() === 'sqlsrv';
+
+        Schema::table('member_dependent_profiles', function (Blueprint $table) use ($isSqlServer) {
+            $applicantFk = $table->foreignId('applicant_confirmed_by_loan_request_id')
                 ->nullable()
                 ->after('applicant_confirmed_cycle_number')
-                ->constrained('loan_requests')
-                ->nullOnDelete();
-            $table->foreignId('spouse_confirmed_by_loan_request_id')
+                ->constrained('loan_requests');
+
+            if ($isSqlServer) {
+                $applicantFk->onDelete('no action');
+            } else {
+                $applicantFk->nullOnDelete();
+            }
+
+            $spouseFk = $table->foreignId('spouse_confirmed_by_loan_request_id')
                 ->nullable()
                 ->after('spouse_confirmed_cycle_number')
-                ->constrained('loan_requests')
-                ->nullOnDelete();
+                ->constrained('loan_requests');
+
+            if ($isSqlServer) {
+                $spouseFk->onDelete('no action');
+            } else {
+                $spouseFk->nullOnDelete();
+            }
         });
 
-        Schema::table('member_dependents', function (Blueprint $table) {
-            $table->foreignId('confirmed_by_loan_request_id')
+        Schema::table('member_dependents', function (Blueprint $table) use ($isSqlServer) {
+            $confirmedFk = $table->foreignId('confirmed_by_loan_request_id')
                 ->nullable()
                 ->after('confirmed_cycle_number')
-                ->constrained('loan_requests')
-                ->nullOnDelete();
+                ->constrained('loan_requests');
+
+            if ($isSqlServer) {
+                $confirmedFk->onDelete('no action');
+            } else {
+                $confirmedFk->nullOnDelete();
+            }
         });
     }
 

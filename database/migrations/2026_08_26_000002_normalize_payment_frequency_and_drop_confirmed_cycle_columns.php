@@ -25,6 +25,21 @@ return new class extends Migration
             return;
         }
 
+        $isSqlServer = DB::connection()->getDriverName() === 'sqlsrv';
+
+        // SQL Server only auto-drops DEFAULT constraints when a column is
+        // dropped -- FOREIGN KEY constraints must be dropped explicitly first.
+        if ($isSqlServer) {
+            Schema::table('member_dependent_profiles', function (Blueprint $table) {
+                $table->dropForeign(['applicant_confirmed_by_loan_request_id']);
+                $table->dropForeign(['spouse_confirmed_by_loan_request_id']);
+            });
+
+            Schema::table('member_dependents', function (Blueprint $table) {
+                $table->dropForeign(['confirmed_by_loan_request_id']);
+            });
+        }
+
         Schema::table('member_dependent_profiles', function (Blueprint $table) {
             $table->dropColumn([
                 'applicant_confirmed_cycle_status',
