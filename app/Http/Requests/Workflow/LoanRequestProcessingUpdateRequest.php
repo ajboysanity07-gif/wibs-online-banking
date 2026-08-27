@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Workflow;
 
+use App\Concerns\ResolvesPsgcFields;
 use App\LoanPaydayOption;
 use App\Models\AppUser;
 use App\Models\LoanRequestChange;
@@ -18,6 +19,8 @@ use Illuminate\Validation\Rule;
 
 class LoanRequestProcessingUpdateRequest extends FormRequest
 {
+    use ResolvesPsgcFields;
+
     public function __construct(
         private readonly LoanManagerWitnessResolver $loanManagerWitnessResolver,
         array $query = [],
@@ -37,6 +40,23 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             $server,
             $content,
         );
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $payload = $this->all();
+
+        foreach (['applicant', 'co_maker_1', 'co_maker_2'] as $key) {
+            $person = $this->input($key);
+
+            if (! is_array($person)) {
+                continue;
+            }
+
+            $payload[$key] = $this->resolvePsgcPersonFields($person);
+        }
+
+        $this->merge($payload);
     }
 
     public function authorize(): bool

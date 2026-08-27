@@ -969,7 +969,7 @@ test('clients can save a loan request draft', function () {
             ->where('loan_request_id', $draft->id)
             ->where('role', LoanRequestPersonRole::Applicant)
             ->value('birthplace'),
-    )->toBe('Manila, Metro Manila');
+    )->toBe('City of Manila, Metro Manila');
     expect(
         LoanRequestPerson::query()
             ->where('loan_request_id', $draft->id)
@@ -1296,11 +1296,11 @@ test('loan request submissions persist snapshots and enter pending review', func
         ->where('loan_request_id', $loanRequest->id)
         ->get()
         ->keyBy('role');
-    expect($people[LoanRequestPersonRole::Applicant->value]->birthplace)->toBe('Manila, Metro Manila');
+    expect($people[LoanRequestPersonRole::Applicant->value]->birthplace)->toBe('City of Manila, Metro Manila');
     expect($people[LoanRequestPersonRole::Applicant->value]->housing_status)->toBe('OWNED');
-    expect($people[LoanRequestPersonRole::CoMakerOne->value]->birthplace)->toBe('Cebu, Cebu');
+    expect($people[LoanRequestPersonRole::CoMakerOne->value]->birthplace)->toBe('City of Cebu, Cebu');
     expect($people[LoanRequestPersonRole::CoMakerOne->value]->housing_status)->toBeNull();
-    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->birthplace)->toBe('Davao, Davao del Sur');
+    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->birthplace)->toBe('City of Davao, Davao del Sur');
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBeNull();
 });
 
@@ -5007,8 +5007,8 @@ test('admin can correct under review loan request details and people snapshots',
 
     expect($people)->toHaveCount(3);
     expect($people[LoanRequestPersonRole::Applicant->value]->first_name)->toBe('Corrected');
-    expect($people[LoanRequestPersonRole::Applicant->value]->birthplace)->toBe('Manila, Metro Manila');
-    expect($people[LoanRequestPersonRole::Applicant->value]->address)->toBe('Corrected Street, Manila, Metro Manila');
+    expect($people[LoanRequestPersonRole::Applicant->value]->birthplace)->toBe('City of Manila, Metro Manila');
+    expect($people[LoanRequestPersonRole::Applicant->value]->address)->toBe('Corrected Street, City of Manila, Metro Manila');
     expect($people[LoanRequestPersonRole::CoMakerOne->value]->employer_business_name)->toBe('Corrected Office One');
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->employer_business_name)->toBe('Corrected Store Two');
 

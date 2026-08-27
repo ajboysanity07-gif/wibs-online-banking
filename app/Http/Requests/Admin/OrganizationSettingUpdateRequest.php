@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Concerns\ResolvesPsgcFields;
 use App\Rules\ValidPsgcLocality;
 use App\Rules\ValidPsgcProvince;
 use App\Services\OrganizationSettingsService;
@@ -13,6 +14,8 @@ use Illuminate\Validation\Rule;
 
 class OrganizationSettingUpdateRequest extends FormRequest
 {
+    use ResolvesPsgcFields;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -170,6 +173,16 @@ class OrganizationSettingUpdateRequest extends FormRequest
             $businessAddress2 = $parsed['address2'];
             $businessAddress3 = $parsed['address3'];
         }
+
+        $psgc = app(\App\Services\Locations\PsgcService::class);
+        $businessAddress2 = $this->resolveOptional(
+            $businessAddress2,
+            fn (string $v) => $psgc->resolveLocalityName($v),
+        );
+        $businessAddress3 = $this->resolveOptional(
+            $businessAddress3,
+            fn (string $v) => $psgc->resolveProvinceName($v),
+        );
 
         $this->merge([
             'business_address' => $businessAddress1 !== null

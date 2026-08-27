@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Client;
 
+use App\Concerns\ResolvesPsgcFields;
 use App\LoanCivilStatus;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
@@ -20,6 +21,8 @@ use Illuminate\Validation\Validator;
 
 class SaveDraftRequest extends FormRequest
 {
+    use ResolvesPsgcFields;
+
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
 
     /**
@@ -576,6 +579,8 @@ class SaveDraftRequest extends FormRequest
         $person['employer_business_address_barangay'] = $this->normalizeOptionalString($person['employer_business_address_barangay'] ?? null);
         $person['employer_business_address2'] = $employerAddress2;
         $person['employer_business_address3'] = $employerAddress3;
+
+        $person = $this->resolvePsgcPersonFields($person);
 
         return $person;
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Settings;
 
 use App\Concerns\ProfileValidationRules;
+use App\Concerns\ResolvesPsgcFields;
 use App\LoanCivilStatus;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
@@ -24,6 +25,7 @@ use Illuminate\Validation\Validator;
 class ProfileUpdateRequest extends FormRequest
 {
     use ProfileValidationRules;
+    use ResolvesPsgcFields;
 
     protected function prepareForValidation(): void
     {
@@ -163,6 +165,59 @@ class ProfileUpdateRequest extends FormRequest
                 'gross_monthly_income' => $normalizedIncome !== '' ? $normalizedIncome : null,
             ]);
         }
+
+        $psgc = app(\App\Services\Locations\PsgcService::class);
+
+        $this->merge([
+            'birthplace_city' => $this->resolveOptional(
+                $this->input('birthplace_city'),
+                fn (string $v) => $psgc->resolveLocalityName($v),
+            ),
+            'birthplace_province' => $this->resolveOptional(
+                $this->input('birthplace_province'),
+                fn (string $v) => $psgc->resolveProvinceName($v),
+            ),
+            'birthplace_barangay' => $this->resolveOptional(
+                $this->input('birthplace_barangay'),
+                fn (string $v) => $psgc->resolveBarangayName(
+                    $v,
+                    $this->input('birthplace_city') ?? '',
+                    $this->input('birthplace_province') ?? null,
+                ),
+            ),
+            'home_address2' => $this->resolveOptional(
+                $this->input('home_address2'),
+                fn (string $v) => $psgc->resolveLocalityName($v),
+            ),
+            'home_address3' => $this->resolveOptional(
+                $this->input('home_address3'),
+                fn (string $v) => $psgc->resolveProvinceName($v),
+            ),
+            'home_address_barangay' => $this->resolveOptional(
+                $this->input('home_address_barangay'),
+                fn (string $v) => $psgc->resolveBarangayName(
+                    $v,
+                    $this->input('home_address2') ?? '',
+                    $this->input('home_address3') ?? null,
+                ),
+            ),
+            'employer_business_address2' => $this->resolveOptional(
+                $this->input('employer_business_address2'),
+                fn (string $v) => $psgc->resolveLocalityName($v),
+            ),
+            'employer_business_address3' => $this->resolveOptional(
+                $this->input('employer_business_address3'),
+                fn (string $v) => $psgc->resolveProvinceName($v),
+            ),
+            'employer_business_address_barangay' => $this->resolveOptional(
+                $this->input('employer_business_address_barangay'),
+                fn (string $v) => $psgc->resolveBarangayName(
+                    $v,
+                    $this->input('employer_business_address2') ?? '',
+                    $this->input('employer_business_address3') ?? null,
+                ),
+            ),
+        ]);
 
         $this->merge(DisplayText::normalizeFields(
             $this->all(),

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Client;
 
+use App\Concerns\ResolvesPsgcFields;
 use App\LoanCivilStatus;
 use App\LoanPaydayOption;
 use App\LoanRequestPersonRole;
@@ -14,6 +15,8 @@ use Illuminate\Validation\Rule;
 
 class LoanRequestGenerateSignatureLinkRequest extends FormRequest
 {
+    use ResolvesPsgcFields;
+
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
 
     /**
@@ -378,6 +381,8 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
         );
         $person['employer_business_address2'] = $employerAddress2;
         $person['employer_business_address3'] = $employerAddress3;
+
+        $person = $this->resolvePsgcPersonFields($person);
 
         return $person;
     }
