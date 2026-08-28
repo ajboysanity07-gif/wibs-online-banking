@@ -1,4 +1,13 @@
-import { useState } from 'react';
+import {
+    Banknote,
+    Building2,
+    CreditCard,
+    FileCheck2,
+    Landmark,
+    Wallet,
+    type LucideIcon,
+} from 'lucide-react';
+import { createElement, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,7 +29,41 @@ export type PaymentMethodOption = {
     value: string;
     label: string;
     needsAccount: boolean;
+    icon?: LucideIcon;
 };
+
+const METHOD_FALLBACK_ICONS: Record<string, LucideIcon> = {
+    ATM: CreditCard,
+    'ATM Deduction': CreditCard,
+    'Bank Transfer': Landmark,
+    Check: FileCheck2,
+    Cash: Banknote,
+    'Salary Deduction': Wallet,
+};
+
+export const resolveMethodIcon = (method: string | null): LucideIcon | null => {
+    if (method === null) {
+        return null;
+    }
+
+    return METHOD_FALLBACK_ICONS[method] ?? Building2;
+};
+
+export function PaymentMethodIcon({
+    method,
+    className = 'h-4 w-4',
+}: {
+    method: string | null;
+    className?: string;
+}) {
+    const Icon = resolveMethodIcon(method);
+
+    if (Icon === null) {
+        return null;
+    }
+
+    return createElement(Icon, { className, 'aria-hidden': true });
+}
 
 type PaymentAccountPickerSheetProps = {
     open: boolean;
@@ -133,6 +176,11 @@ export function PaymentAccountPickerSheet({
                                         value={option.value}
                                         id={`method-${option.value}`}
                                     />
+                                    <span className="shrink-0 text-muted-foreground">
+                                        <PaymentMethodIcon
+                                            method={option.value}
+                                        />
+                                    </span>
                                     <Label
                                         htmlFor={`method-${option.value}`}
                                         className="flex-1 cursor-pointer font-normal"
