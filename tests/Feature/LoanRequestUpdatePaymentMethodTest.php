@@ -183,11 +183,27 @@ test('a member can update their release and repayment method using a saved accou
     expect($account->fresh()->last_used_at)->not->toBeNull();
 });
 
-test('a member cannot update their payment method once a processor starts reviewing the request', function (): void {
+test('a member can still update their payment method while a processor is reviewing the request', function (): void {
     $member = createPaymentMethodTestMember('005601');
     $loanRequest = submitPaymentMethodTestLoan($member);
 
     $loanRequest->forceFill(['status' => LoanRequestStatus::UnderReview])->save();
+
+    $account = MemberPaymentAccount::factory()->forProfile($member->memberApplicationProfile)->create();
+
+    $this->actingAs($member)
+        ->patchJson("/client/loans/requests/{$loanRequest->id}/payment-method", [
+            'release_method' => 'ATM',
+            'release_saved_account_id' => $account->id,
+        ])
+        ->assertOk();
+});
+
+test('a member cannot update their payment method once the loan manager approves the request', function (): void {
+    $member = createPaymentMethodTestMember('005604');
+    $loanRequest = submitPaymentMethodTestLoan($member);
+
+    $loanRequest->forceFill(['status' => LoanRequestStatus::Approved])->save();
 
     $account = MemberPaymentAccount::factory()->forProfile($member->memberApplicationProfile)->create();
 

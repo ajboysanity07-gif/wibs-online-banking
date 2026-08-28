@@ -260,7 +260,14 @@ export default function LoanRequestShow({
             : null;
     const canEditPaymentMethod =
         currentLoanRequest.status !== null &&
-        ['submitted', 'pending_review'].includes(currentLoanRequest.status);
+        [
+            'submitted',
+            'pending_review',
+            'under_review',
+            'needs_revision',
+            'awaiting_member_information',
+            'recommended_for_approval',
+        ].includes(currentLoanRequest.status);
     const canCancelApplication =
         currentLoanRequest.status !== null &&
         ['submitted', 'pending_review', 'under_review'].includes(

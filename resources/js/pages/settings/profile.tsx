@@ -356,54 +356,15 @@ export default function Profile({
     const [releaseMethod, setReleaseMethod] = useState<string>(
         memberApplicationProfile?.release_method ?? '',
     );
-    const initialAtmHolderName =
-        memberApplicationProfile?.payout_atm_holder_name?.trim() ?? '';
-    const [atmHolderName, setAtmHolderName] =
-        useState<string>(initialAtmHolderName);
-    const [isOwnAtmCard, setIsOwnAtmCard] = useState<boolean>(
-        initialAtmHolderName === '' ||
-            initialAtmHolderName === memberDisplayName.trim(),
+    const [releaseAccountId, setReleaseAccountId] = useState<number | null>(
+        null,
     );
     const [paymentOption, setPaymentOption] = useState<string>(
         memberApplicationProfile?.payment_option ?? '',
     );
-    const initialPaymentAtmHolderName =
-        memberApplicationProfile?.payment_atm_holder_name?.trim() ?? '';
-    const [paymentAtmHolderName, setPaymentAtmHolderName] = useState<string>(
-        initialPaymentAtmHolderName,
+    const [paymentAccountId, setPaymentAccountId] = useState<number | null>(
+        null,
     );
-    const [isOwnPaymentAtmCard, setIsOwnPaymentAtmCard] = useState<boolean>(
-        initialPaymentAtmHolderName === '' ||
-            initialPaymentAtmHolderName === memberDisplayName.trim(),
-    );
-    // Bank account + ATM detail fields for both the release side (payout_*)
-    // and the repayment side (payment_*), lifted to controlled state so the
-    // "use the same details for repayment" checkbox can mirror live edits
-    // (a plain uncontrolled/defaultValue input can't be copied from).
-    const [bankingValues, setBankingValues] = useState<Record<string, string>>({
-        payout_bank_name: memberApplicationProfile?.payout_bank_name ?? '',
-        payout_account_name:
-            memberApplicationProfile?.payout_account_name ?? '',
-        payout_account_number:
-            memberApplicationProfile?.payout_account_number ?? '',
-        payout_account_type:
-            memberApplicationProfile?.payout_account_type ?? '',
-        payout_atm_number: memberApplicationProfile?.payout_atm_number ?? '',
-        payout_bank_branch: memberApplicationProfile?.payout_bank_branch ?? '',
-        payment_bank_name: memberApplicationProfile?.payment_bank_name ?? '',
-        payment_account_name:
-            memberApplicationProfile?.payment_account_name ?? '',
-        payment_account_number:
-            memberApplicationProfile?.payment_account_number ?? '',
-        payment_account_type:
-            memberApplicationProfile?.payment_account_type ?? '',
-        payment_atm_number: memberApplicationProfile?.payment_atm_number ?? '',
-        payment_bank_branch:
-            memberApplicationProfile?.payment_bank_branch ?? '',
-    });
-    const setBankingValue = (key: string, value: string) => {
-        setBankingValues((current) => ({ ...current, [key]: value }));
-    };
     const resolvedNatureOfBusiness =
         natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE
             ? natureOfBusinessOther.trim()
@@ -1037,24 +998,17 @@ export default function Profile({
                                                     isFieldMissing={
                                                         isFieldMissing
                                                     }
-                                                    memberDisplayName={
-                                                        memberDisplayName
-                                                    }
                                                     releaseMethod={
                                                         releaseMethod
                                                     }
                                                     setReleaseMethod={
                                                         setReleaseMethod
                                                     }
-                                                    isOwnAtmCard={isOwnAtmCard}
-                                                    setIsOwnAtmCard={
-                                                        setIsOwnAtmCard
+                                                    releaseAccountId={
+                                                        releaseAccountId
                                                     }
-                                                    atmHolderName={
-                                                        atmHolderName
-                                                    }
-                                                    setAtmHolderName={
-                                                        setAtmHolderName
+                                                    setReleaseAccountId={
+                                                        setReleaseAccountId
                                                     }
                                                     idTypeSelection={
                                                         idTypeSelection
@@ -1072,23 +1026,11 @@ export default function Profile({
                                                     setPaymentOption={
                                                         setPaymentOption
                                                     }
-                                                    isOwnPaymentAtmCard={
-                                                        isOwnPaymentAtmCard
+                                                    paymentAccountId={
+                                                        paymentAccountId
                                                     }
-                                                    setIsOwnPaymentAtmCard={
-                                                        setIsOwnPaymentAtmCard
-                                                    }
-                                                    paymentAtmHolderName={
-                                                        paymentAtmHolderName
-                                                    }
-                                                    setPaymentAtmHolderName={
-                                                        setPaymentAtmHolderName
-                                                    }
-                                                    bankingValues={
-                                                        bankingValues
-                                                    }
-                                                    setBankingValue={
-                                                        setBankingValue
+                                                    setPaymentAccountId={
+                                                        setPaymentAccountId
                                                     }
                                                 />
                                             )}

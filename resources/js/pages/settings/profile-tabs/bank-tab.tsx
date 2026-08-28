@@ -1,13 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
+import { PaymentAccountPickerSheet } from '@/components/loan-request/payment-account-picker-sheet';
+import type { PaymentMethodOption } from '@/components/loan-request/payment-account-picker-sheet';
 import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -19,11 +15,10 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { TabsContent } from '@/components/ui/tabs';
-import { resolveInstitutionalEmployerCategory } from '@/lib/institutional-employer-category';
+import { useSavedPaymentAccounts } from '@/hooks/use-saved-payment-accounts';
 import { cn } from '@/lib/utils';
 import type { MemberApplicationProfileData } from '../profile-shared';
 import {
-    ACCOUNT_TYPE_OPTIONS,
     ID_TYPE_OPTIONS,
     ID_TYPE_OTHER_VALUE,
     MISSING_FIELD_CLASS,
@@ -35,269 +30,93 @@ type Props = {
     formErrors: Record<string, string>;
     memberApplicationProfile: MemberApplicationProfileData | null;
     isFieldMissing: (field: string) => boolean;
-    memberDisplayName: string;
     releaseMethod: string;
     setReleaseMethod: (value: string) => void;
-    isOwnAtmCard: boolean;
-    setIsOwnAtmCard: (value: boolean) => void;
-    atmHolderName: string;
-    setAtmHolderName: (value: string) => void;
+    releaseAccountId: number | null;
+    setReleaseAccountId: (value: number | null) => void;
     idTypeSelection: string;
     setIdTypeSelection: (value: string) => void;
     idTypeOther: string;
     setIdTypeOther: (value: string) => void;
     paymentOption: string;
     setPaymentOption: (value: string) => void;
-    isOwnPaymentAtmCard: boolean;
-    setIsOwnPaymentAtmCard: (value: boolean) => void;
-    paymentAtmHolderName: string;
-    setPaymentAtmHolderName: (value: string) => void;
-    bankingValues: Record<string, string>;
-    setBankingValue: (key: string, value: string) => void;
+    paymentAccountId: number | null;
+    setPaymentAccountId: (value: number | null) => void;
 };
 
-// A single controlled bank/ATM detail input, shared by the release
-// (payout_*) and repayment (payment_*) sides. readOnly (not disabled) when
-// mirrored by the "use same details" checkbox -- disabled inputs are
-// excluded from native form submission, readOnly inputs still submit.
-function BankDetailField({
-    fieldKey,
-    label,
-    placeholder,
-    value,
-    onChange,
-    error,
-    missing,
-    readOnly = false,
-}: {
-    fieldKey: string;
-    label: string;
-    placeholder: string;
-    value: string;
-    onChange: (value: string) => void;
-    error?: string;
-    missing?: boolean;
-    readOnly?: boolean;
-}) {
-    return (
-        <div className="grid gap-2">
-            <Label htmlFor={fieldKey}>{label}</Label>
+const RELEASE_METHOD_OPTIONS_LIST: PaymentMethodOption[] =
+    RELEASE_METHOD_OPTIONS.map((value) => ({
+        value,
+        label: value,
+        needsAccount: value === 'ATM' || value === 'Bank Transfer',
+    }));
 
-            <Input
-                id={fieldKey}
-                className={cn(
-                    'mt-1 block w-full',
-                    missing && MISSING_FIELD_CLASS,
-                    readOnly && 'bg-muted/50',
-                )}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                name={fieldKey}
-                placeholder={placeholder}
-                readOnly={readOnly}
-            />
-
-            <InputError className="mt-2" message={error} />
-        </div>
-    );
-}
-
-// The 4 base bank account fields, shared between the release side
-// (payout_*, required for ATM/Bank Transfer) and the repayment side
-// (payment_*, required for ATM Deduction) -- same shape either way, just a
-// different field-name prefix and requiredness condition (see
-// ProfileUpdateRequest::rules()).
-function BankAccountFields({
-    prefix,
-    formErrors,
-    bankingValues,
-    setBankingValue,
-    isFieldMissing,
-    readOnly = false,
-}: {
-    prefix: 'payout' | 'payment';
-    formErrors: Record<string, string>;
-    bankingValues: Record<string, string>;
-    setBankingValue: (key: string, value: string) => void;
-    isFieldMissing: (field: string) => boolean;
-    readOnly?: boolean;
-}) {
-    const fields = [
-        {
-            key: `${prefix}_bank_name`,
-            label: 'Bank name',
-            placeholder: 'Bank name',
-        },
-        {
-            key: `${prefix}_account_name`,
-            label: 'Account name',
-            placeholder: 'Account name',
-        },
-        {
-            key: `${prefix}_account_number`,
-            label: 'Account number',
-            placeholder: 'Account number',
-        },
-    ] as const;
-
-    const accountTypeKey = `${prefix}_account_type`;
-
-    return (
-        <>
-            {fields.map(({ key, label, placeholder }) => (
-                <BankDetailField
-                    key={key}
-                    fieldKey={key}
-                    label={label}
-                    placeholder={placeholder}
-                    value={bankingValues[key] ?? ''}
-                    onChange={(value) => setBankingValue(key, value)}
-                    error={formErrors[key]}
-                    missing={isFieldMissing(key)}
-                    readOnly={readOnly}
-                />
-            ))}
-
-            <div className="grid gap-2">
-                <Label htmlFor={accountTypeKey}>Account type</Label>
-
-                <Select
-                    value={bankingValues[accountTypeKey] || undefined}
-                    onValueChange={(value) =>
-                        setBankingValue(accountTypeKey, value)
-                    }
-                    disabled={readOnly}
-                >
-                    <SelectTrigger
-                        id={accountTypeKey}
-                        className={cn(
-                            'mt-1 w-full',
-                            isFieldMissing(accountTypeKey) &&
-                                MISSING_FIELD_CLASS,
-                            readOnly && 'bg-muted/50',
-                        )}
-                    >
-                        <SelectValue placeholder="Select account type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                            <SelectItem key={option} value={option}>
-                                {option}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <input
-                    type="hidden"
-                    name={accountTypeKey}
-                    value={bankingValues[accountTypeKey] ?? ''}
-                />
-
-                <InputError
-                    className="mt-2"
-                    message={formErrors[accountTypeKey]}
-                />
-            </div>
-        </>
-    );
-}
-
-// Payout (release) field -> its payment (repayment) counterpart, used by
-// the "use the same details" checkbox to mirror values live while checked.
-const PAYOUT_TO_PAYMENT_MIRROR_FIELDS: [string, string][] = [
-    ['payout_bank_name', 'payment_bank_name'],
-    ['payout_account_name', 'payment_account_name'],
-    ['payout_account_number', 'payment_account_number'],
-    ['payout_account_type', 'payment_account_type'],
-    ['payout_atm_number', 'payment_atm_number'],
-    ['payout_bank_branch', 'payment_bank_branch'],
-];
+const PAYMENT_OPTION_OPTIONS_LIST: PaymentMethodOption[] =
+    PAYMENT_OPTION_OPTIONS.map((value) => ({
+        value,
+        label: value,
+        needsAccount: value === 'ATM Deduction',
+    }));
 
 export function BankTab({
     formErrors,
     memberApplicationProfile,
     isFieldMissing,
-    memberDisplayName,
     releaseMethod,
     setReleaseMethod,
-    isOwnAtmCard,
-    setIsOwnAtmCard,
-    atmHolderName,
-    setAtmHolderName,
+    releaseAccountId,
+    setReleaseAccountId,
     idTypeSelection,
     setIdTypeSelection,
     idTypeOther,
     setIdTypeOther,
     paymentOption,
     setPaymentOption,
-    isOwnPaymentAtmCard,
-    setIsOwnPaymentAtmCard,
-    paymentAtmHolderName,
-    setPaymentAtmHolderName,
-    bankingValues,
-    setBankingValue,
+    paymentAccountId,
+    setPaymentAccountId,
 }: Props) {
-    const hasSavedBankDetails = Boolean(
-        memberApplicationProfile?.payout_bank_name ||
-        memberApplicationProfile?.payout_account_name ||
-        memberApplicationProfile?.payout_account_number ||
-        memberApplicationProfile?.payout_account_type,
-    );
-    const [showOptionalBankDetails, setShowOptionalBankDetails] =
-        useState(hasSavedBankDetails);
+    const {
+        accounts,
+        isLoading: isLoadingAccounts,
+        isSaving: isSavingAccount,
+        loadAccounts,
+        createAccount,
+    } = useSavedPaymentAccounts();
+    const [isReleaseSheetOpen, setIsReleaseSheetOpen] = useState(false);
+    const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
 
-    const showReleaseBankFields =
+    useEffect(() => {
+        void loadAccounts();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const releaseNeedsAccount =
         releaseMethod === 'ATM' || releaseMethod === 'Bank Transfer';
-    const showPaymentAtmFields = paymentOption === 'ATM Deduction';
-    const canUseSameDetails =
-        releaseMethod === 'ATM' && paymentOption === 'ATM Deduction';
-    const isInstitutionalEmployer =
-        resolveInstitutionalEmployerCategory(
-            memberApplicationProfile?.employer_business_name,
-            memberApplicationProfile?.employment_type,
-            memberApplicationProfile?.nature_of_business,
-        ) !== null;
-    const paymentOptionChoices = isInstitutionalEmployer
-        ? PAYMENT_OPTION_OPTIONS
-        : PAYMENT_OPTION_OPTIONS.filter(
-              (option) => option !== 'Salary Deduction',
-          );
+    const paymentNeedsAccount = paymentOption === 'ATM Deduction';
 
-    const [useSameDetailsChecked, setUseSameDetailsChecked] = useState(false);
-    // Derived rather than synced via effect: once the checkbox's
-    // precondition (both channels ATM) stops holding, it should just read
-    // as unchecked again without a render-triggering effect.
-    const useSameDetails = canUseSameDetails && useSameDetailsChecked;
+    const releaseAccountLabel = useMemo(
+        () =>
+            accounts.find((account) => account.id === releaseAccountId)?.label,
+        [accounts, releaseAccountId],
+    );
+    const paymentAccountLabel = useMemo(
+        () =>
+            accounts.find((account) => account.id === paymentAccountId)?.label,
+        [accounts, paymentAccountId],
+    );
 
-    const handleUseSameDetailsChange = (checked: boolean) => {
-        setUseSameDetailsChecked(checked);
+    const confirmRelease = async (method: string, accountId: number | null) => {
+        setReleaseMethod(method);
+        setReleaseAccountId(accountId);
 
-        if (checked) {
-            PAYOUT_TO_PAYMENT_MIRROR_FIELDS.forEach(
-                ([payoutField, paymentField]) => {
-                    setBankingValue(
-                        paymentField,
-                        bankingValues[payoutField] ?? '',
-                    );
-                },
-            );
-            setIsOwnPaymentAtmCard(isOwnAtmCard);
-            setPaymentAtmHolderName(atmHolderName);
-        }
+        return true;
     };
 
-    const handlePayoutBankingValueChange = (key: string, value: string) => {
-        setBankingValue(key, value);
+    const confirmPayment = async (method: string, accountId: number | null) => {
+        setPaymentOption(method);
+        setPaymentAccountId(accountId);
 
-        if (useSameDetails) {
-            const mirror = PAYOUT_TO_PAYMENT_MIRROR_FIELDS.find(
-                ([payoutField]) => payoutField === key,
-            );
-
-            if (mirror) {
-                setBankingValue(mirror[1], value);
-            }
-        }
+        return true;
     };
 
     return (
@@ -315,202 +134,49 @@ export function BankTab({
                         </p>
                     </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="release_method">Release method</Label>
-
-                        <Select
-                            value={releaseMethod || undefined}
-                            onValueChange={(value) => {
-                                setReleaseMethod(value);
+                    <div
+                        className={cn(
+                            'flex flex-wrap items-center gap-3 rounded-md border border-input p-3',
+                            isFieldMissing('release_method') &&
+                                MISSING_FIELD_CLASS,
+                        )}
+                    >
+                        <div className="flex-1 space-y-1">
+                            <p className="text-sm font-medium">
+                                {releaseMethod || 'Not set'}
+                            </p>
+                            {releaseNeedsAccount && (
+                                <p className="text-sm text-muted-foreground">
+                                    {releaseAccountLabel ??
+                                        'No account selected'}
+                                </p>
+                            )}
+                        </div>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                                void loadAccounts();
+                                setIsReleaseSheetOpen(true);
                             }}
                         >
-                            <SelectTrigger
-                                id="release_method"
-                                className={cn(
-                                    'mt-1 w-full',
-                                    isFieldMissing('release_method') &&
-                                        MISSING_FIELD_CLASS,
-                                )}
-                            >
-                                <SelectValue placeholder="Select release method" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {RELEASE_METHOD_OPTIONS.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                        {option}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            {releaseMethod ? 'Change' : 'Choose release method'}
+                        </Button>
                         <input
                             type="hidden"
                             name="release_method"
                             value={releaseMethod}
                         />
-
-                        <InputError
-                            className="mt-2"
-                            message={formErrors.release_method}
+                        <input
+                            type="hidden"
+                            name="release_saved_account_id"
+                            value={releaseAccountId ?? ''}
                         />
                     </div>
 
-                    {showReleaseBankFields && (
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <BankAccountFields
-                                prefix="payout"
-                                formErrors={formErrors}
-                                bankingValues={bankingValues}
-                                setBankingValue={handlePayoutBankingValueChange}
-                                isFieldMissing={isFieldMissing}
-                            />
-                        </div>
-                    )}
-
-                    {releaseMethod === 'ATM' && (
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <BankDetailField
-                                fieldKey="payout_bank_branch"
-                                label="Bank branch"
-                                placeholder="Bank branch"
-                                value={bankingValues.payout_bank_branch ?? ''}
-                                onChange={(value) =>
-                                    handlePayoutBankingValueChange(
-                                        'payout_bank_branch',
-                                        value,
-                                    )
-                                }
-                                error={formErrors.payout_bank_branch}
-                            />
-
-                            <BankDetailField
-                                fieldKey="payout_atm_number"
-                                label="ATM card number"
-                                placeholder="ATM card number"
-                                value={bankingValues.payout_atm_number ?? ''}
-                                onChange={(value) =>
-                                    handlePayoutBankingValueChange(
-                                        'payout_atm_number',
-                                        value,
-                                    )
-                                }
-                                error={formErrors.payout_atm_number}
-                                missing={isFieldMissing('payout_atm_number')}
-                            />
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="payout_atm_holder_name">
-                                    ATM card holder name{' '}
-                                    <span className="text-muted-foreground">
-                                        (if not you)
-                                    </span>
-                                </Label>
-
-                                <div className="flex items-center gap-2">
-                                    <Checkbox
-                                        id="payout_atm_holder_name_is_own"
-                                        checked={isOwnAtmCard}
-                                        onCheckedChange={(checked) => {
-                                            const next = checked === true;
-                                            setIsOwnAtmCard(next);
-                                            const nextName = next
-                                                ? memberDisplayName
-                                                : '';
-                                            setAtmHolderName(nextName);
-
-                                            if (useSameDetails) {
-                                                setIsOwnPaymentAtmCard(next);
-                                                setPaymentAtmHolderName(
-                                                    nextName,
-                                                );
-                                            }
-                                        }}
-                                    />
-                                    <Label
-                                        htmlFor="payout_atm_holder_name_is_own"
-                                        className="text-sm font-normal"
-                                    >
-                                        This is my own ATM card
-                                    </Label>
-                                </div>
-
-                                {isOwnAtmCard ? (
-                                    <input
-                                        type="hidden"
-                                        name="payout_atm_holder_name"
-                                        value={memberDisplayName}
-                                    />
-                                ) : (
-                                    <>
-                                        <Input
-                                            id="payout_atm_holder_name"
-                                            className={cn(
-                                                'mt-1 block w-full',
-                                                isFieldMissing(
-                                                    'payout_atm_holder_name',
-                                                ) && MISSING_FIELD_CLASS,
-                                            )}
-                                            value={atmHolderName}
-                                            onChange={(event) => {
-                                                setAtmHolderName(
-                                                    event.target.value,
-                                                );
-
-                                                if (useSameDetails) {
-                                                    setPaymentAtmHolderName(
-                                                        event.target.value,
-                                                    );
-                                                }
-                                            }}
-                                            name="payout_atm_holder_name"
-                                            placeholder="ATM card holder name"
-                                        />
-
-                                        <InputError
-                                            className="mt-2"
-                                            message={
-                                                formErrors.payout_atm_holder_name
-                                            }
-                                        />
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {releaseMethod && !showReleaseBankFields ? (
-                        <Collapsible
-                            open={showOptionalBankDetails}
-                            onOpenChange={setShowOptionalBankDetails}
-                        >
-                            {!showOptionalBankDetails ? (
-                                <CollapsibleTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="link"
-                                        className="h-auto p-0 text-sm"
-                                    >
-                                        + Add bank account details (optional)
-                                    </Button>
-                                </CollapsibleTrigger>
-                            ) : null}
-                            <CollapsibleContent className="grid gap-4 pt-4 md:grid-cols-2">
-                                <p className="text-xs text-muted-foreground md:col-span-2">
-                                    Optional -- add a bank account on file for
-                                    future use. Not required while your release
-                                    method is {releaseMethod}.
-                                </p>
-                                <BankAccountFields
-                                    prefix="payout"
-                                    formErrors={formErrors}
-                                    bankingValues={bankingValues}
-                                    setBankingValue={
-                                        handlePayoutBankingValueChange
-                                    }
-                                    isFieldMissing={isFieldMissing}
-                                />
-                            </CollapsibleContent>
-                        </Collapsible>
-                    ) : null}
+                    <InputError message={formErrors.release_method} />
+                    <InputError message={formErrors.release_saved_account_id} />
                 </div>
 
                 <Separator />
@@ -527,194 +193,79 @@ export function BankTab({
                         </p>
                     </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="payment_option">Payment option</Label>
-
-                        <Select
-                            value={paymentOption || undefined}
-                            onValueChange={(value) => {
-                                setPaymentOption(value);
+                    <div
+                        className={cn(
+                            'flex flex-wrap items-center gap-3 rounded-md border border-input p-3',
+                            isFieldMissing('payment_option') &&
+                                MISSING_FIELD_CLASS,
+                        )}
+                    >
+                        <div className="flex-1 space-y-1">
+                            <p className="text-sm font-medium">
+                                {paymentOption || 'Not set'}
+                            </p>
+                            {paymentNeedsAccount && (
+                                <p className="text-sm text-muted-foreground">
+                                    {paymentAccountLabel ??
+                                        'No account selected'}
+                                </p>
+                            )}
+                        </div>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                                void loadAccounts();
+                                setIsPaymentSheetOpen(true);
                             }}
                         >
-                            <SelectTrigger
-                                id="payment_option"
-                                className={cn(
-                                    'mt-1 w-full',
-                                    isFieldMissing('payment_option') &&
-                                        MISSING_FIELD_CLASS,
-                                )}
-                            >
-                                <SelectValue placeholder="Select payment option" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {paymentOptionChoices.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                        {option}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            {paymentOption
+                                ? 'Change'
+                                : 'Choose repayment method'}
+                        </Button>
                         <input
                             type="hidden"
                             name="payment_option"
                             value={paymentOption}
                         />
-
-                        <InputError
-                            className="mt-2"
-                            message={formErrors.payment_option}
+                        <input
+                            type="hidden"
+                            name="payment_saved_account_id"
+                            value={paymentAccountId ?? ''}
                         />
-                        {!isInstitutionalEmployer && (
-                            <p className="text-xs text-muted-foreground">
-                                Salary Deduction is only available for BLGU,
-                                LGU, LDH, or MRDINC employees.
-                            </p>
-                        )}
                     </div>
 
-                    {canUseSameDetails && (
-                        <div className="flex items-start gap-3 rounded-md border border-border/50 bg-muted/10 p-3">
-                            <Checkbox
-                                id="use_same_payment_details"
-                                checked={useSameDetails}
-                                onCheckedChange={(checked) =>
-                                    handleUseSameDetailsChange(checked === true)
-                                }
-                            />
-                            <Label
-                                htmlFor="use_same_payment_details"
-                                className="text-sm leading-snug font-normal"
-                            >
-                                Use the same ATM/bank details for repayment as
-                                for release
-                            </Label>
-                        </div>
-                    )}
-
-                    {showPaymentAtmFields && (
-                        <>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <BankAccountFields
-                                    prefix="payment"
-                                    formErrors={formErrors}
-                                    bankingValues={bankingValues}
-                                    setBankingValue={setBankingValue}
-                                    isFieldMissing={isFieldMissing}
-                                    readOnly={useSameDetails}
-                                />
-                            </div>
-
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <BankDetailField
-                                    fieldKey="payment_bank_branch"
-                                    label="Bank branch"
-                                    placeholder="Bank branch"
-                                    value={
-                                        bankingValues.payment_bank_branch ?? ''
-                                    }
-                                    onChange={(value) =>
-                                        setBankingValue(
-                                            'payment_bank_branch',
-                                            value,
-                                        )
-                                    }
-                                    error={formErrors.payment_bank_branch}
-                                    readOnly={useSameDetails}
-                                />
-
-                                <BankDetailField
-                                    fieldKey="payment_atm_number"
-                                    label="ATM card number"
-                                    placeholder="ATM card number"
-                                    value={
-                                        bankingValues.payment_atm_number ?? ''
-                                    }
-                                    onChange={(value) =>
-                                        setBankingValue(
-                                            'payment_atm_number',
-                                            value,
-                                        )
-                                    }
-                                    error={formErrors.payment_atm_number}
-                                    missing={isFieldMissing(
-                                        'payment_atm_number',
-                                    )}
-                                    readOnly={useSameDetails}
-                                />
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="payment_atm_holder_name">
-                                        ATM card holder name{' '}
-                                        <span className="text-muted-foreground">
-                                            (if not you)
-                                        </span>
-                                    </Label>
-
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox
-                                            id="payment_atm_holder_name_is_own"
-                                            checked={isOwnPaymentAtmCard}
-                                            disabled={useSameDetails}
-                                            onCheckedChange={(checked) => {
-                                                const next = checked === true;
-                                                setIsOwnPaymentAtmCard(next);
-                                                setPaymentAtmHolderName(
-                                                    next
-                                                        ? memberDisplayName
-                                                        : '',
-                                                );
-                                            }}
-                                        />
-                                        <Label
-                                            htmlFor="payment_atm_holder_name_is_own"
-                                            className="text-sm font-normal"
-                                        >
-                                            This is my own ATM card
-                                        </Label>
-                                    </div>
-
-                                    {isOwnPaymentAtmCard ? (
-                                        <input
-                                            type="hidden"
-                                            name="payment_atm_holder_name"
-                                            value={memberDisplayName}
-                                        />
-                                    ) : (
-                                        <>
-                                            <Input
-                                                id="payment_atm_holder_name"
-                                                className={cn(
-                                                    'mt-1 block w-full',
-                                                    isFieldMissing(
-                                                        'payment_atm_holder_name',
-                                                    ) && MISSING_FIELD_CLASS,
-                                                    useSameDetails &&
-                                                        'bg-muted/50',
-                                                )}
-                                                value={paymentAtmHolderName}
-                                                onChange={(event) =>
-                                                    setPaymentAtmHolderName(
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                name="payment_atm_holder_name"
-                                                placeholder="ATM card holder name"
-                                                readOnly={useSameDetails}
-                                            />
-
-                                            <InputError
-                                                className="mt-2"
-                                                message={
-                                                    formErrors.payment_atm_holder_name
-                                                }
-                                            />
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        </>
-                    )}
+                    <InputError message={formErrors.payment_option} />
+                    <InputError message={formErrors.payment_saved_account_id} />
                 </div>
+
+                <PaymentAccountPickerSheet
+                    open={isReleaseSheetOpen}
+                    onOpenChange={setIsReleaseSheetOpen}
+                    title="Choose release method"
+                    description="Select how you'd like to receive your loan proceeds."
+                    accounts={accounts}
+                    methodOptions={RELEASE_METHOD_OPTIONS_LIST}
+                    initialMethod={releaseMethod || null}
+                    initialAccountId={releaseAccountId}
+                    isSaving={isSavingAccount || isLoadingAccounts}
+                    onConfirm={confirmRelease}
+                    onCreateAccount={createAccount}
+                />
+                <PaymentAccountPickerSheet
+                    open={isPaymentSheetOpen}
+                    onOpenChange={setIsPaymentSheetOpen}
+                    title="Choose repayment method"
+                    description="Select how you'd like to repay your loan."
+                    accounts={accounts}
+                    methodOptions={PAYMENT_OPTION_OPTIONS_LIST}
+                    initialMethod={paymentOption || null}
+                    initialAccountId={paymentAccountId}
+                    isSaving={isSavingAccount || isLoadingAccounts}
+                    onConfirm={confirmPayment}
+                    onCreateAccount={createAccount}
+                />
 
                 <Separator />
 

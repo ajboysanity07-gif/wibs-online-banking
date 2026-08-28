@@ -12,7 +12,6 @@ import {
     summarizeDependents,
 } from '@/components/dependents/dependent-category-section';
 import InputError from '@/components/input-error';
-import { AtmHolderCheckboxField } from '@/components/loan-request/atm-holder-checkbox-field';
 import { BooleanYesNoField } from '@/components/loan-request/boolean-yes-no-field';
 import {
     LoanRequestPersonalFields,
@@ -24,6 +23,10 @@ import {
     CurrencyInput,
     MonthsInput,
 } from '@/components/loan-request/numeric-adorned-inputs';
+import {
+    PaymentAccountPickerSheet,
+    type PaymentMethodOption,
+} from '@/components/loan-request/payment-account-picker-sheet';
 import { SmokingStatusField } from '@/components/loan-request/smoking-status-field';
 import {
     Accordion,
@@ -46,6 +49,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { useSavedPaymentAccounts } from '@/hooks/use-saved-payment-accounts';
 import {
     composeAddress,
     composeBirthplace,
@@ -84,7 +88,6 @@ const PAYMENT_OPTION_OPTIONS = [
     'Check',
     'Cash',
 ] as const;
-const ACCOUNT_TYPE_OPTIONS = ['Savings', 'Checking'] as const;
 
 export const OTHER_LOAN_TYPECODE = '01';
 
@@ -851,18 +854,6 @@ const displaySectionValue = (
     return displayText(`${value}`);
 };
 
-// Payout (release) field -> its payment (repayment) counterpart, used by
-// the "use the same details" checkbox to mirror values live while checked.
-const PAYOUT_TO_PAYMENT_MIRROR_FIELDS: [string, string][] = [
-    ['payout_bank_name', 'payment_bank_name'],
-    ['payout_account_name', 'payment_account_name'],
-    ['payout_account_number', 'payment_account_number'],
-    ['payout_account_type', 'payment_account_type'],
-    ['payout_atm_number', 'payment_atm_number'],
-    ['payout_bank_branch', 'payment_bank_branch'],
-    ['payout_atm_holder_name', 'payment_atm_holder_name'],
-];
-
 type BankingSectionFieldsProps = {
     sectionKey: string;
     definition: LoanRequestDataSectionDefinition;
@@ -875,103 +866,93 @@ type BankingSectionFieldsProps = {
     applicantNatureOfBusiness?: string | null;
 };
 
+const RELEASE_METHOD_PICKER_OPTIONS: PaymentMethodOption[] =
+    RELEASE_METHOD_OPTIONS.map((value) => ({
+        value,
+        label: value,
+        needsAccount: value === 'ATM' || value === 'Bank Transfer',
+    }));
+
 // Two full-width, clearly headed subsections -- Loan Disbursement (release
-// method) and Repayment Method (payment option) -- each with its own
-// conditional bank/ATM detail fields. Kept separate from the generic
-// per-field grid below since it needs cross-field behavior (the "use same
-// details" checkbox) that a flat field map can't express.
+// method) and Repayment Method (payment option) -- each backed by the
+// member's saved payment accounts via the same Shopee-style picker used on
+// the loan request show page and in profile settings, instead of free-text
+// bank/ATM fields.
 function BankingSectionFields({
     sectionKey,
-    definition,
     values,
     errors,
     onChange,
-    applicantFullName,
     applicantEmployerBusinessName,
     applicantEmploymentType,
     applicantNatureOfBusiness,
 }: BankingSectionFieldsProps) {
+    const {
+        accounts,
+        isLoading: isLoadingAccounts,
+        isSaving: isSavingAccount,
+        loadAccounts,
+        createAccount,
+    } = useSavedPaymentAccounts();
+    const [isReleaseSheetOpen, setIsReleaseSheetOpen] = useState(false);
+    const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
+
+    useEffect(() => {
+        void loadAccounts();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const releaseMethod = values.release_method
         ? `${values.release_method}`
         : '';
     const paymentOption = values.payment_option
         ? `${values.payment_option}`
         : '';
+    const releaseAccountId =
+        typeof values.release_saved_account_id === 'number'
+            ? values.release_saved_account_id
+            : null;
+    const paymentAccountId =
+        typeof values.payment_saved_account_id === 'number'
+            ? values.payment_saved_account_id
+            : null;
     const isInstitutionalEmployer =
         resolveInstitutionalEmployerCategory(
             applicantEmployerBusinessName,
             applicantEmploymentType,
             applicantNatureOfBusiness,
         ) !== null;
-    const paymentOptionChoices = isInstitutionalEmployer
-        ? PAYMENT_OPTION_OPTIONS
-        : PAYMENT_OPTION_OPTIONS.filter(
-              (option) => option !== 'Salary Deduction',
-          );
-    const showReleaseBankFields =
+    const paymentOptionPickerOptions: PaymentMethodOption[] =
+        PAYMENT_OPTION_OPTIONS.filter(
+            (option) =>
+                isInstitutionalEmployer || option !== 'Salary Deduction',
+        ).map((value) => ({
+            value,
+            label: value,
+            needsAccount: value === 'ATM Deduction',
+        }));
+    const releaseNeedsAccount =
         releaseMethod === 'ATM' || releaseMethod === 'Bank Transfer';
-    const showReleaseAtmFields = releaseMethod === 'ATM';
-    const showPaymentAtmFields = paymentOption === 'ATM Deduction';
-    const canUseSameDetails =
-        releaseMethod === 'ATM' && paymentOption === 'ATM Deduction';
+    const paymentNeedsAccount = paymentOption === 'ATM Deduction';
+    const releaseAccountLabel = accounts.find(
+        (account) => account.id === releaseAccountId,
+    )?.label;
+    const paymentAccountLabel = accounts.find(
+        (account) => account.id === paymentAccountId,
+    )?.label;
 
-    const [useSameDetailsChecked, setUseSameDetailsChecked] = useState(false);
-    // Derived rather than synced via effect: once the checkbox's
-    // precondition (both channels ATM) stops holding, it should just read
-    // as unchecked again without a render-triggering effect.
-    const useSameDetails = canUseSameDetails && useSameDetailsChecked;
+    const confirmRelease = async (method: string, accountId: number | null) => {
+        onChange('release_method', method);
+        onChange('release_saved_account_id', accountId);
 
-    const handleReleaseFieldChange = (fieldKey: string, value: string) => {
-        onChange(fieldKey, value);
-
-        if (useSameDetails) {
-            const mirror = PAYOUT_TO_PAYMENT_MIRROR_FIELDS.find(
-                ([payoutField]) => payoutField === fieldKey,
-            );
-
-            if (mirror) {
-                onChange(mirror[1], value);
-            }
-        }
+        return true;
     };
 
-    const handleUseSameDetailsChange = (checked: boolean) => {
-        setUseSameDetailsChecked(checked);
+    const confirmPayment = async (method: string, accountId: number | null) => {
+        onChange('payment_option', method);
+        onChange('payment_saved_account_id', accountId);
 
-        if (checked) {
-            PAYOUT_TO_PAYMENT_MIRROR_FIELDS.forEach(
-                ([payoutField, paymentField]) => {
-                    onChange(paymentField, values[payoutField] ?? '');
-                },
-            );
-        }
-    };
-
-    const textField = (
-        fieldKey: string,
-        onFieldChange: (value: string) => void,
-        disabled = false,
-    ) => {
-        const field = definition.fields[fieldKey];
-
-        if (!field) {
-            return null;
-        }
-
-        return (
-            <div key={fieldKey} className="grid gap-2">
-                <Label htmlFor={`${sectionKey}_${fieldKey}`}>
-                    {field.label}
-                </Label>
-                <Input
-                    id={`${sectionKey}_${fieldKey}`}
-                    value={values[fieldKey] ? `${values[fieldKey]}` : ''}
-                    disabled={disabled}
-                    onChange={(event) => onFieldChange(event.target.value)}
-                />
-                <InputError message={errors[`${sectionKey}.${fieldKey}`]} />
-            </div>
-        );
+        return true;
     };
 
     return (
@@ -984,124 +965,33 @@ function BankingSectionFields({
                     </p>
                 </div>
 
-                <div className="grid gap-2">
-                    <Label htmlFor={`${sectionKey}_release_method`}>
-                        {definition.fields.release_method?.label ??
-                            'Release method'}
-                    </Label>
-                    <Select
-                        value={releaseMethod || undefined}
-                        onValueChange={(nextValue) =>
-                            handleReleaseFieldChange(
-                                'release_method',
-                                nextValue,
-                            )
-                        }
+                <div className="flex flex-wrap items-center gap-3 rounded-md border border-input p-3">
+                    <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium">
+                            {releaseMethod || 'Not set'}
+                        </p>
+                        {releaseNeedsAccount && (
+                            <p className="text-sm text-muted-foreground">
+                                {releaseAccountLabel ?? 'No account selected'}
+                            </p>
+                        )}
+                    </div>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                            void loadAccounts();
+                            setIsReleaseSheetOpen(true);
+                        }}
                     >
-                        <SelectTrigger id={`${sectionKey}_release_method`}>
-                            <SelectValue placeholder="Select release method" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {RELEASE_METHOD_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                    {option}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <InputError
-                        message={errors[`${sectionKey}.release_method`]}
-                    />
+                        {releaseMethod ? 'Change' : 'Choose release method'}
+                    </Button>
                 </div>
-
-                {showReleaseBankFields && (
-                    <div className="grid gap-4 md:grid-cols-2">
-                        {textField('payout_bank_name', (v) =>
-                            handleReleaseFieldChange('payout_bank_name', v),
-                        )}
-                        {textField('payout_account_name', (v) =>
-                            handleReleaseFieldChange('payout_account_name', v),
-                        )}
-                        {textField('payout_account_number', (v) =>
-                            handleReleaseFieldChange(
-                                'payout_account_number',
-                                v,
-                            ),
-                        )}
-                        <div className="grid gap-2">
-                            <Label
-                                htmlFor={`${sectionKey}_payout_account_type`}
-                            >
-                                {definition.fields.payout_account_type?.label ??
-                                    'Account type'}
-                            </Label>
-                            <Select
-                                value={
-                                    values.payout_account_type
-                                        ? `${values.payout_account_type}`
-                                        : undefined
-                                }
-                                onValueChange={(nextValue) =>
-                                    handleReleaseFieldChange(
-                                        'payout_account_type',
-                                        nextValue,
-                                    )
-                                }
-                            >
-                                <SelectTrigger
-                                    id={`${sectionKey}_payout_account_type`}
-                                >
-                                    <SelectValue placeholder="Select account type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                                        <SelectItem key={option} value={option}>
-                                            {option}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <InputError
-                                message={
-                                    errors[`${sectionKey}.payout_account_type`]
-                                }
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {showReleaseAtmFields && (
-                    <div className="grid gap-4 md:grid-cols-2">
-                        {textField('payout_bank_branch', (v) =>
-                            handleReleaseFieldChange('payout_bank_branch', v),
-                        )}
-                        {textField('payout_atm_number', (v) =>
-                            handleReleaseFieldChange('payout_atm_number', v),
-                        )}
-                        <AtmHolderCheckboxField
-                            id={`${sectionKey}_payout_atm_holder_name`}
-                            label={
-                                definition.fields.payout_atm_holder_name
-                                    ?.label ?? 'ATM card holder name'
-                            }
-                            value={
-                                values.payout_atm_holder_name
-                                    ? `${values.payout_atm_holder_name}`
-                                    : ''
-                            }
-                            applicantFullName={applicantFullName ?? ''}
-                            error={
-                                errors[`${sectionKey}.payout_atm_holder_name`]
-                            }
-                            onChange={(v) =>
-                                handleReleaseFieldChange(
-                                    'payout_atm_holder_name',
-                                    v,
-                                )
-                            }
-                        />
-                    </div>
-                )}
+                <InputError message={errors[`${sectionKey}.release_method`]} />
+                <InputError
+                    message={errors[`${sectionKey}.release_saved_account_id`]}
+                />
             </div>
 
             <Separator />
@@ -1114,159 +1004,67 @@ function BankingSectionFields({
                     </p>
                 </div>
 
-                <div className="grid gap-2">
-                    <Label htmlFor={`${sectionKey}_payment_option`}>
-                        {definition.fields.payment_option?.label ??
-                            'Payment option'}
-                    </Label>
-                    <Select
-                        value={paymentOption || undefined}
-                        onValueChange={(nextValue) =>
-                            onChange('payment_option', nextValue)
-                        }
-                    >
-                        <SelectTrigger id={`${sectionKey}_payment_option`}>
-                            <SelectValue placeholder="Select payment option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {paymentOptionChoices.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                    {option}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <InputError
-                        message={errors[`${sectionKey}.payment_option`]}
-                    />
-                    {!isInstitutionalEmployer && (
-                        <p className="text-xs text-muted-foreground">
-                            Salary Deduction is only available for BLGU, LGU,
-                            LDH, or MRDINC employees.
+                <div className="flex flex-wrap items-center gap-3 rounded-md border border-input p-3">
+                    <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium">
+                            {paymentOption || 'Not set'}
                         </p>
-                    )}
-                </div>
-
-                {canUseSameDetails && (
-                    <div className="flex items-start gap-3 rounded-md border border-border/50 bg-muted/10 p-3">
-                        <Checkbox
-                            id={`${sectionKey}_use_same_payment_details`}
-                            checked={useSameDetails}
-                            onCheckedChange={(checked) =>
-                                handleUseSameDetailsChange(checked === true)
-                            }
-                        />
-                        <Label
-                            htmlFor={`${sectionKey}_use_same_payment_details`}
-                            className="text-sm leading-snug font-normal"
-                        >
-                            Use the same ATM/bank details for repayment as for
-                            release
-                        </Label>
+                        {paymentNeedsAccount && (
+                            <p className="text-sm text-muted-foreground">
+                                {paymentAccountLabel ?? 'No account selected'}
+                            </p>
+                        )}
                     </div>
-                )}
-
-                {showPaymentAtmFields && (
-                    <>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            {textField(
-                                'payment_bank_name',
-                                (v) => onChange('payment_bank_name', v),
-                                useSameDetails,
-                            )}
-                            {textField(
-                                'payment_account_name',
-                                (v) => onChange('payment_account_name', v),
-                                useSameDetails,
-                            )}
-                            {textField(
-                                'payment_account_number',
-                                (v) => onChange('payment_account_number', v),
-                                useSameDetails,
-                            )}
-                            <div className="grid gap-2">
-                                <Label
-                                    htmlFor={`${sectionKey}_payment_account_type`}
-                                >
-                                    {definition.fields.payment_account_type
-                                        ?.label ?? 'Account type'}
-                                </Label>
-                                <Select
-                                    value={
-                                        values.payment_account_type
-                                            ? `${values.payment_account_type}`
-                                            : undefined
-                                    }
-                                    disabled={useSameDetails}
-                                    onValueChange={(nextValue) =>
-                                        onChange(
-                                            'payment_account_type',
-                                            nextValue,
-                                        )
-                                    }
-                                >
-                                    <SelectTrigger
-                                        id={`${sectionKey}_payment_account_type`}
-                                    >
-                                        <SelectValue placeholder="Select account type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                                            <SelectItem
-                                                key={option}
-                                                value={option}
-                                            >
-                                                {option}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError
-                                    message={
-                                        errors[
-                                            `${sectionKey}.payment_account_type`
-                                        ]
-                                    }
-                                />
-                            </div>
-                        </div>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            {textField(
-                                'payment_bank_branch',
-                                (v) => onChange('payment_bank_branch', v),
-                                useSameDetails,
-                            )}
-                            {textField(
-                                'payment_atm_number',
-                                (v) => onChange('payment_atm_number', v),
-                                useSameDetails,
-                            )}
-                            <AtmHolderCheckboxField
-                                id={`${sectionKey}_payment_atm_holder_name`}
-                                label={
-                                    definition.fields.payment_atm_holder_name
-                                        ?.label ?? 'ATM card holder name'
-                                }
-                                value={
-                                    values.payment_atm_holder_name
-                                        ? `${values.payment_atm_holder_name}`
-                                        : ''
-                                }
-                                applicantFullName={applicantFullName ?? ''}
-                                error={
-                                    errors[
-                                        `${sectionKey}.payment_atm_holder_name`
-                                    ]
-                                }
-                                disabled={useSameDetails}
-                                onChange={(v) =>
-                                    onChange('payment_atm_holder_name', v)
-                                }
-                            />
-                        </div>
-                    </>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                            void loadAccounts();
+                            setIsPaymentSheetOpen(true);
+                        }}
+                    >
+                        {paymentOption ? 'Change' : 'Choose repayment method'}
+                    </Button>
+                </div>
+                <InputError message={errors[`${sectionKey}.payment_option`]} />
+                <InputError
+                    message={errors[`${sectionKey}.payment_saved_account_id`]}
+                />
+                {!isInstitutionalEmployer && (
+                    <p className="text-xs text-muted-foreground">
+                        Salary Deduction is only available for BLGU, LGU, LDH,
+                        or MRDINC employees.
+                    </p>
                 )}
             </div>
+
+            <PaymentAccountPickerSheet
+                open={isReleaseSheetOpen}
+                onOpenChange={setIsReleaseSheetOpen}
+                title="Choose release method"
+                description="Select how you'd like to receive your loan proceeds."
+                accounts={accounts}
+                methodOptions={RELEASE_METHOD_PICKER_OPTIONS}
+                initialMethod={releaseMethod || null}
+                initialAccountId={releaseAccountId}
+                isSaving={isSavingAccount || isLoadingAccounts}
+                onConfirm={confirmRelease}
+                onCreateAccount={createAccount}
+            />
+            <PaymentAccountPickerSheet
+                open={isPaymentSheetOpen}
+                onOpenChange={setIsPaymentSheetOpen}
+                title="Choose repayment method"
+                description="Select how you'd like to repay your loan."
+                accounts={accounts}
+                methodOptions={paymentOptionPickerOptions}
+                initialMethod={paymentOption || null}
+                initialAccountId={paymentAccountId}
+                isSaving={isSavingAccount || isLoadingAccounts}
+                onConfirm={confirmPayment}
+                onCreateAccount={createAccount}
+            />
         </div>
     );
 }

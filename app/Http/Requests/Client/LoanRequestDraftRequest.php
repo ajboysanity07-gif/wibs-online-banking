@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Client;
 
 use App\Concerns\ResolvesPsgcFields;
+use App\Concerns\ResolvesSavedPaymentAccountFields;
 use App\LoanCivilStatus;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
@@ -22,6 +23,7 @@ use Illuminate\Validation\Validator;
 class LoanRequestDraftRequest extends FormRequest
 {
     use ResolvesPsgcFields;
+    use ResolvesSavedPaymentAccountFields;
 
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
 
@@ -339,6 +341,8 @@ class LoanRequestDraftRequest extends FormRequest
         }
 
         $this->merge($payload);
+
+        $this->mergeSavedPaymentAccountFields('banking');
     }
 
     public function authorize(): bool
@@ -393,7 +397,23 @@ class LoanRequestDraftRequest extends FormRequest
             'health.health_smoking_status' => ['sometimes', 'nullable', 'string', Rule::in(['none', 'light', 'heavy'])],
             'health.health_hypertension' => ['sometimes', 'nullable', 'boolean'],
             ...$this->healthGlapiRules(),
-            'banking' => ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number,payout_bank_branch,payout_atm_holder_name'],
+            'banking' => ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,release_saved_account_id,payment_option,payment_saved_account_id,payout_atm_number,payout_bank_branch,payout_atm_holder_name,payment_bank_name,payment_account_name,payment_account_number,payment_account_type,payment_atm_number,payment_bank_branch,payment_atm_holder_name'],
+            'banking.release_saved_account_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('member_payment_accounts', 'id')->where(
+                    fn ($query) => $query->where('member_application_profile_id', $this->user()?->memberApplicationProfile?->id),
+                ),
+            ],
+            'banking.payment_saved_account_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('member_payment_accounts', 'id')->where(
+                    fn ($query) => $query->where('member_application_profile_id', $this->user()?->memberApplicationProfile?->id),
+                ),
+            ],
             'banking.payout_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_number' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -403,6 +423,13 @@ class LoanRequestDraftRequest extends FormRequest
             'banking.payout_atm_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_bank_branch' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_atm_holder_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.payment_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.payment_account_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.payment_account_number' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.payment_account_type' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.payment_atm_number' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.payment_bank_branch' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.payment_atm_holder_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'declarations' => ['sometimes', 'array:declaration_existing_loans,declaration_pending_cases,declaration_truth_confirmation,declaration_data_privacy_consent,existing_loan_1_date,existing_loan_1_type,existing_loan_1_amount,existing_loan_2_date,existing_loan_2_type,existing_loan_2_amount,existing_loan_3_date,existing_loan_3_type,existing_loan_3_amount'],
             'declarations.declaration_existing_loans' => ['sometimes', 'nullable', 'boolean'],
             'declarations.declaration_pending_cases' => ['sometimes', 'nullable', 'boolean'],

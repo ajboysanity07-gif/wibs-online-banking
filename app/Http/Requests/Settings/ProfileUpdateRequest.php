@@ -4,6 +4,7 @@ namespace App\Http\Requests\Settings;
 
 use App\Concerns\ProfileValidationRules;
 use App\Concerns\ResolvesPsgcFields;
+use App\Concerns\ResolvesSavedPaymentAccountFields;
 use App\LoanCivilStatus;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
@@ -26,6 +27,7 @@ class ProfileUpdateRequest extends FormRequest
 {
     use ProfileValidationRules;
     use ResolvesPsgcFields;
+    use ResolvesSavedPaymentAccountFields;
 
     protected function prepareForValidation(): void
     {
@@ -242,6 +244,8 @@ class ProfileUpdateRequest extends FormRequest
             $this->all(),
             self::NORMALIZED_TEXT_FIELDS,
         ));
+
+        $this->mergeSavedPaymentAccountFields();
     }
 
     /**
@@ -465,6 +469,11 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 Rule::in(LoanPaydayOption::values()),
             ],
+            ...$this->savedPaymentAccountRules(
+                null,
+                fn () => in_array($this->input('release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true),
+                fn () => $this->input('payment_option') === LoanPaymentOption::AtmDeduction->value,
+            ),
             'payout_bank_name' => [
                 Rule::requiredIf(fn () => in_array($this->input('release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
                 'nullable',

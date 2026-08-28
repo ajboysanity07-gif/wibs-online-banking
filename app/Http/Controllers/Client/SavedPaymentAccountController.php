@@ -77,7 +77,10 @@ class SavedPaymentAccountController extends Controller
         $user->loadMissing('memberApplicationProfile');
 
         if ($user->memberApplicationProfile === null) {
-            abort(404);
+            $user->setRelation(
+                'memberApplicationProfile',
+                $user->memberApplicationProfile()->create([]),
+            );
         }
 
         return $user;

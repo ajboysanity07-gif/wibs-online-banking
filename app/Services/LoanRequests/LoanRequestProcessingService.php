@@ -150,6 +150,10 @@ class LoanRequestProcessingService
         if (! in_array($this->statusValue($loanRequest), [
             LoanRequestStatus::Submitted->value,
             LoanRequestStatus::PendingReview->value,
+            LoanRequestStatus::UnderReview->value,
+            LoanRequestStatus::NeedsRevision->value,
+            LoanRequestStatus::AwaitingMemberInformation->value,
+            LoanRequestStatus::RecommendedForApproval->value,
         ], true)) {
             throw ValidationException::withMessages([
                 'status' => 'This request is no longer editable for payment method changes.',

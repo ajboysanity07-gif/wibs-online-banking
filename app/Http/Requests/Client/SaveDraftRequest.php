@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Client;
 
 use App\Concerns\ResolvesPsgcFields;
+use App\Concerns\ResolvesSavedPaymentAccountFields;
 use App\LoanCivilStatus;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
@@ -22,6 +23,7 @@ use Illuminate\Validation\Validator;
 class SaveDraftRequest extends FormRequest
 {
     use ResolvesPsgcFields;
+    use ResolvesSavedPaymentAccountFields;
 
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
 
@@ -335,6 +337,8 @@ class SaveDraftRequest extends FormRequest
         }
 
         $this->merge($payload);
+
+        $this->mergeSavedPaymentAccountFields('banking');
     }
 
     public function authorize(): bool
@@ -393,6 +397,22 @@ class SaveDraftRequest extends FormRequest
             'health.health_hypertension' => ['sometimes', 'nullable', 'boolean'],
             ...$this->healthGlapiRules(),
             'banking' => ['sometimes', 'nullable', 'array'],
+            'banking.release_saved_account_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('member_payment_accounts', 'id')->where(
+                    fn ($query) => $query->where('member_application_profile_id', $this->user()?->memberApplicationProfile?->id),
+                ),
+            ],
+            'banking.payment_saved_account_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('member_payment_accounts', 'id')->where(
+                    fn ($query) => $query->where('member_application_profile_id', $this->user()?->memberApplicationProfile?->id),
+                ),
+            ],
             'banking.payout_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_number' => ['sometimes', 'nullable', 'string', 'max:255'],

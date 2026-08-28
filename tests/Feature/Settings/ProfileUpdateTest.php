@@ -3,6 +3,7 @@
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
 use App\Models\MemberApplicationProfile;
+use App\Models\MemberPaymentAccount;
 use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
@@ -921,6 +922,19 @@ test('profile information can be updated with payout bank details', function () 
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
     ]);
+    $memberProfile = MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+    ]);
+    $account = MemberPaymentAccount::factory()->create([
+        'member_application_profile_id' => $memberProfile->id,
+        'bank_name' => 'BDO',
+        'account_name' => 'Test User',
+        'account_number' => '1234567890',
+        'account_type' => 'Savings',
+        'atm_number' => '5555444433332222',
+        'bank_branch' => 'Tagum City',
+        'atm_holder_name' => 'Test User',
+    ]);
 
     $response = $this
         ->actingAs($user)
@@ -946,14 +960,8 @@ test('profile information can be updated with payout bank details', function () 
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
+            'release_saved_account_id' => $account->id,
             'release_method' => 'Bank Transfer',
-            'payout_atm_number' => '5555444433332222',
-            'payout_bank_branch' => 'Tagum City',
-            'payout_atm_holder_name' => 'Test User',
             'height_cm' => '165',
             'weight_kg' => '68',
             'source_of_fund_wealth' => 'Salary',
@@ -978,10 +986,22 @@ test('profile information can be updated with payout bank details', function () 
     expect($memberProfile->payout_atm_holder_name)->toBe('Test User');
 });
 
-test('payment atm holder name is required for ATM Deduction and persists when own card is used', function () {
+test('a saved account is required for ATM Deduction and its details persist onto the profile', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
+    ]);
+    $memberProfile = MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+    ]);
+    $account = MemberPaymentAccount::factory()->create([
+        'member_application_profile_id' => $memberProfile->id,
+        'bank_name' => 'LANDBANK',
+        'account_name' => 'Test User',
+        'account_number' => '5217-0462-21',
+        'account_type' => 'Savings',
+        'atm_number' => '4748-4452-1004-6567',
+        'atm_holder_name' => 'Test User',
     ]);
 
     $response = $this
@@ -1010,13 +1030,7 @@ test('payment atm holder name is required for ATM Deduction and persists when ow
             'payday' => 'Quincenal',
             'release_method' => 'Cash',
             'payment_option' => 'ATM Deduction',
-            'payment_bank_name' => 'LANDBANK',
-            'payment_account_name' => 'Test User',
-            'payment_account_number' => '5217-0462-21',
-            'payment_account_type' => 'Savings',
-            'payment_atm_number' => '4748-4452-1004-6567',
-            // payment_atm_holder_name intentionally omitted, matching the
-            // stale "This is my own ATM card" hidden-input bug.
+            // payment_saved_account_id intentionally omitted.
             'height_cm' => '165',
             'weight_kg' => '68',
             'source_of_fund_wealth' => 'Salary',
@@ -1024,7 +1038,7 @@ test('payment atm holder name is required for ATM Deduction and persists when ow
             'id_number' => '1234567890',
         ]);
 
-    $response->assertSessionHasErrors(['payment_atm_holder_name']);
+    $response->assertSessionHasErrors(['payment_saved_account_id']);
 
     $response = $this
         ->actingAs($user)
@@ -1052,12 +1066,7 @@ test('payment atm holder name is required for ATM Deduction and persists when ow
             'payday' => 'Quincenal',
             'release_method' => 'Cash',
             'payment_option' => 'ATM Deduction',
-            'payment_bank_name' => 'LANDBANK',
-            'payment_account_name' => 'Test User',
-            'payment_account_number' => '5217-0462-21',
-            'payment_account_type' => 'Savings',
-            'payment_atm_number' => '4748-4452-1004-6567',
-            'payment_atm_holder_name' => 'Test User',
+            'payment_saved_account_id' => $account->id,
             'height_cm' => '165',
             'weight_kg' => '68',
             'source_of_fund_wealth' => 'Salary',
@@ -1080,6 +1089,18 @@ test('optional bank details can be saved even when release method is not bank tr
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
+    ]);
+    $memberProfile = MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+    ]);
+    $account = MemberPaymentAccount::factory()->create([
+        'member_application_profile_id' => $memberProfile->id,
+        'bank_name' => 'BDO',
+        'account_name' => 'Test User',
+        'account_number' => '1234567890',
+        'account_type' => 'Savings',
+        'atm_number' => '5555444433332222',
+        'atm_holder_name' => 'Test User',
     ]);
 
     $response = $this
@@ -1104,12 +1125,7 @@ test('optional bank details can be saved even when release method is not bank tr
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
             'release_method' => 'ATM',
-            'payout_atm_number' => '5555444433332222',
-            'payout_atm_holder_name' => 'Test User',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
+            'release_saved_account_id' => $account->id,
             'height_cm' => '165',
             'weight_kg' => '68',
             'source_of_fund_wealth' => 'Salary',
@@ -2612,26 +2628,11 @@ test('correct password must be provided to delete account', function () {
     expect($user->fresh())->not->toBeNull();
 });
 
-test('profile page submits atm card holder name via hidden input when using own card', function () {
+test('profile page submits release and payment saved account ids as hidden inputs', function () {
     $contents = file_get_contents(
         base_path('resources/js/pages/settings/profile-tabs/bank-tab.tsx'),
     );
 
-    expect($contents)->toContain('name="payout_atm_holder_name"');
-    expect($contents)->toContain('{isOwnAtmCard ? (');
-});
-
-test('profile page submits payment atm card holder name via hidden input carrying the member display name when using own card', function () {
-    $contents = file_get_contents(
-        base_path('resources/js/pages/settings/profile-tabs/bank-tab.tsx'),
-    );
-
-    expect($contents)->toContain(
-        '{isOwnPaymentAtmCard ? (
-                                        <input
-                                            type="hidden"
-                                            name="payment_atm_holder_name"
-                                            value={memberDisplayName}
-                                        />',
-    );
+    expect($contents)->toContain('name="release_saved_account_id"');
+    expect($contents)->toContain('name="payment_saved_account_id"');
 });

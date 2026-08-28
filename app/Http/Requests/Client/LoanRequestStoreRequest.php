@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Client;
 
 use App\Concerns\ResolvesPsgcFields;
+use App\Concerns\ResolvesSavedPaymentAccountFields;
 use App\LoanCivilStatus;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
@@ -28,6 +29,7 @@ use Illuminate\Validation\Validator;
 class LoanRequestStoreRequest extends FormRequest
 {
     use ResolvesPsgcFields;
+    use ResolvesSavedPaymentAccountFields;
 
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
 
@@ -447,6 +449,8 @@ class LoanRequestStoreRequest extends FormRequest
         }
 
         $this->merge($payload);
+
+        $this->mergeSavedPaymentAccountFields('banking');
     }
 
     public function authorize(): bool
@@ -515,7 +519,21 @@ class LoanRequestStoreRequest extends FormRequest
             'health.health_smoking_status' => [$insuranceRequired, 'string', Rule::in(['none', 'light', 'heavy'])],
             'health.health_hypertension' => [$insuranceRequired, 'boolean'],
             ...$this->healthGlapiRules(),
-            'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number,payout_bank_branch,payout_atm_holder_name,payment_bank_name,payment_account_name,payment_account_number,payment_account_type,payment_atm_number,payment_bank_branch,payment_atm_holder_name'],
+            'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,release_saved_account_id,payment_option,payment_saved_account_id,payout_atm_number,payout_bank_branch,payout_atm_holder_name,payment_bank_name,payment_account_name,payment_account_number,payment_account_type,payment_atm_number,payment_bank_branch,payment_atm_holder_name'],
+            'banking.release_saved_account_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('member_payment_accounts', 'id')->where(
+                    fn ($query) => $query->where('member_application_profile_id', $this->user()?->memberApplicationProfile?->id),
+                ),
+            ],
+            'banking.payment_saved_account_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('member_payment_accounts', 'id')->where(
+                    fn ($query) => $query->where('member_application_profile_id', $this->user()?->memberApplicationProfile?->id),
+                ),
+            ],
             'banking.payout_bank_name' => [
                 Rule::requiredIf(fn () => in_array($this->input('banking.release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
                 'nullable', 'string', 'max:255',
