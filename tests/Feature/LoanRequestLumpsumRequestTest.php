@@ -1,5 +1,7 @@
 <?php
 
+use App\LoanPaymentOption;
+use App\LoanReleaseMethod;
 use App\LoanRequestStatus;
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
@@ -57,7 +59,7 @@ beforeEach(function () {
     Cache::forget('loan_requests.loan_type_labels');
 });
 
-function lumpsumMemberSectionPayload(array $overrides = []): array
+function lumpsumMemberSectionPayload(int $releaseAccountId, array $overrides = []): array
 {
     $payload = [
         'insurance' => [
@@ -76,19 +78,10 @@ function lumpsumMemberSectionPayload(array $overrides = []): array
             'health_recent_hospitalization' => false,
         ],
         'banking' => [
-            'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Loan Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'payout_atm_number' => '9876543210',
-            'release_method' => 'Bank Transfer',
-            'payment_option' => 'ATM Deduction',
-            'payment_bank_name' => 'WIBS Cooperative Bank',
-            'payment_account_name' => 'Loan Member',
-            'payment_account_number' => '1234567890',
-            'payment_account_type' => 'Savings',
-            'payment_atm_number' => '9876543210',
-            'payment_atm_holder_name' => 'Loan Member',
+            'release_method' => LoanReleaseMethod::BankTransfer->value,
+            'release_saved_account_id' => $releaseAccountId,
+            'payment_option' => LoanPaymentOption::AtmDeduction->value,
+            'payment_saved_account_id' => $releaseAccountId,
         ],
         'declarations' => [
             'declaration_existing_loans' => false,
@@ -219,7 +212,7 @@ test('member can submit a 1-month Lumpsum Other Loan request without insurance o
         'availment_status' => 'New',
         'undertaking_accepted' => true,
         'requested_payment_frequency' => 'Due date',
-        ...lumpsumMemberSectionPayload([
+        ...lumpsumMemberSectionPayload((int) $user->memberApplicationProfile->release_saved_account_id, [
             'insurance' => [],
             'health' => [],
             'dependents' => [],
@@ -260,7 +253,7 @@ test('member requesting 2-month Lumpsum still requires insurance and health data
         'availment_status' => 'New',
         'undertaking_accepted' => true,
         'requested_payment_frequency' => 'Due date',
-        ...lumpsumMemberSectionPayload([
+        ...lumpsumMemberSectionPayload((int) $user->memberApplicationProfile->release_saved_account_id, [
             'insurance' => [],
             'health' => [],
         ]),
@@ -300,7 +293,7 @@ test('member can request Due date for any loan type (no type restriction)', func
         'availment_status' => 'New',
         'undertaking_accepted' => true,
         'requested_payment_frequency' => 'Due date',
-        ...lumpsumMemberSectionPayload([
+        ...lumpsumMemberSectionPayload((int) $user->memberApplicationProfile->release_saved_account_id, [
             'insurance' => [],
             'health' => [],
         ]),

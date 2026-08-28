@@ -192,10 +192,15 @@ function validLoanRequestCorrectionPayload(array $overrides = []): array
 
 /**
  * @param  array<string, mixed>  $overrides
+ * @param  \App\Models\AppUser|null  $member  Required when banking ids should
+ *                                            resolve from the member's saved
+ *                                            payment accounts.
  * @return array<string, mixed>
  */
-function validLoanRequestMemberSectionPayload(array $overrides = []): array
+function validLoanRequestMemberSectionPayload(array $overrides = [], ?User $member = null): array
 {
+    $memberProfile = $member?->memberApplicationProfile;
+
     $payload = [
         'insurance' => [
             'beneficiary_primary_name' => 'Primary Beneficiary',
@@ -213,19 +218,10 @@ function validLoanRequestMemberSectionPayload(array $overrides = []): array
             'health_recent_hospitalization' => false,
         ],
         'banking' => [
-            'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Loan Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'payout_atm_number' => '9876543210',
             'release_method' => 'Bank Transfer',
+            'release_saved_account_id' => $memberProfile?->release_saved_account_id,
             'payment_option' => 'ATM Deduction',
-            'payment_bank_name' => 'WIBS Cooperative Bank',
-            'payment_account_name' => 'Loan Member',
-            'payment_account_number' => '1234567890',
-            'payment_account_type' => 'Savings',
-            'payment_atm_number' => '9876543210',
-            'payment_atm_holder_name' => 'Loan Member',
+            'payment_saved_account_id' => $memberProfile?->payment_saved_account_id,
         ],
         'barangay' => [
             'barangay_official_designation' => null,
@@ -1188,7 +1184,7 @@ test('loan request submissions persist snapshots and enter pending review', func
         'loan_purpose' => 'Medical expenses',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => [
             'first_name' => 'Loan',
             'last_name' => 'Member',
@@ -1338,7 +1334,7 @@ test('Other Loan submission requires a loan name', function () {
         'loan_purpose' => 'Medical expenses',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => [
             'first_name' => 'Loan',
             'last_name' => 'Member',
@@ -1473,7 +1469,7 @@ test('Other Loan submission with a loan name persists and is exposed to staff', 
         'other_loan_type_name' => 'Motorcycle Loan',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => [
             'first_name' => 'Loan',
             'last_name' => 'Member',
@@ -1615,7 +1611,7 @@ test('salary deduction is rejected for a non-institutional employer', function (
         'undertaking_accepted' => true,
         ...validLoanRequestMemberSectionPayload([
             'banking' => ['payment_option' => 'Salary Deduction'],
-        ]),
+        ], $user),
         'applicant' => [
             'first_name' => 'Loan', 'last_name' => 'Member', 'middle_name' => 'Q',
             'birthdate' => '1990-04-10',
@@ -1669,7 +1665,7 @@ test('salary deduction is accepted for an institutional (MRDINC) employer', func
         'undertaking_accepted' => true,
         ...validLoanRequestMemberSectionPayload([
             'banking' => ['payment_option' => 'Salary Deduction'],
-        ]),
+        ], $user),
         'applicant' => [
             'first_name' => 'Loan', 'last_name' => 'Member', 'middle_name' => 'Q',
             'birthdate' => '1990-04-10',
@@ -1819,7 +1815,7 @@ test('pensioner applicant may submit without employer fields', function () {
         'loan_purpose' => 'Medical expenses',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => pensionerPersonPayload(),
         'co_maker_1' => $coMakerPayload,
         'co_maker_2' => array_merge($coMakerPayload, [
@@ -1870,7 +1866,7 @@ test('non-pensioner applicant fails validation when employer fields are empty', 
         'loan_purpose' => 'Home repair',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => pensionerPersonPayload(['employment_type' => 'Private']),
         'co_maker_1' => [],
         'co_maker_2' => [],
@@ -1908,7 +1904,7 @@ test('OFW applicant fails validation when employer fields are empty', function (
         'loan_purpose' => 'Home repair',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => pensionerPersonPayload(['employment_type' => 'OFW']),
         'co_maker_1' => [],
         'co_maker_2' => [],
@@ -1946,7 +1942,7 @@ test('non-pensioner applicant fails validation when employer date employed is mi
         'loan_purpose' => 'Home repair',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => array_merge(pensionerPersonPayload(['employment_type' => 'Private']), [
             'employer_date_employed' => '',
         ]),
@@ -1986,7 +1982,7 @@ test('applicant date employed is stored and co-makers do not require it', functi
         'loan_purpose' => 'Home repair',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => array_merge(pensionerPersonPayload(['employment_type' => 'Private']), [
             'employer_date_employed' => '2019-06-01',
             'employer_business_name' => 'Loan Company',
@@ -2057,7 +2053,7 @@ test('self-employed applicant may submit without a date employed', function () {
         'loan_purpose' => 'Business expansion',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => array_merge(pensionerPersonPayload(['employment_type' => 'Self Employed']), [
             'employer_date_employed' => '',
             'employer_business_name' => 'Owner Store',
@@ -2129,7 +2125,7 @@ test('self-employed applicant with hyphenated employment_type may submit without
         'loan_purpose' => 'Business expansion',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => array_merge(pensionerPersonPayload(['employment_type' => 'Self-Employed']), [
             'employer_date_employed' => '',
             'employer_business_name' => 'Owner Store',
@@ -2200,7 +2196,7 @@ test('submitting free-text fields in ALL CAPS normalizes them to title case on s
         'loan_purpose' => 'Business expansion',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => array_merge(pensionerPersonPayload(['employment_type' => 'Self Employed']), [
             'first_name' => 'JUAN',
             'last_name' => 'DELA CRUZ',
@@ -2344,7 +2340,7 @@ test('applicant legacy location values need not be selected from the PSGC sugges
         'loan_purpose' => 'Personal',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => [
             'first_name' => 'Legacy',
             'last_name' => 'Member',
@@ -2437,7 +2433,7 @@ test('co-maker birthplace must still be selected from the PSGC suggestions', fun
         'loan_purpose' => 'Personal',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => pensionerPersonPayload(),
         'co_maker_1' => array_merge(pensionerPersonPayload(), [
             'first_name' => 'Co',
@@ -2766,7 +2762,7 @@ test('loan request submission validates housing status values', function () {
         'loan_purpose' => 'Medical expenses',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...validLoanRequestMemberSectionPayload(),
+        ...validLoanRequestMemberSectionPayload([], $user),
         'applicant' => [
             'first_name' => 'Loan',
             'last_name' => 'Member',
@@ -5041,6 +5037,13 @@ test('admin correction persists health, health_glapi, dependents, insurance, and
     $member = User::factory()->create([
         'acctno' => '000524',
     ]);
+    $memberProfile = App\Models\MemberApplicationProfile::factory()->create([
+        'user_id' => $member->user_id,
+    ]);
+    $account = App\Models\MemberPaymentAccount::factory()->create([
+        'member_application_profile_id' => $memberProfile->id,
+        'bank_name' => 'Corrected Bank',
+    ]);
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
         'typecode' => 'LN-OLD',
         'loan_type_label_snapshot' => 'Old Loan',
@@ -5066,7 +5069,7 @@ test('admin correction persists health, health_glapi, dependents, insurance, and
                     'applicant_pep_status_details' => 'Barangay Councilor, since 2020',
                 ],
                 'banking' => [
-                    'payout_bank_name' => 'Corrected Bank',
+                    'release_saved_account_id' => $account->id,
                 ],
                 'dependents' => [
                     'applicant_cycle_status' => 'Old',
@@ -5086,7 +5089,7 @@ test('admin correction persists health, health_glapi, dependents, insurance, and
         ->and($flatValues['health_hypertension'])->toBeTrue()
         ->and($flatValues['applicant_pep_status'])->toBeTrue()
         ->and($flatValues['applicant_pep_status_details'])->toBe('Barangay Councilor, since 2020')
-        ->and($flatValues['payout_bank_name'])->toBe('Corrected Bank')
+        ->and((int) $flatValues['release_saved_account_id'])->toBe($account->id)
         ->and($flatValues['applicant_cycle_status'])->toBe('Old')
         ->and((int) $flatValues['applicant_cycle_number'])->toBe(3);
 
@@ -5098,7 +5101,7 @@ test('admin correction persists health, health_glapi, dependents, insurance, and
         'beneficiary_primary_name',
         'health_smoking_status',
         'applicant_pep_status',
-        'payout_bank_name',
+        'release_saved_account_id',
         'applicant_cycle_status',
     );
 });
@@ -5890,17 +5893,3 @@ function createApprovedMemberForLoanRequestTests(string $acctno): User
 
     return $user;
 }
-
-test('atm holder checkbox backfills the applicant name when defaulting to checked with an empty value', function () {
-    $contents = file_get_contents(
-        base_path('resources/js/components/loan-request/atm-holder-checkbox-field.tsx'),
-    );
-
-    // Guards against a regression where a fresh ATM release/payment selection
-    // rendered "This is my own ATM card" pre-checked but never wrote
-    // applicantFullName into the submitted value, failing the backend's
-    // Rule::requiredIf(...) on payout/payment_atm_holder_name even though the
-    // checkbox looked correct and required no user action.
-    expect($contents)->toContain('isOwnCard && value.trim() === \'\'')
-        ->and($contents)->toContain('onChange(applicantFullName);');
-});

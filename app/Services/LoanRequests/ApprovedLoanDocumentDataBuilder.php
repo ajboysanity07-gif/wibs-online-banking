@@ -39,7 +39,56 @@ class ApprovedLoanDocumentDataBuilder
         private OrganizationSettingsService $organizationSettingsService,
         private OfficialLoanManagerResolver $officialLoanManagerResolver,
         private LoanRequestCycleStateService $cycleStateService,
+        private SavedPaymentAccountsService $savedPaymentAccountsService,
     ) {}
+
+    /**
+     * Resolves the release-side bank/ATM details that print on the
+     * Authorization and Affidavit documents. Prefers the frozen
+     * account_snapshot_json (deterministic after approval), then the live
+     * saved release account of record.
+     *
+     * @param  array<string, mixed>  $flatValues
+     * @return array<string, mixed>|null
+     */
+    private function resolveAuthorizationAccount(
+        LoanRequest $loanRequest,
+        ?MemberApplicationProfile $profile,
+        array $flatValues,
+    ): ?array {
+        $snapshot = $loanRequest->account_snapshot_json;
+        $release = is_array($snapshot) ? ($snapshot['release'] ?? null) : null;
+
+        if (is_array($release)) {
+            return $release;
+        }
+
+        if ($profile === null) {
+            return null;
+        }
+
+        $accountId = $flatValues['release_saved_account_id'] ?? $profile->release_saved_account_id;
+
+        if ($accountId === null || $accountId === '') {
+            return null;
+        }
+
+        $account = $this->savedPaymentAccountsService->find($profile, (int) $accountId);
+
+        if ($account === null) {
+            return null;
+        }
+
+        return [
+            'bank_name' => $account->bank_name,
+            'account_name' => $account->account_name,
+            'account_number' => $account->account_number,
+            'account_type' => $account->account_type,
+            'atm_number' => $account->atm_number,
+            'bank_branch' => $account->bank_branch,
+            'atm_holder_name' => $account->atm_holder_name,
+        ];
+    }
 
     public function buildDocumentData(
         LoanRequest $loanRequest,
@@ -60,6 +109,11 @@ class ApprovedLoanDocumentDataBuilder
         $memberRecord = $this->resolveMemberWmaster($loanRequest);
         $memberApplicationProfile = $loanRequest->user?->memberApplicationProfile;
         $flatValues = $this->loanRequestDataService->loadFlatValues($loanRequest);
+        $authorizationAccount = $this->resolveAuthorizationAccount(
+            $loanRequest,
+            $memberApplicationProfile,
+            $flatValues,
+        );
         $branding = $this->organizationSettingsService->branding();
         $documentDate = $this->resolveDocumentDate($loanRequest);
         $approvedTerm = $this->normalizeIntegerValue($loanRequest->approved_term);
@@ -397,25 +451,25 @@ class ApprovedLoanDocumentDataBuilder
                     $overrideProcessing['payment_option'] ?? $flatValues['payment_option'] ?? null,
                 ),
                 'payout_bank_name' => $this->normalizeText(
-                    $overrideProcessing['payout_bank_name'] ?? $flatValues['payout_bank_name'] ?? null,
+                    $overrideProcessing['payout_bank_name'] ?? $authorizationAccount['bank_name'] ?? null,
                 ),
                 'payout_account_name' => $this->normalizeText(
-                    $overrideProcessing['payout_account_name'] ?? $flatValues['payout_account_name'] ?? null,
+                    $overrideProcessing['payout_account_name'] ?? $authorizationAccount['account_name'] ?? null,
                 ),
                 'payout_account_number' => $this->normalizeText(
-                    $overrideProcessing['payout_account_number'] ?? $flatValues['payout_account_number'] ?? null,
+                    $overrideProcessing['payout_account_number'] ?? $authorizationAccount['account_number'] ?? null,
                 ),
                 'payout_account_type' => $this->normalizeText(
-                    $overrideProcessing['payout_account_type'] ?? $flatValues['payout_account_type'] ?? null,
+                    $overrideProcessing['payout_account_type'] ?? $authorizationAccount['account_type'] ?? null,
                 ),
                 'payout_atm_number' => $this->normalizeText(
-                    $overrideProcessing['payout_atm_number'] ?? $flatValues['payout_atm_number'] ?? null,
+                    $overrideProcessing['payout_atm_number'] ?? $authorizationAccount['atm_number'] ?? null,
                 ),
                 'payout_bank_branch' => $this->normalizeText(
-                    $overrideProcessing['payout_bank_branch'] ?? $flatValues['payout_bank_branch'] ?? null,
+                    $overrideProcessing['payout_bank_branch'] ?? $authorizationAccount['bank_branch'] ?? null,
                 ),
                 'payout_atm_holder_name' => $this->normalizeText(
-                    $overrideProcessing['payout_atm_holder_name'] ?? $flatValues['payout_atm_holder_name'] ?? null,
+                    $overrideProcessing['payout_atm_holder_name'] ?? $authorizationAccount['atm_holder_name'] ?? null,
                 ),
             ],
             'barangay' => [

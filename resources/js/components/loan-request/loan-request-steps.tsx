@@ -25,6 +25,7 @@ import {
 } from '@/components/loan-request/numeric-adorned-inputs';
 import {
     PaymentAccountPickerSheet,
+    PaymentMethodIcon,
     type PaymentMethodOption,
 } from '@/components/loan-request/payment-account-picker-sheet';
 import { SmokingStatusField } from '@/components/loan-request/smoking-status-field';
@@ -967,9 +968,15 @@ function BankingSectionFields({
 
                 <div className="flex flex-wrap items-center gap-3 rounded-md border border-input p-3">
                     <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium">
-                            {releaseMethod || 'Not set'}
-                        </p>
+                        <div className="flex items-center gap-2">
+                            <PaymentMethodIcon
+                                method={releaseMethod || null}
+                                className="h-4 w-4 text-muted-foreground"
+                            />
+                            <p className="text-sm font-medium">
+                                {releaseMethod || 'Not set'}
+                            </p>
+                        </div>
                         {releaseNeedsAccount && (
                             <p className="text-sm text-muted-foreground">
                                 {releaseAccountLabel ?? 'No account selected'}
@@ -1006,9 +1013,15 @@ function BankingSectionFields({
 
                 <div className="flex flex-wrap items-center gap-3 rounded-md border border-input p-3">
                     <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium">
-                            {paymentOption || 'Not set'}
-                        </p>
+                        <div className="flex items-center gap-2">
+                            <PaymentMethodIcon
+                                method={paymentOption || null}
+                                className="h-4 w-4 text-muted-foreground"
+                            />
+                            <p className="text-sm font-medium">
+                                {paymentOption || 'Not set'}
+                            </p>
+                        </div>
                         {paymentNeedsAccount && (
                             <p className="text-sm text-muted-foreground">
                                 {paymentAccountLabel ?? 'No account selected'}
@@ -2504,6 +2517,13 @@ export function LoanRequestReviewStep({
         paymentOption: string,
     ): boolean => {
         if (fieldKey === 'release_method' || fieldKey === 'payment_option') {
+            return false;
+        }
+
+        if (
+            fieldKey === 'release_saved_account_id' ||
+            fieldKey === 'payment_saved_account_id'
+        ) {
             return false;
         }
 

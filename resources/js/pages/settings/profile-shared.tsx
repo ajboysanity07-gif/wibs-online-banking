@@ -91,22 +91,10 @@ export type MemberApplicationProfileData = {
     employer_date_employed: string | null;
     gross_monthly_income: string | null;
     payday: string | null;
-    payout_bank_name: string | null;
-    payout_account_name: string | null;
-    payout_account_number: string | null;
-    payout_account_type: string | null;
     release_method: string | null;
-    payout_atm_number: string | null;
-    payout_bank_branch: string | null;
-    payout_atm_holder_name: string | null;
+    release_saved_account_id: number | null;
     payment_option: string | null;
-    payment_bank_name: string | null;
-    payment_account_name: string | null;
-    payment_account_number: string | null;
-    payment_account_type: string | null;
-    payment_atm_number: string | null;
-    payment_bank_branch: string | null;
-    payment_atm_holder_name: string | null;
+    payment_saved_account_id: number | null;
     source_of_fund_wealth: string | null;
     id_type: string | null;
     id_type_other: string | null;
@@ -284,22 +272,10 @@ export const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'payday',
     ],
     bank: [
-        'payout_bank_name',
-        'payout_account_name',
-        'payout_account_number',
-        'payout_account_type',
         'release_method',
-        'payout_atm_number',
-        'payout_bank_branch',
-        'payout_atm_holder_name',
+        'release_saved_account_id',
         'payment_option',
-        'payment_bank_name',
-        'payment_account_name',
-        'payment_account_number',
-        'payment_account_type',
-        'payment_atm_number',
-        'payment_bank_branch',
-        'payment_atm_holder_name',
+        'payment_saved_account_id',
         'source_of_fund_wealth',
         'id_type',
         'id_type_other',
@@ -474,7 +450,12 @@ export const normalizePaydayValue = (value?: string | null): string => {
 
     if (upper === 'WEEKLY' || compact === 'BIWEEKLY') return 'Weekly';
     if (upper === 'MONTHLY') return 'Monthly';
-    if (compact === '15' || compact === '30' || (upper.includes('15') && upper.includes('30')) || compact === 'SEMIMONTHLY')
+    if (
+        compact === '15' ||
+        compact === '30' ||
+        (upper.includes('15') && upper.includes('30')) ||
+        compact === 'SEMIMONTHLY'
+    )
         return 'Quincenal';
     if (upper.includes('LUMP')) return 'Due date';
     if (upper === 'DAILY') return 'Daily';

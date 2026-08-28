@@ -47,7 +47,7 @@ test('member submission stores workflow version v2 and member-owned data entries
 
     $response = $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), phaseFiveLoanRequestPayload());
+        ->post(route('client.loan-requests.store'), phaseFiveLoanRequestPayload($member));
 
     $loanRequest = LoanRequest::query()->sole();
 
@@ -191,8 +191,12 @@ function createPhaseFiveActor(
 /**
  * @return array<string, mixed>
  */
-function phaseFiveLoanRequestPayload(): array
+function phaseFiveLoanRequestPayload(AppUser $member): array
 {
+    $savedAccountId = $member->fresh('memberApplicationProfile')
+        ->memberApplicationProfile
+        ->release_saved_account_id;
+
     return [
         'typecode' => 'LN-P5',
         'requested_amount' => 25000,
@@ -216,19 +220,10 @@ function phaseFiveLoanRequestPayload(): array
             'health_recent_hospitalization' => false,
         ],
         'banking' => [
-            'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Phase Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'payout_atm_number' => '9876543210',
             'release_method' => 'Bank Transfer',
+            'release_saved_account_id' => $savedAccountId,
             'payment_option' => 'ATM Deduction',
-            'payment_bank_name' => 'WIBS Cooperative Bank',
-            'payment_account_name' => 'Phase Member',
-            'payment_account_number' => '1234567890',
-            'payment_account_type' => 'Savings',
-            'payment_atm_number' => '9876543210',
-            'payment_atm_holder_name' => 'Phase Member',
+            'payment_saved_account_id' => $savedAccountId,
         ],
         'barangay' => [
             'barangay_official_designation' => null,

@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Client;
 
 use App\Concerns\ResolvesPsgcFields;
-use App\Concerns\ResolvesSavedPaymentAccountFields;
 use App\LoanCivilStatus;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
@@ -23,7 +22,6 @@ use Illuminate\Validation\Validator;
 class SaveDraftRequest extends FormRequest
 {
     use ResolvesPsgcFields;
-    use ResolvesSavedPaymentAccountFields;
 
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
 
@@ -337,8 +335,6 @@ class SaveDraftRequest extends FormRequest
         }
 
         $this->merge($payload);
-
-        $this->mergeSavedPaymentAccountFields('banking');
     }
 
     public function authorize(): bool
@@ -413,15 +409,8 @@ class SaveDraftRequest extends FormRequest
                     fn ($query) => $query->where('member_application_profile_id', $this->user()?->memberApplicationProfile?->id),
                 ),
             ],
-            'banking.payout_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'banking.payout_account_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'banking.payout_account_number' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'banking.payout_account_type' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.release_method' => ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))],
             'banking.payment_option' => ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanPaymentOption::cases(), 'value'))],
-            'banking.payout_atm_number' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'banking.payout_bank_branch' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'banking.payout_atm_holder_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'declarations' => ['sometimes', 'nullable', 'array'],
             'declarations.declaration_existing_loans' => ['sometimes', 'nullable', 'boolean'],
             'declarations.declaration_pending_cases' => ['sometimes', 'nullable', 'boolean'],

@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Client;
 
 use App\Concerns\ResolvesPsgcFields;
-use App\Concerns\ResolvesSavedPaymentAccountFields;
 use App\LoanCivilStatus;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
@@ -29,7 +28,6 @@ use Illuminate\Validation\Validator;
 class LoanRequestStoreRequest extends FormRequest
 {
     use ResolvesPsgcFields;
-    use ResolvesSavedPaymentAccountFields;
 
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
 
@@ -449,8 +447,6 @@ class LoanRequestStoreRequest extends FormRequest
         }
 
         $this->merge($payload);
-
-        $this->mergeSavedPaymentAccountFields('banking');
     }
 
     public function authorize(): bool
@@ -519,8 +515,9 @@ class LoanRequestStoreRequest extends FormRequest
             'health.health_smoking_status' => [$insuranceRequired, 'string', Rule::in(['none', 'light', 'heavy'])],
             'health.health_hypertension' => [$insuranceRequired, 'boolean'],
             ...$this->healthGlapiRules(),
-            'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,release_saved_account_id,payment_option,payment_saved_account_id,payout_atm_number,payout_bank_branch,payout_atm_holder_name,payment_bank_name,payment_account_name,payment_account_number,payment_account_type,payment_atm_number,payment_bank_branch,payment_atm_holder_name'],
+            'banking' => ['required', 'array:release_method,release_saved_account_id,payment_option,payment_saved_account_id'],
             'banking.release_saved_account_id' => [
+                Rule::requiredIf(fn () => in_array($this->input('banking.release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
                 'nullable',
                 'integer',
                 Rule::exists('member_payment_accounts', 'id')->where(
@@ -528,64 +525,15 @@ class LoanRequestStoreRequest extends FormRequest
                 ),
             ],
             'banking.payment_saved_account_id' => [
+                Rule::requiredIf(fn () => $this->input('banking.payment_option') === LoanPaymentOption::AtmDeduction->value),
                 'nullable',
                 'integer',
                 Rule::exists('member_payment_accounts', 'id')->where(
                     fn ($query) => $query->where('member_application_profile_id', $this->user()?->memberApplicationProfile?->id),
                 ),
             ],
-            'banking.payout_bank_name' => [
-                Rule::requiredIf(fn () => in_array($this->input('banking.release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.payout_account_name' => [
-                Rule::requiredIf(fn () => in_array($this->input('banking.release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.payout_account_number' => [
-                Rule::requiredIf(fn () => in_array($this->input('banking.release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.payout_account_type' => [
-                Rule::requiredIf(fn () => in_array($this->input('banking.release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
-                'nullable', 'string', Rule::in(['Savings', 'Checking']),
-            ],
             'banking.release_method' => ['required', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))],
             'banking.payment_option' => ['required', 'string', 'max:255', Rule::in(array_column(LoanPaymentOption::cases(), 'value'))],
-            'banking.payout_atm_number' => [
-                Rule::requiredIf(fn () => $this->input('banking.release_method') === LoanReleaseMethod::Atm->value),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.payout_bank_branch' => ['nullable', 'string', 'max:255'],
-            'banking.payout_atm_holder_name' => [
-                Rule::requiredIf(fn () => $this->input('banking.release_method') === LoanReleaseMethod::Atm->value),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.payment_bank_name' => [
-                Rule::requiredIf(fn () => $this->input('banking.payment_option') === LoanPaymentOption::AtmDeduction->value),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.payment_account_name' => [
-                Rule::requiredIf(fn () => $this->input('banking.payment_option') === LoanPaymentOption::AtmDeduction->value),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.payment_account_number' => [
-                Rule::requiredIf(fn () => $this->input('banking.payment_option') === LoanPaymentOption::AtmDeduction->value),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.payment_account_type' => [
-                Rule::requiredIf(fn () => $this->input('banking.payment_option') === LoanPaymentOption::AtmDeduction->value),
-                'nullable', 'string', Rule::in(['Savings', 'Checking']),
-            ],
-            'banking.payment_atm_number' => [
-                Rule::requiredIf(fn () => $this->input('banking.payment_option') === LoanPaymentOption::AtmDeduction->value),
-                'nullable', 'string', 'max:255',
-            ],
-            'banking.payment_bank_branch' => ['nullable', 'string', 'max:255'],
-            'banking.payment_atm_holder_name' => [
-                Rule::requiredIf(fn () => $this->input('banking.payment_option') === LoanPaymentOption::AtmDeduction->value),
-                'nullable', 'string', 'max:255',
-            ],
             'declarations' => ['required', 'array:declaration_existing_loans,declaration_pending_cases,declaration_truth_confirmation,declaration_data_privacy_consent,existing_loan_1_date,existing_loan_1_type,existing_loan_1_amount,existing_loan_2_date,existing_loan_2_type,existing_loan_2_amount,existing_loan_3_date,existing_loan_3_type,existing_loan_3_amount'],
             'declarations.declaration_existing_loans' => ['required', 'boolean'],
             'declarations.declaration_pending_cases' => ['required', 'boolean'],

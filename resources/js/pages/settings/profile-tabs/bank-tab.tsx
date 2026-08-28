@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
-import { PaymentAccountPickerSheet } from '@/components/loan-request/payment-account-picker-sheet';
+import {
+    PaymentAccountPickerSheet,
+    PaymentMethodIcon,
+} from '@/components/loan-request/payment-account-picker-sheet';
 import type { PaymentMethodOption } from '@/components/loan-request/payment-account-picker-sheet';
 import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
@@ -142,9 +145,15 @@ export function BankTab({
                         )}
                     >
                         <div className="flex-1 space-y-1">
-                            <p className="text-sm font-medium">
-                                {releaseMethod || 'Not set'}
-                            </p>
+                            <div className="flex items-center gap-2">
+                                <PaymentMethodIcon
+                                    method={releaseMethod || null}
+                                    className="h-4 w-4 text-muted-foreground"
+                                />
+                                <p className="text-sm font-medium">
+                                    {releaseMethod || 'Not set'}
+                                </p>
+                            </div>
                             {releaseNeedsAccount && (
                                 <p className="text-sm text-muted-foreground">
                                     {releaseAccountLabel ??
@@ -201,9 +210,15 @@ export function BankTab({
                         )}
                     >
                         <div className="flex-1 space-y-1">
-                            <p className="text-sm font-medium">
-                                {paymentOption || 'Not set'}
-                            </p>
+                            <div className="flex items-center gap-2">
+                                <PaymentMethodIcon
+                                    method={paymentOption || null}
+                                    className="h-4 w-4 text-muted-foreground"
+                                />
+                                <p className="text-sm font-medium">
+                                    {paymentOption || 'Not set'}
+                                </p>
+                            </div>
                             {paymentNeedsAccount && (
                                 <p className="text-sm text-muted-foreground">
                                     {paymentAccountLabel ??

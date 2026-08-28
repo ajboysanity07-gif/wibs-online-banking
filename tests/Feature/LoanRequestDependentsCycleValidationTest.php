@@ -1,5 +1,7 @@
 <?php
 
+use App\LoanPaymentOption;
+use App\LoanReleaseMethod;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
@@ -40,18 +42,35 @@ function createDependentsCycleTestMember(string $acctno): AppUser
     );
 
     UserProfile::factory()->approved()->create(['user_id' => $member->user_id]);
-    \App\Models\MemberApplicationProfile::factory()->completed()->create(['user_id' => $member->user_id]);
+    $profile = \App\Models\MemberApplicationProfile::factory()->completed()->create(['user_id' => $member->user_id]);
+
+    $account = $profile->paymentAccounts()->create([
+        'label' => 'Primary',
+        'bank_name' => 'WIBS Cooperative Bank',
+        'account_name' => 'Loan Member',
+        'account_number' => '1234567890',
+        'account_type' => 'Savings',
+        'atm_number' => '9876543210',
+        'bank_branch' => 'Main Branch',
+        'atm_holder_name' => null,
+    ]);
+
+    $profile->forceFill([
+        'payment_option' => LoanPaymentOption::AtmDeduction->value,
+        'release_saved_account_id' => $account->id,
+        'payment_saved_account_id' => $account->id,
+    ])->save();
 
     DB::table('wmaster')->updateOrInsert(
         ['acctno' => $acctno],
         ['fname' => 'Cycle', 'lname' => 'Member', 'birthday' => '1990-01-01', 'address' => 'Bank St'],
     );
 
-    return $member->fresh(['roles.permissions', 'userProfile']);
+    return $member->fresh(['roles.permissions', 'userProfile', 'memberApplicationProfile']);
 }
 
 test('sectionDefinitions gates each dependent category by civil_status per the physical form', function (): void {
-    $fields = (new LoanRequestDataService)->sectionDefinitions()['dependents']['fields'];
+    $fields = app(LoanRequestDataService::class)->sectionDefinitions()['dependents']['fields'];
 
     // Spouse and Children: Married-only.
     expect($fields['dependent_spouse_cycle_status']['visible_when'])->toBe([
@@ -78,7 +97,7 @@ test('sectionDefinitions gates each dependent category by civil_status per the p
 });
 
 test('sectionDefinitions no longer exposes relationship or occupation for any dependent category', function (): void {
-    $fields = (new LoanRequestDataService)->sectionDefinitions()['dependents']['fields'];
+    $fields = app(LoanRequestDataService::class)->sectionDefinitions()['dependents']['fields'];
 
     foreach (array_keys($fields) as $fieldKey) {
         expect($fieldKey)->not->toEndWith('_relationship');
@@ -182,22 +201,10 @@ test('store endpoint accepts cycle status without cycle number (auto-computed se
                 'health_recent_hospitalization' => false,
             ],
             'banking' => [
-                'payout_bank_name' => 'WIBS Cooperative Bank',
-                'payout_account_name' => 'Loan Member',
-                'payout_account_number' => '1234567890',
-                'payout_account_type' => 'Savings',
-                'release_method' => 'ATM',
-                'payment_option' => 'ATM Deduction',
-                'payout_atm_number' => '9876543210',
-                'payout_bank_branch' => 'Main Branch',
-                'payout_atm_holder_name' => null,
-                'payment_bank_name' => 'WIBS Cooperative Bank',
-                'payment_account_name' => 'Loan Member',
-                'payment_account_number' => '1234567890',
-                'payment_account_type' => 'Savings',
-                'payment_atm_number' => '9876543210',
-                'payment_bank_branch' => 'Main Branch',
-                'payment_atm_holder_name' => null,
+                'release_method' => LoanReleaseMethod::BankTransfer->value,
+                'release_saved_account_id' => $member->memberApplicationProfile->release_saved_account_id,
+                'payment_option' => LoanPaymentOption::AtmDeduction->value,
+                'payment_saved_account_id' => $member->memberApplicationProfile->payment_saved_account_id,
             ],
             'barangay' => [
                 'barangay_official_designation' => null,
@@ -281,22 +288,10 @@ function submitLoanRequestForCycleStatusTest(
                 'health_recent_hospitalization' => false,
             ],
             'banking' => [
-                'payout_bank_name' => 'WIBS Cooperative Bank',
-                'payout_account_name' => 'Loan Member',
-                'payout_account_number' => '1234567890',
-                'payout_account_type' => 'Savings',
-                'release_method' => 'ATM',
-                'payment_option' => 'ATM Deduction',
-                'payout_atm_number' => '9876543210',
-                'payout_bank_branch' => 'Main Branch',
-                'payout_atm_holder_name' => null,
-                'payment_bank_name' => 'WIBS Cooperative Bank',
-                'payment_account_name' => 'Loan Member',
-                'payment_account_number' => '1234567890',
-                'payment_account_type' => 'Savings',
-                'payment_atm_number' => '9876543210',
-                'payment_bank_branch' => 'Main Branch',
-                'payment_atm_holder_name' => null,
+                'release_method' => LoanReleaseMethod::BankTransfer->value,
+                'release_saved_account_id' => $member->memberApplicationProfile->release_saved_account_id,
+                'payment_option' => LoanPaymentOption::AtmDeduction->value,
+                'payment_saved_account_id' => $member->memberApplicationProfile->payment_saved_account_id,
             ],
             'barangay' => [
                 'barangay_official_designation' => null,

@@ -141,8 +141,14 @@ test('authorization document downloads as a real pdf and prints the borrower\'s 
 
     $loanRequest = authorizationDocumentCreateApprovedLoanRequestWithApplicant();
     authorizationDocumentPersistDataEntry($loanRequest, 'release_method', 'string', LoanReleaseMethod::BankTransfer->value);
-    authorizationDocumentPersistDataEntry($loanRequest, 'payout_bank_name', 'string', 'Land Bank of the Philippines');
-    authorizationDocumentPersistDataEntry($loanRequest, 'payout_account_number', 'string', 'SA-5217-0462-21');
+    $loanRequest->forceFill([
+        'account_snapshot_json' => [
+            'release' => [
+                'bank_name' => 'Land Bank of the Philippines',
+                'account_number' => 'SA-5217-0462-21',
+            ],
+        ],
+    ])->save();
 
     $service = app(ApprovedLoanDocumentService::class);
     $buildDocumentData = Closure::bind(

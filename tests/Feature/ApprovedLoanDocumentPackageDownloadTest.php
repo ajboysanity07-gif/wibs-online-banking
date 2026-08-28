@@ -1903,10 +1903,12 @@ test('affidavit undertaking pdf prints payout bank details', function () {
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
 
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_name', 'string', 'RURAL SAVINGS BANK');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '9876543210');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_atm_number', 'string', '4444-3333-2222-1111');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_branch', 'string', 'DAVAO BRANCH');
+    approvedLoanDocumentsSetReleaseAccountSnapshot($loanRequest, [
+        'bank_name' => 'RURAL SAVINGS BANK',
+        'account_number' => '9876543210',
+        'atm_number' => '4444-3333-2222-1111',
+        'bank_branch' => 'DAVAO BRANCH',
+    ]);
 
     $response = $this
         ->actingAs($admin)
@@ -2090,7 +2092,9 @@ test('affidavit undertaking pdf stamps GNTHP and account number inline for parag
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
 
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'guaranteed_net_take_home_pay', 'numeric', 32500);
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '9876543210');
+    approvedLoanDocumentsSetReleaseAccountSnapshot($loanRequest, [
+        'account_number' => '9876543210',
+    ]);
 
     $response = $this
         ->actingAs($admin)
@@ -4050,11 +4054,6 @@ function approvedLoanDocumentsCreateDataEntries(LoanRequest $loanRequest): void
         // tests below; the institutional-payroll zip test overrides this to
         // Salary Deduction to exercise Authority to Deduct instead.
         'payment_option' => ['string', \App\LoanPaymentOption::AtmDeduction->value],
-        'payout_bank_name' => ['string', 'WIBS Cooperative Bank'],
-        'payout_account_name' => ['string', 'Sample Q Member'],
-        'payout_account_number' => ['string', '1234567890'],
-        'payout_account_type' => ['string', 'Savings'],
-        'payout_atm_number' => ['string', '9876543210'],
         'barangay_name' => ['string', 'Barangay San Isidro'],
         'barangay_clearance_reference' => ['string', 'BCL-2026-030'],
         'barangay_locality' => ['string', 'Tagum City, Davao del Norte'],
@@ -4091,6 +4090,22 @@ function approvedLoanDocumentsPersistDataEntry(
             'confirmed_by_member_at' => null,
         ],
     );
+}
+
+/**
+ * Freezes release-side bank/ATM details onto the loan request's
+ * account_snapshot_json -- the source ApprovedLoanDocumentDataBuilder reads
+ * first for the Authorization/Affidavit documents, ahead of any live saved
+ * account.
+ *
+ * @param  array<string, string>  $account
+ */
+function approvedLoanDocumentsSetReleaseAccountSnapshot(LoanRequest $loanRequest, array $account): void
+{
+    $snapshot = is_array($loanRequest->account_snapshot_json) ? $loanRequest->account_snapshot_json : [];
+    $snapshot['release'] = [...($snapshot['release'] ?? []), ...$account];
+
+    $loanRequest->forceFill(['account_snapshot_json' => $snapshot])->save();
 }
 
 function approvedLoanDocumentsCreateApprovedMember(): User

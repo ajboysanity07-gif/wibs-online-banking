@@ -1,5 +1,7 @@
 <?php
 
+use App\LoanPaymentOption;
+use App\LoanReleaseMethod;
 use App\Models\AppUser as User;
 use App\Models\LoanRequest;
 use App\Models\MemberApplicationProfile;
@@ -52,7 +54,7 @@ beforeEach(function () {
     Cache::forget('loan_requests.loan_type_labels');
 });
 
-function kindOfLoanMemberSectionPayload(array $overrides = []): array
+function kindOfLoanMemberSectionPayload(int $releaseAccountId, array $overrides = []): array
 {
     $payload = [
         'insurance' => [
@@ -71,19 +73,10 @@ function kindOfLoanMemberSectionPayload(array $overrides = []): array
             'health_recent_hospitalization' => false,
         ],
         'banking' => [
-            'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Loan Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'payout_atm_number' => '9876543210',
-            'release_method' => 'Bank Transfer',
-            'payment_option' => 'ATM Deduction',
-            'payment_bank_name' => 'WIBS Cooperative Bank',
-            'payment_account_name' => 'Loan Member',
-            'payment_account_number' => '1234567890',
-            'payment_account_type' => 'Savings',
-            'payment_atm_number' => '9876543210',
-            'payment_atm_holder_name' => 'Loan Member',
+            'release_method' => LoanReleaseMethod::BankTransfer->value,
+            'release_saved_account_id' => $releaseAccountId,
+            'payment_option' => LoanPaymentOption::AtmDeduction->value,
+            'payment_saved_account_id' => $releaseAccountId,
         ],
         'declarations' => [
             'declaration_existing_loans' => false,
@@ -194,8 +187,10 @@ function setUpKindOfLoanMember(string $acctno): User
     return $user;
 }
 
-function kindOfLoanStorePayload(string $typecode, array $overrides = []): array
+function kindOfLoanStorePayload(User $user, string $typecode, array $overrides = []): array
 {
+    $accountId = (int) $user->memberApplicationProfile->release_saved_account_id;
+
     $payload = array_replace_recursive([
         'typecode' => $typecode,
         'requested_amount' => 15000,
@@ -203,7 +198,7 @@ function kindOfLoanStorePayload(string $typecode, array $overrides = []): array
         'loan_purpose' => 'Business capital',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        ...kindOfLoanMemberSectionPayload(),
+        ...kindOfLoanMemberSectionPayload($accountId),
         'applicant' => kindOfLoanApplicantPayload(),
         'co_maker_1' => kindOfLoanCoMakerPayload('CoOne'),
         'co_maker_2' => kindOfLoanCoMakerPayload('CoTwo'),
@@ -222,7 +217,7 @@ test('member must select a kind of loan when submitting a Micro Business Loan re
         'lntype' => 'MICRO BUSINESS LOAN',
     ]);
 
-    $payload = kindOfLoanStorePayload('02');
+    $payload = kindOfLoanStorePayload($user, '02');
 
     $response = $this
         ->actingAs($user)
@@ -242,7 +237,7 @@ test('member can submit a Micro Business Loan request with an Emergency kind of 
         'lntype' => 'MICRO BUSINESS LOAN',
     ]);
 
-    $payload = kindOfLoanStorePayload('02', ['kind_of_loan' => 'Emergency']);
+    $payload = kindOfLoanStorePayload($user, '02', ['kind_of_loan' => 'Emergency']);
 
     $response = $this
         ->actingAs($user)
@@ -265,7 +260,7 @@ test('kind of loan is not required for a non-Micro-Business loan type', function
         'lntype' => 'OTHER LOAN',
     ]);
 
-    $payload = kindOfLoanStorePayload('01', [
+    $payload = kindOfLoanStorePayload($user, '01', [
         'other_loan_type_name' => 'Miscellaneous Loan',
     ]);
 

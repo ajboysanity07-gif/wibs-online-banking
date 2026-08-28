@@ -63,14 +63,11 @@ class LoanRequestCorrectionRequest extends LoanRequestStoreRequest
         $rules['health_glapi'] = ['sometimes', 'array:applicant_pep_status,applicant_pep_status_details'];
         $rules['health_glapi.applicant_pep_status'] = ['sometimes', 'nullable', 'boolean'];
         $rules['health_glapi.applicant_pep_status_details'] = ['sometimes', 'nullable', 'string', 'max:1000'];
-        $rules['banking'] = ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number'];
+        $rules['banking'] = ['sometimes', 'array:release_method,release_saved_account_id,payment_option,payment_saved_account_id'];
         $rules['banking.release_method'] = ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))];
         $rules['banking.payment_option'] = ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanPaymentOption::cases(), 'value'))];
-        $rules['banking.payout_bank_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
-        $rules['banking.payout_account_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
-        $rules['banking.payout_account_number'] = ['sometimes', 'nullable', 'string', 'max:255'];
-        $rules['banking.payout_account_type'] = ['sometimes', 'nullable', 'string', 'max:255'];
-        $rules['banking.payout_atm_number'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['banking.release_saved_account_id'] = ['sometimes', 'nullable', 'integer'];
+        $rules['banking.payment_saved_account_id'] = ['sometimes', 'nullable', 'integer'];
         $rules['declarations'] = ['sometimes', 'array:declaration_existing_loans,declaration_pending_cases,declaration_truth_confirmation,declaration_data_privacy_consent,existing_loan_1_date,existing_loan_1_type,existing_loan_1_amount,existing_loan_2_date,existing_loan_2_type,existing_loan_2_amount,existing_loan_3_date,existing_loan_3_type,existing_loan_3_amount'];
         $rules['declarations.declaration_existing_loans'] = ['sometimes', 'boolean'];
         $rules['declarations.declaration_pending_cases'] = ['sometimes', 'boolean'];

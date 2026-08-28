@@ -31,6 +31,8 @@ class LoanRequestDecisionService
     public function __construct(
         private LoanRequestCorrectionReportService $correctionReports,
         private SchemaCapabilities $schemaCapabilities,
+        private SavedPaymentAccountsService $savedPaymentAccountsService,
+        private LoanRequestDataService $dataService,
     ) {}
 
     /**
@@ -64,6 +66,10 @@ class LoanRequestDecisionService
             'approved_amount' => $payload['approved_amount'],
             'approved_term' => $payload['approved_term'],
             'decision_notes' => $payload['decision_notes'] ?? null,
+            'account_snapshot_json' => $this->savedPaymentAccountsService->snapshotForApproval(
+                $loanRequest,
+                $this->dataService->loadFlatValues($loanRequest),
+            ),
         ]);
 
         $loanRequest->save();

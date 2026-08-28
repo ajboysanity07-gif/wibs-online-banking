@@ -58,7 +58,7 @@ test('v2 workflow happy path reaches final approval after revised terms are acce
 
     $submitResponse = $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload($member));
 
     $loanRequest = LoanRequest::query()->sole();
 
@@ -252,7 +252,7 @@ test('v2 workflow reaches recommended-for-approval with witness_two_name omitted
 
     $submitResponse = $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload($member));
 
     $loanRequest = LoanRequest::query()->sole();
 
@@ -324,7 +324,7 @@ test('witness_one_name auto-fills from the linked wmaster record when the proces
 
     $submitResponse = $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload($member));
 
     $loanRequest = LoanRequest::query()->sole();
 
@@ -386,7 +386,7 @@ test('single loan manager is auto-assigned as witness two at processing, and app
 
     $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload($member));
 
     $loanRequest = LoanRequest::query()->sole();
 
@@ -499,7 +499,7 @@ test('processing with several loan managers requires choosing a witness-two mana
 
     $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload($member));
 
     $loanRequest = LoanRequest::query()->sole();
 
@@ -559,7 +559,7 @@ test('approval does not overwrite the witness-two manager chosen at processing',
 
     $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload($member));
 
     $loanRequest = LoanRequest::query()->sole();
 
@@ -646,7 +646,7 @@ test('only the designated manager can decline or return a recommended request fo
 
     $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload($member));
 
     $loanRequest = LoanRequest::query()->sole();
 
@@ -723,7 +723,7 @@ test('manager queue only lists recommended requests assigned to that manager', f
     foreach ([[$memberOne, $managerA], [$memberTwo, $managerB]] as [$member, $manager]) {
         $this
             ->actingAs($member)
-            ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+            ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload($member));
 
         $loanRequest = LoanRequest::query()->where('user_id', $member->user_id)->sole();
 
@@ -835,7 +835,7 @@ test('manager approval rolls back completely when document regeneration fails', 
 
     $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload($member));
 
     $loanRequest = LoanRequest::query()->sole();
 
@@ -1108,8 +1108,12 @@ function createAcceptanceWorkflowRequest(
 /**
  * @return array<string, mixed>
  */
-function acceptanceLoanRequestPayload(): array
+function acceptanceLoanRequestPayload(AppUser $member): array
 {
+    $savedAccountId = $member->fresh('memberApplicationProfile')
+        ->memberApplicationProfile
+        ->release_saved_account_id;
+
     return [
         'typecode' => 'LN-P7',
         'requested_amount' => 25000,
@@ -1139,19 +1143,10 @@ function acceptanceLoanRequestPayload(): array
             'applicant_cycle_number' => 1,
         ],
         'banking' => [
-            'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Happy Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'payout_atm_number' => '9876543210',
             'release_method' => 'Bank Transfer',
+            'release_saved_account_id' => $savedAccountId,
             'payment_option' => 'ATM Deduction',
-            'payment_bank_name' => 'WIBS Cooperative Bank',
-            'payment_account_name' => 'Happy Member',
-            'payment_account_number' => '1234567890',
-            'payment_account_type' => 'Savings',
-            'payment_atm_number' => '9876543210',
-            'payment_atm_holder_name' => 'Happy Member',
+            'payment_saved_account_id' => $savedAccountId,
         ],
         'barangay' => [
             'barangay_official_designation' => null,

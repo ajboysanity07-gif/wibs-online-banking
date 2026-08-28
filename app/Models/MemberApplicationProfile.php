@@ -102,22 +102,10 @@ class MemberApplicationProfile extends Model
         'employer_date_employed',
         'gross_monthly_income',
         'payday',
-        'payout_bank_name',
-        'payout_account_name',
-        'payout_account_number',
-        'payout_account_type',
         'release_method',
-        'payout_atm_number',
-        'payout_bank_branch',
-        'payout_atm_holder_name',
+        'release_saved_account_id',
         'payment_option',
-        'payment_bank_name',
-        'payment_account_name',
-        'payment_account_number',
-        'payment_account_type',
-        'payment_atm_number',
-        'payment_bank_branch',
-        'payment_atm_holder_name',
+        'payment_saved_account_id',
         'beneficiary_primary_name',
         'beneficiary_primary_relationship',
         'beneficiary_primary_birthdate',
@@ -151,6 +139,16 @@ class MemberApplicationProfile extends Model
     public function paymentAccounts(): HasMany
     {
         return $this->hasMany(MemberPaymentAccount::class);
+    }
+
+    public function releaseSavedAccount(): BelongsTo
+    {
+        return $this->belongsTo(MemberPaymentAccount::class, 'release_saved_account_id');
+    }
+
+    public function paymentSavedAccount(): BelongsTo
+    {
+        return $this->belongsTo(MemberPaymentAccount::class, 'payment_saved_account_id');
     }
 
     public function isComplete(): bool
@@ -251,29 +249,20 @@ class MemberApplicationProfile extends Model
     /**
      * Release (disbursement) and payment (repayment) fields reused to
      * pre-fill the loan-request wizard's "Loan Disbursement & Repayment"
-     * step and written back on validated loan submission.
+     * step and written back on validated loan submission. The account
+     * details themselves no longer live on the profile -- only the method
+     * and the member's chosen saved account (member_payment_accounts) are
+     * stored, and resolved to a frozen copy at loan-manager approval.
      *
      * @return list<string>
      */
     public static function payoutBankFields(): array
     {
         return [
-            'payout_bank_name',
-            'payout_account_name',
-            'payout_account_number',
-            'payout_account_type',
             'release_method',
-            'payout_atm_number',
-            'payout_bank_branch',
-            'payout_atm_holder_name',
+            'release_saved_account_id',
             'payment_option',
-            'payment_bank_name',
-            'payment_account_name',
-            'payment_account_number',
-            'payment_account_type',
-            'payment_atm_number',
-            'payment_bank_branch',
-            'payment_atm_holder_name',
+            'payment_saved_account_id',
         ];
     }
 
@@ -418,8 +407,11 @@ class MemberApplicationProfile extends Model
 
     /**
      * Bank & Payout fields required only once the member has chosen a
-     * release_method that needs them -- mirrors the Rule::requiredIf
-     * conditions already enforced in ProfileUpdateRequest/LoanRequestStoreRequest.
+     * release_method / payment_option that needs a bank account -- mirrors
+     * the Rule::requiredIf conditions already enforced in
+     * ProfileUpdateRequest and LoanRequestStoreRequest. A saved
+     * member_payment_accounts row is the single source of truth; the old
+     * free-text payout/payment columns no longer exist.
      *
      * @return list<string>
      */
@@ -429,34 +421,12 @@ class MemberApplicationProfile extends Model
         $paymentOption = trim((string) ($this->payment_option ?? ''));
         $required = [];
 
-        // An ATM card is backed by a bank account, so ATM release/payment
-        // also requires the underlying bank account fields, not just the
-        // card number.
         if (in_array($releaseMethod, [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)) {
-            array_push(
-                $required,
-                'payout_bank_name',
-                'payout_account_name',
-                'payout_account_number',
-                'payout_account_type',
-            );
+            $required[] = 'release_saved_account_id';
         }
 
-        if ($releaseMethod === LoanReleaseMethod::Atm->value) {
-            $required[] = 'payout_atm_number';
-            $required[] = 'payout_atm_holder_name';
-        }
-
-        if (in_array($paymentOption, [LoanPaymentOption::AtmDeduction->value], true)) {
-            array_push(
-                $required,
-                'payment_bank_name',
-                'payment_account_name',
-                'payment_account_number',
-                'payment_account_type',
-                'payment_atm_number',
-                'payment_atm_holder_name',
-            );
+        if ($paymentOption === LoanPaymentOption::AtmDeduction->value) {
+            $required[] = 'payment_saved_account_id';
         }
 
         return $required;
@@ -557,20 +527,10 @@ class MemberApplicationProfile extends Model
             'current_position' => 'Current position',
             'gross_monthly_income' => 'Gross monthly income',
             'payday' => 'Payday',
-            'payout_bank_name' => 'Bank name',
-            'payout_account_name' => 'Account name',
-            'payout_account_number' => 'Account number',
-            'payout_account_type' => 'Account type',
             'release_method' => 'Release method',
-            'payout_atm_number' => 'ATM card number',
-            'payout_atm_holder_name' => 'ATM card holder name',
+            'release_saved_account_id' => 'Saved payout account',
             'payment_option' => 'Payment option',
-            'payment_bank_name' => 'Repayment bank name',
-            'payment_account_name' => 'Repayment account name',
-            'payment_account_number' => 'Repayment account number',
-            'payment_account_type' => 'Repayment account type',
-            'payment_atm_number' => 'Repayment ATM card number',
-            'payment_atm_holder_name' => 'Repayment ATM card holder name',
+            'payment_saved_account_id' => 'Saved repayment account',
             'source_of_fund_wealth' => 'Source of fund / wealth',
             'id_type' => 'Government ID type',
             'id_type_other' => 'Government ID type (specify)',

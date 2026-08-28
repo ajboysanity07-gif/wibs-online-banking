@@ -2,6 +2,9 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanPaymentOption;
+use App\LoanReleaseMethod;
+use App\Models\LoanRequest;
 use App\Models\MemberApplicationProfile;
 use App\Models\MemberPaymentAccount;
 use Illuminate\Support\Collection;
@@ -85,5 +88,90 @@ class SavedPaymentAccountsService
     public function touchLastUsed(MemberPaymentAccount $account): void
     {
         $account->update(['last_used_at' => now()]);
+    }
+
+    /**
+     * Frozen copy of the account details behind a member's chosen release /
+     * repayment accounts. Written into loan_requests.account_snapshot_json
+     * the moment a loan is approved so the Authorization and Affidavit
+     * documents keep printing the details that were in effect at approval
+     * time, even if the member later edits or deletes the saved account.
+     *
+     * @param  array{release?:?int, payment?:?int}  $accountIds
+     * @return array{release: array<string, mixed>|null, payment: array<string, mixed>|null}
+     */
+    public function resolveApprovalSnapshot(MemberApplicationProfile $profile, array $accountIds): array
+    {
+        return [
+            'release' => $this->resolveAccountDetails($profile, $accountIds['release'] ?? null),
+            'payment' => $this->resolveAccountDetails($profile, $accountIds['payment'] ?? null),
+        ];
+    }
+
+    /**
+     * Resolves and freezes the account details in effect for a loan request
+     * at approval time. The EAV account ids the member actually picked for
+     * this loan win over the profile defaults; the frozen snapshot is what
+     * document generation reads afterwards.
+     *
+     * @param  array<string, mixed>  $flatValues
+     * @return array{release: array<string, mixed>|null, payment: array<string, mixed>|null}|null
+     */
+    public function snapshotForApproval(LoanRequest $loanRequest, array $flatValues): ?array
+    {
+        $profile = $loanRequest->user?->memberApplicationProfile;
+
+        if ($profile === null) {
+            return null;
+        }
+
+        $releaseMethod = $flatValues['release_method'] ?? $profile->release_method;
+        $needsReleaseAccount = in_array(
+            $releaseMethod,
+            [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value],
+            true,
+        );
+
+        $paymentOption = $flatValues['payment_option'] ?? $profile->payment_option;
+        $needsPaymentAccount = $paymentOption === LoanPaymentOption::AtmDeduction->value;
+
+        return $this->resolveApprovalSnapshot($profile, [
+            'release' => $needsReleaseAccount
+                ? $this->accountIdOrNull($flatValues['release_saved_account_id'] ?? $profile->release_saved_account_id)
+                : null,
+            'payment' => $needsPaymentAccount
+                ? $this->accountIdOrNull($flatValues['payment_saved_account_id'] ?? $profile->payment_saved_account_id)
+                : null,
+        ]);
+    }
+
+    private function accountIdOrNull(mixed $value): ?int
+    {
+        $value = $value === null || $value === '' ? null : (int) $value;
+
+        return $value !== null && $value > 0 ? $value : null;
+    }
+
+    public function resolveAccountDetails(MemberApplicationProfile $profile, ?int $accountId): ?array
+    {
+        if ($accountId === null) {
+            return null;
+        }
+
+        $account = $this->find($profile, $accountId);
+
+        if ($account === null) {
+            return null;
+        }
+
+        return [
+            'bank_name' => $account->bank_name,
+            'account_name' => $account->account_name,
+            'account_number' => $account->account_number,
+            'account_type' => $account->account_type,
+            'atm_number' => $account->atm_number,
+            'bank_branch' => $account->bank_branch,
+            'atm_holder_name' => $account->atm_holder_name,
+        ];
     }
 }

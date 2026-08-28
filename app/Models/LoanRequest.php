@@ -63,6 +63,7 @@ class LoanRequest extends Model
         'recommended_payment_frequency',
         'requested_payment_frequency',
         'kind_of_loan',
+        'account_snapshot_json',
         'decision_notes',
         'declined_by',
         'declined_at',
@@ -251,6 +252,28 @@ class LoanRequest extends Model
     }
 
     /**
+     * The payout-account detail copied into the loan request at the moment
+     * the loan manager approved it. Null for requests that were never
+     * approved (documents then resolve the member's saved account live).
+     *
+     * @return array<string, string|null>|null
+     */
+    public function frozenPayoutAccount(): ?array
+    {
+        return $this->account_snapshot_json['release'] ?? null;
+    }
+
+    /**
+     * Repayment-side counterpart of frozenPayoutAccount().
+     *
+     * @return array<string, string|null>|null
+     */
+    public function frozenPaymentAccount(): ?array
+    {
+        return $this->account_snapshot_json['payment'] ?? null;
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -283,6 +306,7 @@ class LoanRequest extends Model
             'workflow_upgraded_at' => 'datetime',
             'reopened_at' => 'datetime',
             'member_action_fields_json' => 'array',
+            'account_snapshot_json' => 'array',
             'workflow_version' => LoanRequestWorkflowVersion::class,
             'status' => LoanRequestStatus::class,
             'wibs_release_date' => 'date',

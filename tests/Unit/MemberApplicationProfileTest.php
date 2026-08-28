@@ -47,10 +47,8 @@ test('spouse name and birthdate are required when civil status is Married', func
 test('only release method is unconditionally included in completion required fields', function () {
     expect(MemberApplicationProfile::completionRequiredFields())
         ->toContain('release_method')
-        ->not->toContain('payout_bank_name')
-        ->not->toContain('payout_account_name')
-        ->not->toContain('payout_account_number')
-        ->not->toContain('payout_account_type');
+        ->not->toContain('release_saved_account_id')
+        ->not->toContain('payment_saved_account_id');
 });
 
 test('release method is required before it is set', function () use ($baseAttributes) {
@@ -59,140 +57,54 @@ test('release method is required before it is set', function () use ($baseAttrib
     expect($profile->missingRequiredFields())->toContain('release_method');
 });
 
-test('base bank and payout fields are not required for cash or check', function () use ($baseAttributes) {
+test('a saved release account is not required for cash or check', function () use ($baseAttributes) {
     foreach (['Cash', 'Check'] as $releaseMethod) {
         $profile = new MemberApplicationProfile([
             ...$baseAttributes,
             'release_method' => $releaseMethod,
         ]);
 
-        expect($profile->missingRequiredFields())
-            ->not->toContain('payout_bank_name')
-            ->not->toContain('payout_account_name')
-            ->not->toContain('payout_account_number')
-            ->not->toContain('payout_account_type');
+        expect($profile->missingRequiredFields())->not->toContain('release_saved_account_id');
     }
 });
 
-test('base bank and payout fields are required for atm and bank transfer', function () use ($baseAttributes) {
+test('a saved release account is required for atm and bank transfer', function () use ($baseAttributes) {
     foreach (['ATM', 'Bank Transfer'] as $releaseMethod) {
         $profile = new MemberApplicationProfile([
             ...$baseAttributes,
             'release_method' => $releaseMethod,
         ]);
 
-        expect($profile->missingRequiredFields())
-            ->toContain('payout_bank_name')
-            ->toContain('payout_account_name')
-            ->toContain('payout_account_number')
-            ->toContain('payout_account_type');
+        expect($profile->missingRequiredFields())->toContain('release_saved_account_id');
 
         $profile = new MemberApplicationProfile([
             ...$baseAttributes,
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'payout_atm_number' => '5555444433332222',
-            'payout_atm_holder_name' => 'Test User',
+            'release_saved_account_id' => 1,
             'release_method' => $releaseMethod,
         ]);
 
-        expect($profile->missingRequiredFields())
-            ->not->toContain('payout_bank_name')
-            ->not->toContain('payout_account_name')
-            ->not->toContain('payout_account_number')
-            ->not->toContain('payout_account_type');
+        expect($profile->missingRequiredFields())->not->toContain('release_saved_account_id');
     }
 });
 
-test('payment bank and atm fields are only required when payment option is atm deduction', function () use ($baseAttributes) {
+test('a saved payment account is only required when payment option is atm deduction', function () use ($baseAttributes) {
     $salaryDeduction = new MemberApplicationProfile([
         ...$baseAttributes,
         'payment_option' => 'Salary Deduction',
     ]);
 
-    expect($salaryDeduction->missingRequiredFields())
-        ->not->toContain('payment_bank_name')
-        ->not->toContain('payment_account_name')
-        ->not->toContain('payment_account_number')
-        ->not->toContain('payment_account_type')
-        ->not->toContain('payment_atm_number')
-        ->not->toContain('payment_atm_holder_name');
+    expect($salaryDeduction->missingRequiredFields())->not->toContain('payment_saved_account_id');
 
     $atmDeduction = new MemberApplicationProfile([
         ...$baseAttributes,
         'payment_option' => 'ATM Deduction',
     ]);
 
-    expect($atmDeduction->missingRequiredFields())
-        ->toContain('payment_bank_name')
-        ->toContain('payment_account_name')
-        ->toContain('payment_account_number')
-        ->toContain('payment_account_type')
-        ->toContain('payment_atm_number')
-        ->toContain('payment_atm_holder_name');
+    expect($atmDeduction->missingRequiredFields())->toContain('payment_saved_account_id');
 
-    $atmDeduction->payment_bank_name = 'BDO';
-    $atmDeduction->payment_account_name = 'Test User';
-    $atmDeduction->payment_account_number = '1234567890';
-    $atmDeduction->payment_account_type = 'Savings';
-    $atmDeduction->payment_atm_number = '5555444433332222';
-    $atmDeduction->payment_atm_holder_name = 'Test User';
+    $atmDeduction->payment_saved_account_id = 1;
 
-    expect($atmDeduction->missingRequiredFields())
-        ->not->toContain('payment_bank_name')
-        ->not->toContain('payment_account_name')
-        ->not->toContain('payment_account_number')
-        ->not->toContain('payment_account_type')
-        ->not->toContain('payment_atm_number')
-        ->not->toContain('payment_atm_holder_name');
-});
-
-test('atm fields are only required when release method is ATM', function () use ($baseAttributes) {
-    $bankTransfer = new MemberApplicationProfile([
-        ...$baseAttributes,
-        'payout_bank_name' => 'BDO',
-        'payout_account_name' => 'Test User',
-        'payout_account_number' => '1234567890',
-        'payout_account_type' => 'Savings',
-        'release_method' => 'Bank Transfer',
-    ]);
-
-    expect($bankTransfer->missingRequiredFields())
-        ->not->toContain('payout_atm_number')
-        ->not->toContain('payout_atm_holder_name');
-
-    $atm = new MemberApplicationProfile([
-        ...$baseAttributes,
-        'release_method' => 'ATM',
-    ]);
-
-    expect($atm->missingRequiredFields())
-        ->toContain('payout_atm_number')
-        ->toContain('payout_atm_holder_name');
-
-    $atm->payout_atm_number = '5555444433332222';
-    $atm->payout_atm_holder_name = 'Test User';
-
-    expect($atm->missingRequiredFields())
-        ->not->toContain('payout_atm_number')
-        ->not->toContain('payout_atm_holder_name');
-});
-
-test('payout bank branch is never required', function () use ($baseAttributes) {
-    foreach (['ATM', 'Bank Transfer', 'Check', 'Cash'] as $releaseMethod) {
-        $profile = new MemberApplicationProfile([
-            ...$baseAttributes,
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'release_method' => $releaseMethod,
-        ]);
-
-        expect($profile->missingRequiredFields())->not->toContain('payout_bank_branch');
-    }
+    expect($atmDeduction->missingRequiredFields())->not->toContain('payment_saved_account_id');
 });
 
 test('loan prerequisite fields mirror the same release-method conditionality', function () use ($baseAttributes) {
@@ -206,11 +118,7 @@ test('loan prerequisite fields mirror the same release-method conditionality', f
         'weight_kg' => '65',
     ]);
 
-    expect($cash->missingLoanPrerequisiteFields())
-        ->not->toContain('payout_bank_name')
-        ->not->toContain('payout_account_name')
-        ->not->toContain('payout_account_number')
-        ->not->toContain('payout_account_type');
+    expect($cash->missingLoanPrerequisiteFields())->not->toContain('release_saved_account_id');
 
     $bankTransfer = new MemberApplicationProfile([
         ...$baseAttributes,
@@ -222,34 +130,7 @@ test('loan prerequisite fields mirror the same release-method conditionality', f
         'weight_kg' => '65',
     ]);
 
-    expect($bankTransfer->missingLoanPrerequisiteFields())
-        ->toContain('payout_bank_name')
-        ->toContain('payout_account_name')
-        ->toContain('payout_account_number')
-        ->toContain('payout_account_type');
-});
-
-test('legacy WMASTER "NA" placeholder values are treated as missing, not present', function () use ($baseAttributes) {
-    $profile = new MemberApplicationProfile([
-        ...$baseAttributes,
-        'payout_bank_name' => 'NA',
-        'payout_account_name' => 'N/A',
-        'payout_account_number' => 'na',
-        'payout_account_type' => 'n/a',
-        'release_method' => 'Bank Transfer',
-    ]);
-
-    expect($profile->missingRequiredFields())
-        ->toContain('payout_bank_name')
-        ->toContain('payout_account_name')
-        ->toContain('payout_account_number')
-        ->toContain('payout_account_type');
-
-    expect($profile->missingLoanPrerequisiteFields())
-        ->toContain('payout_bank_name')
-        ->toContain('payout_account_name')
-        ->toContain('payout_account_number')
-        ->toContain('payout_account_type');
+    expect($bankTransfer->missingLoanPrerequisiteFields())->toContain('release_saved_account_id');
 });
 
 test('employmentTypeMatches recognizes real-world casing/hyphen variants of the canonical value', function () {

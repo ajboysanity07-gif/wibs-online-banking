@@ -52,7 +52,7 @@ function createExistingLoansTestMember(string $acctno): AppUser
 }
 
 test('declarations section exposes the 3 existing-loan slots gated by declaration_existing_loans', function (): void {
-    $definitions = (new LoanRequestDataService)->sectionDefinitions();
+    $definitions = app(LoanRequestDataService::class)->sectionDefinitions();
 
     expect($definitions)->toHaveKey('declarations');
 

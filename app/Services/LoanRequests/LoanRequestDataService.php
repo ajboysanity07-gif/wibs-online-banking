@@ -3,8 +3,6 @@
 namespace App\Services\LoanRequests;
 
 use App\LoanPaydayOption;
-use App\LoanPaymentOption;
-use App\LoanReleaseMethod;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestDataChange;
@@ -14,6 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class LoanRequestDataService
 {
+    public function __construct(
+        private SavedPaymentAccountsService $savedPaymentAccountsService,
+    ) {}
+
     private const OWNER_MEMBER = 'member';
 
     private const OWNER_STAFF = 'staff';
@@ -621,38 +623,6 @@ class LoanRequestDataService
             'detail_of' => 'applicant_pep_status',
         ],
 
-        'payout_bank_name' => [
-            'label' => 'Payout bank name',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'payout_account_name' => [
-            'label' => 'Payout account name',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'payout_account_number' => [
-            'label' => 'Payout account number',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'payout_account_type' => [
-            'label' => 'Payout account type',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
         'release_method' => [
             'label' => 'Release method',
             'owner' => self::OWNER_MEMBER,
@@ -685,86 +655,7 @@ class LoanRequestDataService
             'section' => 'banking',
             'type' => 'integer',
         ],
-        'payout_atm_number' => [
-            'label' => 'Payout ATM number',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'payout_bank_branch' => [
-            'label' => 'Payout bank branch',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'payout_atm_holder_name' => [
-            'label' => 'ATM card holder name (if not the borrower)',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'payment_bank_name' => [
-            'label' => 'Repayment bank name',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'payment_account_name' => [
-            'label' => 'Repayment account name',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'payment_account_number' => [
-            'label' => 'Repayment account number',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'payment_account_type' => [
-            'label' => 'Repayment account type',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'payment_atm_number' => [
-            'label' => 'Repayment ATM card number',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'payment_bank_branch' => [
-            'label' => 'Repayment bank branch',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
-        'payment_atm_holder_name' => [
-            'label' => 'Repayment ATM card holder name (if not the borrower)',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'banking',
-            'type' => 'string',
-        ],
+
         'declaration_existing_loans' => [
             'label' => 'Do you have any previous or existing loan(s)?',
             'owner' => self::OWNER_MEMBER,
@@ -1659,6 +1550,15 @@ class LoanRequestDataService
             }
         }
 
+        $sections['banking']['release_account_detail'] = $this->savedPaymentAccountDetails(
+            $loanRequest,
+            $sections['banking']['release_saved_account_id'] ?? null,
+        );
+        $sections['banking']['payment_account_detail'] = $this->savedPaymentAccountDetails(
+            $loanRequest,
+            $sections['banking']['payment_saved_account_id'] ?? null,
+        );
+
         $institutionName = $sections['processing']['authority_to_deduct_institution_name'] ?? null;
 
         if (! is_string($institutionName) || trim($institutionName) === '') {
@@ -1670,6 +1570,35 @@ class LoanRequestDataService
         }
 
         return $sections;
+    }
+
+    /**
+     * Resolves the member's saved payment account of record for a loan request
+     * into its printable fields so staff/admin/client screens can render the
+     * resolved bank account details without holding the accounts list. The
+     * frozen approval snapshot (loanRequest.account_snapshot) remains the
+     * preferred source once a request is approved.
+     *
+     * @return array<string, string|null>|null
+     */
+    private function savedPaymentAccountDetails(
+        LoanRequest $loanRequest,
+        mixed $accountId,
+    ): ?array {
+        if (! is_numeric($accountId)) {
+            return null;
+        }
+
+        $profile = $loanRequest->user?->memberApplicationProfile;
+
+        if ($profile === null) {
+            return null;
+        }
+
+        return $this->savedPaymentAccountsService->resolveAccountDetails(
+            $profile,
+            (int) $accountId,
+        );
     }
 
     /**
@@ -1728,22 +1657,8 @@ class LoanRequestDataService
     private const MEMBER_PAYMENT_METHOD_FIELDS = [
         'release_method',
         'release_saved_account_id',
-        'payout_bank_name',
-        'payout_account_name',
-        'payout_account_number',
-        'payout_account_type',
-        'payout_atm_number',
-        'payout_bank_branch',
-        'payout_atm_holder_name',
         'payment_option',
         'payment_saved_account_id',
-        'payment_bank_name',
-        'payment_account_name',
-        'payment_account_number',
-        'payment_account_type',
-        'payment_atm_number',
-        'payment_bank_branch',
-        'payment_atm_holder_name',
     ];
 
     /**
@@ -1765,26 +1680,6 @@ class LoanRequestDataService
             );
         }
     }
-
-    /**
-     * @return list<string>
-     */
-    private const PAYOUT_BANK_ACCOUNT_FIELDS = [
-        'payout_bank_name',
-        'payout_account_name',
-        'payout_account_number',
-        'payout_account_type',
-    ];
-
-    /**
-     * @return list<string>
-     */
-    private const PAYMENT_BANK_ACCOUNT_FIELDS = [
-        'payment_bank_name',
-        'payment_account_name',
-        'payment_account_number',
-        'payment_account_type',
-    ];
 
     /**
      * Sections whose required fields are waived when the member requested a
@@ -1814,29 +1709,6 @@ class LoanRequestDataService
             if (
                 $isDueDateNoInsurance
                 && in_array($definition['section'], self::DUE_DATE_WAIVED_SECTIONS, true)
-            ) {
-                continue;
-            }
-
-            // The base payout account fields matter once the member has
-            // chosen Bank Transfer or ATM -- an ATM card is backed by a
-            // bank account. Cash/Check don't need one on file.
-            if (
-                in_array($fieldKey, self::PAYOUT_BANK_ACCOUNT_FIELDS, true)
-                && ! in_array(
-                    $flatValues['release_method'] ?? null,
-                    [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value],
-                    true,
-                )
-            ) {
-                continue;
-            }
-
-            // Repayment bank account fields only matter once the member has
-            // chosen ATM Deduction as their payment option.
-            if (
-                in_array($fieldKey, self::PAYMENT_BANK_ACCOUNT_FIELDS, true)
-                && ($flatValues['payment_option'] ?? null) !== LoanPaymentOption::AtmDeduction->value
             ) {
                 continue;
             }

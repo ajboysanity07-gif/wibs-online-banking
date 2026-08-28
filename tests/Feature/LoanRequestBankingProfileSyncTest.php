@@ -1,5 +1,7 @@
 <?php
 
+use App\LoanPaymentOption;
+use App\LoanReleaseMethod;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
@@ -70,7 +72,24 @@ function createBankingTestMember(string $acctno, array $profileOverrides = []): 
 /**
  * @return array<string, mixed>
  */
-function fullLoanRequestSubmitPayload(): array
+function savedAccountPayload(array $overrides = []): array
+{
+    return array_merge([
+        'label' => 'Primary',
+        'bank_name' => 'WIBS Cooperative Bank',
+        'account_name' => 'Loan Member',
+        'account_number' => '1234567890',
+        'account_type' => 'Savings',
+        'atm_number' => '9876543210',
+        'bank_branch' => 'Main Branch',
+        'atm_holder_name' => null,
+    ], $overrides);
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function fullLoanRequestSubmitPayload(int $releaseAccountId): array
 {
     $person = fn (array $overrides = []) => array_merge([
         'first_name' => 'First',
@@ -130,22 +149,10 @@ function fullLoanRequestSubmitPayload(): array
             'health_recent_hospitalization' => false,
         ],
         'banking' => [
-            'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Loan Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'release_method' => 'ATM',
-            'payment_option' => 'ATM Deduction',
-            'payout_atm_number' => '9876543210',
-            'payout_bank_branch' => 'Main Branch',
-            'payout_atm_holder_name' => null,
-            'payment_bank_name' => 'WIBS Cooperative Bank',
-            'payment_account_name' => 'Loan Member',
-            'payment_account_number' => '1234567890',
-            'payment_account_type' => 'Savings',
-            'payment_atm_number' => '9876543210',
-            'payment_bank_branch' => 'Main Branch',
-            'payment_atm_holder_name' => null,
+            'release_method' => LoanReleaseMethod::BankTransfer->value,
+            'release_saved_account_id' => $releaseAccountId,
+            'payment_option' => LoanPaymentOption::AtmDeduction->value,
+            'payment_saved_account_id' => $releaseAccountId,
         ],
         'barangay' => [
             'barangay_official_designation' => null,
@@ -168,40 +175,56 @@ function fullLoanRequestSubmitPayload(): array
 }
 
 test('getFormData prefills Bank & payout from the member profile and flags it', function (): void {
-    $member = createBankingTestMember('003100', [
-        'payout_bank_name' => 'Profile Bank',
-        'payout_account_name' => 'Profile Holder',
-        'payout_account_number' => '111222333',
-        'payout_account_type' => 'Savings',
-        'release_method' => 'ATM',
-    ]);
+    $member = createBankingTestMember('003100');
+    $profile = $member->memberApplicationProfile;
+
+    $account = $profile->paymentAccounts()->create(savedAccountPayload([
+        'bank_name' => 'Profile Bank',
+        'account_name' => 'Profile Holder',
+        'account_number' => '111222333',
+    ]));
+
+    $profile->forceFill([
+        'release_method' => LoanReleaseMethod::BankTransfer->value,
+        'release_saved_account_id' => $account->id,
+        'payment_option' => LoanPaymentOption::AtmDeduction->value,
+        'payment_saved_account_id' => $account->id,
+    ])->save();
 
     $formData = app(LoanRequestService::class)->getFormData($member);
 
     expect($formData['bankingPrefilledFromProfile'])->toBeTrue();
-    expect($formData['dataSections']['banking']['payout_bank_name'])->toBe('Profile Bank');
-    expect($formData['dataSections']['banking']['payout_account_number'])->toBe('111222333');
+    expect($formData['dataSections']['banking']['release_saved_account_id'])->toBe($account->id);
+    expect($formData['dataSections']['banking']['payment_saved_account_id'])->toBe($account->id);
 });
 
 test('getFormData does not flag prefill when the profile has no banking data', function (): void {
-    // completed() sets release_method unconditionally to simulate a
-    // realistic onboarded profile -- null it back out so this profile
-    // truly has zero banking data, matching what the test asserts.
     $member = createBankingTestMember('003101', ['release_method' => null]);
 
     $formData = app(LoanRequestService::class)->getFormData($member);
 
     expect($formData['bankingPrefilledFromProfile'])->toBeFalse();
-    expect($formData['dataSections']['banking']['payout_bank_name'])->toBeNull();
+    expect($formData['dataSections']['banking']['release_saved_account_id'])->toBeNull();
+    expect($formData['dataSections']['banking']['payment_saved_account_id'])->toBeNull();
 });
 
 test('getFormData does not overwrite banking values already saved on the draft', function (): void {
-    // Same as above -- null the factory's default release_method so the
-    // profile only carries the one field this test cares about.
-    $member = createBankingTestMember('003102', [
-        'payout_bank_name' => 'Profile Bank',
-        'release_method' => null,
-    ]);
+    $member = createBankingTestMember('003102', ['release_method' => null]);
+    $profile = $member->memberApplicationProfile;
+
+    $profileAccount = $profile->paymentAccounts()->create(savedAccountPayload([
+        'bank_name' => 'Profile Bank',
+        'account_name' => 'Profile Holder',
+    ]));
+
+    $profile->forceFill([
+        'release_saved_account_id' => $profileAccount->id,
+    ])->save();
+
+    $draftAccount = $profile->paymentAccounts()->create(savedAccountPayload([
+        'bank_name' => 'Draft Bank',
+        'account_name' => 'Draft Holder',
+    ]));
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::Draft,
@@ -209,76 +232,88 @@ test('getFormData does not overwrite banking values already saved on the draft',
     ]);
 
     app(\App\Services\LoanRequests\LoanRequestDataService::class)->syncMemberSections($loanRequest, [
-        'banking' => ['payout_bank_name' => 'Member Edited Bank'],
+        'banking' => ['release_saved_account_id' => $draftAccount->id],
     ]);
 
     $formData = app(LoanRequestService::class)->getFormData($member);
 
     expect($formData['bankingPrefilledFromProfile'])->toBeFalse();
-    expect($formData['dataSections']['banking']['payout_bank_name'])->toBe('Member Edited Bank');
+    expect($formData['dataSections']['banking']['release_saved_account_id'])->toBe($draftAccount->id);
 });
 
 test('submit writes back validated banking and applicant fields to the member profile', function (): void {
     $member = createBankingTestMember('003103', [
-        'payout_bank_name' => 'Placeholder Bank',
-        'payout_account_name' => 'Placeholder Holder',
-        'payout_account_number' => '000000000',
-        'payout_account_type' => 'Savings',
-        'release_method' => 'ATM',
-        'payout_atm_number' => '5555444433332222',
-        'payout_atm_holder_name' => 'Placeholder Holder',
+        'release_method' => LoanReleaseMethod::BankTransfer->value,
         'source_of_fund_wealth' => 'Salary',
         'id_type' => 'TIN',
         'id_number' => '123-456-789',
         'height_cm' => '165',
         'weight_kg' => '68',
     ]);
+    $profile = $member->memberApplicationProfile;
 
-    app(LoanRequestService::class)->submit($member, fullLoanRequestSubmitPayload());
+    $account = $profile->paymentAccounts()->create(savedAccountPayload([
+        'bank_name' => 'Placeholder Bank',
+        'account_name' => 'Placeholder Holder',
+        'account_number' => '000000000',
+    ]));
+
+    $profile->forceFill([
+        'payment_option' => LoanPaymentOption::AtmDeduction->value,
+        'release_saved_account_id' => $account->id,
+        'payment_saved_account_id' => $account->id,
+    ])->save();
+
+    app(LoanRequestService::class)->submit($member, fullLoanRequestSubmitPayload($account->id));
 
     $profile = MemberApplicationProfile::query()
         ->where('user_id', $member->user_id)
         ->first();
 
     expect($profile)->not->toBeNull();
-    expect($profile->payout_bank_name)->toBe('WIBS Cooperative Bank');
-    expect($profile->payout_account_number)->toBe('1234567890');
-    expect($profile->release_method)->toBe('ATM');
+    expect($profile->release_saved_account_id)->toBe($account->id);
+    expect($profile->payment_saved_account_id)->toBe($account->id);
+    expect($profile->release_method)->toBe(LoanReleaseMethod::BankTransfer->value);
     expect($profile->employer_business_name)->toBe('Company');
     expect($profile->current_position)->toBe('Analyst');
 });
 
 test('submit does not write back on a draft-only save', function (): void {
-    $member = createBankingTestMember('003104');
+    $member = createBankingTestMember('003104', ['release_method' => null]);
 
     app(LoanRequestService::class)->saveDraft($member, [
-        'banking' => ['payout_bank_name' => 'Draft Only Bank'],
+        'banking' => [
+            'release_method' => LoanReleaseMethod::BankTransfer->value,
+        ],
     ]);
 
     $profile = MemberApplicationProfile::query()
         ->where('user_id', $member->user_id)
         ->first();
 
-    expect($profile->payout_bank_name)->toBeNull();
+    expect($profile->release_saved_account_id)->toBeNull();
 });
 
 test('submit persists home and office zip codes on the applicant snapshot', function (): void {
     $member = createBankingTestMember('003105', [
-        'payout_bank_name' => 'WIBS Cooperative Bank',
-        'payout_account_name' => 'Loan Member',
-        'payout_account_number' => '1234567890',
-        'payout_account_type' => 'Savings',
-        'release_method' => 'ATM',
-        'payout_atm_number' => '5555444433332222',
-        'payout_atm_holder_name' => 'Loan Member',
+        'release_method' => LoanReleaseMethod::BankTransfer->value,
         'source_of_fund_wealth' => 'Salary',
         'id_type' => 'TIN',
         'id_number' => '123-456-789',
         'height_cm' => '165',
         'weight_kg' => '68',
     ]);
+    $profile = $member->memberApplicationProfile;
 
-    $loanRequest = app(LoanRequestService::class)->submit($member, fullLoanRequestSubmitPayload());
+    $account = $profile->paymentAccounts()->create(savedAccountPayload());
+
+    $profile->forceFill([
+        'payment_option' => LoanPaymentOption::AtmDeduction->value,
+        'release_saved_account_id' => $account->id,
+        'payment_saved_account_id' => $account->id,
+    ])->save();
+
+    $loanRequest = app(LoanRequestService::class)->submit($member, fullLoanRequestSubmitPayload($account->id));
 
     $applicant = $loanRequest->people()
         ->where('role', LoanRequestPersonRole::Applicant)

@@ -1,5 +1,7 @@
 <?php
 
+use App\LoanPaymentOption;
+use App\LoanReleaseMethod;
 use App\Models\AppUser as User;
 use App\Models\MemberApplicationProfile;
 use App\Models\UserProfile;
@@ -42,9 +44,27 @@ beforeEach(function () {
     UserProfile::factory()->approved()->create([
         'user_id' => $this->user->user_id,
     ]);
-    MemberApplicationProfile::factory()->completed()->create([
+    $profile = MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $this->user->user_id,
     ]);
+
+    $account = $profile->paymentAccounts()->create([
+        'label' => 'Primary',
+        'bank_name' => 'WIBS Cooperative Bank',
+        'account_name' => 'Loan Member',
+        'account_number' => '1234567890',
+        'account_type' => 'Savings',
+        'atm_number' => '9876543210',
+        'bank_branch' => 'Main Branch',
+        'atm_holder_name' => null,
+    ]);
+
+    $profile->forceFill([
+        'release_method' => LoanReleaseMethod::BankTransfer->value,
+        'payment_option' => LoanPaymentOption::AtmDeduction->value,
+        'release_saved_account_id' => $account->id,
+        'payment_saved_account_id' => $account->id,
+    ])->save();
     DB::table('wmaster')->insert([
         'acctno' => $this->user->acctno,
         'bname' => 'Member, Loan',
@@ -64,7 +84,7 @@ beforeEach(function () {
 /**
  * @return array<string, mixed>
  */
-function loanRequestPayload(): array
+function loanRequestPayload(int $releaseAccountId): array
 {
     return [
         'typecode' => 'LN-005',
@@ -91,11 +111,10 @@ function loanRequestPayload(): array
             'authorized_recipient_relationship' => 'Sibling',
         ],
         'banking' => [
-            'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Loan Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'payout_atm_number' => '9876543210',
+            'release_method' => LoanReleaseMethod::BankTransfer->value,
+            'release_saved_account_id' => $releaseAccountId,
+            'payment_option' => LoanPaymentOption::AtmDeduction->value,
+            'payment_saved_account_id' => $releaseAccountId,
         ],
         'barangay' => [
             'barangay_official_designation' => null,
@@ -200,7 +219,7 @@ function loanRequestPayload(): array
 }
 
 test('loan request submission rejects invalid applicant cell numbers', function (string $cellNumber) {
-    $payload = loanRequestPayload();
+    $payload = loanRequestPayload((int) $this->user->memberApplicationProfile->release_saved_account_id);
     $payload['applicant']['cell_no'] = $cellNumber;
 
     $response = $this
@@ -215,7 +234,7 @@ test('loan request submission rejects invalid applicant cell numbers', function 
 ]);
 
 test('loan request submission rejects invalid spouse cell numbers', function (string $cellNumber) {
-    $payload = loanRequestPayload();
+    $payload = loanRequestPayload((int) $this->user->memberApplicationProfile->release_saved_account_id);
     $payload['applicant']['spouse_cell_no'] = $cellNumber;
 
     $response = $this

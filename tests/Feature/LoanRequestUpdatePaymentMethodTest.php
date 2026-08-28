@@ -210,12 +210,12 @@ test('selecting a saved account round-trips bank branch and ATM holder name into
         ->assertOk();
 
     $loanRequest->unsetRelation('dataEntries');
-    $flat = app(\App\Services\LoanRequests\LoanRequestDataService::class)
-        ->loadFlatValues($loanRequest->refresh());
+    $sections = app(\App\Services\LoanRequests\LoanRequestDataService::class)
+        ->serializeSections($loanRequest->refresh());
 
-    foreach (['payout_', 'payment_'] as $prefix) {
-        expect($flat["{$prefix}bank_branch"])->toBe('Rizal Ave Branch')
-            ->and($flat["{$prefix}atm_holder_name"])->toBe('Payment Member');
+    foreach (['release_account_detail', 'payment_account_detail'] as $key) {
+        expect($sections['banking'][$key]['bank_branch'])->toBe('Rizal Ave Branch')
+            ->and($sections['banking'][$key]['atm_holder_name'])->toBe('Payment Member');
     }
 });
 

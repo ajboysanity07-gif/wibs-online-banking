@@ -53,7 +53,7 @@ function createGlapiTestMember(string $acctno): AppUser
 }
 
 test('health_glapi section exposes detail_of pairings and the sex-conditional item', function (): void {
-    $definitions = (new LoanRequestDataService)->sectionDefinitions();
+    $definitions = app(LoanRequestDataService::class)->sectionDefinitions();
 
     expect($definitions)->toHaveKey('health_glapi');
 
@@ -101,7 +101,7 @@ test('health_glapi section exposes detail_of pairings and the sex-conditional it
 });
 
 test('recent hospitalization is its own item positioned immediately after item #5', function (): void {
-    $definitions = (new LoanRequestDataService)->sectionDefinitions();
+    $definitions = app(LoanRequestDataService::class)->sectionDefinitions();
     $fields = $definitions['health_glapi']['fields'];
 
     expect($fields)->toHaveKey('health_recent_hospitalization');
@@ -125,7 +125,7 @@ test('recent hospitalization is its own item positioned immediately after item #
 });
 
 test('smoking status and hypertension render as proper first-person questions, not raw labels', function (): void {
-    $definitions = (new LoanRequestDataService)->sectionDefinitions();
+    $definitions = app(LoanRequestDataService::class)->sectionDefinitions();
     $fields = $definitions['health']['fields'];
 
     expect($fields['health_smoking_status']['label'])
@@ -146,7 +146,7 @@ test('none of the health_glapi fields block member submission yet', function ():
         'acctno' => $member->acctno,
     ]);
 
-    $missing = (new LoanRequestDataService)->missingRequiredMemberFields($loanRequest);
+    $missing = app(LoanRequestDataService::class)->missingRequiredMemberFields($loanRequest);
 
     $glapiMissing = array_filter(
         $missing,

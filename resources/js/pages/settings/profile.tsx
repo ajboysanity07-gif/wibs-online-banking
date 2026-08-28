@@ -357,13 +357,13 @@ export default function Profile({
         memberApplicationProfile?.release_method ?? '',
     );
     const [releaseAccountId, setReleaseAccountId] = useState<number | null>(
-        null,
+        memberApplicationProfile?.release_saved_account_id ?? null,
     );
     const [paymentOption, setPaymentOption] = useState<string>(
         memberApplicationProfile?.payment_option ?? '',
     );
     const [paymentAccountId, setPaymentAccountId] = useState<number | null>(
-        null,
+        memberApplicationProfile?.payment_saved_account_id ?? null,
     );
     const resolvedNatureOfBusiness =
         natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE

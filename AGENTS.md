@@ -2,6 +2,25 @@
 
 > Quick-ref for project-specific structure only. Generic conventions → AGENTS.md.
 
+> ## ⚠️ MANDATORY — Graphify First (read this before anything below)
+>
+> This repo keeps a persistent knowledge graph at `graphify-out/graph.json`.
+> For **ANY question about this codebase** (architecture, file relationships,
+> "how does X work", "what calls Y", "where is Z", data flow, workflow paths)
+> **you MUST run the graphify CLI BEFORE any grep/glob/read/Task search**:
+>
+> ```
+> graphify query "<question>"
+> graphify path "<A>" "<B>"     # relationship between two concepts
+> graphify explain "<concept>"  # focused plain-language explanation
+> ```
+>
+> Only fall back to grep/glob/read when graphify returns nothing useful, or the
+> question is a pure filename/needle lookup. Prefer `graphify-out/wiki/index.md`
+> for broad navigation over raw source browsing. After modifying code, run
+> `graphify update .`. (The `.opencode/plugins/graphify-first.ts` plugin injects
+> this same rule into the system prompt; keep both in sync.)
+
 ## Project Map
 
 | Concern | Path |
@@ -69,7 +88,7 @@ loan-requests:sync-profile-incomes  Sync member profile income onto active loan-
 
 ## graphify
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships. See the "MANDATORY — Graphify First" note at the top of this file for the ordering rule; the `.opencode/plugins/graphify-first.ts` plugin enforces the same rule in the opencode system prompt.
 
 Rules:
 - For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.

@@ -1,5 +1,7 @@
 <?php
 
+use App\LoanPaymentOption;
+use App\LoanReleaseMethod;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
@@ -115,19 +117,32 @@ test('getFormData does not overwrite beneficiary values already saved on the dra
 
 test('submit writes back validated beneficiary fields to the member profile', function (): void {
     $member = createBeneficiaryTestMember('003203', [
-        'payout_bank_name' => 'Placeholder Bank',
-        'payout_account_name' => 'Placeholder Holder',
-        'payout_account_number' => '000000000',
-        'payout_account_type' => 'Savings',
-        'release_method' => 'ATM',
-        'payout_atm_number' => '5555444433332222',
-        'payout_atm_holder_name' => 'Placeholder Holder',
+        'release_method' => LoanReleaseMethod::BankTransfer->value,
         'source_of_fund_wealth' => 'Salary',
         'id_type' => 'TIN',
         'id_number' => '123-456-789',
         'height_cm' => '165',
         'weight_kg' => '68',
     ]);
+
+    $profile = $member->memberApplicationProfile;
+
+    $account = $profile->paymentAccounts()->create([
+        'label' => 'Primary',
+        'bank_name' => 'WIBS Cooperative Bank',
+        'account_name' => 'Loan Member',
+        'account_number' => '1234567890',
+        'account_type' => 'Savings',
+        'atm_number' => '9876543210',
+        'bank_branch' => 'Main Branch',
+        'atm_holder_name' => null,
+    ]);
+
+    $profile->forceFill([
+        'payment_option' => LoanPaymentOption::AtmDeduction->value,
+        'release_saved_account_id' => $account->id,
+        'payment_saved_account_id' => $account->id,
+    ])->save();
 
     $person = fn (array $overrides = []) => array_merge([
         'first_name' => 'First',
@@ -185,22 +200,10 @@ test('submit writes back validated beneficiary fields to the member profile', fu
             'health_recent_hospitalization' => false,
         ],
         'banking' => [
-            'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Loan Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'release_method' => 'ATM',
-            'payment_option' => 'ATM Deduction',
-            'payout_atm_number' => '9876543210',
-            'payout_bank_branch' => 'Main Branch',
-            'payout_atm_holder_name' => null,
-            'payment_bank_name' => 'WIBS Cooperative Bank',
-            'payment_account_name' => 'Loan Member',
-            'payment_account_number' => '1234567890',
-            'payment_account_type' => 'Savings',
-            'payment_atm_number' => '9876543210',
-            'payment_bank_branch' => 'Main Branch',
-            'payment_atm_holder_name' => null,
+            'release_method' => LoanReleaseMethod::BankTransfer->value,
+            'release_saved_account_id' => $account->id,
+            'payment_option' => LoanPaymentOption::AtmDeduction->value,
+            'payment_saved_account_id' => $account->id,
         ],
         'barangay' => [
             'barangay_official_designation' => null,

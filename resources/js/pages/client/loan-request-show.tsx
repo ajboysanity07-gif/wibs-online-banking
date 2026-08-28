@@ -6,6 +6,7 @@ import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-de
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import {
     PaymentAccountPickerSheet,
+    PaymentMethodIcon,
     type PaymentMethodOption,
 } from '@/components/loan-request/payment-account-picker-sheet';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -72,6 +73,7 @@ import type {
     LoanRequestAuditEntry,
     LoanRequestDataFieldDefinition,
     LoanRequestDataSectionDefinitions,
+    LoanRequestDataSectionValues,
     LoanRequestDataSections,
     LoanRequestDetail,
     LoanRequestPersonData,
@@ -424,12 +426,24 @@ export default function LoanRequestShow({
     const bankingPaymentAccountLabel = savedPaymentAccounts.find(
         (account) => account.id === bankingPaymentAccountId,
     )?.label;
+    const bankingReleaseAccount = bankingReleaseAccountId
+        ? savedPaymentAccounts.find(
+              (account) => account.id === bankingReleaseAccountId,
+          )
+        : null;
+    const bankingReleaseDetail = (
+        bankingSection as {
+            release_account_detail?: {
+                account_number?: string | null;
+            } | null;
+        } | null
+    )?.release_account_detail;
     const bankingAccountNumber =
         bankingReleaseMethod === 'ATM' ||
         bankingReleaseMethod === 'Bank Transfer'
-            ? bankingSection.payout_account_number
-                ? `${bankingSection.payout_account_number}`
-                : ''
+            ? bankingReleaseDetail?.account_number ||
+              bankingReleaseAccount?.account_number ||
+              ''
             : '';
 
     const releaseMethodOptions: PaymentMethodOption[] = [
@@ -482,11 +496,18 @@ export default function LoanRequestShow({
                 ...current.banking,
                 release_method: method,
                 release_saved_account_id: accountId,
-                payout_account_number:
-                    selectedAccount?.account_number ??
-                    current.banking?.payout_account_number ??
-                    null,
-            },
+                release_account_detail: selectedAccount
+                    ? {
+                          bank_name: selectedAccount.bank_name,
+                          account_name: null,
+                          account_number: selectedAccount.account_number,
+                          account_type: null,
+                          atm_number: null,
+                          bank_branch: null,
+                          atm_holder_name: null,
+                      }
+                    : null,
+            } as unknown as LoanRequestDataSectionValues,
         }));
 
         return true;
@@ -871,9 +892,17 @@ export default function LoanRequestShow({
                                     Release method
                                 </p>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">
-                                        {bankingReleaseMethod || 'Not set'}
-                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <PaymentMethodIcon
+                                            method={
+                                                bankingReleaseMethod || null
+                                            }
+                                            className="h-4 w-4 text-muted-foreground"
+                                        />
+                                        <p className="text-sm text-muted-foreground">
+                                            {bankingReleaseMethod || 'Not set'}
+                                        </p>
+                                    </div>
                                     {(bankingReleaseMethod === 'ATM' ||
                                         bankingReleaseMethod ===
                                             'Bank Transfer') && (
@@ -897,9 +926,17 @@ export default function LoanRequestShow({
                                     Repayment method
                                 </p>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">
-                                        {bankingPaymentOption || 'Not set'}
-                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <PaymentMethodIcon
+                                            method={
+                                                bankingPaymentOption || null
+                                            }
+                                            className="h-4 w-4 text-muted-foreground"
+                                        />
+                                        <p className="text-sm text-muted-foreground">
+                                            {bankingPaymentOption || 'Not set'}
+                                        </p>
+                                    </div>
                                     {bankingPaymentOption ===
                                         'ATM Deduction' && (
                                         <p className="text-sm text-muted-foreground">

@@ -202,7 +202,13 @@ const CIVIL_STATUS_OPTIONS = new Set([
     'Widowed',
 ]);
 const PAYDAY_OPTIONS = new Set([
-    'Daily', 'Weekly', 'Monthly', 'Quincenal', 'Semi-annual', 'Yearly', 'Due date',
+    'Daily',
+    'Weekly',
+    'Monthly',
+    'Quincenal',
+    'Semi-annual',
+    'Yearly',
+    'Due date',
 ]);
 
 const loanFieldLabels: Record<LoanDetailField, string> = {
@@ -279,22 +285,10 @@ const dataSectionFieldLabels: Record<string, Record<string, string>> = {
         applicant_pep_status_details: 'PEP role, function, and date assumed',
     },
     banking: {
-        payout_bank_name: 'Payout bank name',
-        payout_account_name: 'Payout account name',
-        payout_account_number: 'Payout account number',
-        payout_account_type: 'Payout account type',
         release_method: 'Release method',
+        release_saved_account_id: 'Saved release account',
         payment_option: 'Payment option',
-        payout_atm_number: 'ATM number',
-        payout_bank_branch: 'Payout bank branch',
-        payout_atm_holder_name: 'Payout ATM card holder name',
-        payment_bank_name: 'Repayment bank name',
-        payment_account_name: 'Repayment account name',
-        payment_account_number: 'Repayment account number',
-        payment_account_type: 'Repayment account type',
-        payment_atm_number: 'Repayment ATM number',
-        payment_bank_branch: 'Repayment bank branch',
-        payment_atm_holder_name: 'Repayment ATM card holder name',
+        payment_saved_account_id: 'Saved repayment account',
     },
 };
 

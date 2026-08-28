@@ -2,6 +2,7 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanReleaseMethod;
 use App\LoanRequestDocumentKey;
 use App\LoanRequestDocumentReadinessStatus;
 use App\LoanRequestPersonRole;
@@ -80,6 +81,7 @@ class LoanRequestDocumentWorkflowService
         private LoanRequestDataService $dataService,
         private ApprovedLoanDocumentService $approvedLoanDocumentService,
         private LoanRequestDocumentCatalog $documentCatalog,
+        private SavedPaymentAccountsService $savedPaymentAccountsService,
         private LoanRequestDocumentStorage $documentStorage,
     ) {}
 
@@ -758,12 +760,6 @@ class LoanRequestDocumentWorkflowService
                     'authority_to_deduct_officer_2_title' => $flatValues['authority_to_deduct_officer_2_title'] ?? null,
                     'release_method' => $flatValues['release_method'] ?? null,
                     'payment_option' => $flatValues['payment_option'] ?? null,
-                    'payout_bank_name' => $flatValues['payout_bank_name'] ?? null,
-                    'payout_account_name' => $flatValues['payout_account_name'] ?? null,
-                    'payout_account_number' => $flatValues['payout_account_number'] ?? null,
-                    'payout_account_type' => $flatValues['payout_account_type'] ?? null,
-                    'payout_atm_number' => $flatValues['payout_atm_number'] ?? null,
-                    'payout_bank_branch' => $flatValues['payout_bank_branch'] ?? null,
                     'health_smoking_status' => $flatValues['health_smoking_status'] ?? null,
                     'health_hypertension' => $flatValues['health_hypertension'] ?? null,
                     'health_recent_hospitalization' => $flatValues['health_recent_hospitalization'] ?? null,
@@ -932,6 +928,12 @@ class LoanRequestDocumentWorkflowService
             $fieldValues[$fieldKey] = $flatValues[$fieldKey] ?? null;
         }
 
+        foreach ($this->authorizationBankFieldValues($loanRequest, $flatValues) as $fieldKey => $bankValue) {
+            if (array_key_exists($fieldKey, $fieldValues)) {
+                $fieldValues[$fieldKey] = $bankValue;
+            }
+        }
+
         $snapshotValues = [];
 
         foreach ($this->documentCatalog->sourceSnapshotPaths($documentKey) as $snapshotPath) {
@@ -972,6 +974,7 @@ class LoanRequestDocumentWorkflowService
         array $flatValues,
     ): array {
         $missingFields = [];
+        $bankFieldValues = $this->authorizationBankFieldValues($loanRequest, $flatValues);
 
         foreach ($requiredFields as $fieldKey) {
             if (in_array($fieldKey, self::REQUIRED_RECOMMENDATION_FIELDS, true)) {
@@ -979,6 +982,10 @@ class LoanRequestDocumentWorkflowService
             }
 
             $value = $flatValues[$fieldKey] ?? null;
+
+            if (array_key_exists($fieldKey, $bankFieldValues)) {
+                $value = $bankFieldValues[$fieldKey];
+            }
 
             if ($this->isBlankValue($value)) {
                 $missingFields[] = $fieldKey;
@@ -1020,6 +1027,24 @@ class LoanRequestDocumentWorkflowService
             $conditionalFields[] = 'applicant_pep_status_details';
         }
 
+        $releaseMethod = $flatValues['release_method'] ?? null;
+
+        if (
+            in_array(
+                $releaseMethod,
+                [
+                    LoanReleaseMethod::Atm->value,
+                    LoanReleaseMethod::BankTransfer->value,
+                ],
+                true,
+            )
+            && $this->isBlankValue(
+                ($this->authorizationBankFieldValues($loanRequest, $flatValues))['payout_bank_name'] ?? null,
+            )
+        ) {
+            $conditionalFields[] = 'release_saved_account_id';
+        }
+
         // No conditional applicant_cycle_number requirement -- the applicant's
         // cycle is auto-computed (LoanRequestCycleStateService), and
         // dependent/spouse cycle numbers are optional metadata regardless of
@@ -1041,6 +1066,71 @@ class LoanRequestDocumentWorkflowService
             $this->dataService->unconfirmedSensitiveFields($loanRequest),
             static fn (string $fieldKey): bool => in_array($fieldKey, $sourceFields, true),
         ));
+    }
+
+    /**
+     * Bank details that back the Authorization / Affidavit documents, keyed
+     * by the legacy payout_* doc-data keys those PDF field maps still read.
+     * The frozen account_snapshot_json wins (deterministic docs after
+     * approval); before approval it falls back to the live saved release
+     * account of record so the readiness gate and staleness hash still work.
+     *
+     * @param  array<string, mixed>  $flatValues
+     * @return array<string, mixed> The 7 payout_* keys.
+     */
+    private function authorizationBankFieldValues(LoanRequest $loanRequest, array $flatValues): array
+    {
+        $snapshot = $loanRequest->account_snapshot_json;
+        $release = is_array($snapshot) ? ($snapshot['release'] ?? null) : null;
+
+        if (! is_array($release)) {
+            $release = $this->liveReleaseAccountDetails($loanRequest, $flatValues);
+        }
+
+        return [
+            'payout_bank_name' => $release['bank_name'] ?? null,
+            'payout_account_name' => $release['account_name'] ?? null,
+            'payout_account_number' => $release['account_number'] ?? null,
+            'payout_account_type' => $release['account_type'] ?? null,
+            'payout_atm_number' => $release['atm_number'] ?? null,
+            'payout_bank_branch' => $release['bank_branch'] ?? null,
+            'payout_atm_holder_name' => $release['atm_holder_name'] ?? null,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $flatValues
+     * @return array<string, mixed>|null
+     */
+    private function liveReleaseAccountDetails(LoanRequest $loanRequest, array $flatValues): ?array
+    {
+        $profile = $loanRequest->user?->memberApplicationProfile;
+
+        if ($profile === null) {
+            return null;
+        }
+
+        $accountId = $flatValues['release_saved_account_id'] ?? $profile->release_saved_account_id;
+
+        if ($accountId === null || $accountId === '') {
+            return null;
+        }
+
+        $account = $this->savedPaymentAccountsService->find($profile, (int) $accountId);
+
+        if ($account === null) {
+            return null;
+        }
+
+        return [
+            'bank_name' => $account->bank_name,
+            'account_name' => $account->account_name,
+            'account_number' => $account->account_number,
+            'account_type' => $account->account_type,
+            'atm_number' => $account->atm_number,
+            'bank_branch' => $account->bank_branch,
+            'atm_holder_name' => $account->atm_holder_name,
+        ];
     }
 
     /**

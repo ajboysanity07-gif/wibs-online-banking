@@ -89,7 +89,7 @@ function prerequisiteTestMember(string $acctno, bool $withLoanPrerequisites): Ap
 /**
  * @return array<string, mixed>
  */
-function prerequisiteTestStorePayload(): array
+function prerequisiteTestStorePayload(?MemberApplicationProfile $profile = null): array
 {
     return [
         'typecode' => 'LN-P7',
@@ -114,19 +114,10 @@ function prerequisiteTestStorePayload(): array
             'health_recent_hospitalization' => false,
         ],
         'banking' => [
-            'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Test Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'payout_atm_number' => '9876543210',
             'release_method' => 'Bank Transfer',
+            'release_saved_account_id' => $profile?->release_saved_account_id,
             'payment_option' => 'ATM Deduction',
-            'payment_bank_name' => 'WIBS Cooperative Bank',
-            'payment_account_name' => 'Test Member',
-            'payment_account_number' => '1234567890',
-            'payment_account_type' => 'Savings',
-            'payment_atm_number' => '9876543210',
-            'payment_atm_holder_name' => 'Test Member',
+            'payment_saved_account_id' => $profile?->payment_saved_account_id,
         ],
         'barangay' => [
             'barangay_official_designation' => null,
@@ -239,7 +230,7 @@ test('submitting a loan request succeeds once prerequisites are on file', functi
 
     $response = $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload());
+        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload($member->memberApplicationProfile));
 
     $loanRequest = LoanRequest::query()->first();
 
@@ -262,7 +253,7 @@ test('submission blocked when loan-only prerequisites (not covered by profile co
 
     $response = $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload());
+        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload($member->memberApplicationProfile));
 
     $response->assertSessionHasErrors(['loan_prerequisites']);
     expect(LoanRequest::query()->count())->toBe(0);
@@ -275,7 +266,7 @@ test('submission blocked mid-session when prerequisites were cleared after the p
 
     $response = $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload());
+        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload($member->memberApplicationProfile));
 
     $response->assertSessionHasErrors(['loan_prerequisites']);
     expect(LoanRequest::query()->count())->toBe(0);
@@ -288,7 +279,7 @@ test('submission blocked when prerequisites are legacy WMASTER "NA" placeholder 
 
     $response = $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload());
+        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload($member->memberApplicationProfile));
 
     $response->assertSessionHasErrors(['loan_prerequisites']);
     expect(LoanRequest::query()->count())->toBe(0);

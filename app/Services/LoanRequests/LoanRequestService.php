@@ -250,9 +250,20 @@ class LoanRequestService
                 continue;
             }
 
-            $profileValue = $this->normalizeOptionalString(
-                $profile->getAttribute($field),
-            );
+            $profileValue = $profile->getAttribute($field);
+
+            if ($profileValue === null) {
+                continue;
+            }
+
+            if (is_int($profileValue) || is_numeric($profileValue)) {
+                $bankingValues[$field] = (int) $profileValue;
+                $prefilled = true;
+
+                continue;
+            }
+
+            $profileValue = $this->normalizeOptionalString($profileValue);
 
             if ($profileValue === null) {
                 continue;

@@ -293,6 +293,7 @@ class LoanRequestPayloadSerializer
                 $loanRequest,
                 $this->dataService->loadFlatValues($loanRequest),
             ),
+            'account_snapshot' => $loanRequest->account_snapshot_json,
             'is_first_processing_save' => ! LoanRequestChange::hasProcessingUpdate($loanRequest),
         ];
     }

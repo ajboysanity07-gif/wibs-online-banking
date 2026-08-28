@@ -39,8 +39,9 @@ function createSavedPaymentAccountTestMember(string $acctno): AppUser
     );
 
     UserProfile::factory()->approved()->create(['user_id' => $member->user_id]);
-    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
+    MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $member->user_id,
+        'release_method' => 'Cash',
     ]);
 
     DB::table('wmaster')->updateOrInsert(

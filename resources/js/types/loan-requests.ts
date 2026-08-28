@@ -281,6 +281,35 @@ export type LoanRequestDataSections = Record<
 >;
 
 /**
+ * Printable bank-account detail -- the shape both of a saved payment account
+ * resolved onto a loan request and of the frozen loan_requests.account_snapshot_json
+ * written at approval time.
+ */
+export type SavedPaymentAccountSnapshotDetail = {
+    bank_name: string | null;
+    account_name: string | null;
+    account_number: string | null;
+    account_type: string | null;
+    atm_number: string | null;
+    bank_branch: string | null;
+    atm_holder_name: string | null;
+};
+
+export type SavedPaymentAccountSnapshot = {
+    release: SavedPaymentAccountSnapshotDetail | null;
+    payment: SavedPaymentAccountSnapshotDetail | null;
+};
+
+export type LoanRequestBankingSectionValues = LoanRequestDataSectionValues & {
+    release_method?: string | null;
+    payment_option?: string | null;
+    release_saved_account_id?: number | null;
+    payment_saved_account_id?: number | null;
+    release_account_detail?: SavedPaymentAccountSnapshotDetail | null;
+    payment_account_detail?: SavedPaymentAccountSnapshotDetail | null;
+};
+
+/**
  * Group Life Insurance (Generali/Grepalife) cycle state for one slot -- the
  * applicant, spouse, or a dependent_{category}_{slot} key. `locked` is always
  * true: cycle values are auto-computed from the member's wlnmaster loan
@@ -497,6 +526,7 @@ export type LoanRequestDetail = {
     applicant_loan_status: LoanStatusSummaryForStaff | null;
     authority_to_deduct_guidance: AuthorityToDeductGuidance | null;
     waiver_applicability: WaiverApplicability | null;
+    account_snapshot: SavedPaymentAccountSnapshot | null;
 };
 
 export type LoanRequestListItem = {

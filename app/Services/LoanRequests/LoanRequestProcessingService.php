@@ -73,13 +73,6 @@ class LoanRequestProcessingService
                     $this->savedPaymentAccountsService->touchLastUsed($account);
 
                     $fields['release_saved_account_id'] = $account->id;
-                    $fields['payout_bank_name'] = $account->bank_name;
-                    $fields['payout_account_name'] = $account->account_name;
-                    $fields['payout_account_number'] = $account->account_number;
-                    $fields['payout_account_type'] = $account->account_type;
-                    $fields['payout_atm_number'] = $account->atm_number;
-                    $fields['payout_bank_branch'] = $account->bank_branch;
-                    $fields['payout_atm_holder_name'] = $account->atm_holder_name;
                 }
             }
 
@@ -102,13 +95,6 @@ class LoanRequestProcessingService
                     $this->savedPaymentAccountsService->touchLastUsed($account);
 
                     $fields['payment_saved_account_id'] = $account->id;
-                    $fields['payment_bank_name'] = $account->bank_name;
-                    $fields['payment_account_name'] = $account->account_name;
-                    $fields['payment_account_number'] = $account->account_number;
-                    $fields['payment_account_type'] = $account->account_type;
-                    $fields['payment_atm_number'] = $account->atm_number;
-                    $fields['payment_bank_branch'] = $account->bank_branch;
-                    $fields['payment_atm_holder_name'] = $account->atm_holder_name;
                 }
             }
 
@@ -925,6 +911,7 @@ class LoanRequestProcessingService
                 'recommended_payment_frequency' => $approvedPaymentFrequency,
                 'approval_remarks' => $approvalRemarks !== '' ? $approvalRemarks : null,
                 'decision_notes' => $approvalRemarks !== '' ? $approvalRemarks : null,
+                'account_snapshot_json' => $this->freezeAccountSnapshot($lockedLoanRequest),
             ]);
             $lockedLoanRequest->save();
 
@@ -1014,6 +1001,21 @@ class LoanRequestProcessingService
         );
 
         return $updated;
+    }
+
+    /**
+     * Copies the member's chosen release/repayment account details into
+     * account_snapshot_json at the moment of approval. The EAV account ids
+     * this member actually picked for this loan win over the profile
+     * defaults; once frozen, document generation reads this snapshot and is
+     * immune to later edits/deletions of the underlying saved account.
+     */
+    private function freezeAccountSnapshot(LoanRequest $loanRequest): ?array
+    {
+        return $this->savedPaymentAccountsService->snapshotForApproval(
+            $loanRequest,
+            $this->dataService->loadFlatValues($loanRequest),
+        );
     }
 
     public function declineByManager(

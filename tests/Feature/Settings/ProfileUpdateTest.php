@@ -172,10 +172,6 @@ test('profile update accepts a real birthplace city and province', function () {
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
@@ -299,10 +295,6 @@ test('profile update accepts an optional real birthplace barangay', function () 
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
@@ -379,10 +371,6 @@ test('profile update leaves birthplace barangay blank without error', function (
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
@@ -667,10 +655,6 @@ test('profile can be saved when spouse name is locked by wmaster and civil statu
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
@@ -886,17 +870,21 @@ test('profile page exposes payout bank fields', function () {
         'user_id' => $user->user_id,
     ]);
 
-    MemberApplicationProfile::factory()->create([
+    $memberProfile = MemberApplicationProfile::factory()->create([
         'user_id' => $user->user_id,
-        'payout_bank_name' => 'BDO',
-        'payout_account_name' => 'Renee Santos',
-        'payout_account_number' => '1234567890',
-        'payout_account_type' => 'Savings',
         'release_method' => 'Bank deposit',
-        'payout_atm_number' => '5555444433332222',
-        'payout_bank_branch' => 'Tagum City',
-        'payout_atm_holder_name' => null,
     ]);
+    $account = MemberPaymentAccount::factory()->create([
+        'member_application_profile_id' => $memberProfile->id,
+        'bank_name' => 'BDO',
+        'account_name' => 'Renee Santos',
+        'account_number' => '1234567890',
+        'account_type' => 'Savings',
+        'atm_number' => '5555444433332222',
+        'bank_branch' => 'Tagum City',
+        'atm_holder_name' => null,
+    ]);
+    $memberProfile->forceFill(['release_saved_account_id' => $account->id])->save();
 
     $response = $this
         ->actingAs($user)
@@ -906,14 +894,8 @@ test('profile page exposes payout bank fields', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/profile')
-            ->where('memberApplicationProfile.payout_bank_name', 'BDO')
-            ->where('memberApplicationProfile.payout_account_name', 'Renee Santos')
-            ->where('memberApplicationProfile.payout_account_number', '1234567890')
-            ->where('memberApplicationProfile.payout_account_type', 'Savings')
             ->where('memberApplicationProfile.release_method', 'Bank deposit')
-            ->where('memberApplicationProfile.payout_atm_number', '5555444433332222')
-            ->where('memberApplicationProfile.payout_bank_branch', 'Tagum City')
-            ->where('memberApplicationProfile.payout_atm_holder_name', null)
+            ->where('memberApplicationProfile.release_saved_account_id', $account->id)
         );
 });
 
@@ -976,14 +958,15 @@ test('profile information can be updated with payout bank details', function () 
     $memberProfile = $user->refresh()->memberApplicationProfile;
 
     expect($memberProfile)->not->toBeNull();
-    expect($memberProfile->payout_bank_name)->toBe('BDO');
-    expect($memberProfile->payout_account_name)->toBe('Test User');
-    expect($memberProfile->payout_account_number)->toBe('1234567890');
-    expect($memberProfile->payout_account_type)->toBe('Savings');
     expect($memberProfile->release_method)->toBe('Bank Transfer');
-    expect($memberProfile->payout_atm_number)->toBe('5555444433332222');
-    expect($memberProfile->payout_bank_branch)->toBe('Tagum City');
-    expect($memberProfile->payout_atm_holder_name)->toBe('Test User');
+    expect($memberProfile->release_saved_account_id)->toBe($account->id);
+    expect($memberProfile->releaseSavedAccount->bank_name)->toBe('BDO');
+    expect($memberProfile->releaseSavedAccount->account_name)->toBe('Test User');
+    expect($memberProfile->releaseSavedAccount->account_number)->toBe('1234567890');
+    expect($memberProfile->releaseSavedAccount->account_type)->toBe('Savings');
+    expect($memberProfile->releaseSavedAccount->atm_number)->toBe('5555444433332222');
+    expect($memberProfile->releaseSavedAccount->bank_branch)->toBe('Tagum City');
+    expect($memberProfile->releaseSavedAccount->atm_holder_name)->toBe('Test User');
 });
 
 test('a saved account is required for ATM Deduction and its details persist onto the profile', function () {
@@ -1082,7 +1065,8 @@ test('a saved account is required for ATM Deduction and its details persist onto
 
     expect($memberProfile)->not->toBeNull();
     expect($memberProfile->payment_option)->toBe('ATM Deduction');
-    expect($memberProfile->payment_atm_holder_name)->toBe('Test User');
+    expect($memberProfile->payment_saved_account_id)->toBe($account->id);
+    expect($memberProfile->paymentSavedAccount->atm_holder_name)->toBe('Test User');
 });
 
 test('optional bank details can be saved even when release method is not bank transfer', function () {
@@ -1139,10 +1123,11 @@ test('optional bank details can be saved even when release method is not bank tr
 
     expect($memberProfile)->not->toBeNull();
     expect($memberProfile->release_method)->toBe('ATM');
-    expect($memberProfile->payout_bank_name)->toBe('BDO');
-    expect($memberProfile->payout_account_name)->toBe('Test User');
-    expect($memberProfile->payout_account_number)->toBe('1234567890');
-    expect($memberProfile->payout_account_type)->toBe('Savings');
+    expect($memberProfile->release_saved_account_id)->toBe($account->id);
+    expect($memberProfile->releaseSavedAccount->bank_name)->toBe('BDO');
+    expect($memberProfile->releaseSavedAccount->account_name)->toBe('Test User');
+    expect($memberProfile->releaseSavedAccount->account_number)->toBe('1234567890');
+    expect($memberProfile->releaseSavedAccount->account_type)->toBe('Savings');
 });
 
 test('profile information can be updated with height and weight', function () {
@@ -1176,10 +1161,6 @@ test('profile information can be updated with height and weight', function () {
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
@@ -1329,10 +1310,6 @@ test('onboarding is not blocked by empty source of fund or government id fields'
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
         ]);
 
@@ -1417,10 +1394,6 @@ test('profile information can be updated with dependent name and birthdate only'
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
@@ -1515,10 +1488,6 @@ test('updating dependent name via settings preserves cycle status/number set by 
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
@@ -1589,10 +1558,6 @@ test('removing a dependent in settings deletes the saved row and its cycle data'
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
@@ -2266,10 +2231,6 @@ test('civil status and housing status are self-reportable when wmaster has no va
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
@@ -2325,10 +2286,6 @@ test('civil status and housing status stay locked once wmaster has a value', fun
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
@@ -2378,10 +2335,6 @@ test('spouse name and birthdate are not required when civil status is Single', f
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
@@ -2430,10 +2383,6 @@ test('spouse name and birthdate validation is not required when civil status is 
                 'current_position' => 'Analyst',
                 'gross_monthly_income' => '35000.00',
                 'payday' => 'Quincenal',
-                'payout_bank_name' => 'BDO',
-                'payout_account_name' => 'Test User',
-                'payout_account_number' => '1234567890',
-                'payout_account_type' => 'Savings',
                 'release_method' => 'Cash',
             ]);
 
@@ -2482,10 +2431,6 @@ test('spouse name and birthdate are not required when wmaster civil status is Wi
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',
@@ -2569,10 +2514,6 @@ test('spouse birthdate persists on the member application profile', function () 
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => 'Quincenal',
-            'payout_bank_name' => 'BDO',
-            'payout_account_name' => 'Test User',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Cash',
             'height_cm' => '165',
             'weight_kg' => '68',

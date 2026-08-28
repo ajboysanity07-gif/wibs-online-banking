@@ -46,6 +46,7 @@ import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type {
     LoanManagerOption,
+    LoanRequestBankingSectionValues,
     LoanRequestCycleState,
     LoanRequestDataSectionDefinitions,
     LoanRequestDataSections,
@@ -54,6 +55,7 @@ import type {
     LoanRequestPersonData,
     LoanRequestReviewer,
     LoanRequestWorkflowResult,
+    SavedPaymentAccountSnapshotDetail,
 } from '@/types/loan-requests';
 
 export const textareaClassName =
@@ -191,24 +193,17 @@ const SNAPSHOT_GATED_FIELDS = new Set([
     ...SNAPSHOT_PENSION_FIELDS,
 ]);
 
-const BANKING_PAYOUT_FIELDS = [
-    'payout_bank_name',
-    'payout_account_name',
-    'payout_account_number',
-    'payout_account_type',
-    'payout_atm_number',
-    'payout_bank_branch',
-    'payout_atm_holder_name',
-];
-
-const BANKING_REPAYMENT_FIELDS = [
-    'payment_bank_name',
-    'payment_account_name',
-    'payment_account_number',
-    'payment_account_type',
-    'payment_atm_number',
-    'payment_bank_branch',
-    'payment_atm_holder_name',
+const BANKING_ACCOUNT_DETAIL_LABELS: {
+    key: keyof SavedPaymentAccountSnapshotDetail;
+    label: string;
+}[] = [
+    { key: 'bank_name', label: 'Bank name' },
+    { key: 'account_name', label: 'Account name' },
+    { key: 'account_number', label: 'Account number' },
+    { key: 'account_type', label: 'Account type' },
+    { key: 'atm_number', label: 'ATM number' },
+    { key: 'bank_branch', label: 'Bank branch' },
+    { key: 'atm_holder_name', label: 'ATM card holder name' },
 ];
 
 const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
@@ -882,6 +877,35 @@ export function ProcessingDetailsPanel({
             />
         );
     };
+
+    const bankingSection = dataSections.banking as
+        | LoanRequestBankingSectionValues
+        | undefined;
+    const releaseAccountDetail =
+        loanRequest.account_snapshot?.release ??
+        bankingSection?.release_account_detail ??
+        null;
+    const paymentAccountDetail =
+        loanRequest.account_snapshot?.payment ??
+        bankingSection?.payment_account_detail ??
+        null;
+
+    const renderAccountDetailRows = (
+        detail: SavedPaymentAccountSnapshotDetail | null,
+    ) =>
+        detail
+            ? BANKING_ACCOUNT_DETAIL_LABELS.filter(
+                  ({ key }) =>
+                      typeof detail[key] === 'string' &&
+                      `${detail[key]}`.trim() !== '',
+              ).map(({ key, label }) => (
+                  <SnapshotRow
+                      key={key}
+                      label={label}
+                      value={`${detail[key]}`}
+                  />
+              ))
+            : null;
 
     const renderProcessingSectionLabel = (
         title: string,
@@ -2136,14 +2160,10 @@ export function ProcessingDetailsPanel({
                             {(dataSections.banking?.release_method === 'ATM' ||
                                 dataSections.banking?.release_method ===
                                     'Bank Transfer') &&
-                                BANKING_PAYOUT_FIELDS.map((fieldKey) =>
-                                    renderBankingSnapshotField(fieldKey),
-                                )}
+                                renderAccountDetailRows(releaseAccountDetail)}
                             {dataSections.banking?.payment_option ===
                                 'ATM Deduction' &&
-                                BANKING_REPAYMENT_FIELDS.map((fieldKey) =>
-                                    renderBankingSnapshotField(fieldKey),
-                                )}
+                                renderAccountDetailRows(paymentAccountDetail)}
                         </div>
 
                         {loanRequest.authority_to_deduct_guidance?.category ===
