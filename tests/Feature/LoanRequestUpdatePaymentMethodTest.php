@@ -183,6 +183,42 @@ test('a member can update their release and repayment method using a saved accou
     expect($account->fresh()->last_used_at)->not->toBeNull();
 });
 
+test('selecting a saved account round-trips bank branch and ATM holder name into the loan request data', function (): void {
+    // Guards the regression where the saved-account picker silently dropped
+    // the "Bank branch" and "ATM card holder name" inputs, so any account
+    // saved through it rendered blank on the Authorization / Affidavit PDFs.
+    $member = createPaymentMethodTestMember('005608');
+    $loanRequest = submitPaymentMethodTestLoan($member);
+
+    $account = MemberPaymentAccount::factory()->forProfile($member->memberApplicationProfile)->create([
+        'bank_name' => 'BPI',
+        'account_name' => 'Payment Member',
+        'account_number' => '9988776655',
+        'account_type' => 'Savings',
+        'atm_number' => '1122334455667788',
+        'bank_branch' => 'Rizal Ave Branch',
+        'atm_holder_name' => 'Payment Member',
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson("/client/loans/requests/{$loanRequest->id}/payment-method", [
+            'release_method' => 'ATM',
+            'release_saved_account_id' => $account->id,
+            'payment_option' => 'ATM Deduction',
+            'payment_saved_account_id' => $account->id,
+        ])
+        ->assertOk();
+
+    $loanRequest->unsetRelation('dataEntries');
+    $flat = app(\App\Services\LoanRequests\LoanRequestDataService::class)
+        ->loadFlatValues($loanRequest->refresh());
+
+    foreach (['payout_', 'payment_'] as $prefix) {
+        expect($flat["{$prefix}bank_branch"])->toBe('Rizal Ave Branch')
+            ->and($flat["{$prefix}atm_holder_name"])->toBe('Payment Member');
+    }
+});
+
 test('a member can still update their payment method while a processor is reviewing the request', function (): void {
     $member = createPaymentMethodTestMember('005601');
     $loanRequest = submitPaymentMethodTestLoan($member);

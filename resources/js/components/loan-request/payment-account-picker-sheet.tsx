@@ -297,6 +297,53 @@ export function PaymentAccountPickerSheet({
                                                         }
                                                     />
                                                 </div>
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="new_account_atm_holder_name">
+                                                        ATM card holder name
+                                                        (optional)
+                                                    </Label>
+                                                    <Input
+                                                        id="new_account_atm_holder_name"
+                                                        value={
+                                                            newAccount.atm_holder_name ??
+                                                            ''
+                                                        }
+                                                        onChange={(event) =>
+                                                            setNewAccount(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    atm_holder_name:
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                }),
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="new_account_bank_branch">
+                                                        Bank branch (optional)
+                                                    </Label>
+                                                    <Input
+                                                        id="new_account_bank_branch"
+                                                        value={
+                                                            newAccount.bank_branch ??
+                                                            ''
+                                                        }
+                                                        onChange={(event) =>
+                                                            setNewAccount(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    bank_branch:
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                }),
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
                                                 <div className="flex gap-2">
                                                     <Button
                                                         type="button"
