@@ -3,15 +3,17 @@
 namespace App\Services\LoanRequests;
 
 use App\Models\LoanRequest;
-use App\Models\MemberDependentProfile;
 
 /**
  * Resolves the Group Life Insurance (Generali/Grepalife) cycle status
- * (New/Old + cycle number) for the applicant, spouse, and each dependent
- * slot of a loan request's owning member.
+ * (New/Old + cycle number) for the applicant of a loan request's owning
+ * member.
  *
- * Cycle values are auto-computed from the member's wlnmaster loan history
- * via LoanRequestCycleComputeService. All slots are read-only (locked).
+ * The applicant's cycle value is auto-computed from the member's wlnmaster
+ * loan history via LoanRequestCycleComputeService and is read-only (locked).
+ * Spouse and dependent cycle values are not auto-computed — each dependent
+ * has their own insurance history, so those remain manually entered by the
+ * loan processor (see LoanRequestProcessingUpdateRequest).
  */
 class LoanRequestCycleStateService
 {
@@ -26,29 +28,12 @@ class LoanRequestCycleStateService
     {
         $computed = $this->cycleCompute->computeCycleForLoanRequest($loanRequest);
 
-        $state = [
+        return [
             'applicant' => [
                 'locked' => true,
                 'cycle_status' => $computed['cycle_status'],
                 'cycle_number' => $computed['cycle_number'],
             ],
-            'spouse' => [
-                'locked' => true,
-                'cycle_status' => $computed['cycle_status'],
-                'cycle_number' => $computed['cycle_number'],
-            ],
         ];
-
-        foreach (MemberDependentProfile::CATEGORY_CAPS as $category => $cap) {
-            for ($slot = 1; $slot <= $cap; $slot++) {
-                $state["{$category}_{$slot}"] = [
-                    'locked' => true,
-                    'cycle_status' => $computed['cycle_status'],
-                    'cycle_number' => $computed['cycle_number'],
-                ];
-            }
-        }
-
-        return $state;
     }
 }

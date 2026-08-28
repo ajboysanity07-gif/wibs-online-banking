@@ -11,6 +11,7 @@ use App\Models\MemberApplicationProfile;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\PdfFieldMaps\GeneraliApplicationFormPdfFieldMap;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 
@@ -230,7 +231,7 @@ test('generali application form field map resolves dependent rows via closures',
         ->and($resolvedValues)->toContain('Junior Member');
 });
 
-test('application_form data block resolves pep, cycle, and id fields from processing and member profile', function () {
+test('application_form data block resolves pep and id fields from processing and member profile', function () {
     $loanRequest = generaliApplicationFormCreateApprovedLoanRequestWithApplicant(
         memberApplicationProfileAttributes: [
             'source_of_fund_wealth' => 'Salary',
@@ -241,17 +242,75 @@ test('application_form data block resolves pep, cycle, and id fields from proces
     );
     generaliApplicationFormPersistDataEntry($loanRequest, 'health_glapi', 'applicant_pep_status', 'boolean', true);
     generaliApplicationFormPersistDataEntry($loanRequest, 'health_glapi', 'applicant_pep_status_details', 'string', 'Barangay Councilor, since 2020');
-    generaliApplicationFormPersistDataEntry($loanRequest, 'dependents', 'applicant_cycle_status', 'string', 'New');
     generaliApplicationFormPersistDataEntry($loanRequest, 'processing', 'employer_date_employed', 'string', '2019-06-01');
 
     $documentData = generaliApplicationFormBuildDocumentData($loanRequest->fresh());
 
     expect($documentData['application_form']['pep_status'])->toBeTrue()
         ->and($documentData['application_form']['pep_status_details'])->toBe('Barangay Councilor, since 2020')
-        ->and($documentData['application_form']['cycle_status'])->toBe('New')
         ->and($documentData['application_form']['source_of_fund_wealth'])->toBe('Salary')
         ->and($documentData['application_form']['id_type'])->toBe('TIN')
         ->and($documentData['application_form']['id_number'])->toBe('123-456-789');
+});
+
+/**
+ * The applicant's cycle_status/cycle_number are auto-computed from wlnmaster
+ * loan history (LoanRequestCycleStateService), never from the manually-
+ * entered applicant_cycle_status/number EAV fields -- those are now ignored
+ * by the document even when present, since dependents (not the applicant)
+ * are the ones still manually entered by the processor.
+ */
+test('application_form cycle fields come from computed loan history, ignoring any applicant_cycle_status EAV value', function () {
+    if (! Schema::hasTable('wlnmaster')) {
+        Schema::create('wlnmaster', function (Blueprint $table) {
+            $table->string('lnnumber')->primary();
+            $table->string('acctno');
+            $table->decimal('principal', 12, 2)->default(0);
+            $table->decimal('balance', 12, 2)->default(0);
+        });
+    }
+
+    $user = User::factory()->create(['acctno' => '970099']);
+    MemberApplicationProfile::factory()->create(['user_id' => $user->user_id]);
+
+    $loanRequest = LoanRequest::factory()->forUser($user)->create([
+        'status' => LoanRequestStatus::Approved,
+        'submitted_at' => now()->subDay(),
+        'reviewed_at' => now(),
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0.36,
+        'recommended_payment_frequency' => '15th & 30th',
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Sample',
+            'last_name' => 'Member',
+            'civil_status' => 'Single',
+        ]);
+
+    // 3 wlnmaster rows for this acctno -> computed Old/4.
+    for ($i = 1; $i <= 3; $i++) {
+        DB::table('wlnmaster')->insert([
+            'lnnumber' => "LN-970099-{$i}",
+            'acctno' => '970099',
+            'principal' => 10000,
+            'balance' => 5000,
+        ]);
+    }
+
+    // A manually-entered applicant_cycle_status/number EAV value that
+    // contradicts the computed one -- it must be ignored.
+    generaliApplicationFormPersistDataEntry($loanRequest, 'dependents', 'applicant_cycle_status', 'string', 'New');
+    generaliApplicationFormPersistDataEntry($loanRequest, 'dependents', 'applicant_cycle_number', 'number', 1);
+
+    $documentData = generaliApplicationFormBuildDocumentData($loanRequest->fresh());
+
+    expect($documentData['application_form']['cycle_status'])->toBe('Old')
+        ->and($documentData['application_form']['cycle_number'])->toBe('4');
 });
 
 test('applicant address line folds in barangay for documents with separate city/province boxes', function () {

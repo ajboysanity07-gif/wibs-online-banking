@@ -1253,29 +1253,30 @@ test('when officers are marked unknown, the generated authority to deduct docume
         ->and($documentData['authority_to_deduct']['officer_1_title'])->toBeNull();
 });
 
-test('generali application form is incomplete while applicant PEP status and cycle status are blank', function (): void {
+test('generali application form is incomplete while applicant PEP status is blank', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
     ]);
 
     $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::GeneraliApplicationForm);
 
-    // Both fields are sensitive/member-owned, so a blank required value
-    // routes to AwaitingMemberConfirmation rather than the generic
-    // Incomplete status -- same as grepalife's beneficiary fields.
+    // The field is sensitive/member-owned, so a blank required value routes
+    // to AwaitingMemberConfirmation rather than the generic Incomplete
+    // status -- same as grepalife's beneficiary fields. Cycle status/number
+    // are not part of this gate -- the applicant's is auto-computed
+    // (LoanRequestCycleStateService) and dependents' are processor-entered,
+    // neither a member-collected prerequisite.
     expect($entry['is_applicable'])->toBeTrue()
         ->and($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::AwaitingMemberConfirmation->value);
 });
 
-test('generali application form becomes ready once applicant PEP status and cycle status are answered', function (): void {
+test('generali application form becomes ready once applicant PEP status is answered', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
     ]);
 
     applicabilityPersistDataEntries($loanRequest, [
         'applicant_pep_status' => ['boolean', false],
-        'applicant_cycle_status' => ['string', 'New'],
-        'applicant_cycle_number' => ['integer', 1],
     ]);
 
     $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::GeneraliApplicationForm);
@@ -1298,22 +1299,24 @@ test('generali application form stays incomplete when PEP is true but its detail
     expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::AwaitingMemberConfirmation->value);
 });
 
-test('generali application form stays incomplete when cycle status is Old but cycle number is blank', function (): void {
+test('generali application form stays ready even when a dependent cycle status is Old with no cycle number', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
     ]);
 
     applicabilityPersistDataEntries($loanRequest, [
         'applicant_pep_status' => ['boolean', false],
-        'applicant_cycle_status' => ['string', 'Old'],
+        'dependent_spouse_cycle_status' => ['string', 'Old'],
     ]);
 
     $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::GeneraliApplicationForm);
 
-    expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::AwaitingMemberConfirmation->value);
+    // Dependent/spouse cycle_number is optional metadata regardless of
+    // status -- it never blocks readiness.
+    expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value);
 });
 
-test('generali application form is ready when PEP true and Old cycle status both have their conditional details filled', function (): void {
+test('generali application form is ready when PEP true has its conditional details filled', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
     ]);
@@ -1321,8 +1324,6 @@ test('generali application form is ready when PEP true and Old cycle status both
     applicabilityPersistDataEntries($loanRequest, [
         'applicant_pep_status' => ['boolean', true],
         'applicant_pep_status_details' => ['string', 'Barangay Councilor, since 2020'],
-        'applicant_cycle_status' => ['string', 'Old'],
-        'applicant_cycle_number' => ['number', 3],
     ]);
 
     $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::GeneraliApplicationForm);

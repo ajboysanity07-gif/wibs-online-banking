@@ -1020,33 +1020,12 @@ class LoanRequestDocumentWorkflowService
             $conditionalFields[] = 'applicant_pep_status_details';
         }
 
-        if ($this->hasAnyCycleStatus($flatValues)) {
-            $conditionalFields[] = 'applicant_cycle_number';
-        }
+        // No conditional applicant_cycle_number requirement -- the applicant's
+        // cycle is auto-computed (LoanRequestCycleStateService), and
+        // dependent/spouse cycle numbers are optional metadata regardless of
+        // status (see LoanRequestProcessingUpdateRequest::dependentCycleFieldRules()).
 
         return array_values(array_unique($conditionalFields));
-    }
-
-    private function hasAnyCycleStatus(array $flatValues): bool
-    {
-        $keys = [
-            'applicant_cycle_status',
-            'dependent_spouse_cycle_status',
-            'dependent_child_1_cycle_status',
-            'dependent_child_2_cycle_status',
-            'dependent_child_3_cycle_status',
-            'dependent_sibling_1_cycle_status',
-            'dependent_sibling_2_cycle_status',
-            'dependent_sibling_3_cycle_status',
-        ];
-
-        foreach ($keys as $key) {
-            if (! empty($flatValues[$key])) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

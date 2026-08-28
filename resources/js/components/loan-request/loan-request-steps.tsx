@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import {
-    ApplicantCycleSection,
     DEPENDENT_CATEGORIES,
     DependentCategorySection,
     type DependentCategoryConfig,
@@ -350,15 +349,15 @@ export function LoanRequestLoanDetailsStep({
                 )}
 
                 {data.requested_payment_frequency === 'Due date' && (
-                        <div className="grid gap-2 md:col-span-2">
-                            <p className="text-sm text-muted-foreground">
-                                Due date is repaid as a single payment after the
-                                loan term above.
-                                {data.requested_term === '1' &&
-                                    ' Paying in 1 month skips the insurance and health questionnaire steps below.'}
-                            </p>
-                        </div>
-                    )}
+                    <div className="grid gap-2 md:col-span-2">
+                        <p className="text-sm text-muted-foreground">
+                            Due date is repaid as a single payment after the
+                            loan term above.
+                            {data.requested_term === '1' &&
+                                ' Paying in 1 month skips the insurance and health questionnaire steps below.'}
+                        </p>
+                    </div>
+                )}
             </div>
         </LoanRequestSectionCard>
     );
@@ -2361,16 +2360,6 @@ export function LoanRequestDependentsStep({
                 description={description}
                 contentClassName="space-y-6"
             >
-                {/* Applicant's own cycle status isn't part of
-                MemberDependentProfile, so there's no Settings equivalent to
-                defer to here -- it stays editable even when the rest of this
-                step is a read-only profile summary. */}
-                <ApplicantCycleSection
-                    values={values}
-                    errors={errors}
-                    errorKeyPrefix="dependents"
-                    onChange={onChange}
-                />
                 {missingCycleStatusNames.length > 0 ? (
                     <Alert variant="destructive">
                         <AlertTitle>
@@ -2463,12 +2452,6 @@ export function LoanRequestDependentsStep({
             description={description}
             contentClassName="space-y-6"
         >
-            <ApplicantCycleSection
-                values={values}
-                errors={errors}
-                errorKeyPrefix="dependents"
-                onChange={onChange}
-            />
             {spouseVisible ? (
                 <DependentSpouseCycleSection
                     values={values}

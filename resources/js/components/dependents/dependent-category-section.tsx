@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 export type DependentCategoryConfig = {
     key: string;
@@ -196,10 +196,8 @@ export function DependentCategorySection({
                         {CYCLE_STATUS_HELP_TEXT}
                     </p>
                 </div>
-                <ToggleGroup
+                <RadioGroup
                     id={statusKey}
-                    type="single"
-                    variant="outline"
                     value={statusValue ? `${statusValue}` : ''}
                     onValueChange={(nextValue: string) => {
                         onChange(
@@ -212,20 +210,22 @@ export function DependentCategorySection({
                         }
                     }}
                     aria-label={statusLabel}
-                    className="w-full"
+                    className="flex flex-row gap-6"
                 >
-                    <ToggleGroupItem value="New" className="flex-1">
-                        New
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="Old" className="flex-1">
-                        Old
-                    </ToggleGroupItem>
-                </ToggleGroup>
+                    <div className="flex items-center gap-2">
+                        <RadioGroupItem value="New" id={`${statusKey}-new`} />
+                        <Label htmlFor={`${statusKey}-new`}>New</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <RadioGroupItem value="Old" id={`${statusKey}-old`} />
+                        <Label htmlFor={`${statusKey}-old`}>Old</Label>
+                    </div>
+                </RadioGroup>
                 {withNameAttribute ? (
-                    // ToggleGroup renders plain buttons, not a native radio
-                    // input, so its value never lands in FormData -- carry
-                    // it via a hidden input, same as the cycle_number
-                    // carrier below.
+                    // RadioGroupItem is a Radix button under the hood, not a
+                    // native radio input, so its value never lands in
+                    // FormData -- carry it via a hidden input, same as the
+                    // cycle_number carrier below.
                     <input
                         type="hidden"
                         name={statusKey}
@@ -342,8 +342,6 @@ export function DependentCategorySection({
 
 export const SPOUSE_CYCLE_STATUS_KEY = 'dependent_spouse_cycle_status';
 export const SPOUSE_CYCLE_NUMBER_KEY = 'dependent_spouse_cycle_number';
-export const APPLICANT_CYCLE_STATUS_KEY = 'applicant_cycle_status';
-export const APPLICANT_CYCLE_NUMBER_KEY = 'applicant_cycle_number';
 
 /**
  * New/Old + cycle number for a singleton (not a repeatable-category slot,
@@ -395,10 +393,8 @@ export function SingletonCycleSection({
                             {CYCLE_STATUS_HELP_TEXT}
                         </p>
                     </div>
-                    <ToggleGroup
+                    <RadioGroup
                         id={statusKey}
-                        type="single"
-                        variant="outline"
                         value={statusValue ? `${statusValue}` : ''}
                         onValueChange={(nextValue: string) => {
                             onChange(
@@ -411,15 +407,23 @@ export function SingletonCycleSection({
                             }
                         }}
                         aria-label={statusLabel}
-                        className="w-full"
+                        className="flex flex-row gap-6"
                     >
-                        <ToggleGroupItem value="New" className="flex-1">
-                            New
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="Old" className="flex-1">
-                            Old
-                        </ToggleGroupItem>
-                    </ToggleGroup>
+                        <div className="flex items-center gap-2">
+                            <RadioGroupItem
+                                value="New"
+                                id={`${statusKey}-new`}
+                            />
+                            <Label htmlFor={`${statusKey}-new`}>New</Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <RadioGroupItem
+                                value="Old"
+                                id={`${statusKey}-old`}
+                            />
+                            <Label htmlFor={`${statusKey}-old`}>Old</Label>
+                        </div>
+                    </RadioGroup>
                     {withNameAttribute ? (
                         <input
                             type="hidden"
@@ -470,28 +474,6 @@ export function DependentSpouseCycleSection(props: {
             label="Spouse"
             statusKey={SPOUSE_CYCLE_STATUS_KEY}
             numberKey={SPOUSE_CYCLE_NUMBER_KEY}
-        />
-    );
-}
-
-/**
- * Applicant's own New/Old + cycle number -- unconditional (unlike Spouse,
- * which only applies when married), feeds the Generali Individual
- * Application Form's cycle-status fields.
- */
-export function ApplicantCycleSection(props: {
-    values: DependentValues;
-    errors: Record<string, string | undefined>;
-    errorKeyPrefix?: string;
-    withNameAttribute?: boolean;
-    onChange: (field: string, value: string | number | boolean | null) => void;
-}) {
-    return (
-        <SingletonCycleSection
-            {...props}
-            label="Applicant"
-            statusKey={APPLICANT_CYCLE_STATUS_KEY}
-            numberKey={APPLICANT_CYCLE_NUMBER_KEY}
         />
     );
 }

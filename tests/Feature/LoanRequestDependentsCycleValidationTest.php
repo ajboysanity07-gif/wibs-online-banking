@@ -321,14 +321,14 @@ function submitLoanRequestForCycleStatusTest(
         ]);
 }
 
-test('store endpoint requires applicant cycle status', function (): void {
+test('store endpoint does not require applicant cycle status (auto-computed server-side)', function (): void {
     $member = createDependentsCycleTestMember('002203');
 
     $response = submitLoanRequestForCycleStatusTest($member, [
         'applicant_cycle_status' => null,
     ]);
 
-    $response->assertSessionHasErrors(['dependents.applicant_cycle_status']);
+    $response->assertSessionDoesntHaveErrors(['dependents.applicant_cycle_status']);
 });
 
 test('store endpoint requires cycle status for a dependent slot with a name', function (): void {

@@ -1543,13 +1543,16 @@ class LoanRequestDataService
         ],
         // Applicant's own enrollment cycle -- same New/Old + cycle-number
         // concept as the per-dependent cycle fields above, but for the
-        // applicant, and unconditional (unlike Spouse, which only applies
-        // when married). Feeds the Generali Individual Application Form.
+        // applicant. No longer collected from the member/wizard: it's
+        // auto-computed from wlnmaster loan history via
+        // LoanRequestCycleStateService and read directly from there by
+        // ApprovedLoanDocumentDataBuilder. Kept here for the audit-trail
+        // field-label lookup and legacy stored values only.
         'applicant_cycle_status' => [
             'label' => 'Applicant cycle status',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
-            'required_on_submit' => true,
+            'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
         ],

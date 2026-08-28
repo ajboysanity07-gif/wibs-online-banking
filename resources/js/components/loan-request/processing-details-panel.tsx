@@ -1,5 +1,6 @@
 import { FileText, Info } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { DEPENDENT_CATEGORIES } from '@/components/dependents/dependent-category-section';
 import { PAYDAY_OPTIONS } from '@/components/loan-request/loan-request-fields';
 import {
     CurrencyInput,
@@ -24,6 +25,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { FieldMessage } from '@/components/ui/field-message';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Select,
     SelectContent,
@@ -340,12 +342,27 @@ const cycleSlotFieldKeys = (slotKey: string): [string, string] => {
     ];
 };
 
+// Every cycle slot key the panel can show: applicant (always auto-computed,
+// see LoanRequestCycleStateService), spouse, and every dependent category
+// slot (mirrors MemberDependentProfile::CATEGORY_CAPS). Only 'applicant'
+// ever appears in the server-supplied cycleState -- the rest are always
+// manually entered, so their presence here doesn't depend on it.
+const ALL_CYCLE_SLOT_KEYS: string[] = [
+    'applicant',
+    'spouse',
+    ...DEPENDENT_CATEGORIES.flatMap((category) =>
+        Array.from(
+            { length: category.cap },
+            (_, index) => `${category.key}_${index + 1}`,
+        ),
+    ),
+];
+
 // Seeds/refreshes the cycle-status fields inside processingForm.processing.
-// Locked slots always take the server-computed value (never a stale saved
-// one). Unlocked slots keep whatever was last saved for this loan request,
-// falling back to the resolved New/null default so the processor has a legal
-// starting point ("New" never carries a number -- there's no cycle history
-// yet to number).
+// Locked slots (applicant) always take the server-computed value (never a
+// stale saved one). Unlocked slots (spouse/dependents) are manually entered
+// by the processor, so they simply keep whatever was last saved for this
+// loan request.
 const withCycleStateDefaults = (
     processing: Record<string, string | number | boolean | null>,
     dependentsSection: LoanRequestDataSectionValues | undefined,
@@ -353,10 +370,11 @@ const withCycleStateDefaults = (
 ): Record<string, string | number | boolean | null> => {
     let next = processing;
 
-    Object.entries(cycleState).forEach(([slotKey, slotState]) => {
+    ALL_CYCLE_SLOT_KEYS.forEach((slotKey) => {
         const [statusKey, numberKey] = cycleSlotFieldKeys(slotKey);
+        const slotState = cycleState[slotKey];
 
-        if (slotState.locked) {
+        if (slotState?.locked) {
             next = {
                 ...next,
                 [statusKey]: slotState.cycle_status,
@@ -366,13 +384,10 @@ const withCycleStateDefaults = (
             return;
         }
 
-        const currentStatus = dependentsSection?.[statusKey] ?? null;
-        const currentNumber = dependentsSection?.[numberKey] ?? null;
-
         next = {
             ...next,
-            [statusKey]: currentStatus ?? slotState.cycle_status,
-            [numberKey]: currentNumber ?? slotState.cycle_number,
+            [statusKey]: dependentsSection?.[statusKey] ?? null,
+            [numberKey]: dependentsSection?.[numberKey] ?? null,
         };
     });
 
@@ -737,7 +752,7 @@ export function ProcessingDetailsPanel({
         // dataSectionDefinitions.processing.fields) never picks them up --
         // add them explicitly from the values the cycle-state UI wrote into
         // processingForm.processing (see withCycleStateDefaults).
-        Object.keys(cycleState).forEach((slotKey) => {
+        ALL_CYCLE_SLOT_KEYS.forEach((slotKey) => {
             const [statusKey, numberKey] = cycleSlotFieldKeys(slotKey);
 
             [statusKey, numberKey].forEach((fieldKey) => {
@@ -1020,20 +1035,19 @@ export function ProcessingDetailsPanel({
     // (only when the applicant is married -- mirrors dependent_spouse_*'s
     // visible_when), and dependent slots that actually have a name filled
     // in (an "empty" slot has nothing to verify a cycle for).
-    const cycleStateSlots = Object.keys(cycleState)
-        .filter((slotKey) => {
-            if (slotKey === 'applicant') {
-                return true;
-            }
+    const cycleStateSlots = ALL_CYCLE_SLOT_KEYS.filter((slotKey) => {
+        if (slotKey === 'applicant') {
+            return true;
+        }
 
-            if (slotKey === 'spouse') {
-                return applicant?.civil_status === 'Married';
-            }
+        if (slotKey === 'spouse') {
+            return applicant?.civil_status === 'Married';
+        }
 
-            const name = dataSections.dependents?.[`dependent_${slotKey}_name`];
+        const name = dataSections.dependents?.[`dependent_${slotKey}_name`];
 
-            return typeof name === 'string' && name.trim() !== '';
-        })
+        return typeof name === 'string' && name.trim() !== '';
+    })
         .map((slotKey) => {
             const label =
                 slotKey === 'applicant'
@@ -1060,48 +1074,146 @@ export function ProcessingDetailsPanel({
 
     const renderCycleStateRow = (slotKey: string, label: string) => {
         const slotState = cycleState[slotKey];
+        const locked = slotState?.locked ?? false;
         const [statusKey, numberKey] = cycleSlotFieldKeys(slotKey);
         const statusValue = processingForm.processing[statusKey];
         const numberValue = processingForm.processing[numberKey];
+        const statusStringValue =
+            typeof statusValue === 'string' ? statusValue : '';
 
+        if (locked) {
+            return (
+                <div
+                    key={slotKey}
+                    className="grid gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 sm:grid-cols-[1fr_auto_auto]"
+                >
+                    <div className="flex flex-col justify-center">
+                        <span className="text-sm font-medium">{label}</span>
+                        <span className="text-xs text-muted-foreground">
+                            Auto-computed from loan history.
+                        </span>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label className="text-xs text-muted-foreground">
+                            Cycle status
+                        </Label>
+                        <Input
+                            value={statusStringValue}
+                            disabled
+                            className={readOnlyProcessingFieldClassName}
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label className="text-xs text-muted-foreground">
+                            Cycle number
+                        </Label>
+                        <Input
+                            type="number"
+                            min={1}
+                            value={
+                                numberValue !== null &&
+                                numberValue !== undefined
+                                    ? `${numberValue}`
+                                    : ''
+                            }
+                            disabled
+                            className={readOnlyProcessingFieldClassName}
+                        />
+                    </div>
+                </div>
+            );
+        }
+
+        // Spouse/dependent cycle data is genuinely different per person, so
+        // (unlike the applicant) it's manually entered by the processor, not
+        // auto-computed. Cycle number is optional metadata regardless of status.
         return (
             <div
                 key={slotKey}
-                className="grid gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 sm:grid-cols-[1fr_auto_auto]"
+                className="grid gap-3 rounded-lg border border-border/40 bg-muted/10 p-3"
             >
                 <div className="flex flex-col justify-center">
                     <span className="text-sm font-medium">{label}</span>
                     <span className="text-xs text-muted-foreground">
-                        Auto-computed from loan history.
+                        Entered manually by the processor.
                     </span>
                 </div>
-                <div className="grid gap-2">
-                    <Label className="text-xs text-muted-foreground">
-                        Cycle status
-                    </Label>
-                    <Input
-                        value={
-                            typeof statusValue === 'string' ? statusValue : ''
-                        }
-                        disabled
-                        className={readOnlyProcessingFieldClassName}
-                    />
-                </div>
-                <div className="grid gap-2">
-                    <Label className="text-xs text-muted-foreground">
-                        Cycle number
-                    </Label>
-                    <Input
-                        type="number"
-                        min={1}
-                        value={
-                            numberValue !== null && numberValue !== undefined
-                                ? `${numberValue}`
-                                : ''
-                        }
-                        disabled
-                        className={readOnlyProcessingFieldClassName}
-                    />
+                <div className="grid gap-3 sm:grid-cols-[auto_10rem] sm:items-start">
+                    <div className="grid gap-2">
+                        <Label className="text-xs text-muted-foreground">
+                            Cycle status
+                        </Label>
+                        <RadioGroup
+                            value={statusStringValue}
+                            onValueChange={(nextValue: string) => {
+                                updateProcessingSectionField(
+                                    statusKey,
+                                    nextValue === '' ? null : nextValue,
+                                );
+
+                                if (nextValue !== 'Old') {
+                                    updateProcessingSectionField(
+                                        numberKey,
+                                        null,
+                                    );
+                                }
+                            }}
+                            disabled={!canUpdateProcessing}
+                            aria-label={`${label} cycle status`}
+                            className="flex flex-row gap-4"
+                        >
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem
+                                    value="New"
+                                    id={`${statusKey}-new`}
+                                />
+                                <Label
+                                    htmlFor={`${statusKey}-new`}
+                                    className="text-sm font-normal"
+                                >
+                                    New
+                                </Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem
+                                    value="Old"
+                                    id={`${statusKey}-old`}
+                                />
+                                <Label
+                                    htmlFor={`${statusKey}-old`}
+                                    className="text-sm font-normal"
+                                >
+                                    Old
+                                </Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label
+                            className="text-xs text-muted-foreground"
+                            htmlFor={numberKey}
+                        >
+                            Cycle number (optional)
+                        </Label>
+                        <Input
+                            id={numberKey}
+                            type="number"
+                            min={1}
+                            value={
+                                numberValue !== null &&
+                                numberValue !== undefined
+                                    ? `${numberValue}`
+                                    : ''
+                            }
+                            onChange={(event) =>
+                                updateProcessingSectionField(
+                                    numberKey,
+                                    event.target.value,
+                                )
+                            }
+                            disabled={!canUpdateProcessing}
+                        />
+                    </div>
                 </div>
             </div>
         );
@@ -1728,7 +1840,7 @@ export function ProcessingDetailsPanel({
                         {cycleStateSlots.length > 0 && (
                             <>
                                 {renderProcessingSectionLabel(
-                                    'Group Life Insurance Cycle (Auto-computed)',
+                                    'Group Life Insurance Cycle',
                                 )}
                                 <div className="grid gap-3">
                                     {cycleStateSlots.map(({ slotKey, label }) =>

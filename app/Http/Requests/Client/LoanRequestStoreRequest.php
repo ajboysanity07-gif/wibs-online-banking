@@ -366,17 +366,18 @@ class LoanRequestStoreRequest extends FormRequest
 
     /**
      * Cycle status becomes required once the thing it describes is actually
-     * on the request: a dependent slot with a name filled in, a spouse when
-     * married, or the applicant unconditionally (shown unconditionally in
-     * the UI). Left optional otherwise so an empty/inapplicable slot doesn't
-     * block submission.
+     * on the request: a dependent slot with a name filled in, or a spouse
+     * when married. Left optional otherwise so an empty/inapplicable slot
+     * doesn't block submission. The applicant's cycle is auto-computed
+     * server-side (LoanRequestCycleStateService) and never submitted by the
+     * wizard, so it carries no required rule here.
      *
      * @return array<int, ValidationRule|string>
      */
     private function cycleStatusRequiredRule(string $key): array
     {
         if ($key === 'applicant_cycle_status') {
-            return [Rule::requiredIf(! $this->isDueDateNoInsuranceRequested())];
+            return [];
         }
 
         if ($key === 'dependent_spouse_cycle_status') {

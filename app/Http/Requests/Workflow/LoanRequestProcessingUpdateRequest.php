@@ -249,13 +249,13 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
     }
 
     /**
-     * Validation rules for the processor-confirmed Group Life Insurance
-     * cycle fields on the spouse and every dependent slot, generated from
+     * Validation rules for the manually-entered Group Life Insurance cycle
+     * fields on the spouse and every dependent slot, generated from
      * MemberDependentProfile::CATEGORY_CAPS rather than hand-typed to avoid
-     * drift if the caps ever change. Mirrors the applicant cycle rules
-     * above -- New/Old status, positive integer number, both optional.
-     * Locked-slot mismatches are rejected separately, after these basic
-     * shape checks pass, by LoanRequestCycleStateService::assertNoLockedSlotOverridden().
+     * drift if the caps ever change. Each dependent has their own insurance
+     * history (unlike the applicant, whose cycle is auto-computed), so
+     * status is required once a slot is in use but the number is always
+     * optional metadata.
      *
      * @return array<string, array<mixed>>
      */
@@ -263,13 +263,13 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
     {
         $rules = [
             'processing.dependent_spouse_cycle_status' => ['sometimes', 'nullable', 'string', Rule::in(['New', 'Old'])],
-            'processing.dependent_spouse_cycle_number' => $this->cycleNumberRules('dependent_spouse_cycle_status'),
+            'processing.dependent_spouse_cycle_number' => $this->dependentCycleNumberRules(),
         ];
 
         foreach (MemberDependentProfile::CATEGORY_CAPS as $category => $cap) {
             for ($slot = 1; $slot <= $cap; $slot++) {
                 $rules["processing.dependent_{$category}_{$slot}_cycle_status"] = ['sometimes', 'nullable', 'string', Rule::in(['New', 'Old'])];
-                $rules["processing.dependent_{$category}_{$slot}_cycle_number"] = $this->cycleNumberRules("dependent_{$category}_{$slot}_cycle_status");
+                $rules["processing.dependent_{$category}_{$slot}_cycle_number"] = $this->dependentCycleNumberRules();
             }
         }
 
@@ -277,7 +277,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
     }
 
     /**
-     * A cycle number is always required when the sibling cycle_status is
+     * A cycle number is always required when the applicant's cycle_status is
      * present -- the Generali form labels them "New (1st-2nd)" and
      * "Old (3rd cycle & up ___)", so every status carries a number.
      *
@@ -292,6 +292,17 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'min:1',
             Rule::requiredIf(filled($this->input("processing.{$statusKey}"))),
         ];
+    }
+
+    /**
+     * Dependent/spouse cycle numbers are optional metadata regardless of
+     * cycle_status -- only the applicant's status carries a required number.
+     *
+     * @return array<int, string>
+     */
+    private function dependentCycleNumberRules(): array
+    {
+        return ['sometimes', 'nullable', 'integer', 'min:1'];
     }
 
     /**

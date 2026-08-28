@@ -509,9 +509,11 @@ class LoanRequestDocumentCatalog
         'generali_application_form' => [
             'template_version' => 'generali-application-form-v2',
             'applicability' => 'not_lumpsum',
+            // applicant_cycle_status/number are deliberately absent here --
+            // they're auto-computed server-side (LoanRequestCycleStateService),
+            // never a member-collected prerequisite.
             'required_fields' => [
                 'applicant_pep_status',
-                'applicant_cycle_status',
             ],
             'source_fields' => [
                 'beneficiary_primary_name',

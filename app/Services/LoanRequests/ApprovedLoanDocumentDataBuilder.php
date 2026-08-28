@@ -38,6 +38,7 @@ class ApprovedLoanDocumentDataBuilder
         private LoanRequestDataService $loanRequestDataService,
         private OrganizationSettingsService $organizationSettingsService,
         private OfficialLoanManagerResolver $officialLoanManagerResolver,
+        private LoanRequestCycleStateService $cycleStateService,
     ) {}
 
     public function buildDocumentData(
@@ -500,6 +501,7 @@ class ApprovedLoanDocumentDataBuilder
             'health_glapi' => $this->healthGlapiDocumentData($flatValues),
             'existing_loans' => $existingLoans,
             'application_form' => $this->generaliApplicationFormDocumentData(
+                $loanRequest,
                 $overrideProcessing,
                 $flatValues,
                 $memberApplicationProfile,
@@ -846,26 +848,30 @@ class ApprovedLoanDocumentDataBuilder
      * loan-prerequisite step -- so they're read directly off that profile, the
      * same way beneficiaryDocumentData() falls back to the Wmaster member record.
      *
+     * The applicant's cycle_status/cycle_number are auto-computed from wlnmaster
+     * loan history via LoanRequestCycleStateService -- not read from the flat EAV
+     * fields, which only carry manually-entered dependent/spouse cycle data (see
+     * dependentsDocumentData()).
+     *
      * @param  array<string, mixed>  $overrideProcessing
      * @param  array<string, mixed>  $flatValues
      * @return array<string, mixed>
      */
     private function generaliApplicationFormDocumentData(
+        LoanRequest $loanRequest,
         array $overrideProcessing,
         array $flatValues,
         ?MemberApplicationProfile $memberApplicationProfile,
     ): array {
+        $applicantCycle = $this->cycleStateService->resolveState($loanRequest)['applicant'];
+
         return [
             'pep_status' => $overrideProcessing['applicant_pep_status'] ?? $flatValues['applicant_pep_status'] ?? null,
             'pep_status_details' => $this->normalizeText(
                 $overrideProcessing['applicant_pep_status_details'] ?? $flatValues['applicant_pep_status_details'] ?? null,
             ),
-            'cycle_status' => $this->normalizeText(
-                $overrideProcessing['applicant_cycle_status'] ?? $flatValues['applicant_cycle_status'] ?? null,
-            ),
-            'cycle_number' => $this->normalizeText(
-                $overrideProcessing['applicant_cycle_number'] ?? $flatValues['applicant_cycle_number'] ?? null,
-            ),
+            'cycle_status' => $this->normalizeText($applicantCycle['cycle_status']),
+            'cycle_number' => $this->normalizeText($applicantCycle['cycle_number']),
             'employer_date_employed' => $this->formatShortDateValue(
                 $overrideProcessing['employer_date_employed'] ?? $flatValues['employer_date_employed'] ?? null,
             ),

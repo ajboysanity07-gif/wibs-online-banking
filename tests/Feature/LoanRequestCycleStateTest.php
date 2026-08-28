@@ -33,9 +33,11 @@ beforeEach(function (): void {
 
 /**
  * A brand-new member with no wlnmaster rows is auto-computed as New/1
- * (first enrollment cycle) for every slot, and all slots are locked.
+ * (first enrollment cycle) for the applicant, and only the applicant is
+ * returned/locked -- spouse and dependent cycles are manually entered by
+ * the processor and never auto-computed.
  */
-test('no wlnmaster rows resolves to New/1 locked for all slots', function (): void {
+test('no wlnmaster rows resolves to New/1 locked for the applicant only', function (): void {
     $member = createCycleStateActor([Role::MEMBER], '970001');
     MemberApplicationProfile::factory()->create(['user_id' => $member->user_id]);
 
@@ -49,15 +51,12 @@ test('no wlnmaster rows resolves to New/1 locked for all slots', function (): vo
     $cycleStateService = app(LoanRequestCycleStateService::class);
     $state = $cycleStateService->resolveState($loanRequest);
 
-    expect($state['applicant']['locked'])->toBeTrue()
+    expect($state)->toHaveKey('applicant')
+        ->and($state)->not->toHaveKey('spouse')
+        ->and($state)->not->toHaveKey('child_1')
+        ->and($state['applicant']['locked'])->toBeTrue()
         ->and($state['applicant']['cycle_status'])->toBe('New')
-        ->and($state['applicant']['cycle_number'])->toBe(1)
-        ->and($state['spouse']['locked'])->toBeTrue()
-        ->and($state['spouse']['cycle_status'])->toBe('New')
-        ->and($state['spouse']['cycle_number'])->toBe(1)
-        ->and($state['child_1']['locked'])->toBeTrue()
-        ->and($state['child_1']['cycle_status'])->toBe('New')
-        ->and($state['child_1']['cycle_number'])->toBe(1);
+        ->and($state['applicant']['cycle_number'])->toBe(1);
 });
 
 /**
@@ -216,10 +215,12 @@ test('due date term-1 loans are excluded from insured count', function (): void 
 });
 
 /**
- * All slots (applicant, spouse, child, sibling, etc.) receive the same
- * auto-computed cycle values.
+ * resolveState() returns exactly one slot -- the applicant -- regardless of
+ * how many dependents a request has. Spouse/dependent cycle data lives
+ * entirely in the manually-entered EAV fields (LoanRequestDataService),
+ * not in this service.
  */
-test('all slots receive identical cycle values', function (): void {
+test('resolveState returns only the applicant slot', function (): void {
     $member = createCycleStateActor([Role::MEMBER], '970006');
     MemberApplicationProfile::factory()->create(['user_id' => $member->user_id]);
 
@@ -242,14 +243,92 @@ test('all slots receive identical cycle values', function (): void {
     $state = $cycleStateService->resolveState($loanRequest);
 
     // 3 wlnmaster rows → Old/4
-    $expectedStatus = 'Old';
-    $expectedNumber = 4;
+    expect($state)->toHaveKeys(['applicant'])
+        ->and(array_keys($state))->toBe(['applicant'])
+        ->and($state['applicant']['locked'])->toBeTrue()
+        ->and($state['applicant']['cycle_status'])->toBe('Old')
+        ->and($state['applicant']['cycle_number'])->toBe(4);
+});
 
-    foreach ($state as $slot => $values) {
-        expect($values['locked'])->toBeTrue()
-            ->and($values['cycle_status'])->toBe($expectedStatus)
-            ->and($values['cycle_number'])->toBe($expectedNumber);
-    }
+/**
+ * A processor can save spouse/dependent cycle data independently of the
+ * applicant's auto-computed value, and re-saving with only an applicant
+ * change no longer clobbers the previously-saved dependent values (the
+ * regression the old uniform-lock behavior caused).
+ */
+test('processor can save dependent cycle data without it being clobbered by later saves', function (): void {
+    $processor = createCycleStateActor([Role::LOAN_PROCESSOR]);
+    $member = createCycleStateActor([Role::MEMBER], '970012');
+    MemberApplicationProfile::factory()->create(['user_id' => $member->user_id]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => '',
+            'loan_request' => [],
+            'processing' => [
+                'dependent_spouse_cycle_status' => 'Old',
+                'dependent_spouse_cycle_number' => 3,
+                'dependent_child_1_cycle_status' => 'New',
+            ],
+        ])
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Correcting applicant PEP status',
+            'loan_request' => [],
+            'processing' => [
+                'applicant_pep_status' => false,
+            ],
+        ])
+        ->assertOk();
+
+    $loanRequest->refresh();
+    $flatValues = app(\App\Services\LoanRequests\LoanRequestDataService::class)
+        ->loadFlatValues($loanRequest);
+
+    expect($flatValues['dependent_spouse_cycle_status'])->toBe('Old')
+        ->and((int) $flatValues['dependent_spouse_cycle_number'])->toBe(3)
+        ->and($flatValues['dependent_child_1_cycle_status'])->toBe('New');
+});
+
+/**
+ * Dependent/spouse cycle_number is optional metadata: a null number
+ * alongside status 'Old' is accepted, unlike the applicant's number which
+ * is still required once its status is set.
+ */
+test('dependent cycle_number is optional even when status is Old', function (): void {
+    $processor = createCycleStateActor([Role::LOAN_PROCESSOR]);
+    $member = createCycleStateActor([Role::MEMBER], '970013');
+    MemberApplicationProfile::factory()->create(['user_id' => $member->user_id]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => '',
+            'loan_request' => [],
+            'processing' => [
+                'dependent_spouse_cycle_status' => 'Old',
+                'dependent_spouse_cycle_number' => null,
+            ],
+        ])
+        ->assertOk();
 });
 
 /**

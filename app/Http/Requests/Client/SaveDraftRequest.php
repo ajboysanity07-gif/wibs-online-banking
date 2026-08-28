@@ -259,17 +259,13 @@ class SaveDraftRequest extends FormRequest
             }
 
             if (in_array($key, self::DEPENDENT_CYCLE_NUMBER_KEYS, true)) {
-                $statusKey = str_replace('_cycle_number', '_cycle_status', $key);
-
-                // No 'sometimes' here: combined with a same-field required_if,
-                // 'sometimes' would skip validation entirely whenever the
-                // key is absent from the payload, silently bypassing the
-                // Old-requires-a-cycle-number rule.
+                // Cycle number is optional metadata regardless of status --
+                // only cycle_status is required once a slot is in use.
                 $rules["dependents.{$key}"] = [
+                    'sometimes',
                     'nullable',
                     'integer',
                     'min:1',
-                    Rule::requiredIf($this->input("dependents.{$statusKey}") === 'Old'),
                 ];
 
                 continue;
