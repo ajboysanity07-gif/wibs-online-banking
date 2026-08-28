@@ -175,6 +175,7 @@ export default function LoanRequestShow({
         isSaving: isSavingPaymentAccount,
         loadAccounts: loadSavedPaymentAccounts,
         createAccount: createSavedPaymentAccount,
+        updateAccount: updateSavedPaymentAccount,
     } = useSavedPaymentAccounts();
     const { updatePaymentMethod, isSaving: isSavingPaymentMethod } =
         useUpdateLoanRequestPaymentMethod();
@@ -972,6 +973,7 @@ export default function LoanRequestShow({
                         }
                         onConfirm={confirmReleaseMethod}
                         onCreateAccount={createSavedPaymentAccount}
+                        onUpdateAccount={updateSavedPaymentAccount}
                     />
                     <PaymentAccountPickerSheet
                         open={isPaymentMethodSheetOpen}
@@ -989,6 +991,7 @@ export default function LoanRequestShow({
                         }
                         onConfirm={confirmPaymentMethod}
                         onCreateAccount={createSavedPaymentAccount}
+                        onUpdateAccount={updateSavedPaymentAccount}
                     />
                 </section>
             ) : null}

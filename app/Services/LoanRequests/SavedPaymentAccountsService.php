@@ -18,10 +18,10 @@ use Illuminate\Support\Collection;
 class SavedPaymentAccountsService
 {
     /**
-     * Lightweight projection for the Shopee-style picker -- id/label/last_used_at
-     * plus the bank fields needed to render each row, never the full record.
+     * Projection for the picker -- id/label/last_used_at plus all
+     * bank fields needed to render each accordion row.
      *
-     * @return Collection<int, array{id: int, label: string, bank_name: ?string, account_number: ?string, last_used_at: string|null}>
+     * @return Collection<int, array{id: int, label: string, bank_name: ?string, account_name: ?string, account_number: ?string, account_type: ?string, atm_number: ?string, bank_branch: ?string, atm_holder_name: ?string, last_used_at: string|null}>
      */
     public function listFor(MemberApplicationProfile $profile): Collection
     {
@@ -34,7 +34,12 @@ class SavedPaymentAccountsService
                 'id' => $account->id,
                 'label' => $account->displayLabel(),
                 'bank_name' => $account->bank_name,
+                'account_name' => $account->account_name,
                 'account_number' => $account->account_number,
+                'account_type' => $account->account_type,
+                'atm_number' => $account->atm_number,
+                'bank_branch' => $account->bank_branch,
+                'atm_holder_name' => $account->atm_holder_name,
                 'last_used_at' => $account->last_used_at?->toIso8601String(),
             ]);
     }

@@ -894,6 +894,7 @@ function BankingSectionFields({
         isSaving: isSavingAccount,
         loadAccounts,
         createAccount,
+        updateAccount,
     } = useSavedPaymentAccounts();
     const [isReleaseSheetOpen, setIsReleaseSheetOpen] = useState(false);
     const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
@@ -1064,6 +1065,7 @@ function BankingSectionFields({
                 isSaving={isSavingAccount || isLoadingAccounts}
                 onConfirm={confirmRelease}
                 onCreateAccount={createAccount}
+                onUpdateAccount={updateAccount}
             />
             <PaymentAccountPickerSheet
                 open={isPaymentSheetOpen}
@@ -1077,6 +1079,7 @@ function BankingSectionFields({
                 isSaving={isSavingAccount || isLoadingAccounts}
                 onConfirm={confirmPayment}
                 onCreateAccount={createAccount}
+                onUpdateAccount={updateAccount}
             />
         </div>
     );

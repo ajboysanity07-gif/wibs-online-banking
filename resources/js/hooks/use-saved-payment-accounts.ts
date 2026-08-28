@@ -7,7 +7,12 @@ export type SavedPaymentAccount = {
     id: number;
     label: string;
     bank_name: string | null;
+    account_name: string | null;
     account_number: string | null;
+    account_type: string | null;
+    atm_number: string | null;
+    bank_branch: string | null;
+    atm_holder_name: string | null;
     last_used_at: string | null;
 };
 
@@ -94,6 +99,36 @@ export function useSavedPaymentAccounts() {
         }
     };
 
+    const updateAccount = async (
+        id: number,
+        payload: SavedPaymentAccountFormPayload,
+    ) => {
+        setIsSaving(true);
+
+        try {
+            const response = await client.put<ApiResponse<SavedPaymentAccount>>(
+                `/client/saved-payment-accounts/${id}`,
+                payload,
+            );
+
+            const updated = unwrap(response);
+            setAccounts((current) =>
+                current.map((account) =>
+                    account.id === updated.id ? updated : account,
+                ),
+            );
+            showSuccessToast('Saved payment account updated.');
+
+            return updated;
+        } catch (error) {
+            showErrorToast(error, 'Failed to update the payment account.');
+
+            return null;
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return {
         accounts,
         isLoading,
@@ -101,5 +136,6 @@ export function useSavedPaymentAccounts() {
         loadAccounts,
         createAccount,
         deleteAccount,
+        updateAccount,
     };
 }
