@@ -114,8 +114,6 @@ return new class extends Migration
         $updates = [];
 
         if ($releaseData !== []) {
-            $releaseData['label'] = 'Imported payout account';
-
             if ($this->accountsMatch($releaseData, $paymentData)) {
                 $releaseId = $this->insertAccount($profile->id, $releaseData);
                 $updates['release_saved_account_id'] = $releaseId;
@@ -124,12 +122,10 @@ return new class extends Migration
                 $updates['release_saved_account_id'] = $this->insertAccount($profile->id, $releaseData);
 
                 if ($paymentData !== []) {
-                    $paymentData['label'] = 'Imported repayment account';
                     $updates['payment_saved_account_id'] = $this->insertAccount($profile->id, $paymentData);
                 }
             }
         } elseif ($paymentData !== []) {
-            $paymentData['label'] = 'Imported repayment account';
             $updates['payment_saved_account_id'] = $this->insertAccount($profile->id, $paymentData);
         }
 
