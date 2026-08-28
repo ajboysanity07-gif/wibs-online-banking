@@ -268,13 +268,6 @@ type LoanRequestWorkflowMemberActionPayload = {
     field_keys?: string[];
 };
 
-type LoanRequestWorkflowUpdatePayoutDetailsPayload = {
-    payment_option: string;
-    payout_atm_number?: string | null;
-    payout_atm_holder_name?: string | null;
-    reason: string;
-};
-
 type LoanRequestWorkflowRejectDuringProcessingPayload = {
     rejection_category: string;
     rejection_category_other?: string | null;
@@ -616,19 +609,6 @@ export const adminApi = {
             ApiResponse<LoanRequestWorkflowResponse>
         >(
             `/spa/workflow/loan-requests/${loanRequestId}/request-member-action`,
-            payload,
-        );
-
-        return unwrap(response);
-    },
-    async updateLoanRequestPayoutDetails(
-        loanRequestId: number,
-        payload: LoanRequestWorkflowUpdatePayoutDetailsPayload,
-    ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<
-            ApiResponse<LoanRequestWorkflowResponse>
-        >(
-            `/spa/workflow/loan-requests/${loanRequestId}/payout-details`,
             payload,
         );
 

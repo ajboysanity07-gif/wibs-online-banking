@@ -4,6 +4,10 @@ import { useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
+import {
+    PaymentAccountPickerSheet,
+    type PaymentMethodOption,
+} from '@/components/loan-request/payment-account-picker-sheet';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,7 +37,9 @@ import {
 import { useApprovedDocumentPackageDownload } from '@/hooks/loan-request/use-approved-document-package-download';
 import { useCancelMemberLoanRequest } from '@/hooks/use-cancel-member-loan-request';
 import { useResolveMemberLoanRequestAction } from '@/hooks/use-resolve-member-loan-request-action';
+import { useSavedPaymentAccounts } from '@/hooks/use-saved-payment-accounts';
 import { useSubmitLoanRequestCorrectionReport } from '@/hooks/use-submit-loan-request-correction-report';
+import { useUpdateLoanRequestPaymentMethod } from '@/hooks/use-update-loan-request-payment-method';
 import AppLayout from '@/layouts/app-layout';
 import { memberApprovedDocumentPackageApi } from '@/lib/api/approved-document-package';
 import { formatDate } from '@/lib/formatters';
@@ -161,6 +167,19 @@ export default function LoanRequestShow({
                 setCorrectError(null);
             },
         });
+    const {
+        accounts: savedPaymentAccounts,
+        isLoading: isLoadingSavedPaymentAccounts,
+        isSaving: isSavingPaymentAccount,
+        loadAccounts: loadSavedPaymentAccounts,
+        createAccount: createSavedPaymentAccount,
+    } = useSavedPaymentAccounts();
+    const { updatePaymentMethod, isSaving: isSavingPaymentMethod } =
+        useUpdateLoanRequestPaymentMethod();
+    const [isReleaseMethodSheetOpen, setIsReleaseMethodSheetOpen] =
+        useState(false);
+    const [isPaymentMethodSheetOpen, setIsPaymentMethodSheetOpen] =
+        useState(false);
     const isReportSubmitting = processingIds[loanRequest.id] ?? false;
     const isCancellationSubmitting =
         cancellationProcessingIds[currentLoanRequest.id] ?? false;
@@ -239,6 +258,9 @@ export default function LoanRequestShow({
         currentLoanRequest.corrected_request_id !== null
             ? loanRequestShow(currentLoanRequest.corrected_request_id).url
             : null;
+    const canEditPaymentMethod =
+        currentLoanRequest.status !== null &&
+        ['submitted', 'pending_review'].includes(currentLoanRequest.status);
     const canCancelApplication =
         currentLoanRequest.status !== null &&
         ['submitted', 'pending_review', 'under_review'].includes(
@@ -384,6 +406,89 @@ export default function LoanRequestShow({
                 ? `${bankingSection.payout_account_number}`
                 : ''
             : '';
+
+    const releaseMethodOptions: PaymentMethodOption[] = [
+        { value: 'ATM', label: 'ATM', needsAccount: true },
+        { value: 'Bank Transfer', label: 'Bank Transfer', needsAccount: true },
+        { value: 'Check', label: 'Check', needsAccount: false },
+        { value: 'Cash', label: 'Cash', needsAccount: false },
+    ];
+    const paymentMethodOptions: PaymentMethodOption[] = [
+        {
+            value: 'Salary Deduction',
+            label: 'Salary Deduction',
+            needsAccount: false,
+        },
+        { value: 'ATM Deduction', label: 'ATM Deduction', needsAccount: true },
+        { value: 'Check', label: 'Check', needsAccount: false },
+        { value: 'Cash', label: 'Cash', needsAccount: false },
+    ];
+
+    const openReleaseMethodSheet = () => {
+        void loadSavedPaymentAccounts();
+        setIsReleaseMethodSheetOpen(true);
+    };
+
+    const openPaymentMethodSheet = () => {
+        void loadSavedPaymentAccounts();
+        setIsPaymentMethodSheetOpen(true);
+    };
+
+    const confirmReleaseMethod = async (
+        method: string,
+        accountId: number | null,
+    ) => {
+        const result = await updatePaymentMethod(currentLoanRequest.id, {
+            release_method: method,
+            release_saved_account_id: accountId,
+        });
+
+        if (!result) {
+            return false;
+        }
+
+        const selectedAccount = accountId
+            ? savedPaymentAccounts.find((account) => account.id === accountId)
+            : null;
+
+        setCurrentDataSections((current) => ({
+            ...current,
+            banking: {
+                ...current.banking,
+                release_method: method,
+                payout_account_number:
+                    selectedAccount?.account_number ??
+                    current.banking?.payout_account_number ??
+                    null,
+            },
+        }));
+
+        return true;
+    };
+
+    const confirmPaymentMethod = async (
+        method: string,
+        accountId: number | null,
+    ) => {
+        const result = await updatePaymentMethod(currentLoanRequest.id, {
+            payment_option: method,
+            payment_saved_account_id: accountId,
+        });
+
+        if (!result) {
+            return false;
+        }
+
+        setCurrentDataSections((current) => ({
+            ...current,
+            banking: {
+                ...current.banking,
+                payment_option: method,
+            },
+        }));
+
+        return true;
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -720,6 +825,86 @@ export default function LoanRequestShow({
                             </p>
                         </CardContent>
                     </Card>
+                </section>
+            ) : null}
+            {canEditPaymentMethod ? (
+                <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Payment Method</CardTitle>
+                            <CardDescription>
+                                You can change how your loan is released and
+                                repaid while your request is still awaiting
+                                review.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-wrap gap-4">
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">
+                                    Release method
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {bankingReleaseMethod || 'Not set'}
+                                </p>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={openReleaseMethodSheet}
+                                >
+                                    Change release method
+                                </Button>
+                            </div>
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">
+                                    Repayment method
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {bankingPaymentOption || 'Not set'}
+                                </p>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={openPaymentMethodSheet}
+                                >
+                                    Change repayment method
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <PaymentAccountPickerSheet
+                        open={isReleaseMethodSheetOpen}
+                        onOpenChange={setIsReleaseMethodSheetOpen}
+                        title="Choose release method"
+                        description="Select how you'd like to receive your loan proceeds."
+                        accounts={savedPaymentAccounts}
+                        methodOptions={releaseMethodOptions}
+                        initialMethod={bankingReleaseMethod || null}
+                        isSaving={
+                            isSavingPaymentMethod ||
+                            isSavingPaymentAccount ||
+                            isLoadingSavedPaymentAccounts
+                        }
+                        onConfirm={confirmReleaseMethod}
+                        onCreateAccount={createSavedPaymentAccount}
+                    />
+                    <PaymentAccountPickerSheet
+                        open={isPaymentMethodSheetOpen}
+                        onOpenChange={setIsPaymentMethodSheetOpen}
+                        title="Choose repayment method"
+                        description="Select how you'd like to repay this loan."
+                        accounts={savedPaymentAccounts}
+                        methodOptions={paymentMethodOptions}
+                        initialMethod={bankingPaymentOption || null}
+                        isSaving={
+                            isSavingPaymentMethod ||
+                            isSavingPaymentAccount ||
+                            isLoadingSavedPaymentAccounts
+                        }
+                        onConfirm={confirmPaymentMethod}
+                        onCreateAccount={createSavedPaymentAccount}
+                    />
                 </section>
             ) : null}
             <LoanRequestDetailPage

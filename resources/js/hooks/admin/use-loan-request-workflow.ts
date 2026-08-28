@@ -13,7 +13,6 @@ export type LoanRequestWorkflowAction =
     | 'reject'
     | 'updateProcessingDetails'
     | 'requestMemberAction'
-    | 'updatePayoutDetails'
     | 'rejectDuringProcessing'
     | 'generateDocuments'
     | 'recommendApproval'
@@ -83,20 +82,6 @@ export type LoanRequestMemberActionPayload = {
     field_keys?: string[];
 };
 
-export type LoanRequestUpdatePayoutDetailsPayload = {
-    payment_option: string;
-    payout_atm_number?: string | null;
-    payout_atm_holder_name?: string | null;
-    payment_bank_name?: string | null;
-    payment_account_name?: string | null;
-    payment_account_number?: string | null;
-    payment_account_type?: string | null;
-    payment_atm_number?: string | null;
-    payment_bank_branch?: string | null;
-    payment_atm_holder_name?: string | null;
-    reason: string;
-};
-
 export type LoanRequestRejectDuringProcessingPayload = {
     rejection_category: string;
     rejection_category_other?: string | null;
@@ -129,7 +114,6 @@ type LoanRequestWorkflowPayload =
     | LoanRequestRejectPayload
     | LoanRequestProcessingDetailsPayload
     | LoanRequestMemberActionPayload
-    | LoanRequestUpdatePayoutDetailsPayload
     | LoanRequestRejectDuringProcessingPayload
     | LoanRequestGenerateDocumentsPayload
     | LoanRequestRecommendApprovalPayload
@@ -164,7 +148,6 @@ const successCopy: Record<LoanRequestWorkflowAction, string> = {
     reject: 'Loan request rejected successfully.',
     updateProcessingDetails: 'Processing details saved successfully.',
     requestMemberAction: 'Member action requested successfully.',
-    updatePayoutDetails: 'Payout details updated successfully.',
     rejectDuringProcessing: 'Loan request rejected during processing.',
     generateDocuments: 'Document generation completed.',
     recommendApproval: 'Loan request recommended for approval.',
@@ -185,7 +168,6 @@ const errorCopy: Record<LoanRequestWorkflowAction, string> = {
     reject: 'Failed to reject the loan request.',
     updateProcessingDetails: 'Failed to save processing details.',
     requestMemberAction: 'Failed to request member action.',
-    updatePayoutDetails: 'Failed to update payout details.',
     rejectDuringProcessing:
         'Failed to reject the loan request during processing.',
     generateDocuments: 'Failed to generate the required documents.',
@@ -291,13 +273,6 @@ export function useLoanRequestWorkflow(options?: LoanRequestWorkflowOptions) {
                         return adminApi.requestLoanRequestMemberAction(
                             loanRequestId,
                             payload as LoanRequestMemberActionPayload,
-                        );
-                    }
-
-                    if (action === 'updatePayoutDetails') {
-                        return adminApi.updateLoanRequestPayoutDetails(
-                            loanRequestId,
-                            payload as LoanRequestUpdatePayoutDetailsPayload,
                         );
                     }
 
@@ -414,10 +389,6 @@ export function useLoanRequestWorkflow(options?: LoanRequestWorkflowOptions) {
             loanRequestId: number,
             payload: LoanRequestMemberActionPayload,
         ) => runAction(loanRequestId, 'requestMemberAction', payload),
-        updatePayoutDetails: (
-            loanRequestId: number,
-            payload: LoanRequestUpdatePayoutDetailsPayload,
-        ) => runAction(loanRequestId, 'updatePayoutDetails', payload),
         rejectLoanRequestDuringProcessing: (
             loanRequestId: number,
             payload: LoanRequestRejectDuringProcessingPayload,

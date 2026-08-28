@@ -22,12 +22,14 @@ use App\Http\Controllers\Auth\UsernameSuggestionController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\LoanRequestController;
 use App\Http\Controllers\Client\LoanRequestCorrectionReportController as ClientLoanRequestCorrectionReportController;
+use App\Http\Controllers\Client\LoanRequestPaymentMethodController;
 use App\Http\Controllers\Client\MemberLoanPaymentsController as ClientMemberLoanPaymentsController;
 use App\Http\Controllers\Client\MemberLoanPaymentsExportController as ClientMemberLoanPaymentsExportController;
 use App\Http\Controllers\Client\MemberLoanScheduleController as ClientMemberLoanScheduleController;
 use App\Http\Controllers\Client\MemberLoansController as ClientMemberLoansController;
 use App\Http\Controllers\Client\MemberSavingsController as ClientMemberSavingsController;
 use App\Http\Controllers\Client\SavedCoMakerController;
+use App\Http\Controllers\Client\SavedPaymentAccountController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LoanRequestActionController;
@@ -156,8 +158,6 @@ Route::prefix('spa')->middleware('web')->group(function () {
                 ->name('processing-details.preview');
             Route::patch('{loanRequest}/request-member-action', [SpaLoanRequestWorkflowController::class, 'requestMemberAction'])
                 ->name('request-member-action');
-            Route::patch('{loanRequest}/payout-details', [SpaLoanRequestWorkflowController::class, 'updatePayoutDetails'])
-                ->name('payout-details');
             Route::patch('{loanRequest}/reject-during-processing', [SpaLoanRequestWorkflowController::class, 'rejectDuringProcessing'])
                 ->name('reject-during-processing');
             Route::post('{loanRequest}/documents/generate', [SpaLoanRequestWorkflowController::class, 'generateDocuments'])
@@ -298,6 +298,10 @@ Route::patch('client/loans/requests/{loanRequest}/resolve-action', [LoanRequestC
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.resolve-action');
 
+Route::patch('client/loans/requests/{loanRequest}/payment-method', [LoanRequestPaymentMethodController::class, 'update'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.payment-method');
+
 Route::patch('client/loans/requests/{loanRequest}/save-draft', [LoanRequestController::class, 'saveDraft'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.save-draft');
@@ -316,6 +320,22 @@ Route::get('client/co-makers/{coMaker}', [SavedCoMakerController::class, 'show']
 Route::delete('client/co-makers/{coMaker}', [SavedCoMakerController::class, 'destroy'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.co-makers.destroy');
+
+Route::get('client/saved-payment-accounts', [SavedPaymentAccountController::class, 'index'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.saved-payment-accounts.index');
+
+Route::post('client/saved-payment-accounts', [SavedPaymentAccountController::class, 'store'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.saved-payment-accounts.store');
+
+Route::patch('client/saved-payment-accounts/{paymentAccount}', [SavedPaymentAccountController::class, 'update'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.saved-payment-accounts.update');
+
+Route::delete('client/saved-payment-accounts/{paymentAccount}', [SavedPaymentAccountController::class, 'destroy'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.saved-payment-accounts.destroy');
 
 Route::post('client/loans/requests/{loanRequest}/corrected-copy', [LoanRequestController::class, 'createCorrectedCopy'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])

@@ -148,6 +148,11 @@ class MemberApplicationProfile extends Model
         return $this->hasMany(MemberCoMaker::class);
     }
 
+    public function paymentAccounts(): HasMany
+    {
+        return $this->hasMany(MemberPaymentAccount::class);
+    }
+
     public function isComplete(): bool
     {
         return $this->profile_completed_at !== null;

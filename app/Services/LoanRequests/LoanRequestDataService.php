@@ -1706,10 +1706,16 @@ class LoanRequestDataService
     /**
      * @var list<string>
      */
-    private const STAFF_MANAGED_BANKING_FIELDS = [
-        'payment_option',
+    private const MEMBER_PAYMENT_METHOD_FIELDS = [
+        'release_method',
+        'payout_bank_name',
+        'payout_account_name',
+        'payout_account_number',
+        'payout_account_type',
         'payout_atm_number',
+        'payout_bank_branch',
         'payout_atm_holder_name',
+        'payment_option',
         'payment_bank_name',
         'payment_account_name',
         'payment_account_number',
@@ -1722,13 +1728,10 @@ class LoanRequestDataService
     /**
      * @param  array<string, mixed>  $fields
      */
-    public function updateStaffManagedBankingFields(
-        LoanRequest $loanRequest,
-        array $fields,
-        AppUser $actor,
-    ): void {
+    public function updateMemberManagedPaymentMethodFields(LoanRequest $loanRequest, array $fields): void
+    {
         foreach ($fields as $fieldKey => $value) {
-            if (! in_array($fieldKey, self::STAFF_MANAGED_BANKING_FIELDS, true)) {
+            if (! in_array($fieldKey, self::MEMBER_PAYMENT_METHOD_FIELDS, true)) {
                 continue;
             }
 
@@ -1736,8 +1739,8 @@ class LoanRequestDataService
                 $loanRequest,
                 $fieldKey,
                 $value,
-                confirmedByMember: false,
-                updatedByStaff: $actor,
+                confirmedByMember: true,
+                confirmedAt: now(),
             );
         }
     }

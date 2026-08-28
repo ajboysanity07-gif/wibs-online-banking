@@ -18,7 +18,6 @@ use App\Http\Requests\Workflow\LoanRequestRequestRevisionRequest;
 use App\Http\Requests\Workflow\LoanRequestReturnForProcessingRequest;
 use App\Http\Requests\Workflow\LoanRequestReturnToQueueRequest;
 use App\Http\Requests\Workflow\LoanRequestStartReviewRequest;
-use App\Http\Requests\Workflow\LoanRequestUpdatePayoutDetailsRequest;
 use App\Http\Requests\Workflow\LoanRequestUpgradeWorkflowRequest;
 use App\Http\Requests\Workflow\LoanRequestWorkflowApproveRequest;
 use App\Http\Requests\Workflow\LoanRequestWorkflowDeclineRequest;
@@ -380,35 +379,6 @@ class LoanRequestWorkflowController extends Controller
         abort_unless($actor instanceof AppUser, 403);
 
         $updated = $processingService->requestMemberAction(
-            $loanRequest,
-            $actor,
-            $request->validated(),
-        );
-
-        return $this->response(
-            $updated,
-            $actor,
-            $serializer,
-            $assignmentService,
-            $documentWorkflowService,
-            $dataService,
-        );
-    }
-
-    public function updatePayoutDetails(
-        LoanRequestUpdatePayoutDetailsRequest $request,
-        LoanRequest $loanRequest,
-        LoanRequestProcessingService $processingService,
-        LoanRequestAssignmentService $assignmentService,
-        LoanRequestDocumentWorkflowService $documentWorkflowService,
-        LoanRequestDataService $dataService,
-        LoanRequestPayloadSerializer $serializer,
-    ): JsonResponse {
-        $actor = $request->user();
-
-        abort_unless($actor instanceof AppUser, 403);
-
-        $updated = $processingService->updatePayoutDetails(
             $loanRequest,
             $actor,
             $request->validated(),

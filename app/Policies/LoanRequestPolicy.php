@@ -137,13 +137,6 @@ class LoanRequestPolicy
         return $this->updateProcessingDetails($user, $loanRequest);
     }
 
-    public function updatePayoutDetails(
-        AppUser $user,
-        LoanRequest $loanRequest,
-    ): bool {
-        return $this->updateProcessingDetails($user, $loanRequest);
-    }
-
     public function rejectDuringProcessing(
         AppUser $user,
         LoanRequest $loanRequest,

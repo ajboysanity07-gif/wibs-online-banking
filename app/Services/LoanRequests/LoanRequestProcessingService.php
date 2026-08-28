@@ -24,7 +24,138 @@ class LoanRequestProcessingService
         private LoanRequestNotificationService $notificationService,
         private LoanManagerWitnessResolver $loanManagerWitnessResolver,
         private LoanRequestCycleStateService $cycleStateService,
+        private SavedPaymentAccountsService $savedPaymentAccountsService,
     ) {}
+
+    /**
+     * @param  array{release_method?:?string, release_saved_account_id?:?int, payment_option?:?string, payment_saved_account_id?:?int}  $payload
+     */
+    public function updatePaymentMethodByMember(
+        LoanRequest $loanRequest,
+        AppUser $member,
+        array $payload,
+    ): LoanRequest {
+        $member->loadMissing('memberApplicationProfile');
+        $profile = $member->memberApplicationProfile;
+
+        if ($profile === null) {
+            throw ValidationException::withMessages([
+                'loan_request' => 'Your member profile could not be found.',
+            ]);
+        }
+
+        $updated = DB::transaction(function () use ($loanRequest, $member, $payload, $profile): LoanRequest {
+            $lockedLoanRequest = $this->lockLoanRequest($loanRequest);
+            $this->ensureOwnedByMember($lockedLoanRequest, $member);
+            $this->ensureMemberPaymentMethodEditableStatus($lockedLoanRequest);
+
+            $fromStatus = $this->statusValue($lockedLoanRequest);
+            $before = $this->editableSnapshot($lockedLoanRequest);
+
+            $fields = [];
+
+            $releaseMethod = $payload['release_method'] ?? null;
+
+            if ($releaseMethod !== null) {
+                $fields['release_method'] = $releaseMethod;
+
+                $releaseAccountId = $payload['release_saved_account_id'] ?? null;
+
+                if ($releaseAccountId !== null) {
+                    $account = $this->savedPaymentAccountsService->find($profile, (int) $releaseAccountId);
+
+                    if ($account === null) {
+                        throw ValidationException::withMessages([
+                            'release_saved_account_id' => 'The selected saved account could not be found.',
+                        ]);
+                    }
+
+                    $this->savedPaymentAccountsService->touchLastUsed($account);
+
+                    $fields['payout_bank_name'] = $account->bank_name;
+                    $fields['payout_account_name'] = $account->account_name;
+                    $fields['payout_account_number'] = $account->account_number;
+                    $fields['payout_account_type'] = $account->account_type;
+                    $fields['payout_atm_number'] = $account->atm_number;
+                    $fields['payout_bank_branch'] = $account->bank_branch;
+                    $fields['payout_atm_holder_name'] = $account->atm_holder_name;
+                }
+            }
+
+            $paymentOption = $payload['payment_option'] ?? null;
+
+            if ($paymentOption !== null) {
+                $fields['payment_option'] = $paymentOption;
+
+                $paymentAccountId = $payload['payment_saved_account_id'] ?? null;
+
+                if ($paymentAccountId !== null) {
+                    $account = $this->savedPaymentAccountsService->find($profile, (int) $paymentAccountId);
+
+                    if ($account === null) {
+                        throw ValidationException::withMessages([
+                            'payment_saved_account_id' => 'The selected saved account could not be found.',
+                        ]);
+                    }
+
+                    $this->savedPaymentAccountsService->touchLastUsed($account);
+
+                    $fields['payment_bank_name'] = $account->bank_name;
+                    $fields['payment_account_name'] = $account->account_name;
+                    $fields['payment_account_number'] = $account->account_number;
+                    $fields['payment_account_type'] = $account->account_type;
+                    $fields['payment_atm_number'] = $account->atm_number;
+                    $fields['payment_bank_branch'] = $account->bank_branch;
+                    $fields['payment_atm_holder_name'] = $account->atm_holder_name;
+                }
+            }
+
+            $this->dataService->updateMemberManagedPaymentMethodFields($lockedLoanRequest, $fields);
+
+            $lockedLoanRequest->unsetRelation('dataEntries');
+
+            $after = $this->editableSnapshot($lockedLoanRequest);
+
+            $this->recordAudit(
+                $lockedLoanRequest,
+                $member,
+                LoanRequestChange::ACTION_MEMBER_UPDATED_PAYMENT_METHOD,
+                'Member updated their release/repayment method.',
+                $fromStatus,
+                $fromStatus,
+                array_keys($fields),
+                ['updated_fields' => $this->dataService->fieldDescriptors(array_keys($fields))],
+                $before,
+                $after,
+            );
+
+            return $lockedLoanRequest->refresh();
+        });
+
+        $this->notificationService->notifyProcessor(
+            $updated,
+            LoanRequestNotificationService::EVENT_PAYMENT_METHOD_UPDATED_BY_MEMBER,
+            [
+                'title' => 'Member updated their payment method',
+                'message' => 'The member changed their release/repayment method while this request is still awaiting review.',
+            ],
+            $member,
+        );
+
+        return $updated;
+    }
+
+    private function ensureMemberPaymentMethodEditableStatus(LoanRequest $loanRequest): void
+    {
+        if (! in_array($this->statusValue($loanRequest), [
+            LoanRequestStatus::Submitted->value,
+            LoanRequestStatus::PendingReview->value,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'This request is no longer editable for payment method changes.',
+            ]);
+        }
+    }
 
     /**
      * @param  array<string, mixed>  $payload
@@ -335,77 +466,6 @@ class LoanRequestProcessingService
                     ? 'Loan request needs correction'
                     : 'Loan request needs more information',
                 'message' => trim((string) $updated->member_action_message),
-                'reason' => $payload['reason'],
-            ],
-            $actor,
-        );
-
-        return $updated;
-    }
-
-    /**
-     * @param  array{payment_option:string, payout_atm_number?:?string, payout_atm_holder_name?:?string, payment_bank_name?:?string, payment_account_name?:?string, payment_account_number?:?string, payment_account_type?:?string, payment_atm_number?:?string, payment_bank_branch?:?string, payment_atm_holder_name?:?string, reason:string}  $payload
-     */
-    public function updatePayoutDetails(
-        LoanRequest $loanRequest,
-        AppUser $actor,
-        array $payload,
-    ): LoanRequest {
-        $updated = DB::transaction(function () use ($loanRequest, $actor, $payload): LoanRequest {
-            $lockedLoanRequest = $this->lockLoanRequest($loanRequest);
-            $this->ensureProcessorEditableStatus($lockedLoanRequest);
-
-            $reason = trim((string) $payload['reason']);
-            $fromStatus = $this->statusValue($lockedLoanRequest);
-
-            $fields = [
-                'payment_option' => $payload['payment_option'],
-                'payout_atm_number' => $payload['payout_atm_number'] ?? null,
-                'payout_atm_holder_name' => $payload['payout_atm_holder_name'] ?? null,
-                'payment_bank_name' => $payload['payment_bank_name'] ?? null,
-                'payment_account_name' => $payload['payment_account_name'] ?? null,
-                'payment_account_number' => $payload['payment_account_number'] ?? null,
-                'payment_account_type' => $payload['payment_account_type'] ?? null,
-                'payment_atm_number' => $payload['payment_atm_number'] ?? null,
-                'payment_bank_branch' => $payload['payment_bank_branch'] ?? null,
-                'payment_atm_holder_name' => $payload['payment_atm_holder_name'] ?? null,
-            ];
-
-            $before = $this->editableSnapshot($lockedLoanRequest);
-
-            $this->dataService->updateStaffManagedBankingFields(
-                $lockedLoanRequest,
-                $fields,
-                $actor,
-            );
-
-            $lockedLoanRequest->unsetRelation('dataEntries');
-
-            $after = $this->editableSnapshot($lockedLoanRequest);
-
-            $this->recordAudit(
-                $lockedLoanRequest,
-                $actor,
-                LoanRequestChange::ACTION_UPDATE_PAYOUT_DETAILS,
-                $reason,
-                $fromStatus,
-                $fromStatus,
-                array_keys($fields),
-                ['updated_fields' => $this->dataService->fieldDescriptors(array_keys($fields))],
-                $before,
-                $after,
-            );
-
-            return $lockedLoanRequest->refresh();
-        });
-
-        $this->notificationService->notifyMember(
-            $updated,
-            LoanRequestNotificationService::EVENT_PAYOUT_DETAILS_UPDATED_BY_STAFF,
-            [
-                'title' => 'Your payout and repayment details were updated',
-                'message' => 'Our loan processing team updated your payout/ATM details and repayment method '
-                    .'on your behalf. If this is incorrect, please contact us.',
                 'reason' => $payload['reason'],
             ],
             $actor,

@@ -43,6 +43,8 @@ class LoanRequestChange extends Model
 
     public const ACTION_UPDATE_PAYOUT_DETAILS = 'update_payout_details';
 
+    public const ACTION_MEMBER_UPDATED_PAYMENT_METHOD = 'member_updated_payment_method';
+
     public const ACTION_APPROVE = 'approve';
 
     public const ACTION_DECLINE = 'decline';

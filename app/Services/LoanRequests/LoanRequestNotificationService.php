@@ -20,6 +20,8 @@ class LoanRequestNotificationService
 
     public const EVENT_PAYOUT_DETAILS_UPDATED_BY_STAFF = 'payout_details_updated_by_staff';
 
+    public const EVENT_PAYMENT_METHOD_UPDATED_BY_MEMBER = 'payment_method_updated_by_member';
+
     public const EVENT_REJECTED_DURING_PROCESSING = 'rejected_during_processing';
 
     public const EVENT_DECLINED_BY_MANAGER = 'declined_by_manager';
@@ -140,6 +142,80 @@ class LoanRequestNotificationService
         }
 
         $this->maybeQueueSms($loanRequest, $eventType, $content, $member);
+    }
+
+    /**
+     * @param  array{title:string, message:string, reason?:string|null}  $content
+     */
+    public function notifyProcessor(
+        LoanRequest $loanRequest,
+        string $eventType,
+        array $content,
+        ?AppUser $actor = null,
+    ): void {
+        $loanRequest->loadMissing('assignedProcessor');
+
+        $processor = $loanRequest->assignedProcessor;
+
+        if (! $processor instanceof AppUser) {
+            return;
+        }
+
+        $payload = [
+            'event_type' => $eventType,
+            'title' => $content['title'],
+            'message' => $content['message'],
+            'reason' => $content['reason'] ?? null,
+            'status' => $loanRequest->status instanceof \App\LoanRequestStatus
+                ? $loanRequest->status->value
+                : (string) $loanRequest->status,
+            'action_url' => route('staff.loan-requests.show', $loanRequest),
+        ];
+
+        $channelEvents = DB::transaction(function () use (
+            $loanRequest,
+            $eventType,
+            $processor,
+            $payload,
+        ): array {
+            LoanRequest::query()
+                ->whereKey($loanRequest->id)
+                ->lockForUpdate()
+                ->first();
+
+            $events = [];
+
+            $databaseEvent = $this->createChannelEvent(
+                $loanRequest,
+                $eventType,
+                'database',
+                (string) $processor->user_id,
+                'queued',
+                null,
+                $processor->user_id,
+                $payload,
+            );
+
+            if ($databaseEvent->wasRecentlyCreated) {
+                $events[] = $databaseEvent;
+            }
+
+            return $events;
+        });
+
+        foreach ($channelEvents as $event) {
+            if (! $event instanceof LoanRequestNotificationEvent) {
+                continue;
+            }
+
+            $processor->notify(new LoanRequestWorkflowStatusNotification(
+                $loanRequest,
+                $actor,
+                $payload,
+                [$event->channel],
+                $event->id,
+            ));
+        }
     }
 
     public function sendReminderIfDue(LoanRequest $loanRequest, string $eventType): bool
