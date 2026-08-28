@@ -72,6 +72,7 @@ class LoanRequestProcessingService
 
                     $this->savedPaymentAccountsService->touchLastUsed($account);
 
+                    $fields['release_saved_account_id'] = $account->id;
                     $fields['payout_bank_name'] = $account->bank_name;
                     $fields['payout_account_name'] = $account->account_name;
                     $fields['payout_account_number'] = $account->account_number;
@@ -100,6 +101,7 @@ class LoanRequestProcessingService
 
                     $this->savedPaymentAccountsService->touchLastUsed($account);
 
+                    $fields['payment_saved_account_id'] = $account->id;
                     $fields['payment_bank_name'] = $account->bank_name;
                     $fields['payment_account_name'] = $account->account_name;
                     $fields['payment_account_number'] = $account->account_number;

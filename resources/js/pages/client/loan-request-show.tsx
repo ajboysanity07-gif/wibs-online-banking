@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { CircleAlert } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
@@ -180,6 +180,10 @@ export default function LoanRequestShow({
         useState(false);
     const [isPaymentMethodSheetOpen, setIsPaymentMethodSheetOpen] =
         useState(false);
+    useEffect(() => {
+        void loadSavedPaymentAccounts();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     const isReportSubmitting = processingIds[loanRequest.id] ?? false;
     const isCancellationSubmitting =
         cancellationProcessingIds[currentLoanRequest.id] ?? false;
@@ -406,6 +410,20 @@ export default function LoanRequestShow({
     const bankingPaymentOption = bankingSection.payment_option
         ? `${bankingSection.payment_option}`
         : '';
+    const bankingReleaseAccountId =
+        typeof bankingSection.release_saved_account_id === 'number'
+            ? bankingSection.release_saved_account_id
+            : null;
+    const bankingPaymentAccountId =
+        typeof bankingSection.payment_saved_account_id === 'number'
+            ? bankingSection.payment_saved_account_id
+            : null;
+    const bankingReleaseAccountLabel = savedPaymentAccounts.find(
+        (account) => account.id === bankingReleaseAccountId,
+    )?.label;
+    const bankingPaymentAccountLabel = savedPaymentAccounts.find(
+        (account) => account.id === bankingPaymentAccountId,
+    )?.label;
     const bankingAccountNumber =
         bankingReleaseMethod === 'ATM' ||
         bankingReleaseMethod === 'Bank Transfer'
@@ -463,6 +481,7 @@ export default function LoanRequestShow({
             banking: {
                 ...current.banking,
                 release_method: method,
+                release_saved_account_id: accountId,
                 payout_account_number:
                     selectedAccount?.account_number ??
                     current.banking?.payout_account_number ??
@@ -491,6 +510,7 @@ export default function LoanRequestShow({
             banking: {
                 ...current.banking,
                 payment_option: method,
+                payment_saved_account_id: accountId,
             },
         }));
 
@@ -850,9 +870,19 @@ export default function LoanRequestShow({
                                 <p className="text-sm font-medium">
                                     Release method
                                 </p>
-                                <p className="text-sm text-muted-foreground">
-                                    {bankingReleaseMethod || 'Not set'}
-                                </p>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">
+                                        {bankingReleaseMethod || 'Not set'}
+                                    </p>
+                                    {(bankingReleaseMethod === 'ATM' ||
+                                        bankingReleaseMethod ===
+                                            'Bank Transfer') && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {bankingReleaseAccountLabel ??
+                                                'No account selected'}
+                                        </p>
+                                    )}
+                                </div>
                                 <Button
                                     type="button"
                                     size="sm"
@@ -866,9 +896,18 @@ export default function LoanRequestShow({
                                 <p className="text-sm font-medium">
                                     Repayment method
                                 </p>
-                                <p className="text-sm text-muted-foreground">
-                                    {bankingPaymentOption || 'Not set'}
-                                </p>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">
+                                        {bankingPaymentOption || 'Not set'}
+                                    </p>
+                                    {bankingPaymentOption ===
+                                        'ATM Deduction' && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {bankingPaymentAccountLabel ??
+                                                'No account selected'}
+                                        </p>
+                                    )}
+                                </div>
                                 <Button
                                     type="button"
                                     size="sm"
@@ -888,6 +927,7 @@ export default function LoanRequestShow({
                         accounts={savedPaymentAccounts}
                         methodOptions={releaseMethodOptions}
                         initialMethod={bankingReleaseMethod || null}
+                        initialAccountId={bankingReleaseAccountId}
                         isSaving={
                             isSavingPaymentMethod ||
                             isSavingPaymentAccount ||
@@ -904,6 +944,7 @@ export default function LoanRequestShow({
                         accounts={savedPaymentAccounts}
                         methodOptions={paymentMethodOptions}
                         initialMethod={bankingPaymentOption || null}
+                        initialAccountId={bankingPaymentAccountId}
                         isSaving={
                             isSavingPaymentMethod ||
                             isSavingPaymentAccount ||

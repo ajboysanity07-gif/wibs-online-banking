@@ -661,6 +661,14 @@ class LoanRequestDataService
             'section' => 'banking',
             'type' => 'string',
         ],
+        'release_saved_account_id' => [
+            'label' => 'Release saved account',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'banking',
+            'type' => 'integer',
+        ],
         'payment_option' => [
             'label' => 'Payment option',
             'owner' => self::OWNER_MEMBER,
@@ -668,6 +676,14 @@ class LoanRequestDataService
             'required_on_submit' => true,
             'section' => 'banking',
             'type' => 'string',
+        ],
+        'payment_saved_account_id' => [
+            'label' => 'Payment saved account',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'banking',
+            'type' => 'integer',
         ],
         'payout_atm_number' => [
             'label' => 'Payout ATM number',
@@ -1711,6 +1727,7 @@ class LoanRequestDataService
      */
     private const MEMBER_PAYMENT_METHOD_FIELDS = [
         'release_method',
+        'release_saved_account_id',
         'payout_bank_name',
         'payout_account_name',
         'payout_account_number',
@@ -1719,6 +1736,7 @@ class LoanRequestDataService
         'payout_bank_branch',
         'payout_atm_holder_name',
         'payment_option',
+        'payment_saved_account_id',
         'payment_bank_name',
         'payment_account_name',
         'payment_account_number',

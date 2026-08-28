@@ -219,12 +219,42 @@ test('selecting a saved account round-trips bank branch and ATM holder name into
     }
 });
 
+test('the selected saved account ids are persisted and returned through serializeSections', function (): void {
+    // Guards a regression where the saved-account picker dropped the
+    // release_saved_account_id / payment_saved_account_id link, so the review
+    // page could never re-display the previously-chosen saved bank/ATM account.
+    $member = createPaymentMethodTestMember('005609');
+    $loanRequest = submitPaymentMethodTestLoan($member);
+
+    $account = MemberPaymentAccount::factory()->forProfile($member->memberApplicationProfile)->create([
+        'bank_name' => 'BPI',
+        'account_name' => 'Payment Member',
+        'account_number' => '9988776655',
+        'account_type' => 'Savings',
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson("/client/loans/requests/{$loanRequest->id}/payment-method", [
+            'release_method' => 'ATM',
+            'release_saved_account_id' => $account->id,
+            'payment_option' => 'ATM Deduction',
+            'payment_saved_account_id' => $account->id,
+        ])
+        ->assertOk();
+
+    $loanRequest->unsetRelation('dataEntries');
+    $sections = app(\App\Services\LoanRequests\LoanRequestDataService::class)
+        ->serializeSections($loanRequest->refresh());
+
+    expect($sections['banking']['release_saved_account_id'])->toBe($account->id)
+        ->and($sections['banking']['payment_saved_account_id'])->toBe($account->id);
+});
+
 test('a member can still update their payment method while a processor is reviewing the request', function (): void {
     $member = createPaymentMethodTestMember('005601');
     $loanRequest = submitPaymentMethodTestLoan($member);
 
     $loanRequest->forceFill(['status' => LoanRequestStatus::UnderReview])->save();
-
     $account = MemberPaymentAccount::factory()->forProfile($member->memberApplicationProfile)->create();
 
     $this->actingAs($member)
