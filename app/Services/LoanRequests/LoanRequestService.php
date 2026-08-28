@@ -1678,7 +1678,7 @@ class LoanRequestService
             }
         }
 
-        if ($wmasterAddress2 !== null || $wmasterAddress3 !== null) {
+        if ($wmasterAddress1 !== null || $wmasterAddress2 !== null || $wmasterAddress3 !== null) {
             return [$wmasterAddress1, $wmasterAddress2, $wmasterAddress3, $wmasterBarangay];
         }
 
