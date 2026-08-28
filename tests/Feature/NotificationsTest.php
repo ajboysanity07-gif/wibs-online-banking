@@ -247,12 +247,12 @@ test('loan request submission notifies admins and superadmins', function () {
     $admin = createAdminUser();
     $superadmin = createAdminUser(superadmin: true);
     $member = createRegisteredMember('000712', 'Loan', 'Member');
-    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
+    $profile = MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
         'user_id' => $member->user_id,
     ]);
 
     $service = app(LoanRequestService::class);
-    $loanRequest = $service->submit($member, notificationLoanRequestPayload());
+    $loanRequest = $service->submit($member, notificationLoanRequestPayload($profile));
 
     $adminNotification = latestNotificationFor($admin, LoanRequestSubmittedNotification::class);
     $superadminNotification = latestNotificationFor(
@@ -1021,7 +1021,7 @@ function notificationWithStatusFor(
         });
 }
 
-function notificationLoanRequestPayload(): array
+function notificationLoanRequestPayload(MemberApplicationProfile $profile): array
 {
     return [
         'typecode' => 'LN-100',
@@ -1045,12 +1045,8 @@ function notificationLoanRequestPayload(): array
             'health_recent_hospitalization' => false,
         ],
         'banking' => [
-            'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Loan Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'payout_atm_number' => '9876543210',
             'release_method' => 'Bank Transfer',
+            'release_saved_account_id' => $profile->release_saved_account_id,
             'payment_option' => 'Salary Deduction',
         ],
         'barangay' => [

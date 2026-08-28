@@ -82,7 +82,27 @@ class SavedPaymentAccountsService
      */
     public function destroy(MemberApplicationProfile $profile, int $id): void
     {
-        $this->find($profile, $id)?->delete();
+        $account = $this->find($profile, $id);
+
+        if ($account === null) {
+            return;
+        }
+
+        $clears = [];
+
+        if ($profile->release_saved_account_id === $account->id) {
+            $clears['release_saved_account_id'] = null;
+        }
+
+        if ($profile->payment_saved_account_id === $account->id) {
+            $clears['payment_saved_account_id'] = null;
+        }
+
+        if ($clears !== []) {
+            $profile->update($clears);
+        }
+
+        $account->delete();
     }
 
     public function touchLastUsed(MemberPaymentAccount $account): void

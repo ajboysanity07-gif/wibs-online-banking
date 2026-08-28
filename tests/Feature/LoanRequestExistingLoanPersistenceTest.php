@@ -145,8 +145,7 @@ test('member submit preserves existing loan auto-fill through to document data',
     $payload['banking'] = array_merge(
         $formData['dataSections']['banking'],
         [
-            'payout_account_type' => 'Savings',
-            'release_method' => 'Bank transfer',
+            'release_method' => 'Bank Transfer',
             'payment_option' => 'Salary Deduction',
         ],
     );
@@ -236,12 +235,10 @@ test('existing loan data persists when member manually adds slot 1 in wizard', f
             'existing_loan_1_amount' => 25000,
         ],
         'banking' => [
-            'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Loan Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
-            'release_method' => 'Bank transfer',
+            'release_method' => 'Bank Transfer',
+            'release_saved_account_id' => $member->memberApplicationProfile->release_saved_account_id,
             'payment_option' => 'Salary Deduction',
+            'payment_saved_account_id' => $member->memberApplicationProfile->payment_saved_account_id,
         ],
         'insurance' => [
             'beneficiary_primary_name' => 'Beneficiary One',

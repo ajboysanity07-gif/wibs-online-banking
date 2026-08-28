@@ -115,8 +115,7 @@ test('member submit persists existing loan slot 1 and document data includes it'
             'health_recent_hospitalization' => false,
         ]),
         'banking' => array_merge($formData['dataSections']['banking'], [
-            'payout_account_type' => 'Savings',
-            'release_method' => 'Bank transfer',
+            'release_method' => 'Bank Transfer',
             'payment_option' => 'Salary Deduction',
         ]),
         'dependents' => array_merge($formData['dataSections']['dependents'], [

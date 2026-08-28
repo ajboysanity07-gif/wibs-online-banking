@@ -53,12 +53,12 @@ return new class extends Migration
                 ->nullable()
                 ->after('payout_atm_holder_name')
                 ->constrained('member_payment_accounts')
-                ->nullOnDelete();
+                ->onDelete('no action');
             $table->foreignId('payment_saved_account_id')
                 ->nullable()
                 ->after('release_saved_account_id')
                 ->constrained('member_payment_accounts')
-                ->nullOnDelete();
+                ->onDelete('no action');
         });
 
         Schema::table('loan_requests', function (Blueprint $table) {

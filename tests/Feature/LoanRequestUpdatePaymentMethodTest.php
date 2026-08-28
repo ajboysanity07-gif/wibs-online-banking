@@ -125,10 +125,6 @@ function submitPaymentMethodTestLoan(AppUser $member): LoanRequest
             'health_recent_hospitalization' => false,
         ],
         'banking' => [
-            'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Loan Member',
-            'payout_account_number' => '1234567890',
-            'payout_account_type' => 'Savings',
             'release_method' => 'Check',
             'payment_option' => 'Salary Deduction',
         ],
