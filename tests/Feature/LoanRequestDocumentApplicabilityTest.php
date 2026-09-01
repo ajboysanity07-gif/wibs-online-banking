@@ -1363,6 +1363,35 @@ test('generali and generali application form remain applicable for non-Due-date 
         ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeTrue();
 });
 
+test('loan security agreement is not applicable for a 1-month Due-date', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'recommended_payment_frequency' => 'Due date',
+        'recommended_term' => 1,
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, []))->toBeFalse();
+});
+
+test('loan security agreement remains applicable for a 2-month-or-longer Due-date', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'recommended_payment_frequency' => 'Due date',
+        'recommended_term' => 2,
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, []))->toBeTrue();
+});
+
+test('loan security agreement remains applicable for non-Due-date frequencies', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'recommended_payment_frequency' => 'Monthly',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, []))->toBeTrue();
+});
+
 test('plan of payment, disclosure statement, and promissory note have no template-file blockers', function (): void {
     // These three render from Blade views (PlanOfPaymentPdfService,
     // DisclosureStatementPdfService, PromissoryNotePdfService), not from an

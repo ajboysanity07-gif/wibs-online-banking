@@ -330,7 +330,7 @@ class LoanRequestDocumentCatalog
         ],
         'loan_security_agreement' => [
             'template_version' => 'loan-security-agreement-v2',
-            'applicability' => 'always',
+            'applicability' => 'not_lumpsum',
             'required_fields' => [],
             'source_fields' => [],
             'source_paths' => [
