@@ -250,7 +250,7 @@ export function PaymentAccountPickerSheet({
                                 </Card>
                                 {method === option.value &&
                                 option.needsAccount ? (
-                                    <div className="ml-4 space-y-2 border-l border-input pl-4">
+                                    <div className="space-y-2 pt-1">
                                         {accounts.length === 0 ? (
                                             <p className="text-sm text-muted-foreground">
                                                 No saved accounts yet. Add one
