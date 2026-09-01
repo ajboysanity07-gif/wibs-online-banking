@@ -2037,7 +2037,9 @@ export function ProcessingDetailsPanel({
                         )}
                         {loanRequest.waiver_applicability?.deped.applicable && (
                             <>
-                                {renderProcessingSectionLabel('Waiver (DepEd)')}
+                                {renderProcessingSectionLabel(
+                                    'Salary Deduction Authorization Waiver (Education Sector)',
+                                )}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {renderProcessingField(
                                         'deped_school_id_number',
@@ -2192,7 +2194,9 @@ export function ProcessingDetailsPanel({
 
                         {loanRequest.waiver_applicability?.deped.applicable && (
                             <>
-                                {renderProcessingSectionLabel('Waiver (DepEd)')}
+                                {renderProcessingSectionLabel(
+                                    'Salary Deduction Authorization Waiver (Education Sector)',
+                                )}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {SNAPSHOT_DEPED_FIELDS.map((fieldKey) =>
                                         renderSnapshotField(fieldKey),

@@ -4,7 +4,17 @@ namespace App\Services\LoanRequests\PdfFieldMaps;
 
 use App\Services\LoanRequests\PdfFieldMaps\Concerns\UppercasesFieldValues;
 
-class DepedSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
+/**
+ * Variant of DepedSalaryDeductionWaiverPdfFieldMap used when the applicant's
+ * employer is a tertiary institution (state university/college, etc.) rather
+ * than basic-education DepEd. The underlying template PDF
+ * (deped-salary-deduction-waiver-tertiary.pdf) replaces the baked-in
+ * "Dep. Ed."/"DEPED" wording in clauses 1, 2 and 4 with blanks filled here
+ * from the applicant's actual employer name -- clause 5's "Dep. Ed. Order
+ * No. 55" legal citation is untouched on the template itself since it
+ * references a real DepEd regulation, not the employer.
+ */
+class TertiaryEducationWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
 {
     use UppercasesFieldValues;
 
@@ -26,7 +36,7 @@ class DepedSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'x' => 24,
                 'y' => 55,
                 'size' => 11,
-                'width' => 94,
+                'width' => 90,
                 'shrink_to_fit' => true,
                 'min_size' => 7.0,
                 'value' => 'applicant.full_name',
@@ -41,23 +51,55 @@ class DepedSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'min_size' => 6.0,
                 'value' => 'applicant.address',
             ],
+            // Institution name -- clause 1 ("regular teacher/non-teaching staff of ___"),
+            // its own row beneath the clause text since a long institution name
+            // collides with the clause wording when placed on the same line.
             [
                 'page' => 1,
                 'x' => 18,
-                'y' => 86,
+                'y' => 80,
+                'size' => 11,
+                'width' => 110,
+                'shrink_to_fit' => true,
+                'min_size' => 6.0,
+                'value' => 'deduction.deped_institution_name',
+            ],
+            [
+                'page' => 1,
+                'x' => 18,
+                'y' => 92,
                 'size' => 11,
                 'width' => 90,
                 'shrink_to_fit' => true,
                 'min_size' => 7.0,
                 'value' => 'deduction.deped_school_id_number',
             ],
-            // "deduct- <amount in words> (P <amount>)" -- both blanks sit inline on
-            // clause 4's second line in the typeset template, matching the real
-            // MRDINC form (verified against its raw docx XML runs).
+            // Institution name -- clause 2 ("threshold set by ___")
+            [
+                'page' => 1,
+                'x' => 18,
+                'y' => 106,
+                'size' => 11,
+                'width' => 90,
+                'shrink_to_fit' => true,
+                'min_size' => 6.0,
+                'value' => 'deduction.deped_institution_name',
+            ],
+            // Institution name -- clause 4 ("...RURAL DEVELOPMENT INC. with ___ to deduct-")
+            [
+                'page' => 1,
+                'x' => 18,
+                'y' => 128,
+                'size' => 11,
+                'width' => 78,
+                'shrink_to_fit' => true,
+                'min_size' => 6.0,
+                'value' => 'deduction.deped_institution_name',
+            ],
             [
                 'page' => 1,
                 'x' => 42,
-                'y' => 120,
+                'y' => 136,
                 'size' => 11,
                 'width' => 88,
                 'shrink_to_fit' => true,
@@ -66,10 +108,10 @@ class DepedSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
             ],
             [
                 'page' => 1,
-                'x' => 150,
-                'y' => 120,
+                'x' => 141,
+                'y' => 136,
                 'size' => 11,
-                'width' => 24,
+                'width' => 33,
                 'shrink_to_fit' => true,
                 'min_size' => 6.0,
                 'value' => 'deduction.deped_deduction_amount',
@@ -77,10 +119,7 @@ class DepedSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
             [
                 'page' => 1,
                 'x' => 139,
-                'y' => 148,
-                // Place of Signing blank on the "Done this ___ day of ______ at ___"
-                // row. The day/month-year blanks beside it stay hand-fill -- only the
-                // venue is system-printed (full composed org address, shrink-to-fit).
+                'y' => 166,
                 'size' => 11,
                 'width' => 51,
                 'align' => 'C',

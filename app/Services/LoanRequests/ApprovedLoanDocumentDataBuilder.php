@@ -332,6 +332,9 @@ class ApprovedLoanDocumentDataBuilder
             $overrideProcessing['deped_deduction_amount'] ?? $flatValues['deped_deduction_amount'] ?? null,
         );
         $depedDeductionAmountWords = $this->formatCurrencyWords($depedDeductionAmountRaw);
+        $depedInstitutionName = EducationInstitutionLevelResolver::resolve($applicant?->employer_business_name) === 'tertiary'
+            ? $this->normalizeText($applicant?->employer_business_name)
+            : null;
         $pensionDeductionAmountRaw = $this->normalizeNumericValue(
             $overrideProcessing['pension_deduction_amount'] ?? $flatValues['pension_deduction_amount'] ?? null,
         );
@@ -516,6 +519,7 @@ class ApprovedLoanDocumentDataBuilder
                 'deped_deduction_amount_raw' => $depedDeductionAmountRaw,
                 'deped_deduction_amount' => $this->formatCurrencyValue($depedDeductionAmountRaw),
                 'deped_deduction_amount_words' => $depedDeductionAmountWords,
+                'deped_institution_name' => $depedInstitutionName,
                 'pension_provider' => $this->normalizeText(
                     $overrideProcessing['pension_provider'] ?? $flatValues['pension_provider'] ?? null,
                 ),
@@ -960,7 +964,7 @@ class ApprovedLoanDocumentDataBuilder
         $dependents = [
             'spouse' => [
                 'name' => $this->normalizeText($applicant?->spouse_name),
-                'age' => $this->normalizeText($applicant?->spouse_age),
+                'age' => $this->formatAgeFromRawDate($applicant?->spouse_birthdate),
                 'cycle_status' => $this->normalizeText($flatValues['dependent_spouse_cycle_status'] ?? null),
                 'cycle_number' => $this->normalizeText($flatValues['dependent_spouse_cycle_number'] ?? null),
             ],
@@ -1257,12 +1261,16 @@ class ApprovedLoanDocumentDataBuilder
      */
     private function formatAgeFromRawDate(mixed $value): ?string
     {
-        if ($value === null || $this->isBlankString($value)) {
+        if ($value === null) {
+            return null;
+        }
+
+        if (! $value instanceof CarbonInterface && $this->isBlankString($value)) {
             return null;
         }
 
         try {
-            $birthdate = $value instanceof Carbon ? $value : Carbon::parse((string) $value);
+            $birthdate = $value instanceof CarbonInterface ? Carbon::parse($value) : Carbon::parse((string) $value);
 
             return (string) $birthdate->age;
         } catch (Throwable) {

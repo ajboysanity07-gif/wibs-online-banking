@@ -10,6 +10,7 @@ use App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\TertiaryEducationWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
@@ -19,7 +20,7 @@ use TCPDF;
 class CalibrateApprovedLoanPdfFieldsCommand extends Command
 {
     protected $signature = 'loan-documents:calibrate-fields
-                            {document : Document key: au, ub, li, ge, gl, dw, pw, or ga}
+                            {document : Document key: au, ub, li, ge, gl, dw, dt, pw, or ga}
                             {--output= : Override output path (default: storage/app/tmp/calibrate-{doc}.pdf)}';
 
     protected $description = 'Generate a calibration PDF overlaying field boxes and an mm grid on the template.';
@@ -48,8 +49,13 @@ class CalibrateApprovedLoanPdfFieldsCommand extends Command
         ],
         'dw' => [
             'file' => 'deped-salary-deduction-waiver.pdf',
-            'label' => 'DepEd Salary Deduction Waiver',
+            'label' => 'Salary Deduction Authorization Waiver (Education Sector) — basic education',
             'field_map' => DepedSalaryDeductionWaiverPdfFieldMap::class,
+        ],
+        'dt' => [
+            'file' => 'deped-salary-deduction-waiver-tertiary.pdf',
+            'label' => 'Salary Deduction Authorization Waiver (Education Sector) — tertiary institution',
+            'field_map' => TertiaryEducationWaiverPdfFieldMap::class,
         ],
         'pw' => [
             'file' => 'pension-deduction-waiver.pdf',
@@ -80,7 +86,7 @@ class CalibrateApprovedLoanPdfFieldsCommand extends Command
             return $this->calibrateImageTemplate();
         }
 
-        $this->error('Unknown document. Valid keys: au, ub, li, ge, gl, dw, pw, ga');
+        $this->error('Unknown document. Valid keys: au, ub, li, ge, gl, dw, dt, pw, ga');
 
         return Command::FAILURE;
     }

@@ -478,7 +478,11 @@ class LoanRequestDocumentCatalog
             'template_files' => [
                 [
                     'path' => 'storage/app/templates/approved-loan-documents/pdf/deped-salary-deduction-waiver.pdf',
-                    'description' => 'DepEd Salary Deduction Waiver PDF template',
+                    'description' => 'Salary Deduction Authorization Waiver (Education Sector) PDF template — basic education',
+                ],
+                [
+                    'path' => 'storage/app/templates/approved-loan-documents/pdf/deped-salary-deduction-waiver-tertiary.pdf',
+                    'description' => 'Salary Deduction Authorization Waiver (Education Sector) PDF template — tertiary institution',
                 ],
             ],
             'requires_financials' => false,
@@ -999,9 +1003,14 @@ class LoanRequestDocumentCatalog
      * Affidavit of Undertaking (rather than Authority to Deduct or a
      * DepEd/Pension Waiver) because their loan is repaid via ATM deduction
      * with no institutional payroll office in the loop: a non-pensioner,
-     * non-DepEd, non-institutional-payroll applicant whose payment option is
-     * ATM Deduction. Self-employed applicants are excluded -- like Authority
-     * to Deduct, there's no employer to authorize a deduction against.
+     * non-DepEd applicant whose payment option is ATM Deduction. An
+     * institutional-payroll employer only rules this out when it's actually
+     * paired with Salary Deduction (mirroring the 'institutional_payroll'
+     * rule above) -- an institutional-category employer who chose ATM
+     * Deduction instead still needs the Affidavit of Undertaking, since
+     * Authority to Deduct doesn't apply to their chosen payment option.
+     * Self-employed applicants are excluded -- like Authority to Deduct,
+     * there's no employer to authorize a deduction against.
      *
      * @param  array<string, mixed>  $flatValues
      */
@@ -1017,9 +1026,12 @@ class LoanRequestDocumentCatalog
             return false;
         }
 
+        $institutionalPayrollApplies = $this->authorityToDeductCategory($loanRequest, $flatValues) !== null
+            && $paymentOption === LoanPaymentOption::SalaryDeduction->value;
+
         return ! $this->pensionerApplicable($loanRequest, $flatValues)
             && ! $this->depedEmployeeApplicable($loanRequest, $flatValues)
-            && $this->authorityToDeductCategory($loanRequest, $flatValues) === null;
+            && ! $institutionalPayrollApplies;
     }
 
     /**

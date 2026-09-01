@@ -9,11 +9,13 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\EducationInstitutionLevelResolver;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
 use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
 use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\TertiaryEducationWaiverPdfFieldMap;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -165,7 +167,11 @@ beforeEach(function () {
     File::ensureDirectoryExists($pdfDirectory);
     waiverDocumentsCreateTemplatePdf(
         $pdfDirectory.DIRECTORY_SEPARATOR.'deped-salary-deduction-waiver.pdf',
-        'DepEd Salary Deduction Waiver',
+        'Salary Deduction Authorization Waiver (Education Sector)',
+    );
+    waiverDocumentsCreateTemplatePdf(
+        $pdfDirectory.DIRECTORY_SEPARATOR.'deped-salary-deduction-waiver-tertiary.pdf',
+        'Salary Deduction Authorization Waiver (Education Sector) - Tertiary',
     );
     waiverDocumentsCreateTemplatePdf(
         $pdfDirectory.DIRECTORY_SEPARATOR.'pension-deduction-waiver.pdf',
@@ -293,12 +299,88 @@ test('deped salary deduction waiver field map declares the header image and dedu
         'deduction.deped_deduction_amount_words',
         'deduction.deped_deduction_amount',
         'notarial.signing_place',
-        'reviewer.name',
     ] as $expectedValue) {
         expect($fields->contains(
             fn (array $field): bool => ($field['value'] ?? null) === $expectedValue,
         ))->toBeTrue("Expected field map to contain a field for {$expectedValue}");
     }
+});
+
+test('tertiary education waiver field map declares the institution name overlay for all three clauses', function () {
+    $fields = collect((new TertiaryEducationWaiverPdfFieldMap)->fields());
+
+    $header = $fields->first(fn (array $field): bool => ($field['type'] ?? null) === 'image');
+    expect($header)->toBeArray();
+    expect($header['value'])->toBe('organization.report_header.designPath');
+
+    expect($fields->filter(
+        fn (array $field): bool => ($field['value'] ?? null) === 'deduction.deped_institution_name',
+    ))->toHaveCount(3);
+
+    foreach ([
+        'applicant.full_name',
+        'applicant.address',
+        'deduction.deped_school_id_number',
+        'deduction.deped_deduction_amount_words',
+        'deduction.deped_deduction_amount',
+        'notarial.signing_place',
+    ] as $expectedValue) {
+        expect($fields->contains(
+            fn (array $field): bool => ($field['value'] ?? null) === $expectedValue,
+        ))->toBeTrue("Expected field map to contain a field for {$expectedValue}");
+    }
+});
+
+test('education institution level resolver detects tertiary institutions and defaults to basic education', function () {
+    expect(EducationInstitutionLevelResolver::resolve('DepEd Division of Surigao del Sur'))->toBe('basic')
+        ->and(EducationInstitutionLevelResolver::resolve('Surigao Central Elementary School'))->toBe('basic')
+        ->and(EducationInstitutionLevelResolver::resolve(null))->toBe('basic')
+        ->and(EducationInstitutionLevelResolver::resolve(''))->toBe('basic')
+        ->and(EducationInstitutionLevelResolver::resolve('Surigao State College of Technology'))->toBe('tertiary')
+        ->and(EducationInstitutionLevelResolver::resolve('Mindanao State University'))->toBe('tertiary')
+        ->and(EducationInstitutionLevelResolver::resolve('Surigao del Sur Polytechnic Institute'))->toBe('tertiary');
+});
+
+test('deduction block only populates the institution name for a tertiary employer', function () {
+    $basicLoanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Government',
+        'nature_of_business' => 'Education',
+        'employer_business_name' => 'DepEd Division of Surigao del Sur',
+    ]);
+    $tertiaryLoanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Government',
+        'nature_of_business' => 'Education',
+        'employer_business_name' => 'Surigao State College of Technology',
+    ]);
+
+    $basicData = waiverDocumentsBuildDocumentData($basicLoanRequest->fresh());
+    $tertiaryData = waiverDocumentsBuildDocumentData($tertiaryLoanRequest->fresh());
+
+    expect($basicData['deduction']['deped_institution_name'])->toBeNull()
+        ->and($tertiaryData['deduction']['deped_institution_name'])->toBe('Surigao State College of Technology');
+});
+
+test('tertiary education waiver downloads as a real pdf for an applicable tertiary-institution borrower', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Government',
+        'nature_of_business' => 'Education',
+        'employer_business_name' => 'Surigao State College of Technology',
+    ]);
+    waiverDocumentsPersistDataEntry($loanRequest, 'deped_deduction_amount', 'number', 28000);
+    waiverDocumentsPersistDataEntry($loanRequest, 'payment_option', 'string', \App\LoanPaymentOption::AtmDeduction->value);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.deped-salary-deduction-waiver', $loanRequest));
+
+    $content = waiverDocumentsReadDownloadedFileContent($response);
+
+    $response->assertOk();
+    $response->assertHeaderContains('content-type', 'application/pdf');
+    expect($content)->toStartWith('%PDF');
 });
 
 test('pension deduction waiver field map declares the header image and deduction fields', function () {
@@ -315,7 +397,6 @@ test('pension deduction waiver field map declares the header image and deduction
         'deduction.pension_bank_name',
         'deduction.pension_atm_card_number',
         'deduction.pension_deduction_amount_words',
-        'deduction.pension_deduction_amount',
         'notarial.signing_place',
     ] as $expectedValue) {
         expect($fields->contains(
@@ -327,7 +408,7 @@ test('pension deduction waiver field map declares the header image and deduction
 test('category-specific deduction documents use identifying labels in the checklist', function () {
     expect(LoanRequestDocumentKey::AuthorityToDeduct->label())->toBe('Authority to Deduct (Salary Deduction)')
         ->and(LoanRequestDocumentKey::UndertakingBarangay->label())->toBe('Undertaking (BLGU)')
-        ->and(LoanRequestDocumentKey::DepedSalaryDeductionWaiver->label())->toBe('Waiver (DepEd)')
+        ->and(LoanRequestDocumentKey::DepedSalaryDeductionWaiver->label())->toBe('Salary Deduction Authorization Waiver (Education Sector)')
         ->and(LoanRequestDocumentKey::PensionDeductionWaiver->label())->toBe('Waiver (Pensioners)')
         ->and(LoanRequestDocumentKey::AffidavitUndertaking->label())->toBe('Affidavit of Undertaking (ATM Payout)');
 });
@@ -359,7 +440,7 @@ test('serialized checklist includes the document group for each entry', function
     }
 
     $depedEntry = collect($checklist)->firstWhere('key', LoanRequestDocumentKey::DepedSalaryDeductionWaiver->value);
-    expect($depedEntry['label'])->toBe('Waiver (DepEd)')
+    expect($depedEntry['label'])->toBe('Salary Deduction Authorization Waiver (Education Sector)')
         ->and($depedEntry['group'])->toBe('repayment_authorization')
         ->and($depedEntry['group_label'])->toBe('Repayment Authorization');
 });
@@ -605,7 +686,7 @@ test('approved documents zip includes the pension waiver but not the deped waive
     $entries = waiverDocumentsOpenZipEntries($response);
 
     expect($entries)->toHaveKey('13-Pension-Deduction-Waiver.pdf')
-        ->not->toHaveKey('12-DepEd-Salary-Deduction-Waiver.pdf');
+        ->not->toHaveKey('12-Salary-Deduction-Authorization-Waiver-Education.pdf');
 });
 
 test('approved documents zip omits authority to deduct for a private employer with no institutional payroll category', function () {

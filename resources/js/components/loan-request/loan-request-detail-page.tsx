@@ -1167,7 +1167,7 @@ export function LoanRequestDetailPage({
                   format: 'PDF',
               },
               {
-                  label: 'Waiver (DepEd) PDF',
+                  label: 'Salary Deduction Authorization Waiver (Education Sector) PDF',
                   href: approvedDocumentHrefs.depedSalaryDeductionWaiver,
                   format: 'PDF',
               },

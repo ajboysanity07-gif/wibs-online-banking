@@ -35,7 +35,7 @@ enum LoanRequestDocumentKey: string
             self::LoanSecurityAgreement => 'Loan Security Agreement',
             self::Generali => 'Generali (GLAPI) Health Statement',
             self::AuthorityToDeduct => 'Authority to Deduct (Salary Deduction)',
-            self::DepedSalaryDeductionWaiver => 'Waiver (DepEd)',
+            self::DepedSalaryDeductionWaiver => 'Salary Deduction Authorization Waiver (Education Sector)',
             self::PensionDeductionWaiver => 'Waiver (Pensioners)',
             self::GeneraliApplicationForm => 'Generali (GLAPI) Individual Application Form',
         };

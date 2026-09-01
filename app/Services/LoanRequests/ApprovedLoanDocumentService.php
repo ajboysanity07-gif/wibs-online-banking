@@ -6,6 +6,7 @@ use App\LoanRequestDocumentKey;
 use App\LoanRequestStatus;
 use App\Models\LoanRequest;
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\ApprovedLoanPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\AuthorizationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GeneraliApplicationFormPdfFieldMap;
@@ -13,6 +14,7 @@ use App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\TertiaryEducationWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
 use App\Services\OrganizationSettingsService;
 use App\Support\DocumentFilename;
@@ -47,6 +49,7 @@ class ApprovedLoanDocumentService
         'loan_information' => 'loan information sheet.pdf',
         'generali' => 'generali.pdf',
         'deped_salary_deduction_waiver' => 'deped-salary-deduction-waiver.pdf',
+        'deped_salary_deduction_waiver_tertiary' => 'deped-salary-deduction-waiver-tertiary.pdf',
         'pension_deduction_waiver' => 'pension-deduction-waiver.pdf',
         'generali_application_form' => 'generali-application-form.pdf',
         'authorization' => 'authorization.pdf',
@@ -67,7 +70,7 @@ class ApprovedLoanDocumentService
         'loan_security_agreement' => '09-Loan-Security-Agreement.pdf',
         'generali' => '10-Generali-Health-Statement.pdf',
         'authority_to_deduct' => '11-Authority-to-Deduct.pdf',
-        'deped_salary_deduction_waiver' => '12-DepEd-Salary-Deduction-Waiver.pdf',
+        'deped_salary_deduction_waiver' => '12-Salary-Deduction-Authorization-Waiver-Education.pdf',
         'pension_deduction_waiver' => '13-Pension-Deduction-Waiver.pdf',
         'generali_application_form' => '14-Generali-Application-Form.pdf',
         'authorization' => '15-Authorization.pdf',
@@ -93,11 +96,33 @@ class ApprovedLoanDocumentService
         private DisclosureStatementPdfService $disclosureStatementPdfService,
         private AuthorityToDeductPdfService $authorityToDeductPdfService,
         private DepedSalaryDeductionWaiverPdfFieldMap $depedSalaryDeductionWaiverPdfFieldMap,
+        private TertiaryEducationWaiverPdfFieldMap $tertiaryEducationWaiverPdfFieldMap,
         private PensionDeductionWaiverPdfFieldMap $pensionDeductionWaiverPdfFieldMap,
         private GeneraliApplicationFormPdfFieldMap $generaliApplicationFormPdfFieldMap,
         private AuthorizationPdfFieldMap $authorizationPdfFieldMap,
         private ApprovedLoanDocumentDataBuilder $documentDataBuilder,
     ) {}
+
+    /**
+     * The DepEd waiver's institution wording branches on whether the
+     * applicant's employer is basic education (actual DepEd) or a tertiary
+     * institution -- see EducationInstitutionLevelResolver, applied upstream
+     * in ApprovedLoanDocumentDataBuilder which sets deduction.deped_institution_name
+     * only for the tertiary case.
+     */
+    private function depedWaiverTemplateFilename(array $documentData): string
+    {
+        return ! empty($documentData['deduction']['deped_institution_name'] ?? null)
+            ? self::PDF_TEMPLATE_FILENAMES['deped_salary_deduction_waiver_tertiary']
+            : self::PDF_TEMPLATE_FILENAMES['deped_salary_deduction_waiver'];
+    }
+
+    private function depedWaiverFieldMap(array $documentData): ApprovedLoanPdfFieldMap
+    {
+        return ! empty($documentData['deduction']['deped_institution_name'] ?? null)
+            ? $this->tertiaryEducationWaiverPdfFieldMap
+            : $this->depedSalaryDeductionWaiverPdfFieldMap;
+    }
 
     public function applicationForm(LoanRequest $loanRequest): Response
     {
@@ -251,10 +276,10 @@ class ApprovedLoanDocumentService
             'application/pdf',
             function (string $outputPath, array $documentData): void {
                 $this->approvedLoanPdfTemplateService->generate(
-                    self::PDF_TEMPLATE_FILENAMES['deped_salary_deduction_waiver'],
+                    $this->depedWaiverTemplateFilename($documentData),
                     $outputPath,
                     $documentData,
-                    $this->depedSalaryDeductionWaiverPdfFieldMap,
+                    $this->depedWaiverFieldMap($documentData),
                 );
             },
         );
@@ -501,10 +526,10 @@ class ApprovedLoanDocumentService
             );
             if ($includeDepedSalaryDeductionWaiver) {
                 $this->approvedLoanPdfTemplateService->generate(
-                    self::PDF_TEMPLATE_FILENAMES['deped_salary_deduction_waiver'],
+                    $this->depedWaiverTemplateFilename($documentData),
                     $depedSalaryDeductionWaiverPath,
                     $documentData,
-                    $this->depedSalaryDeductionWaiverPdfFieldMap,
+                    $this->depedWaiverFieldMap($documentData),
                 );
             }
             if ($includePensionDeductionWaiver) {
@@ -690,10 +715,10 @@ class ApprovedLoanDocumentService
                 $documentKey,
                 function (string $path) use ($documentData): void {
                     $this->approvedLoanPdfTemplateService->generate(
-                        self::PDF_TEMPLATE_FILENAMES['deped_salary_deduction_waiver'],
+                        $this->depedWaiverTemplateFilename($documentData),
                         $path,
                         $documentData,
-                        $this->depedSalaryDeductionWaiverPdfFieldMap,
+                        $this->depedWaiverFieldMap($documentData),
                     );
                 },
             ),
