@@ -120,3 +120,52 @@ test('creating a saved payment account requires a bank name and account number',
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['bank_name', 'account_number']);
 });
+
+test('saved payment account responses report whether the label was member-typed and expose the atm number separately from the account number', function (): void {
+    $member = createSavedPaymentAccountTestMember('005504');
+
+    $withCustomLabel = $this->actingAs($member)
+        ->postJson('/client/saved-payment-accounts', [
+            'label' => 'My BDO account',
+            'bank_name' => 'BDO',
+            'account_number' => '1234567890',
+            'atm_number' => '9876543210',
+        ])
+        ->assertCreated()
+        ->json('data');
+
+    expect($withCustomLabel['has_custom_label'])->toBeTrue();
+    expect($withCustomLabel['label'])->toBe('My BDO account');
+    expect($withCustomLabel['account_number'])->toBe('1234567890');
+    expect($withCustomLabel['atm_number'])->toBe('9876543210');
+
+    $withoutCustomLabel = $this->actingAs($member)
+        ->postJson('/client/saved-payment-accounts', [
+            'bank_name' => 'Land Bank',
+            'account_number' => '1111222233',
+            'atm_number' => '4444555566',
+        ])
+        ->assertCreated()
+        ->json('data');
+
+    expect($withoutCustomLabel['has_custom_label'])->toBeFalse();
+    expect($withoutCustomLabel['label'])->toBe('Land Bank ••2233');
+
+    $this->actingAs($member)
+        ->getJson('/client/saved-payment-accounts')
+        ->assertOk()
+        ->assertJsonPath('data.0.has_custom_label', false)
+        ->assertJsonPath('data.1.has_custom_label', true);
+
+    $updated = $this->actingAs($member)
+        ->patchJson("/client/saved-payment-accounts/{$withoutCustomLabel['id']}", [
+            'label' => 'Now labeled',
+            'bank_name' => 'Land Bank',
+            'account_number' => '1111222233',
+        ])
+        ->assertOk()
+        ->json('data');
+
+    expect($updated['has_custom_label'])->toBeTrue();
+    expect($updated['label'])->toBe('Now labeled');
+});

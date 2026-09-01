@@ -35,7 +35,7 @@ class SavedPaymentAccountController extends Controller
 
         return response()->json([
             'ok' => true,
-            'data' => $account->toArray(),
+            'data' => $service->present($account),
         ], HttpResponse::HTTP_CREATED);
     }
 
@@ -50,7 +50,7 @@ class SavedPaymentAccountController extends Controller
 
         return response()->json([
             'ok' => true,
-            'data' => $account->toArray(),
+            'data' => $service->present($account),
         ]);
     }
 

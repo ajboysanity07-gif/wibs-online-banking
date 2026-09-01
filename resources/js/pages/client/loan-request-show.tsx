@@ -44,6 +44,7 @@ import { useUpdateLoanRequestPaymentMethod } from '@/hooks/use-update-loan-reque
 import AppLayout from '@/layouts/app-layout';
 import { memberApprovedDocumentPackageApi } from '@/lib/api/approved-document-package';
 import { formatDate } from '@/lib/formatters';
+import { getAccountDisplayLabel } from '@/lib/payment-accounts';
 import { dashboard as clientDashboard } from '@/routes/client';
 import {
     approvedDocuments as loanRequestApprovedDocuments,
@@ -421,12 +422,24 @@ export default function LoanRequestShow({
         typeof bankingSection.payment_saved_account_id === 'number'
             ? bankingSection.payment_saved_account_id
             : null;
-    const bankingReleaseAccountLabel = savedPaymentAccounts.find(
-        (account) => account.id === bankingReleaseAccountId,
-    )?.label;
-    const bankingPaymentAccountLabel = savedPaymentAccounts.find(
-        (account) => account.id === bankingPaymentAccountId,
-    )?.label;
+    const bankingReleaseAccountLabel = (() => {
+        const account = savedPaymentAccounts.find(
+            (item) => item.id === bankingReleaseAccountId,
+        );
+
+        return account
+            ? getAccountDisplayLabel(account, bankingReleaseMethod || null)
+            : undefined;
+    })();
+    const bankingPaymentAccountLabel = (() => {
+        const account = savedPaymentAccounts.find(
+            (item) => item.id === bankingPaymentAccountId,
+        );
+
+        return account
+            ? getAccountDisplayLabel(account, bankingPaymentOption || null)
+            : undefined;
+    })();
     const bankingReleaseAccount = bankingReleaseAccountId
         ? savedPaymentAccounts.find(
               (account) => account.id === bankingReleaseAccountId,
@@ -887,8 +900,8 @@ export default function LoanRequestShow({
                                 review.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="flex flex-wrap gap-4">
-                            <div className="space-y-2">
+                        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="flex flex-col gap-2">
                                 <p className="text-sm font-medium">
                                     Release method
                                 </p>
@@ -917,12 +930,13 @@ export default function LoanRequestShow({
                                     type="button"
                                     size="sm"
                                     variant="outline"
+                                    className="mt-auto w-fit"
                                     onClick={openReleaseMethodSheet}
                                 >
                                     Change release method
                                 </Button>
                             </div>
-                            <div className="space-y-2">
+                            <div className="flex flex-col gap-2">
                                 <p className="text-sm font-medium">
                                     Repayment method
                                 </p>
@@ -950,6 +964,7 @@ export default function LoanRequestShow({
                                     type="button"
                                     size="sm"
                                     variant="outline"
+                                    className="mt-auto w-fit"
                                     onClick={openPaymentMethodSheet}
                                 >
                                     Change repayment method

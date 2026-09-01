@@ -31,6 +31,7 @@ import type {
     SavedPaymentAccount,
     SavedPaymentAccountFormPayload,
 } from '@/hooks/use-saved-payment-accounts';
+import { getAccountDisplayLabel } from '@/lib/payment-accounts';
 
 export type PaymentMethodOption = {
     value: string;
@@ -287,9 +288,10 @@ export function PaymentAccountPickerSheet({
                                                                     className={`h-2 w-2 shrink-0 rounded-full border border-input ${accountId === account.id ? 'bg-primary' : ''}`}
                                                                 />
                                                                 <span className="flex-1 text-sm font-normal">
-                                                                    {
-                                                                        account.label
-                                                                    }
+                                                                    {getAccountDisplayLabel(
+                                                                        account,
+                                                                        method,
+                                                                    )}
                                                                 </span>
                                                                 {account.last_used_at && (
                                                                     <span className="text-xs text-muted-foreground">

@@ -6,6 +6,7 @@ import { showErrorToast, showSuccessToast } from '@/lib/toast';
 export type SavedPaymentAccount = {
     id: number;
     label: string;
+    has_custom_label: boolean;
     bank_name: string | null;
     account_name: string | null;
     account_number: string | null;

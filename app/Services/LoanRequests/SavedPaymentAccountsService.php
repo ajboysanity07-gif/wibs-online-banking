@@ -21,7 +21,7 @@ class SavedPaymentAccountsService
      * Projection for the picker -- id/label/last_used_at plus all
      * bank fields needed to render each accordion row.
      *
-     * @return Collection<int, array{id: int, label: string, bank_name: ?string, account_name: ?string, account_number: ?string, account_type: ?string, atm_number: ?string, bank_branch: ?string, atm_holder_name: ?string, last_used_at: string|null}>
+     * @return Collection<int, array{id: int, label: string, has_custom_label: bool, bank_name: ?string, account_name: ?string, account_number: ?string, account_type: ?string, atm_number: ?string, bank_branch: ?string, atm_holder_name: ?string, last_used_at: string|null}>
      */
     public function listFor(MemberApplicationProfile $profile): Collection
     {
@@ -30,18 +30,33 @@ class SavedPaymentAccountsService
             ->orderByDesc('last_used_at')
             ->orderByDesc('id')
             ->get()
-            ->map(fn (MemberPaymentAccount $account): array => [
-                'id' => $account->id,
-                'label' => $account->displayLabel(),
-                'bank_name' => $account->bank_name,
-                'account_name' => $account->account_name,
-                'account_number' => $account->account_number,
-                'account_type' => $account->account_type,
-                'atm_number' => $account->atm_number,
-                'bank_branch' => $account->bank_branch,
-                'atm_holder_name' => $account->atm_holder_name,
-                'last_used_at' => $account->last_used_at?->toIso8601String(),
-            ]);
+            ->map(fn (MemberPaymentAccount $account): array => $this->present($account));
+    }
+
+    /**
+     * Shared projection used by the list, create, and update endpoints so
+     * they all return the same shape -- notably `has_custom_label`, which
+     * lets the frontend tell a member-typed label apart from the
+     * bank/account-number fallback so it can pick the right number to mask
+     * (bank account vs ATM) per method context.
+     *
+     * @return array{id: int, label: string, has_custom_label: bool, bank_name: ?string, account_name: ?string, account_number: ?string, account_type: ?string, atm_number: ?string, bank_branch: ?string, atm_holder_name: ?string, last_used_at: string|null}
+     */
+    public function present(MemberPaymentAccount $account): array
+    {
+        return [
+            'id' => $account->id,
+            'label' => $account->displayLabel(),
+            'has_custom_label' => trim((string) $account->label) !== '',
+            'bank_name' => $account->bank_name,
+            'account_name' => $account->account_name,
+            'account_number' => $account->account_number,
+            'account_type' => $account->account_type,
+            'atm_number' => $account->atm_number,
+            'bank_branch' => $account->bank_branch,
+            'atm_holder_name' => $account->atm_holder_name,
+            'last_used_at' => $account->last_used_at?->toIso8601String(),
+        ];
     }
 
     /**
