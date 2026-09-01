@@ -8,15 +8,16 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { createElement, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Accordion,
     AccordionContent,
     AccordionItem,
     AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Sheet,
@@ -221,23 +222,32 @@ export function PaymentAccountPickerSheet({
                     <RadioGroup value={method} onValueChange={setMethod}>
                         {methodOptions.map((option) => (
                             <div key={option.value} className="space-y-2">
-                                <div className="flex items-center gap-3 rounded-md border border-input p-3">
-                                    <RadioGroupItem
-                                        value={option.value}
-                                        id={`method-${option.value}`}
-                                    />
-                                    <span className="shrink-0 text-muted-foreground">
-                                        <PaymentMethodIcon
-                                            method={option.value}
+                                <Card
+                                    className={`cursor-pointer py-0 transition-colors ${
+                                        method === option.value
+                                            ? 'border-primary ring-1 ring-primary'
+                                            : ''
+                                    }`}
+                                    onClick={() => setMethod(option.value)}
+                                >
+                                    <CardContent className="flex items-center gap-3 p-3">
+                                        <RadioGroupItem
+                                            value={option.value}
+                                            id={`method-${option.value}`}
                                         />
-                                    </span>
-                                    <Label
-                                        htmlFor={`method-${option.value}`}
-                                        className="flex-1 cursor-pointer font-normal"
-                                    >
-                                        {option.label}
-                                    </Label>
-                                </div>
+                                        <span className="shrink-0 text-muted-foreground">
+                                            <PaymentMethodIcon
+                                                method={option.value}
+                                            />
+                                        </span>
+                                        <Label
+                                            htmlFor={`method-${option.value}`}
+                                            className="flex-1 cursor-pointer font-normal"
+                                        >
+                                            {option.label}
+                                        </Label>
+                                    </CardContent>
+                                </Card>
                                 {method === option.value &&
                                 option.needsAccount ? (
                                     <div className="ml-4 space-y-2 border-l border-input pl-4">
