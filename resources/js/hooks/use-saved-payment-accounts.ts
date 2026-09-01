@@ -106,10 +106,9 @@ export function useSavedPaymentAccounts() {
         setIsSaving(true);
 
         try {
-            const response = await client.put<ApiResponse<SavedPaymentAccount>>(
-                `/client/saved-payment-accounts/${id}`,
-                payload,
-            );
+            const response = await client.patch<
+                ApiResponse<SavedPaymentAccount>
+            >(`/client/saved-payment-accounts/${id}`, payload);
 
             const updated = unwrap(response);
             setAccounts((current) =>
