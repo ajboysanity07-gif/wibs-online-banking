@@ -130,23 +130,98 @@ class LoanRequestProcessingService
             $member,
         );
 
+        // Only a request already sitting in the manager's queue
+        // (RecommendedForApproval) has a manager actively reviewing it -- at
+        // every earlier status the request is still with the processor, so
+        // there is no manager decision in flight to alert.
+        if ($this->statusValue($updated) === LoanRequestStatus::RecommendedForApproval->value) {
+            $this->notificationService->notifyManagers(
+                $updated,
+                $this->loanManagerWitnessResolver->managers(),
+                LoanRequestNotificationService::EVENT_PAYMENT_METHOD_UPDATED_BY_MEMBER,
+                [
+                    'title' => 'Member updated their payment method',
+                    'message' => 'The member changed their release/repayment method while this request is awaiting your approval decision.',
+                ],
+                $member,
+            );
+        }
+
         return $updated;
     }
 
+    /**
+     * @var list<string>
+     */
+    private const MEMBER_PAYMENT_METHOD_EDITABLE_STATUSES = [
+        LoanRequestStatus::Submitted->value,
+        LoanRequestStatus::PendingReview->value,
+        LoanRequestStatus::UnderReview->value,
+        LoanRequestStatus::NeedsRevision->value,
+        LoanRequestStatus::AwaitingMemberInformation->value,
+        LoanRequestStatus::RecommendedForApproval->value,
+    ];
+
     private function ensureMemberPaymentMethodEditableStatus(LoanRequest $loanRequest): void
     {
-        if (! in_array($this->statusValue($loanRequest), [
-            LoanRequestStatus::Submitted->value,
-            LoanRequestStatus::PendingReview->value,
-            LoanRequestStatus::UnderReview->value,
-            LoanRequestStatus::NeedsRevision->value,
-            LoanRequestStatus::AwaitingMemberInformation->value,
-            LoanRequestStatus::RecommendedForApproval->value,
-        ], true)) {
+        if (! in_array($this->statusValue($loanRequest), self::MEMBER_PAYMENT_METHOD_EDITABLE_STATUSES, true)) {
             throw ValidationException::withMessages([
                 'status' => 'This request is no longer editable for payment method changes.',
             ]);
         }
+    }
+
+    /**
+     * Propagate a payment/release method change made from the member's
+     * general profile settings onto any in-flight loan request whose own
+     * snapshot has drifted out of sync -- otherwise document applicability
+     * (LoanRequestDocumentCatalog) keeps evaluating against the stale value
+     * captured at submission.
+     *
+     * @param  array{payment_option?:?string, payment_saved_account_id?:?int, release_method?:?string, release_saved_account_id?:?int}  $profileValues
+     */
+    public function syncPaymentMethodFromProfile(AppUser $member, array $profileValues): int
+    {
+        $profileValues = array_filter($profileValues, fn ($value) => $value !== null);
+
+        if ($profileValues === []) {
+            return 0;
+        }
+
+        $acctno = trim((string) $member->acctno);
+
+        $activeRequests = LoanRequest::query()
+            ->where(fn ($query) => $query
+                ->where('user_id', $member->user_id)
+                ->when($acctno !== '', fn ($query) => $query->orWhere('acctno', $acctno)))
+            ->whereIn('status', self::MEMBER_PAYMENT_METHOD_EDITABLE_STATUSES)
+            ->with('dataEntries')
+            ->get();
+
+        $updated = 0;
+
+        foreach ($activeRequests as $loanRequest) {
+            $current = $this->dataService->loadFlatValues($loanRequest);
+
+            $fields = array_filter(
+                $profileValues,
+                fn ($value, $key) => ! $this->sameTextValue($current[$key] ?? null, $value),
+                ARRAY_FILTER_USE_BOTH,
+            );
+
+            if ($fields === []) {
+                continue;
+            }
+
+            try {
+                $this->updatePaymentMethodByMember($loanRequest, $member, $fields);
+                $updated++;
+            } catch (ValidationException) {
+                continue;
+            }
+        }
+
+        return $updated;
     }
 
     /**

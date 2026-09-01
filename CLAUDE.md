@@ -54,6 +54,7 @@ loan-workflow:send-reminders       Send pending notifications
 loan-workflow:cleanup-temp-files   Remove temp export files
 loan-requests:repair-owners        Fix orphaned request owners
 loan-requests:backfill-health-fields  Backfill health_smoking_status; report item 2e rows for review
+loan-requests:backfill-cycle-field-sensitivity  Clear stale is_sensitive on dependent cycle entries (--fix to apply)
 locations:warm --regenerate        Rebuild the precomputed PSGC dataset and warm PSGC/zip caches (run post-deploy)
 ```
 

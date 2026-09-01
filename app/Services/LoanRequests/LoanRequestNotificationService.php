@@ -218,6 +218,67 @@ class LoanRequestNotificationService
         }
     }
 
+    /**
+     * @param  iterable<AppUser>  $managers
+     * @param  array{title:string, message:string, reason?:string|null}  $content
+     */
+    public function notifyManagers(
+        LoanRequest $loanRequest,
+        iterable $managers,
+        string $eventType,
+        array $content,
+        ?AppUser $actor = null,
+    ): void {
+        $payload = [
+            'event_type' => $eventType,
+            'title' => $content['title'],
+            'message' => $content['message'],
+            'reason' => $content['reason'] ?? null,
+            'status' => $loanRequest->status instanceof \App\LoanRequestStatus
+                ? $loanRequest->status->value
+                : (string) $loanRequest->status,
+            'action_url' => route('staff.loan-requests.show', $loanRequest),
+        ];
+
+        foreach ($managers as $manager) {
+            if (! $manager instanceof AppUser) {
+                continue;
+            }
+
+            $event = DB::transaction(function () use ($loanRequest, $eventType, $manager, $payload): ?LoanRequestNotificationEvent {
+                LoanRequest::query()
+                    ->whereKey($loanRequest->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                $databaseEvent = $this->createChannelEvent(
+                    $loanRequest,
+                    $eventType,
+                    'database',
+                    (string) $manager->user_id,
+                    'queued',
+                    null,
+                    $manager->user_id,
+                    $payload,
+                );
+
+                return $databaseEvent->wasRecentlyCreated ? $databaseEvent : null;
+            });
+
+            if ($event === null) {
+                continue;
+            }
+
+            $manager->notify(new LoanRequestWorkflowStatusNotification(
+                $loanRequest,
+                $actor,
+                $payload,
+                [$event->channel],
+                $event->id,
+            ));
+        }
+    }
+
     public function sendReminderIfDue(LoanRequest $loanRequest, string $eventType): bool
     {
         $loanRequest->loadMissing('user');

@@ -8,6 +8,7 @@ use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Models\MemberApplicationProfile;
 use App\Models\MemberDependentProfile;
 use App\Services\LoanRequests\DependentsProfileSyncService;
+use App\Services\LoanRequests\LoanRequestProcessingService;
 use App\Services\LoanRequests\LoanRequestService;
 use App\Support\SettingsPageData;
 use Illuminate\Http\RedirectResponse;
@@ -38,6 +39,7 @@ class ProfileController extends Controller
         ProfileUpdateRequest $request,
         DependentsProfileSyncService $dependentsSync,
         LoanRequestService $loanRequestService,
+        LoanRequestProcessingService $loanRequestProcessingService,
     ): RedirectResponse {
         $user = $request->user();
         $validated = $request->validated();
@@ -129,6 +131,23 @@ class ProfileController extends Controller
                     ? (float) $memberProfile->gross_monthly_income
                     : null,
             );
+
+            // The Bank & Payout tab is also the general profile default for
+            // payment/release method; keep it in step on any in-flight loan
+            // request so the document checklist (which reads the per-request
+            // snapshot, not this profile) doesn't keep evaluating against a
+            // method the member already changed.
+            $changedPaymentFields = array_intersect_key(
+                $memberProfile->getChanges(),
+                array_flip(MemberApplicationProfile::payoutBankFields()),
+            );
+
+            if ($changedPaymentFields !== []) {
+                $loanRequestProcessingService->syncPaymentMethodFromProfile(
+                    $user,
+                    $changedPaymentFields,
+                );
+            }
 
             if ($user->memberApplicationProfileIsComplete()) {
                 return to_route('client.dashboard');
