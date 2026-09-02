@@ -354,11 +354,11 @@ class LoanRequestService
         AppUser $user,
         array $payload,
     ): void {
+        $applicant = is_array($payload['applicant'] ?? null) ? $payload['applicant'] : [];
+
         $profileData = [
-            ...Arr::only(
-                is_array($payload['applicant'] ?? null) ? $payload['applicant'] : [],
-                MemberApplicationProfile::fields(),
-            ),
+            ...Arr::only($applicant, MemberApplicationProfile::fields()),
+            ...$this->applicantHomeAddressProfileFields($applicant),
             ...Arr::only(
                 is_array($payload['banking'] ?? null) ? $payload['banking'] : [],
                 MemberApplicationProfile::payoutBankFields(),
@@ -392,6 +392,41 @@ class LoanRequestService
 
         $this->saveCoMakerForReuse($profile, $payload, 'co_maker_1');
         $this->saveCoMakerForReuse($profile, $payload, 'co_maker_2');
+    }
+
+    /**
+     * The applicant payload keys its address fields as
+     * address/address1-3/address_barangay/address_zip (see
+     * LoanRequestPayloadSerializer), while MemberApplicationProfile stores
+     * the same data under a "home_" prefix. Arr::only(..., fields()) in
+     * syncMemberApplicationProfileFromSubmission() above never matches those
+     * unprefixed keys, so an address correction made on a loan request
+     * submission was silently never reaching the member's Profile Settings.
+     * Remap explicitly so it does.
+     *
+     * @param  array<string, mixed>  $applicant
+     * @return array<string, mixed>
+     */
+    private function applicantHomeAddressProfileFields(array $applicant): array
+    {
+        $map = [
+            'address' => 'home_address',
+            'address1' => 'home_address1',
+            'address2' => 'home_address2',
+            'address3' => 'home_address3',
+            'address_barangay' => 'home_address_barangay',
+            'address_zip' => 'home_address_zip',
+        ];
+
+        $fields = [];
+
+        foreach ($map as $applicantKey => $profileKey) {
+            if (array_key_exists($applicantKey, $applicant)) {
+                $fields[$profileKey] = $applicant[$applicantKey];
+            }
+        }
+
+        return $fields;
     }
 
     /**
