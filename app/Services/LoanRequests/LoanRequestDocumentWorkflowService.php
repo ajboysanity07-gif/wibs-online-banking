@@ -2,6 +2,7 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanPaydayOption;
 use App\LoanReleaseMethod;
 use App\LoanRequestDocumentKey;
 use App\LoanRequestDocumentReadinessStatus;
@@ -1200,12 +1201,14 @@ class LoanRequestDocumentWorkflowService
             }
         }
 
-        if (! $this->isNumericValue($flatValues['insurance_rate'] ?? null)) {
-            $blockers[] = 'Insurance rate must be numeric.';
-        }
+        if (! $this->isDueDateNoInsurance($loanRequest) && ! $this->isEmergencyLoan($loanRequest)) {
+            if (! $this->isNumericValue($flatValues['insurance_rate'] ?? null)) {
+                $blockers[] = 'Insurance rate must be numeric.';
+            }
 
-        if (! $this->isPositiveIntegerValue($flatValues['insurance_term'] ?? null)) {
-            $blockers[] = 'Insurance term must be greater than zero.';
+            if (! $this->isPositiveIntegerValue($flatValues['insurance_term'] ?? null)) {
+                $blockers[] = 'Insurance term must be greater than zero.';
+            }
         }
 
         if (! $this->isNumericValue($flatValues['loan_security_rate'] ?? null)) {
@@ -1322,6 +1325,29 @@ class LoanRequestDocumentWorkflowService
     {
         return $this->isNumericValue($value)
             && (int) round((float) $value) > 0;
+    }
+
+    /**
+     * A 1-month Due date carries no insurance premium (mirrors
+     * LoanRequestDocumentCatalog::isDueDateNoInsurance() and
+     * LoanRequestDecisionService::isDueDateNoInsurance()), so insurance_term
+     * legitimately stays 0 and must not block document generation.
+     */
+    private function isDueDateNoInsurance(LoanRequest $loanRequest): bool
+    {
+        return $loanRequest->recommended_payment_frequency === LoanPaydayOption::DueDate->value
+            && (int) $loanRequest->recommended_term === 1;
+    }
+
+    /**
+     * Emergency (Micro Business Loan) requests carry no insurance premium
+     * (mirrors LoanRequestDocumentCatalog::isEmergencyLoan()), so
+     * insurance_term legitimately stays 0 and must not block document
+     * generation.
+     */
+    private function isEmergencyLoan(LoanRequest $loanRequest): bool
+    {
+        return $loanRequest->kind_of_loan === 'Emergency';
     }
 
     private function workflowVersionValue(LoanRequest $loanRequest): string

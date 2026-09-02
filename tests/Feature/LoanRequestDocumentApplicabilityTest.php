@@ -1,5 +1,6 @@
 <?php
 
+use App\LoanPaydayOption;
 use App\LoanRequestDocumentKey;
 use App\LoanRequestDocumentReadinessStatus;
 use App\LoanRequestPersonRole;
@@ -710,6 +711,69 @@ test('insurance_term requires a positive integer (isPositiveIntegerValue) while 
 
     expect($entry['blockers'])->toContain('Insurance term must be greater than zero.')
         ->and($entry['blockers'])->not->toContain('Loan security rate must be numeric.');
+});
+
+test('zeroed insurance_term does not block document generation for 1-month Due date loans', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 25000,
+        'recommended_term' => 1,
+        'recommended_interest_rate' => 1.5,
+        'recommended_payment_frequency' => LoanPaydayOption::DueDate->value,
+        'approved_amount' => 25000,
+        'approved_term' => 1,
+        'approved_interest_rate' => 1.5,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 1.25],
+        'insurance_rate' => ['number', 0],
+        'insurance_term' => ['number', 0],
+        'loan_security_rate' => ['number', 0],
+        'documentary_stamp_rate' => ['number', 0.2],
+        'notarial_fee' => ['number', 250],
+        'penalty_rate_per_month' => ['number', 3],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::LoanInformation);
+
+    expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
+        ->and($entry['blockers'])->not->toContain('Insurance rate must be numeric.')
+        ->and($entry['blockers'])->not->toContain('Insurance term must be greater than zero.');
+});
+
+test('zeroed insurance_term does not block document generation for Emergency loans', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'kind_of_loan' => 'Emergency',
+        'recommended_amount' => 25000,
+        'recommended_term' => 6,
+        'recommended_interest_rate' => 1.5,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 25000,
+        'approved_term' => 6,
+        'approved_interest_rate' => 1.5,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 1.25],
+        'insurance_rate' => ['number', 0],
+        'insurance_term' => ['number', 0],
+        'loan_security_rate' => ['number', 0.5],
+        'documentary_stamp_rate' => ['number', 0.2],
+        'notarial_fee' => ['number', 250],
+        'penalty_rate_per_month' => ['number', 3],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::LoanInformation);
+
+    expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
+        ->and($entry['blockers'])->not->toContain('Insurance rate must be numeric.')
+        ->and($entry['blockers'])->not->toContain('Insurance term must be greater than zero.');
 });
 
 test('witness_two_name is no longer required for loan_information, plan_of_payment, or promissory_note', function (): void {
