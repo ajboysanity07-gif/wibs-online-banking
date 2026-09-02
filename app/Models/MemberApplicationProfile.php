@@ -188,7 +188,7 @@ class MemberApplicationProfile extends Model
 
     public function composedHomeAddress(): string
     {
-        $composed = LocationComposer::compose(
+        $composed = LocationComposer::composeUnique(
             $this->home_address1,
             $this->home_address2,
             $this->home_address3,
