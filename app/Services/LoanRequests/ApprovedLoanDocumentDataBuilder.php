@@ -570,9 +570,19 @@ class ApprovedLoanDocumentDataBuilder
             'dependents' => $this->dependentsDocumentData($flatValues, $applicant),
         ];
 
-        return $overrides !== []
+        $result = $overrides !== []
             ? array_replace_recursive($documentData, $overrides)
             : $documentData;
+
+        // $paymentMode above is already the normalized workbook constant
+        // (e.g. 'DUE-DATE'), resolved from the override's raw value. The
+        // array_replace_recursive() above re-applies that same raw override
+        // value on top, clobbering the normalization -- restore it so
+        // consumers (e.g. disclosure-statement.blade.php) always see the
+        // normalized constant, not the raw payment frequency string.
+        $result['loan']['payment_mode_workbook'] = $paymentMode;
+
+        return $result;
     }
 
     /**
