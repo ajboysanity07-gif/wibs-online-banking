@@ -63,7 +63,7 @@ class LoanRequestDocumentCatalog
         ],
         'grepalife' => [
             'template_version' => 'grepalife-v2',
-            'applicability' => 'always',
+            'applicability' => 'not_emergency',
             'required_fields' => [
                 'beneficiary_primary_name',
                 'beneficiary_primary_relationship',
@@ -658,8 +658,20 @@ class LoanRequestDocumentCatalog
             'atm_payout_employee' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues),
             'bank_release' => ($flatValues['release_method'] ?? null) === LoanReleaseMethod::BankTransfer->value,
             'not_lumpsum' => ! $this->isDueDateNoInsurance($loanRequest),
+            'not_emergency' => ! $this->isEmergencyLoan($loanRequest),
             default => true,
         };
+    }
+
+    /**
+     * Emergency (Micro Business Loan) requests carry no insurance premium --
+     * they skip the insurance/health wizard on submission (mirrors
+     * LoanRequestStoreRequest::isEmergencyLoanRequested()), so the GREPALIFE
+     * insurance certificate does not apply.
+     */
+    private function isEmergencyLoan(LoanRequest $loanRequest): bool
+    {
+        return $loanRequest->kind_of_loan === 'Emergency';
     }
 
     /**

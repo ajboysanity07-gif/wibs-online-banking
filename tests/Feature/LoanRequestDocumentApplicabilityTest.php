@@ -1515,6 +1515,62 @@ test('a 2-month-or-longer Due-date still charges an insurance premium but keeps 
         ->and($documentData['loan']['lumpsum_months'])->toBe(2);
 });
 
+test('grepalife is not applicable for an Emergency (Micro Business Loan) request', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'kind_of_loan' => 'Emergency',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeFalse();
+});
+
+test('grepalife remains applicable for a Regular kind_of_loan', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'kind_of_loan' => 'Regular',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeTrue();
+});
+
+test('an Emergency loan zeroes insurance without blocking the finance documents, regardless of payment frequency', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'kind_of_loan' => 'Emergency',
+        'recommended_amount' => 24000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 0,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 24000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0,
+        'approved_at' => now(),
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 0],
+        'insurance_rate' => ['number', 1.0],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0.02],
+        'savings_rate' => ['number', 0.02],
+        'documentary_stamp_rate' => ['number', 0],
+        'notarial_fee' => ['number', 0],
+        'penalty_rate_per_month' => ['number', 0],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    expect($documentData['loan']['insurance_rate_raw'])->toBe(0.0)
+        ->and($documentData['loan']['insurance_term'])->toBe(0)
+        ->and($documentData['loan']['insurance_premium_raw'])->toBe(0.0);
+
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::PromissoryNote);
+
+    expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value);
+});
+
 test('documentary stamp defaults to the 0.75% institutional constant when not set', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,

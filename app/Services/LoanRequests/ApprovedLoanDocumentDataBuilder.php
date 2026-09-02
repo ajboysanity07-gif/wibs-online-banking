@@ -140,8 +140,11 @@ class ApprovedLoanDocumentDataBuilder
         // LoanRequestDecisionService::isDueDateNoInsurance(), which exempts the
         // member from the insurance/health wizard on submission for the same
         // case). A 2-month-or-longer Lumpsum still carries an insurance
-        // premium and requires the insurance document.
-        $isDueDateNoInsurance = $isLumpsum && $lumpsumMonths === 1;
+        // premium and requires the insurance document. Emergency (Micro
+        // Business Loan) requests skip insurance for the same reason -- no
+        // premium is underwritten -- regardless of payment frequency.
+        $isEmergencyLoan = $this->normalizeText($loanRequest->kind_of_loan) === 'Emergency';
+        $isDueDateNoInsurance = ($isLumpsum && $lumpsumMonths === 1) || $isEmergencyLoan;
         $officialLoanManager = $this->officialLoanManagerResolver->documentData();
         $overrideLoan = is_array($overrides['loan'] ?? null)
             ? $overrides['loan']

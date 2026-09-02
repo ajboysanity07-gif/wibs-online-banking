@@ -505,13 +505,14 @@ export default function LoanRequestPage({
     const isOneMonthLumpsumRequested =
         form.data.requested_payment_frequency === 'Due date' &&
         form.data.requested_term === '1';
+    const isEmergencyLoanRequested = form.data.kind_of_loan === 'Emergency';
 
     const skippedStepIds = useMemo(
         () =>
-            isOneMonthLumpsumRequested
+            isOneMonthLumpsumRequested || isEmergencyLoanRequested
                 ? INSURANCE_HEALTH_STEP_IDS
                 : EMPTY_SKIPPED_STEP_IDS,
-        [isOneMonthLumpsumRequested],
+        [isOneMonthLumpsumRequested, isEmergencyLoanRequested],
     );
 
     useEffect(() => {

@@ -268,6 +268,15 @@ class LoanRequestStoreRequest extends FormRequest
     }
 
     /**
+     * Emergency (Micro Business Loan) requests also skip the insurance/health
+     * wizard steps -- there is no insurance premium to underwrite.
+     */
+    private function isEmergencyLoanRequested(): bool
+    {
+        return $this->input('kind_of_loan') === 'Emergency';
+    }
+
+    /**
      * Checks the submitted typecode against wlntype's "Other Loan" row,
      * falling back to a label match in case typecode differs across
      * environments (wlntype is external WIBS-desktop-managed data).
@@ -474,7 +483,9 @@ class LoanRequestStoreRequest extends FormRequest
             }
         }
 
-        $insuranceRequired = $this->isDueDateNoInsuranceRequested() ? 'sometimes' : 'required';
+        $insuranceRequired = $this->isDueDateNoInsuranceRequested() || $this->isEmergencyLoanRequested()
+            ? 'sometimes'
+            : 'required';
 
         return [
             'typecode' => $loanTypeRules,

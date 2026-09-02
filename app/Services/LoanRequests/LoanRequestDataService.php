@@ -1689,14 +1689,15 @@ class LoanRequestDataService
      *
      * @var list<string>
      */
-    private const DUE_DATE_WAIVED_SECTIONS = ['insurance', 'health', 'dependents'];
+    private const DUE_DATE_WAIVED_SECTIONS = ['insurance', 'health', 'health_glapi', 'dependents'];
 
     public function missingRequiredMemberFields(LoanRequest $loanRequest): array
     {
         $flatValues = $this->loadFlatValues($loanRequest);
         $missing = [];
-        $isDueDateNoInsurance = $loanRequest->requested_payment_frequency === LoanPaydayOption::DueDate->value
-            && (int) $loanRequest->requested_term === 1;
+        $skipsInsurance = ($loanRequest->requested_payment_frequency === LoanPaydayOption::DueDate->value
+            && (int) $loanRequest->requested_term === 1)
+            || $loanRequest->kind_of_loan === 'Emergency';
 
         foreach (self::FIELD_DEFINITIONS as $fieldKey => $definition) {
             if (
@@ -1707,7 +1708,7 @@ class LoanRequestDataService
             }
 
             if (
-                $isDueDateNoInsurance
+                $skipsInsurance
                 && in_array($definition['section'], self::DUE_DATE_WAIVED_SECTIONS, true)
             ) {
                 continue;

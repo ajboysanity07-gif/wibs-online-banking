@@ -252,6 +252,12 @@ export function LoanRequestLoanDetailsStep({
                                 </Badge>
                             </p>
                         )}
+                        {data.kind_of_loan === 'Emergency' && (
+                            <p className="text-xs text-muted-foreground">
+                                Emergency loans skip the insurance and health
+                                questionnaire steps below.
+                            </p>
+                        )}
                     </div>
                 )}
 
