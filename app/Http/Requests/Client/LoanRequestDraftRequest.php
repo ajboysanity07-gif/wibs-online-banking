@@ -513,7 +513,7 @@ class LoanRequestDraftRequest extends FormRequest
 
         if ($includeSpouse) {
             $rules["{$prefix}.spouse_name"] = ['sometimes', 'nullable', 'string', 'max:255'];
-            $rules["{$prefix}.spouse_age"] = ['sometimes', 'nullable', 'integer', 'min:18', 'max:120'];
+            $rules["{$prefix}.spouse_birthdate"] = ['sometimes', 'nullable', 'date'];
             $rules["{$prefix}.spouse_cell_no"] = ['sometimes', 'nullable', 'string', 'digits:11'];
         }
 

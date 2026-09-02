@@ -38,6 +38,30 @@ export const toDateInputValue = (value?: string | null): string => {
     return value.slice(0, 10);
 };
 
+export const calculateAge = (birthdate?: string | null): number | null => {
+    if (!birthdate) {
+        return null;
+    }
+
+    const [year, month, day] = birthdate.slice(0, 10).split('-').map(Number);
+
+    if (!year || !month || !day) {
+        return null;
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - year;
+    const hasHadBirthday =
+        today.getMonth() + 1 > month ||
+        (today.getMonth() + 1 === month && today.getDate() >= day);
+
+    if (!hasHadBirthday) {
+        age -= 1;
+    }
+
+    return age < 0 ? null : age;
+};
+
 export const formatDisplayText = (value?: string | null): string => {
     const trimmed = value?.trim() ?? '';
 
@@ -149,7 +173,12 @@ export const formatPayday = (value: string): string => {
 
     if (upper === 'WEEKLY' || compact === 'BIWEEKLY') return 'Weekly';
     if (upper === 'MONTHLY') return 'Monthly';
-    if (compact === '15' || compact === '30' || (upper.includes('15') && upper.includes('30')) || compact === 'SEMIMONTHLY')
+    if (
+        compact === '15' ||
+        compact === '30' ||
+        (upper.includes('15') && upper.includes('30')) ||
+        compact === 'SEMIMONTHLY'
+    )
         return 'Quincenal';
     if (upper.includes('LUMP')) return 'Due date';
     if (upper === 'DAILY') return 'Daily';

@@ -1213,7 +1213,7 @@ class LoanRequestService
                 $data['number_of_children'] ?? null,
             ),
             'spouse_name' => $this->normalizeOptionalString($data['spouse_name'] ?? null),
-            'spouse_age' => $this->normalizeOptionalInt($data['spouse_age'] ?? null),
+            'spouse_birthdate' => $this->normalizeOptionalString($data['spouse_birthdate'] ?? null),
             'spouse_cell_no' => $this->normalizeOptionalString(
                 $data['spouse_cell_no'] ?? null,
             ),
@@ -1471,6 +1471,7 @@ class LoanRequestService
 
         return array_merge($person, [
             'birthdate' => $birthdate,
+            'spouse_birthdate' => $this->normalizeDateForInput($person['spouse_birthdate'] ?? null),
             'birthplace' => $birthplaceValues['legacy'],
             'birthplace_city' => $birthplaceValues['city'],
             'birthplace_province' => $birthplaceValues['province'],
@@ -1860,7 +1861,7 @@ class LoanRequestService
             'educational_attainment' => $profile?->educational_attainment,
             'number_of_children' => $numberOfChildren,
             'spouse_name' => $spouseName ?? $profile?->spouse_name,
-            'spouse_age' => $profile?->spouse_age,
+            'spouse_birthdate' => $profile?->spouse_birthdate?->toDateString(),
             'spouse_cell_no' => $profile?->spouse_cell_no,
             'employment_type' => $profile?->employment_type,
             'employer_business_name' => $profile?->employer_business_name,
@@ -1910,7 +1911,7 @@ class LoanRequestService
             'housing_status',
             'length_of_stay',
             'spouse_name',
-            'spouse_age',
+            'spouse_birthdate',
             'spouse_cell_no',
             'number_of_children',
         ];

@@ -52,6 +52,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { useSavedPaymentAccounts } from '@/hooks/use-saved-payment-accounts';
 import {
+    calculateAge,
     composeAddress,
     composeBirthplace,
     formatCivilStatus,
@@ -2401,7 +2402,12 @@ export function LoanRequestReviewStep({
             label: 'Spouse name',
             value: displayText(data.applicant.spouse_name),
         },
-        { label: 'Spouse age', value: displayValue(data.applicant.spouse_age) },
+        {
+            label: 'Spouse age',
+            value: displayValue(
+                calculateAge(data.applicant.spouse_birthdate)?.toString() ?? '',
+            ),
+        },
         {
             label: 'Spouse cell no.',
             value: displayValue(data.applicant.spouse_cell_no),
@@ -2474,7 +2480,12 @@ export function LoanRequestReviewStep({
             value: displayValue(person.number_of_children),
         },
         { label: 'Spouse name', value: displayText(person.spouse_name) },
-        { label: 'Spouse age', value: displayValue(person.spouse_age) },
+        {
+            label: 'Spouse age',
+            value: displayValue(
+                calculateAge(person.spouse_birthdate)?.toString() ?? '',
+            ),
+        },
         {
             label: 'Spouse cell no.',
             value: displayValue(person.spouse_cell_no),

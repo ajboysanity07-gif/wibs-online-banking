@@ -42,6 +42,7 @@ class LoanRequestPerson extends Model
         'number_of_children',
         'spouse_name',
         'spouse_age',
+        'spouse_birthdate',
         'spouse_cell_no',
         'employment_type',
         'employer_business_name',
@@ -126,6 +127,7 @@ class LoanRequestPerson extends Model
     {
         return [
             'birthdate' => 'date',
+            'spouse_birthdate' => 'date',
             'employer_date_employed' => 'date',
             'gross_monthly_income' => 'decimal:2',
             'role' => LoanRequestPersonRole::class,

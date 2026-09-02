@@ -42,11 +42,11 @@ import {
 import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
 import { edit as profileEdit } from '@/routes/profile';
 import { index as staffLoanRequestsIndex } from '@/routes/staff/loan-requests';
+import { index as staffMembersIndex } from '@/routes/staff/members';
+import { index as staffReportedRequestsIndex } from '@/routes/staff/reported-requests';
 import { index as superadminStaffIndex } from '@/routes/superadmin/staff';
 import type { Auth, NavItem, WorkspaceName } from '@/types';
 import AppLogo from './app-logo';
-import { index as staffMembersIndex } from '@/routes/staff/members';
-import { index as staffReportedRequestsIndex } from '@/routes/staff/reported-requests';
 
 type PageProps = {
     auth: Auth;

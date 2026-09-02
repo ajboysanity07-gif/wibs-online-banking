@@ -22,7 +22,7 @@ class BackfillCycleFieldSensitivityCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Clear the stale is_sensitive flag on dependent/spouse Group Life Insurance cycle_status/cycle_number entries persisted before those fields were reclassified as staff-owned, so the Generali document checklist stops requiring a member confirmation that can never be given.';
+    protected $description = 'Clear the stale is_sensitive flag on dependent/spouse and applicant Group Life Insurance cycle_status/cycle_number entries persisted before those fields were reclassified as staff-owned, so the Generali document checklist stops requiring a member confirmation that can never be given.';
 
     public function handle(): int
     {
@@ -36,7 +36,7 @@ class BackfillCycleFieldSensitivityCommand extends Command
         $fieldKeys = self::dependentCycleFieldKeys();
 
         $this->line($fix
-            ? 'Fix mode enabled. Clearing is_sensitive on stale dependent cycle entries.'
+            ? 'Fix mode enabled. Clearing is_sensitive on stale cycle entries.'
             : 'Dry run. No writes will be applied.');
 
         $query = LoanRequestDataEntry::query()
@@ -62,6 +62,8 @@ class BackfillCycleFieldSensitivityCommand extends Command
     public static function dependentCycleFieldKeys(): array
     {
         $keys = [
+            'applicant_cycle_status',
+            'applicant_cycle_number',
             'dependent_spouse_cycle_status',
             'dependent_spouse_cycle_number',
         ];

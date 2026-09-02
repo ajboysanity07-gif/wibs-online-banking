@@ -52,7 +52,7 @@ function generaliApplicationFormCreateApprovedLoanRequestWithApplicant(
             'address3' => 'Loan Province',
             'civil_status' => 'Married',
             'spouse_name' => 'Spouse Member',
-            'spouse_age' => 30,
+            'spouse_birthdate' => now()->subYears(30)->toDateString(),
         ], $applicantAttributes));
 
     return $loanRequest;
@@ -346,6 +346,7 @@ test('dependents data block resolves spouse and category rows with computed age'
     $documentData = generaliApplicationFormBuildDocumentData($loanRequest->fresh());
 
     expect($documentData['dependents']['spouse']['name'])->toBe('Spouse Member')
+        ->and($documentData['dependents']['spouse']['age'])->toBe('30')
         ->and($documentData['dependents']['spouse']['cycle_status'])->toBe('Old')
         ->and($documentData['dependents']['spouse']['cycle_number'])->toBe('3')
         ->and($documentData['dependents']['children'])->toHaveCount(1)

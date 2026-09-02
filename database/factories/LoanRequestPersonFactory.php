@@ -46,7 +46,7 @@ class LoanRequestPersonFactory extends Factory
             ]),
             'number_of_children' => fake()->optional()->numberBetween(0, 5),
             'spouse_name' => fake()->optional()->name(),
-            'spouse_age' => fake()->optional()->numberBetween(18, 65),
+            'spouse_birthdate' => fake()->optional()->dateTimeBetween('-65 years', '-18 years')?->format('Y-m-d'),
             'spouse_cell_no' => fake()->optional()->numerify('09#########'),
             'employment_type' => fake()->optional()->randomElement([
                 'Private',

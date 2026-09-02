@@ -25,6 +25,7 @@ import {
     PENSIONER_EMPLOYMENT_TYPE,
     SELF_EMPLOYED_EMPLOYMENT_TYPE,
 } from '@/lib/employment-type';
+import { calculateAge } from '@/lib/formatters';
 import { normalizeMobileNumberInput } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { barangays, cities, provinces, zip } from '@/routes/api/locations';
@@ -953,23 +954,42 @@ export function LoanRequestPersonalFields({
 
                             <div className="grid gap-2">
                                 <FieldLabel
-                                    htmlFor={`${prefix}_spouse_age`}
-                                    label="Spouse age"
+                                    htmlFor={`${prefix}_spouse_birthdate`}
+                                    label="Spouse birthdate"
                                 />
-                                <Input
-                                    id={`${prefix}_spouse_age`}
-                                    type="number"
-                                    name={fieldName(prefix, 'spouse_age')}
-                                    value={values.spouse_age}
-                                    className="mt-1 block w-full"
-                                    onChange={updateField('spouse_age')}
+                                <BirthdateInput
+                                    id={`${prefix}_spouse_birthdate`}
+                                    name={fieldName(prefix, 'spouse_birthdate')}
+                                    value={values.spouse_birthdate}
+                                    onValueChange={(value) =>
+                                        onChange('spouse_birthdate', value)
+                                    }
                                 />
                                 <InputError
                                     message={fieldError(
                                         errors,
                                         prefix,
-                                        'spouse_age',
+                                        'spouse_birthdate',
                                     )}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <FieldLabel
+                                    htmlFor={`${prefix}_spouse_age_display`}
+                                    label="Spouse age"
+                                />
+                                <Input
+                                    id={`${prefix}_spouse_age_display`}
+                                    type="number"
+                                    className="mt-1 block w-full"
+                                    value={
+                                        calculateAge(values.spouse_birthdate) ??
+                                        ''
+                                    }
+                                    placeholder="Computed from birthdate"
+                                    disabled
+                                    readOnly
                                 />
                             </div>
 

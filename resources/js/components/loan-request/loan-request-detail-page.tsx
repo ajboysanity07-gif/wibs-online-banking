@@ -66,6 +66,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
+    calculateAge,
     composeAddress,
     composeBirthplace,
     formatCivilStatus,
@@ -799,6 +800,11 @@ export const LoanRequestApplicantCard = ({
             ),
         },
         {
+            label: 'Sex',
+            icon: UserIcon,
+            value: displayValue(applicant?.sex),
+        },
+        {
             label: 'Length of stay',
             icon: Clock,
             value: displayText(applicant?.length_of_stay),
@@ -828,7 +834,7 @@ export const LoanRequestApplicantCard = ({
         {
             label: 'Spouse age',
             icon: CalendarDays,
-            value: displayValue(applicant?.spouse_age),
+            value: displayValue(calculateAge(applicant?.spouse_birthdate)),
         },
         {
             label: 'Spouse cell no.',
@@ -854,6 +860,11 @@ export const LoanRequestApplicantCard = ({
             label: 'Years in work/business',
             icon: Clock,
             value: displayText(applicant?.years_in_work_business),
+        },
+        {
+            label: 'Date employed',
+            icon: CalendarDays,
+            value: displayDateValue(applicant?.employer_date_employed),
         },
     ];
 
@@ -945,6 +956,11 @@ const buildCoMakerMoreFields = (
         ),
     },
     {
+        label: 'Sex',
+        icon: UserIcon,
+        value: displayValue(person?.sex),
+    },
+    {
         label: 'Length of stay',
         icon: Clock,
         value: displayText(person?.length_of_stay),
@@ -973,6 +989,11 @@ const buildCoMakerMoreFields = (
         label: 'Years in work/business',
         icon: Clock,
         value: displayText(person?.years_in_work_business),
+    },
+    {
+        label: 'Date employed',
+        icon: CalendarDays,
+        value: displayDateValue(person?.employer_date_employed),
     },
 ];
 

@@ -140,13 +140,52 @@ test('backfill fix mode clears is_sensitive on stale dependent cycle entries onl
         ->value('is_sensitive'))->toBeTrue();
 });
 
-test('dependent cycle field key list covers every category slot plus spouse', function (): void {
+test('dependent cycle field key list covers every category slot plus spouse and applicant', function (): void {
     $keys = BackfillCycleFieldSensitivityCommand::dependentCycleFieldKeys();
 
-    expect($keys)->toHaveCount(24)
+    expect($keys)->toHaveCount(26)
         ->and($keys)->toContain('dependent_child_3_cycle_number')
         ->and($keys)->toContain('dependent_extended_1_cycle_status')
         ->and($keys)->toContain('dependent_parent_2_cycle_status')
         ->and($keys)->toContain('dependent_sibling_2_cycle_number')
-        ->and($keys)->toContain('dependent_spouse_cycle_status');
+        ->and($keys)->toContain('dependent_spouse_cycle_status')
+        ->and($keys)->toContain('applicant_cycle_status')
+        ->and($keys)->toContain('applicant_cycle_number');
+});
+
+test('a never-captured applicant cycle field written by staff is not sensitive', function (): void {
+    $actor = AppUser::factory()->create(['email_verified_at' => now()]);
+    $loanRequest = LoanRequest::factory()->create();
+
+    app(LoanRequestDataService::class)->applyStaffUpdates(
+        $loanRequest,
+        $actor,
+        ['applicant_cycle_status' => 'New'],
+        'Entered from the physical form.',
+    );
+
+    $entry = LoanRequestDataEntry::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('field_key', 'applicant_cycle_status')
+        ->sole();
+
+    expect($entry->is_sensitive)->toBeFalse()
+        ->and($entry->owner_type)->toBe('staff');
+});
+
+test('backfill fix mode also clears stale applicant cycle entries', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+    cycleSensitivityCreateEntry($loanRequest, 'applicant_cycle_status', 'New');
+    cycleSensitivityCreateEntry($loanRequest, 'applicant_cycle_number', 3);
+
+    $this->artisan('loan-requests:backfill-cycle-field-sensitivity --fix')
+        ->expectsOutputToContain('Stale entries found: 2')
+        ->expectsOutputToContain('Updated: 2')
+        ->assertExitCode(0);
+
+    expect(LoanRequestDataEntry::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->whereIn('field_key', ['applicant_cycle_status', 'applicant_cycle_number'])
+        ->where('is_sensitive', false)
+        ->count())->toBe(2);
 });

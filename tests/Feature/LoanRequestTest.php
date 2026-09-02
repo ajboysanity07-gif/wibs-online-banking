@@ -110,7 +110,7 @@ function validLoanRequestCorrectionPayload(array $overrides = []): array
             'educational_attainment' => 'College',
             'number_of_children' => 2,
             'spouse_name' => 'Corrected Spouse',
-            'spouse_age' => 35,
+            'spouse_birthdate' => '1989-06-15',
             'spouse_cell_no' => '09123456780',
             'employment_type' => 'Private',
             'employer_business_name' => 'Corrected Company',
@@ -5123,6 +5123,7 @@ test('admin can correct under review loan request details and people snapshots',
         ->assertJsonPath('data.loanRequest.requires_correction_before_approval', false)
         ->assertJsonPath('data.applicant.first_name', 'Corrected')
         ->assertJsonPath('data.applicant.birthdate', '1990-04-10')
+        ->assertJsonPath('data.applicant.spouse_birthdate', '1989-06-15')
         ->assertJsonPath('data.coMakerOne.first_name', 'Corrected')
         ->assertJsonPath('data.coMakerOne.birthdate', '1989-03-12')
         ->assertJsonPath('data.coMakerTwo.first_name', 'Corrected')
@@ -5149,6 +5150,7 @@ test('admin can correct under review loan request details and people snapshots',
 
     expect($people)->toHaveCount(3);
     expect($people[LoanRequestPersonRole::Applicant->value]->first_name)->toBe('Corrected');
+    expect($people[LoanRequestPersonRole::Applicant->value]->spouse_birthdate->toDateString())->toBe('1989-06-15');
     expect($people[LoanRequestPersonRole::Applicant->value]->birthplace)->toBe('City of Manila, Metro Manila');
     expect($people[LoanRequestPersonRole::Applicant->value]->address)->toBe('Corrected Street, City of Manila, Metro Manila');
     expect($people[LoanRequestPersonRole::CoMakerOne->value]->employer_business_name)->toBe('Corrected Office One');

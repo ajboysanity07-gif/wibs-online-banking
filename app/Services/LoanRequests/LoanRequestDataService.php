@@ -1453,20 +1453,23 @@ class LoanRequestDataService
         // applicant. No longer collected from the member/wizard: it's
         // auto-computed from wlnmaster loan history via
         // LoanRequestCycleStateService and read directly from there by
-        // ApprovedLoanDocumentDataBuilder. Kept here for the audit-trail
+        // ApprovedLoanDocumentDataBuilder. Staff-owned/non-sensitive like the
+        // dependent cycle fields above -- there's no member-facing UI to ever
+        // confirm these, so leaving them sensitive permanently deadlocks the
+        // Generali document checklist. Kept here for the audit-trail
         // field-label lookup and legacy stored values only.
         'applicant_cycle_status' => [
             'label' => 'Applicant cycle status',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
         ],
         'applicant_cycle_number' => [
             'label' => 'Applicant cycle number',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'number',

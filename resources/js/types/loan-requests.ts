@@ -31,7 +31,7 @@ export type LoanRequestPersonData = {
     educational_attainment: string | null;
     number_of_children: number | string | null;
     spouse_name: string | null;
-    spouse_age: number | string | null;
+    spouse_birthdate: string | null;
     spouse_cell_no: string | null;
     employment_type: string | null;
     employer_business_name: string | null;
@@ -77,7 +77,7 @@ export type LoanRequestPersonFormData = {
     educational_attainment: string;
     number_of_children: string;
     spouse_name: string;
-    spouse_age: string;
+    spouse_birthdate: string;
     spouse_cell_no: string;
     employment_type: string;
     employer_business_name: string;

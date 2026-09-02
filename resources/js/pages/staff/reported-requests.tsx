@@ -5,8 +5,8 @@ import {
     index as requestsIndex,
     show as requestsShow,
 } from '@/routes/staff/loan-requests';
-import type { Auth, BreadcrumbItem } from '@/types';
 import { index as reportedRequestsIndex } from '@/routes/staff/reported-requests';
+import type { Auth, BreadcrumbItem } from '@/types';
 
 type PageProps = {
     auth: Auth;

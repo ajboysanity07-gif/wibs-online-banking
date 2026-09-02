@@ -1132,7 +1132,7 @@ test('affidavit of undertaking is applicable for a non-pensioner, non-institutio
         ->and($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeFalse();
 });
 
-test('affidavit of undertaking is not applicable for a BLGU employee whose payment option is ATM Deduction (they belong to an institutional category, not the uncategorized ATM bucket)', function (): void {
+test('affidavit of undertaking is applicable for a BLGU employee whose payment option is ATM Deduction, since Authority to Deduct only applies to Salary Deduction', function (): void {
     $loanRequest = LoanRequest::factory()->create();
 
     LoanRequestPerson::factory()
@@ -1144,17 +1144,20 @@ test('affidavit of undertaking is not applicable for a BLGU employee whose payme
     $loanRequest = $loanRequest->fresh();
     $flatValues = ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value];
 
-    // Neither document applies here: Affidavit of Undertaking excludes anyone
-    // with a resolved institutional category, and Authority to Deduct requires
-    // payment_option to be Salary Deduction specifically -- so an institutional
-    // employee who chose ATM Deduction has no repayment-authorization document.
-    expect($catalog->isApplicable(LoanRequestDocumentKey::AffidavitUndertaking, $loanRequest, $flatValues))->toBeFalse()
+    // An institutional-category employer only rules out Affidavit of
+    // Undertaking when Authority to Deduct actually applies to them, i.e.
+    // when they're on Salary Deduction. Choosing ATM Deduction instead means
+    // Authority to Deduct doesn't apply, so the applicant still needs a
+    // repayment-authorization document -- the Affidavit of Undertaking.
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AffidavitUndertaking, $loanRequest, $flatValues))->toBeTrue()
         ->and($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeFalse();
 
     // With Salary Deduction instead, the same BLGU employer becomes Authority
-    // to Deduct applicable, confirming the category detection itself is intact.
+    // to Deduct applicable (and Affidavit of Undertaking no longer applies,
+    // since it requires ATM Deduction).
     $salaryDeductionFlatValues = ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value];
-    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $salaryDeductionFlatValues))->toBeTrue();
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $salaryDeductionFlatValues))->toBeTrue()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::AffidavitUndertaking, $loanRequest, $salaryDeductionFlatValues))->toBeFalse();
 });
 
 test('affidavit of undertaking is not applicable for a self-employed applicant even with ATM payout', function (): void {

@@ -1063,6 +1063,7 @@ class LoanRequestController extends Controller
 
         return array_merge($person, [
             'birthdate' => $birthdate,
+            'spouse_birthdate' => $this->normalizeDateForInput($person['spouse_birthdate'] ?? null),
             'birthplace' => $birthplace,
             'birthplace_city' => $birthplaceCity,
             'birthplace_province' => $birthplaceProvince,

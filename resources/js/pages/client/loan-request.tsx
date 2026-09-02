@@ -132,7 +132,7 @@ const applicantFamilyFields = new Set([
     'educational_attainment',
     'number_of_children',
     'spouse_name',
-    'spouse_age',
+    'spouse_birthdate',
     'spouse_cell_no',
 ]);
 
@@ -198,7 +198,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     educational_attainment: '',
     number_of_children: '',
     spouse_name: '',
-    spouse_age: '',
+    spouse_birthdate: '',
     spouse_cell_no: '',
     employment_type: '',
     employer_business_name: '',
@@ -249,7 +249,7 @@ const toPersonForm = (
             emptyIfZero: false,
         }),
         spouse_name: person.spouse_name ?? '',
-        spouse_age: toStringValue(person.spouse_age),
+        spouse_birthdate: toDateInputValue(person.spouse_birthdate),
         spouse_cell_no: person.spouse_cell_no ?? '',
         employment_type: person.employment_type ?? '',
         employer_business_name: person.employer_business_name ?? '',

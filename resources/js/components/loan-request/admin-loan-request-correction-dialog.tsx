@@ -11,7 +11,7 @@ import {
     User,
     Users,
 } from 'lucide-react';
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
@@ -29,6 +29,12 @@ import {
 } from '@/components/loan-request/loan-request-steps';
 import { LoanRequestWizardShell } from '@/components/loan-request/loan-request-wizard-shell';
 import type { LoanRequestWizardStep } from '@/components/loan-request/loan-request-wizard-steps';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,8 +45,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import {
+    calculateAge,
     formatCurrency,
     formatDateTime,
     toDateInputValue,
@@ -243,7 +249,7 @@ const personFieldLabels: Record<keyof LoanRequestPersonFormData, string> = {
     educational_attainment: 'Educational attainment',
     number_of_children: 'No. of children',
     spouse_name: 'Spouse name',
-    spouse_age: 'Spouse age',
+    spouse_birthdate: 'Spouse birthdate',
     spouse_cell_no: 'Spouse cell no.',
     employment_type: 'Employment',
     employer_business_name: 'Employer/Business name',
@@ -354,7 +360,7 @@ const loanStepFieldKeys: string[] = [
 
 const applicantStepFieldKeys = [
     ...new Set(applicantRequiredFields.map((field) => `applicant.${field}`)),
-    'applicant.spouse_age',
+    'applicant.spouse_birthdate',
     'applicant.spouse_cell_no',
 ];
 
@@ -372,7 +378,6 @@ const numericFieldPaths = new Set([
     'requested_amount',
     'requested_term',
     'applicant.number_of_children',
-    'applicant.spouse_age',
     'applicant.gross_monthly_income',
     'co_maker_1.gross_monthly_income',
     'co_maker_2.gross_monthly_income',
@@ -403,7 +408,7 @@ const applicantChangeFields: Array<keyof LoanRequestPersonFormData> = [
     'educational_attainment',
     'number_of_children',
     'spouse_name',
-    'spouse_age',
+    'spouse_birthdate',
     'spouse_cell_no',
     'employment_type',
     'employer_business_name',
@@ -467,7 +472,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     educational_attainment: '',
     number_of_children: '',
     spouse_name: '',
-    spouse_age: '',
+    spouse_birthdate: '',
     spouse_cell_no: '',
     employment_type: '',
     employer_business_name: '',
@@ -535,7 +540,7 @@ const toPersonForm = (
             emptyIfZero: false,
         }),
         spouse_name: person.spouse_name ?? '',
-        spouse_age: toStringValue(person.spouse_age),
+        spouse_birthdate: toDateInputValue(person.spouse_birthdate),
         spouse_cell_no: person.spouse_cell_no ?? '',
         employment_type: person.employment_type ?? '',
         employer_business_name: person.employer_business_name ?? '',
@@ -716,6 +721,33 @@ const CorrectionReportContextCard = ({
         </section>
     );
 };
+
+type PersonDataAccordionProps = {
+    personLabel: string;
+    children: ReactNode;
+};
+
+const PersonDataAccordion = ({
+    personLabel,
+    children,
+}: PersonDataAccordionProps) => (
+    <LoanRequestSectionCard
+        title={`Editing: ${personLabel}`}
+        description="Expand a section below to review or correct this person's data."
+        contentClassName="space-y-0"
+    >
+        <Accordion
+            type="multiple"
+            defaultValue={[
+                'applicant-personal',
+                'co_maker_1-personal',
+                'co_maker_2-personal',
+            ]}
+        >
+            {children}
+        </Accordion>
+    </LoanRequestSectionCard>
+);
 
 const humanizeFieldKey = (key: string): string =>
     key
@@ -905,14 +937,11 @@ const validatePerson = (
     }
 
     if (options?.validateSpouse) {
-        if (!isBlank(person.spouse_age)) {
-            const parsedSpouseAge = Number(person.spouse_age.trim());
+        if (!isBlank(person.spouse_birthdate)) {
+            const spouseAge = calculateAge(person.spouse_birthdate);
 
-            if (!Number.isInteger(parsedSpouseAge)) {
-                validationErrors[`${prefix}.spouse_age`] =
-                    'Spouse age must be a whole number.';
-            } else if (parsedSpouseAge < 18 || parsedSpouseAge > 120) {
-                validationErrors[`${prefix}.spouse_age`] =
+            if (spouseAge === null || spouseAge < 18 || spouseAge > 120) {
+                validationErrors[`${prefix}.spouse_birthdate`] =
                     'Spouse age must be between 18 and 120.';
             }
         }
@@ -1602,40 +1631,52 @@ function CorrectionDialogForm({
                             direction={stepDirection}
                         >
                             <div className="space-y-5">
-                                <LoanRequestSectionCard title="Applicant personal data">
-                                    <LoanRequestPersonalFields
-                                        prefix="applicant"
-                                        values={formData.applicant}
-                                        errors={mergedErrors}
-                                        includeSpouse
-                                        includeChildren
-                                        portal={false}
-                                        onChange={updatePersonField(
-                                            'applicant',
-                                        )}
-                                    />
-                                </LoanRequestSectionCard>
-                                <LoanRequestSectionCard
-                                    title="Applicant work & finances"
-                                    description={
-                                        isBlank(
-                                            formData.applicant
-                                                .employer_date_employed,
-                                        )
-                                            ? 'Date employed is optional — leave it blank if unknown for this request.'
-                                            : undefined
-                                    }
-                                >
-                                    <LoanRequestWorkFields
-                                        prefix="applicant"
-                                        values={formData.applicant}
-                                        errors={mergedErrors}
-                                        portal={false}
-                                        onChange={updatePersonField(
-                                            'applicant',
-                                        )}
-                                    />
-                                </LoanRequestSectionCard>
+                                <PersonDataAccordion personLabel="Applicant">
+                                    <AccordionItem value="applicant-personal">
+                                        <AccordionTrigger>
+                                            Applicant — Personal data
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                            <LoanRequestPersonalFields
+                                                prefix="applicant"
+                                                values={formData.applicant}
+                                                errors={mergedErrors}
+                                                includeSpouse
+                                                includeChildren
+                                                portal={false}
+                                                onChange={updatePersonField(
+                                                    'applicant',
+                                                )}
+                                            />
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                    <AccordionItem value="applicant-work">
+                                        <AccordionTrigger>
+                                            Applicant — Work & finances
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                            {isBlank(
+                                                formData.applicant
+                                                    .employer_date_employed,
+                                            ) ? (
+                                                <p className="mb-4 text-xs text-muted-foreground">
+                                                    Date employed is optional —
+                                                    leave it blank if unknown
+                                                    for this request.
+                                                </p>
+                                            ) : null}
+                                            <LoanRequestWorkFields
+                                                prefix="applicant"
+                                                values={formData.applicant}
+                                                errors={mergedErrors}
+                                                portal={false}
+                                                onChange={updatePersonField(
+                                                    'applicant',
+                                                )}
+                                            />
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </PersonDataAccordion>
                             </div>
                         </LoanRequestAnimatedStep>
 
@@ -1644,27 +1685,40 @@ function CorrectionDialogForm({
                             direction={stepDirection}
                         >
                             <div className="space-y-5">
-                                <LoanRequestSectionCard title="Co-maker 1">
-                                    <LoanRequestPersonalFields
-                                        prefix="co_maker_1"
-                                        values={formData.co_maker_1}
-                                        errors={mergedErrors}
-                                        portal={false}
-                                        onChange={updatePersonField(
-                                            'co_maker_1',
-                                        )}
-                                    />
-                                    <Separator className="bg-border/40" />
-                                    <LoanRequestWorkFields
-                                        prefix="co_maker_1"
-                                        values={formData.co_maker_1}
-                                        errors={mergedErrors}
-                                        portal={false}
-                                        onChange={updatePersonField(
-                                            'co_maker_1',
-                                        )}
-                                    />
-                                </LoanRequestSectionCard>
+                                <PersonDataAccordion personLabel="Co-maker 1">
+                                    <AccordionItem value="co_maker_1-personal">
+                                        <AccordionTrigger>
+                                            Co-maker 1 — Personal data
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                            <LoanRequestPersonalFields
+                                                prefix="co_maker_1"
+                                                values={formData.co_maker_1}
+                                                errors={mergedErrors}
+                                                portal={false}
+                                                onChange={updatePersonField(
+                                                    'co_maker_1',
+                                                )}
+                                            />
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                    <AccordionItem value="co_maker_1-work">
+                                        <AccordionTrigger>
+                                            Co-maker 1 — Work & finances
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                            <LoanRequestWorkFields
+                                                prefix="co_maker_1"
+                                                values={formData.co_maker_1}
+                                                errors={mergedErrors}
+                                                portal={false}
+                                                onChange={updatePersonField(
+                                                    'co_maker_1',
+                                                )}
+                                            />
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </PersonDataAccordion>
                             </div>
                         </LoanRequestAnimatedStep>
 
@@ -1673,27 +1727,40 @@ function CorrectionDialogForm({
                             direction={stepDirection}
                         >
                             <div className="space-y-5">
-                                <LoanRequestSectionCard title="Co-maker 2">
-                                    <LoanRequestPersonalFields
-                                        prefix="co_maker_2"
-                                        values={formData.co_maker_2}
-                                        errors={mergedErrors}
-                                        portal={false}
-                                        onChange={updatePersonField(
-                                            'co_maker_2',
-                                        )}
-                                    />
-                                    <Separator className="bg-border/40" />
-                                    <LoanRequestWorkFields
-                                        prefix="co_maker_2"
-                                        values={formData.co_maker_2}
-                                        errors={mergedErrors}
-                                        portal={false}
-                                        onChange={updatePersonField(
-                                            'co_maker_2',
-                                        )}
-                                    />
-                                </LoanRequestSectionCard>
+                                <PersonDataAccordion personLabel="Co-maker 2">
+                                    <AccordionItem value="co_maker_2-personal">
+                                        <AccordionTrigger>
+                                            Co-maker 2 — Personal data
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                            <LoanRequestPersonalFields
+                                                prefix="co_maker_2"
+                                                values={formData.co_maker_2}
+                                                errors={mergedErrors}
+                                                portal={false}
+                                                onChange={updatePersonField(
+                                                    'co_maker_2',
+                                                )}
+                                            />
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                    <AccordionItem value="co_maker_2-work">
+                                        <AccordionTrigger>
+                                            Co-maker 2 — Work & finances
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                            <LoanRequestWorkFields
+                                                prefix="co_maker_2"
+                                                values={formData.co_maker_2}
+                                                errors={mergedErrors}
+                                                portal={false}
+                                                onChange={updatePersonField(
+                                                    'co_maker_2',
+                                                )}
+                                            />
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </PersonDataAccordion>
                             </div>
                         </LoanRequestAnimatedStep>
 

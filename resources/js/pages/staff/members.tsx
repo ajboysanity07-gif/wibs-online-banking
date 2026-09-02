@@ -32,13 +32,13 @@ import {
     getRegistrationStatusLabel,
     getRegistrationStatusVariant,
 } from '@/lib/member-status';
+import { index as staffMembersIndex } from '@/routes/staff/members';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberSort,
     MemberRegistrationFilter,
     MemberSummary,
 } from '@/types/admin';
-import { index as staffMembersIndex } from '@/routes/staff/members';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
