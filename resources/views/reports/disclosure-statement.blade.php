@@ -363,7 +363,7 @@
                 <td class="r">P</td>
                 <td class="b9 r u">{{ $serviceChargeAmt !== null ? $fmt($serviceChargeAmt) : '' }}</td>
                 <td class="r">P</td>
-                <td class="b9 bold r u">{{ $serviceChargeAmt !== null ? $fmt($serviceChargeAmt) : '' }}</td>
+                <td class="b9 bold r u">{{ $financeChargeTotal !== null ? $fmt($financeChargeTotal) : '' }}</td>
                 <td></td>
             </tr>
 
