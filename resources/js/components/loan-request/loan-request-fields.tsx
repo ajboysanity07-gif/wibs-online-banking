@@ -84,6 +84,7 @@ const NATURE_OF_BUSINESS_OPTIONS = [
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
 ];
+const INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE = 'not_applicable';
 const INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS: Array<{
     value: string;
     label: string;
@@ -1542,12 +1543,15 @@ export function LoanRequestWorkFields({
                                 <Select
                                     value={
                                         values.institutional_employer_category ||
-                                        undefined
+                                        INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE
                                     }
                                     onValueChange={(value) =>
                                         onChange(
                                             'institutional_employer_category',
-                                            value,
+                                            value ===
+                                                INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE
+                                                ? ''
+                                                : value,
                                         )
                                     }
                                 >
@@ -1558,6 +1562,13 @@ export function LoanRequestWorkFields({
                                         <SelectValue placeholder="Not applicable" />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem
+                                            value={
+                                                INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE
+                                            }
+                                        >
+                                            Not applicable
+                                        </SelectItem>
                                         {INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS.map(
                                             (option) => (
                                                 <SelectItem

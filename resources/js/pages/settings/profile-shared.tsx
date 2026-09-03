@@ -217,6 +217,8 @@ export const NATURE_OF_BUSINESS_OPTIONS = [
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
 ];
+export const INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE =
+    'not_applicable';
 export const INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS: Array<{
     value: string;
     label: string;

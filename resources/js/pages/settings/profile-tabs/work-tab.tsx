@@ -18,6 +18,7 @@ import { TabsContent } from '@/components/ui/tabs';
 import type { useLocationSearch } from '@/hooks/use-location-search';
 import { cn } from '@/lib/utils';
 import {
+    INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE,
     INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS,
     MISSING_FIELD_CLASS,
     NATURE_OF_BUSINESS_OPTIONS,
@@ -464,11 +465,16 @@ export function WorkTab({
                                     <Select
                                         value={
                                             institutionalEmployerCategory ||
-                                            undefined
+                                            INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE
                                         }
-                                        onValueChange={
-                                            setInstitutionalEmployerCategory
-                                        }
+                                        onValueChange={(value) => {
+                                            setInstitutionalEmployerCategory(
+                                                value ===
+                                                    INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE
+                                                    ? ''
+                                                    : value,
+                                            );
+                                        }}
                                     >
                                         <SelectTrigger
                                             id="institutional_employer_category"
@@ -477,6 +483,13 @@ export function WorkTab({
                                             <SelectValue placeholder="Not applicable" />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem
+                                                value={
+                                                    INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE
+                                                }
+                                            >
+                                                Not applicable
+                                            </SelectItem>
                                             {INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS.map(
                                                 (option) => (
                                                     <SelectItem
