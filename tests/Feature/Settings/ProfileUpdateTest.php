@@ -1066,6 +1066,7 @@ test('a saved account is required for ATM Deduction and its details persist onto
     expect($memberProfile)->not->toBeNull();
     expect($memberProfile->payment_option)->toBe('ATM Deduction');
     expect($memberProfile->payment_saved_account_id)->toBe($account->id);
+    expect($memberProfile->payment_saved_account_id)->toBeInt();
     expect($memberProfile->paymentSavedAccount->atm_holder_name)->toBe('Test User');
 });
 

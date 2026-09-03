@@ -108,12 +108,16 @@ export function BankTab({
 
     const releaseAccountLabel = useMemo(
         () =>
-            accounts.find((account) => account.id === releaseAccountId)?.label,
+            accounts.find(
+                (account) => Number(account.id) === Number(releaseAccountId),
+            )?.label,
         [accounts, releaseAccountId],
     );
     const paymentAccountLabel = useMemo(
         () =>
-            accounts.find((account) => account.id === paymentAccountId)?.label,
+            accounts.find(
+                (account) => Number(account.id) === Number(paymentAccountId),
+            )?.label,
         [accounts, paymentAccountId],
     );
 

@@ -621,6 +621,8 @@ class MemberApplicationProfile extends Model
             'employer_date_employed' => 'date',
             'profile_completed_at' => 'datetime',
             'institutional_employer_category' => LoanInstitutionalEmployerCategory::class,
+            'release_saved_account_id' => 'integer',
+            'payment_saved_account_id' => 'integer',
         ];
     }
 }
