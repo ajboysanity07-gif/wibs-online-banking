@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Workflow;
 
 use App\Concerns\ResolvesPsgcFields;
+use App\LoanInstitutionalEmployerCategory;
 use App\LoanPaydayOption;
 use App\Models\AppUser;
 use App\Models\LoanRequestChange;
@@ -16,6 +17,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Enum;
 
 class LoanRequestProcessingUpdateRequest extends FormRequest
 {
@@ -69,6 +71,62 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
     }
 
     /**
+     * A co-maker slot is considered "in use" once any substantive field on it
+     * has been filled in -- used to decide whether identity fields
+     * (first/last name, birthdate) must also be present. The applicant is
+     * always in use since every loan request has one.
+     */
+    private function coMakerInUse(string $prefix): bool
+    {
+        foreach (['address1', 'cell_no', 'employer_business_name', 'gross_monthly_income', 'employment_type'] as $field) {
+            $value = $this->input("{$prefix}.{$field}");
+
+            if ($value !== null && $value !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * True for the two loan shapes that skip insurance entirely: a 1-month
+     * Due date (lumpsum) recommendation, or an Emergency loan regardless of
+     * payment frequency. Mirrors the exemption already applied at
+     * document-generation time in ApprovedLoanDocumentDataBuilder, so what's
+     * saved here can't diverge from what prints.
+     */
+    private function isDueDateNoInsuranceLoan(): bool
+    {
+        if ($this->loanRequest === null) {
+            return false;
+        }
+
+        $kindOfLoan = trim((string) $this->loanRequest->kind_of_loan);
+
+        if ($kindOfLoan === 'Emergency') {
+            return true;
+        }
+
+        $paymentFrequency = $this->input('recommended_payment_frequency', $this->loanRequest->recommended_payment_frequency);
+        $term = $this->input('recommended_term', $this->loanRequest->recommended_term);
+
+        return $paymentFrequency === LoanPaydayOption::DueDate->value && (int) $term === 1;
+    }
+
+    /**
+     * Whether the given input path was submitted with a truthy, non-zero
+     * value -- used to allow submitting/clearing 0 on an insurance-exempt
+     * loan while still rejecting an attempt to set a real premium/term.
+     */
+    private function filledNonZero(string $key): bool
+    {
+        $value = $this->input($key);
+
+        return $value !== null && $value !== '' && (float) $value !== 0.0;
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -95,10 +153,10 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'applicant' => ['sometimes', 'array'],
             'co_maker_1' => ['sometimes', 'array'],
             'co_maker_2' => ['sometimes', 'array'],
-            'applicant.first_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'applicant.first_name' => ['sometimes', 'required', 'string', 'max:255'],
             'applicant.middle_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'applicant.last_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'applicant.birthdate' => ['sometimes', 'nullable', 'date'],
+            'applicant.last_name' => ['sometimes', 'required', 'string', 'max:255'],
+            'applicant.birthdate' => ['sometimes', 'required', 'date', 'before:today', 'after:1900-01-01'],
             'applicant.birthplace_city' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             'applicant.birthplace_province' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             'applicant.address1' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -106,7 +164,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'applicant.address2' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             'applicant.address3' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             'applicant.address_zip' => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
-            'applicant.cell_no' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'applicant.cell_no' => ['sometimes', 'nullable', 'string', 'regex:/^09\d{9}$/'],
             'applicant.employment_type' => ['sometimes', 'nullable', 'string', 'max:255'],
             'applicant.employer_business_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'applicant.employer_business_address1' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -116,13 +174,14 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'applicant.employer_business_address_zip' => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
             'applicant.current_position' => ['sometimes', 'nullable', 'string', 'max:255'],
             'applicant.nature_of_business' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'applicant.institutional_employer_category' => ['sometimes', 'nullable', new Enum(LoanInstitutionalEmployerCategory::class)],
             'applicant.years_in_work_business' => ['sometimes', 'nullable', 'string', 'max:255'],
             'applicant.gross_monthly_income' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'applicant.payday' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'co_maker_1.first_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'co_maker_1.first_name' => ['sometimes', Rule::requiredIf(fn (): bool => $this->coMakerInUse('co_maker_1')), 'nullable', 'string', 'max:255'],
             'co_maker_1.middle_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'co_maker_1.last_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'co_maker_1.birthdate' => ['sometimes', 'nullable', 'date'],
+            'co_maker_1.last_name' => ['sometimes', Rule::requiredIf(fn (): bool => $this->coMakerInUse('co_maker_1')), 'nullable', 'string', 'max:255'],
+            'co_maker_1.birthdate' => ['sometimes', Rule::requiredIf(fn (): bool => $this->coMakerInUse('co_maker_1')), 'nullable', 'date', 'before:today', 'after:1900-01-01'],
             'co_maker_1.birthplace_city' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             'co_maker_1.birthplace_province' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             'co_maker_1.address1' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -130,7 +189,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'co_maker_1.address2' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             'co_maker_1.address3' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             'co_maker_1.address_zip' => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
-            'co_maker_1.cell_no' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'co_maker_1.cell_no' => ['sometimes', 'nullable', 'string', 'regex:/^09\d{9}$/'],
             'co_maker_1.employment_type' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_1.employer_business_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_1.employer_business_address1' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -143,10 +202,10 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'co_maker_1.years_in_work_business' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_1.gross_monthly_income' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'co_maker_1.payday' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'co_maker_2.first_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'co_maker_2.first_name' => ['sometimes', Rule::requiredIf(fn (): bool => $this->coMakerInUse('co_maker_2')), 'nullable', 'string', 'max:255'],
             'co_maker_2.middle_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'co_maker_2.last_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'co_maker_2.birthdate' => ['sometimes', 'nullable', 'date'],
+            'co_maker_2.last_name' => ['sometimes', Rule::requiredIf(fn (): bool => $this->coMakerInUse('co_maker_2')), 'nullable', 'string', 'max:255'],
+            'co_maker_2.birthdate' => ['sometimes', Rule::requiredIf(fn (): bool => $this->coMakerInUse('co_maker_2')), 'nullable', 'date', 'before:today', 'after:1900-01-01'],
             'co_maker_2.birthplace_city' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             'co_maker_2.birthplace_province' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             'co_maker_2.address1' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -154,7 +213,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'co_maker_2.address2' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             'co_maker_2.address3' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             'co_maker_2.address_zip' => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
-            'co_maker_2.cell_no' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'co_maker_2.cell_no' => ['sometimes', 'nullable', 'string', 'regex:/^09\d{9}$/'],
             'co_maker_2.employment_type' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_2.employer_business_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_2.employer_business_address1' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -169,15 +228,25 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'co_maker_2.payday' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing' => ['sometimes', 'array:'.implode(',', $this->processingArrayKeys())],
             'processing.service_charge_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
-            'processing.insurance_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
-            'processing.insurance_term' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:360'],
-            'processing.loan_security_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
-            'processing.savings_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'processing.insurance_rate' => [
+                'sometimes', 'nullable', 'numeric', 'min:0',
+                Rule::prohibitedIf(fn (): bool => $this->isDueDateNoInsuranceLoan() && $this->filledNonZero('processing.insurance_rate')),
+            ],
+            'processing.insurance_term' => [
+                'sometimes', 'nullable', 'integer', 'min:0', 'max:360',
+                Rule::prohibitedIf(fn (): bool => $this->isDueDateNoInsuranceLoan() && $this->filledNonZero('processing.insurance_term')),
+            ],
+            // loan_security_rate and savings_rate are independently
+            // overridable by design -- confirmed by an existing test that
+            // round-trips them with different values (0.01 vs 0.03). Not
+            // tied together server-side.
+            'processing.loan_security_rate' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
+            'processing.savings_rate' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
             'processing.documentary_stamp_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'processing.notarial_fee' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'processing.other_charges_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'processing.other_charges_description' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'processing.penalty_rate_per_month' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'processing.penalty_rate_per_month' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
             'processing.witness_one_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.witness_two_name' => $this->witnessTwoNameRules(),
             'processing.witness_two_id' => $this->witnessTwoIdRules(),
@@ -187,8 +256,16 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'processing.barangay_agency_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.barangay_agency_address' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.authority_to_deduct_institution_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'processing.authority_to_deduct_officer_1_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'processing.authority_to_deduct_officer_1_title' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'processing.authority_to_deduct_officer_1_name' => [
+                'sometimes', 'nullable', 'string', 'max:255',
+                Rule::requiredIf(fn (): bool => ! $this->boolean('processing.authority_to_deduct_officers_unknown')
+                    && filled($this->input('processing.authority_to_deduct_institution_name'))),
+            ],
+            'processing.authority_to_deduct_officer_1_title' => [
+                'sometimes', 'nullable', 'string', 'max:255',
+                Rule::requiredIf(fn (): bool => ! $this->boolean('processing.authority_to_deduct_officers_unknown')
+                    && filled($this->input('processing.authority_to_deduct_institution_name'))),
+            ],
             'processing.authority_to_deduct_officer_2_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.authority_to_deduct_officer_2_title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.authority_to_deduct_officers_unknown' => ['sometimes', 'nullable', 'boolean'],
@@ -213,7 +290,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
                 Rule::requiredIf(fn (): bool => $this->input('recommended_payment_frequency') === LoanPaydayOption::DueDate->value),
                 'nullable', 'integer', 'min:1', 'max:360',
             ],
-            'recommended_interest_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'recommended_interest_rate' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
             'recommended_payment_frequency' => ['sometimes', 'nullable', 'string', Rule::in(LoanPaydayOption::values())],
         ];
     }

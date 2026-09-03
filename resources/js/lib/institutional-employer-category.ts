@@ -9,6 +9,19 @@
  */
 export type InstitutionalEmployerCategory = 'blgu' | 'lgu' | 'mrdinc' | 'ldh';
 
+/**
+ * Mirrors LoanInstitutionalEmployerCategory::isInstitutionalPayrollCategory() --
+ * the explicit institutional_employer_category values that route to Authority
+ * to Deduct / Salary Deduction, as opposed to 'deped'/'ched' (Waiver document)
+ * or no category at all.
+ */
+export const INSTITUTIONAL_PAYROLL_CATEGORIES = new Set([
+    'blgu',
+    'lgu',
+    'mrdinc',
+    'healthcare',
+]);
+
 export function isBarangayEmployer(
     employerBusinessName: string | null | undefined,
     employmentType: string | null | undefined,

@@ -44,6 +44,7 @@ export type LoanRequestPersonData = {
     telephone_no: string | null;
     current_position: string | null;
     nature_of_business: string | null;
+    institutional_employer_category: string | null;
     years_in_work_business: string | null;
     employer_date_employed: string | null;
     gross_monthly_income: string | null;
@@ -89,6 +90,7 @@ export type LoanRequestPersonFormData = {
     telephone_no: string;
     current_position: string;
     nature_of_business: string;
+    institutional_employer_category: string;
     years_in_work_business: string;
     employer_date_employed: string;
     gross_monthly_income: string;
@@ -441,7 +443,7 @@ export type AuthorityToDeductSavedContact = {
 
 export type AuthorityToDeductGuidance = {
     applicable: boolean;
-    category: 'blgu' | 'lgu' | 'mrdinc' | 'ldh' | null;
+    category: 'blgu' | 'lgu' | 'mrdinc' | 'healthcare' | null;
     recommended_officers: number;
     note: string;
     saved_contact: AuthorityToDeductSavedContact | null;

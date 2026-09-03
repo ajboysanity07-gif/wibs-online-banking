@@ -62,7 +62,10 @@ import {
     formatHousingStatus,
     formatPayday,
 } from '@/lib/formatters';
-import { resolveInstitutionalEmployerCategory } from '@/lib/institutional-employer-category';
+import {
+    INSTITUTIONAL_PAYROLL_CATEGORIES,
+    resolveInstitutionalEmployerCategory,
+} from '@/lib/institutional-employer-category';
 import type {
     LoanRequestDataFieldDefinition,
     LoanRequestDataFieldValue,
@@ -818,6 +821,9 @@ type DataSectionStepProps = {
     applicantEmployerBusinessName?: string | null;
     applicantEmploymentType?: string | null;
     applicantNatureOfBusiness?: string | null;
+    // Explicit override for the heuristic above -- when the applicant has
+    // picked an institutional_employer_category, it wins over the guess.
+    applicantInstitutionalEmployerCategory?: string | null;
 };
 
 // declaration_truth_confirmation and declaration_data_privacy_consent are
@@ -872,6 +878,7 @@ type BankingSectionFieldsProps = {
     applicantEmployerBusinessName?: string | null;
     applicantEmploymentType?: string | null;
     applicantNatureOfBusiness?: string | null;
+    applicantInstitutionalEmployerCategory?: string | null;
 };
 
 const RELEASE_METHOD_PICKER_OPTIONS: PaymentMethodOption[] =
@@ -894,6 +901,7 @@ function BankingSectionFields({
     applicantEmployerBusinessName,
     applicantEmploymentType,
     applicantNatureOfBusiness,
+    applicantInstitutionalEmployerCategory,
 }: BankingSectionFieldsProps) {
     const {
         accounts,
@@ -925,12 +933,16 @@ function BankingSectionFields({
         typeof values.payment_saved_account_id === 'number'
             ? values.payment_saved_account_id
             : null;
-    const isInstitutionalEmployer =
-        resolveInstitutionalEmployerCategory(
-            applicantEmployerBusinessName,
-            applicantEmploymentType,
-            applicantNatureOfBusiness,
-        ) !== null;
+    const isInstitutionalEmployer = INSTITUTIONAL_PAYROLL_CATEGORIES.has(
+        applicantInstitutionalEmployerCategory ?? '',
+    )
+        ? true
+        : !applicantInstitutionalEmployerCategory &&
+          resolveInstitutionalEmployerCategory(
+              applicantEmployerBusinessName,
+              applicantEmploymentType,
+              applicantNatureOfBusiness,
+          ) !== null;
     const paymentOptionPickerOptions: PaymentMethodOption[] =
         PAYMENT_OPTION_OPTIONS.filter(
             (option) =>
@@ -1054,8 +1066,8 @@ function BankingSectionFields({
                 />
                 {!isInstitutionalEmployer && (
                     <p className="text-xs text-muted-foreground">
-                        Salary Deduction is only available for BLGU, LGU, LDH,
-                        or MRDINC employees.
+                        Salary Deduction is only available for BLGU, LGU,
+                        Healthcare, or MRDINC employees.
                     </p>
                 )}
             </div>
@@ -1104,6 +1116,7 @@ export function LoanRequestDataSectionStep({
     applicantEmployerBusinessName,
     applicantEmploymentType,
     applicantNatureOfBusiness,
+    applicantInstitutionalEmployerCategory,
 }: DataSectionStepProps) {
     if (sectionKey === 'banking') {
         return (
@@ -1124,6 +1137,9 @@ export function LoanRequestDataSectionStep({
                     }
                     applicantEmploymentType={applicantEmploymentType}
                     applicantNatureOfBusiness={applicantNatureOfBusiness}
+                    applicantInstitutionalEmployerCategory={
+                        applicantInstitutionalEmployerCategory
+                    }
                 />
                 <Alert className="border-border/50 bg-muted/10">
                     <AlertTitle>Member-provided details</AlertTitle>

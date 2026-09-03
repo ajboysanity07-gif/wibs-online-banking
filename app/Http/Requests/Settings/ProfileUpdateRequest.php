@@ -6,6 +6,7 @@ use App\Concerns\ProfileValidationRules;
 use App\Concerns\ResolvesPsgcFields;
 use App\Concerns\ResolvesSavedPaymentAccountFields;
 use App\LoanCivilStatus;
+use App\LoanInstitutionalEmployerCategory;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
@@ -21,6 +22,7 @@ use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Validator;
 
 class ProfileUpdateRequest extends FormRequest
@@ -314,6 +316,10 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 'max:255',
             ],
+            // Not tightened to integer -- real profile data (and several
+            // existing tests) stores free text like "2 years", predating the
+            // current numeric-only YearsInput widget. Tightening this needs a
+            // data audit/backfill first.
             'length_of_stay' => [
                 $memberRequirement('length_of_stay'),
                 'string',
@@ -338,6 +344,9 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 'max:255',
             ],
+            // Not constrained to Rule::in -- existing profiles/tests carry
+            // values (e.g. legacy wmaster-sourced data) outside the current
+            // frontend option set; enforcing this needs a data audit first.
             'educational_attainment' => [
                 $memberRequirement('educational_attainment'),
                 'string',
@@ -346,11 +355,17 @@ class ProfileUpdateRequest extends FormRequest
             'spouse_birthdate' => [
                 $memberRequirement('spouse_birthdate'),
                 'date',
+                'before:today',
+                'after:1900-01-01',
             ],
             'spouse_cell_no' => [
                 $memberRequirement('spouse_cell_no'),
-                'digits:11',
+                'regex:/^09\d{9}$/',
             ],
+            // Not constrained to Rule::in -- confirmed via tests/prod-shaped
+            // fixtures that real profiles carry legacy values (e.g. "Regular")
+            // outside the current frontend option set; enforcing this needs a
+            // data audit/backfill first.
             'employment_type' => [
                 $memberRequirement('employment_type'),
                 'string',
@@ -448,6 +463,8 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 'max:255',
             ],
+            'institutional_employer_category' => ['sometimes', 'nullable', new Enum(LoanInstitutionalEmployerCategory::class)],
+            // Not tightened to integer -- see length_of_stay above.
             'years_in_work_business' => [
                 $memberRequirement('years_in_work_business'),
                 'string',
@@ -456,11 +473,12 @@ class ProfileUpdateRequest extends FormRequest
             'employer_date_employed' => [
                 'nullable',
                 'date',
+                'before_or_equal:today',
             ],
             'gross_monthly_income' => [
                 $memberRequirement('gross_monthly_income'),
                 'numeric',
-                'min:0',
+                'min:1',
             ],
             'payday' => [
                 $memberRequirement('payday'),
@@ -504,16 +522,19 @@ class ProfileUpdateRequest extends FormRequest
                 $memberRequirement('id_number'),
                 'string',
                 'max:100',
+                $this->idNumberFormatRule(),
             ],
             'height_cm' => [
                 $memberRequirement('height_cm'),
-                'string',
-                'max:255',
+                'numeric',
+                'min:100',
+                'max:250',
             ],
             'weight_kg' => [
                 $memberRequirement('weight_kg'),
-                'string',
-                'max:255',
+                'numeric',
+                'min:20',
+                'max:300',
             ],
             ...$this->dependentFieldRules(),
         ];
@@ -643,6 +664,40 @@ class ProfileUpdateRequest extends FormRequest
             : 'nullable';
     }
 
+    /**
+     * Format-checks id_number against the digit-count convention for the
+     * selected id_type. "Others" is intentionally left unconstrained since
+     * it covers any government ID not in the fixed list.
+     */
+    private function idNumberFormatRule(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            $digits = preg_replace('/\D/', '', (string) $value) ?? '';
+
+            $expected = match ($this->input('id_type')) {
+                'SSS' => 10,
+                'GSIS' => 11,
+                'TIN' => [9, 12],
+                'Phil ID' => [16, 17, 18],
+                default => null,
+            };
+
+            if ($expected === null) {
+                return;
+            }
+
+            $validLengths = is_array($expected) ? $expected : [$expected];
+
+            if (! in_array(strlen($digits), $validLengths, true)) {
+                $fail("The :attribute format doesn't match the selected ID type.");
+            }
+        };
+    }
+
     private function wmasterFieldHasValue(string $wmasterColumn): bool
     {
         $wmaster = $this->user()?->wmaster;
@@ -682,16 +737,36 @@ class ProfileUpdateRequest extends FormRequest
                 return;
             }
 
-            $category = InstitutionalEmployerCategoryResolver::resolve(
-                $this->input('employer_business_name'),
-                $this->input('employment_type'),
-                $this->input('nature_of_business'),
+            $explicitCategory = LoanInstitutionalEmployerCategory::tryFrom(
+                (string) $this->input('institutional_employer_category'),
             );
 
-            if ($category === null) {
+            $isInstitutionalPayroll = $explicitCategory instanceof LoanInstitutionalEmployerCategory
+                ? $explicitCategory->isInstitutionalPayrollCategory()
+                : InstitutionalEmployerCategoryResolver::resolve(
+                    $this->input('employer_business_name'),
+                    $this->input('employment_type'),
+                    $this->input('nature_of_business'),
+                ) !== null;
+
+            if (! $isInstitutionalPayroll) {
                 $validator->errors()->add(
                     'payment_option',
-                    'Salary Deduction is only available for BLGU, LGU, LDH, or MRDINC employees.',
+                    'Salary Deduction is only available for BLGU, LGU, Healthcare, or MRDINC employees.',
+                );
+            }
+        });
+
+        $validator->after(function (Validator $validator): void {
+            $isSelfEmployed = MemberApplicationProfile::employmentTypeMatches(
+                $this->input('employment_type'),
+                MemberApplicationProfile::SELF_EMPLOYED_EMPLOYMENT_TYPE,
+            );
+
+            if ($isSelfEmployed && blank($this->input('nature_of_business'))) {
+                $validator->errors()->add(
+                    'nature_of_business',
+                    'Nature of business is required for self-employed members.',
                 );
             }
         });

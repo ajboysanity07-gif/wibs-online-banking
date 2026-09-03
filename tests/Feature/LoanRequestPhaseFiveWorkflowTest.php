@@ -116,6 +116,7 @@ test('legacy manager approval bypasses v2 document readiness gates', function ()
             'approved_amount' => 26000,
             'approved_term' => 18,
             'approved_interest_rate' => 1.25,
+            'approved_payment_frequency' => 'Monthly',
             'approval_remarks' => 'Legacy approval path remains available.',
         ])
         ->assertOk()

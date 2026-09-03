@@ -1271,6 +1271,9 @@ class LoanRequestService
             'nature_of_business' => $this->normalizeOptionalString(
                 $data['nature_of_business'] ?? null,
             ),
+            'institutional_employer_category' => $this->normalizeOptionalString(
+                $data['institutional_employer_category'] ?? null,
+            ),
             'years_in_work_business' => $this->normalizeOptionalString(
                 $data['years_in_work_business'] ?? null,
             ),
@@ -1910,6 +1913,7 @@ class LoanRequestService
             'telephone_no' => $profile?->telephone_no,
             'current_position' => $currentPosition,
             'nature_of_business' => $profile?->nature_of_business,
+            'institutional_employer_category' => $profile?->institutional_employer_category?->value,
             'years_in_work_business' => $profile?->years_in_work_business,
             'employer_date_employed' => $profile?->employer_date_employed?->toDateString(),
             'gross_monthly_income' => $profile?->gross_monthly_income !== null

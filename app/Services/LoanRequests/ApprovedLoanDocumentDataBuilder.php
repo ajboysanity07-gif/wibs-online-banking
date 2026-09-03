@@ -2,6 +2,7 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanInstitutionalEmployerCategory;
 use App\LoanRequestPersonRole;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestPerson;
@@ -335,7 +336,10 @@ class ApprovedLoanDocumentDataBuilder
             $overrideProcessing['deped_deduction_amount'] ?? $flatValues['deped_deduction_amount'] ?? null,
         );
         $depedDeductionAmountWords = $this->formatCurrencyWords($depedDeductionAmountRaw);
-        $depedInstitutionName = EducationInstitutionLevelResolver::resolve($applicant?->employer_business_name) === 'tertiary'
+        $isTertiaryEducationInstitution = $applicant?->institutional_employer_category instanceof LoanInstitutionalEmployerCategory
+            ? $applicant->institutional_employer_category === LoanInstitutionalEmployerCategory::Ched
+            : EducationInstitutionLevelResolver::resolve($applicant?->employer_business_name) === 'tertiary';
+        $depedInstitutionName = $isTertiaryEducationInstitution
             ? $this->normalizeText($applicant?->employer_business_name)
             : null;
         $pensionDeductionAmountRaw = $this->normalizeNumericValue(

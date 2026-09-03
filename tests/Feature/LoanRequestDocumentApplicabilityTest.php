@@ -1072,8 +1072,68 @@ test('authority to deduct is applicable with 1 recommended officer for an LDH (h
     expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeTrue();
 
     $guidance = $catalog->authorityToDeductGuidance($loanRequest, $flatValues);
-    expect($guidance['category'])->toBe('ldh')
+    expect($guidance['category'])->toBe('healthcare')
         ->and($guidance['recommended_officers'])->toBe(1);
+});
+
+test('an explicit institutional_employer_category overrides the employer-name heuristic', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    // Employer name would heuristically resolve to nothing (no institutional
+    // keyword), but the explicit category should still win.
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employer_business_name' => 'Some Ordinary Private Company',
+            'employment_type' => 'Private',
+            'nature_of_business' => 'Retail',
+            'institutional_employer_category' => \App\LoanInstitutionalEmployerCategory::Mrdinc->value,
+        ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value];
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeTrue();
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest, $flatValues);
+    expect($guidance['category'])->toBe('mrdinc');
+});
+
+test('an explicit deped/ched institutional_employer_category is not eligible for authority to deduct', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'institutional_employer_category' => \App\LoanInstitutionalEmployerCategory::Ched->value,
+        ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value];
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeFalse();
+});
+
+test('an explicit ched institutional_employer_category makes the salary deduction waiver applicable via ATM deduction', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employer_business_name' => 'State University',
+            'institutional_employer_category' => \App\LoanInstitutionalEmployerCategory::Ched->value,
+        ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value];
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::DepedSalaryDeductionWaiver, $loanRequest, $flatValues))->toBeTrue();
 });
 
 test('authority to deduct is not applicable for a teacher, a pensioner, a self-employed applicant, or an ordinary private employer', function (): void {

@@ -360,6 +360,32 @@ test('deduction block only populates the institution name for a tertiary employe
         ->and($tertiaryData['deduction']['deped_institution_name'])->toBe('Surigao State College of Technology');
 });
 
+test('an explicit ched institutional_employer_category selects the tertiary variant even without a tertiary-sounding employer name', function () {
+    $chedLoanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Government',
+        'nature_of_business' => 'Education',
+        'employer_business_name' => 'Local Community Learning Center',
+        'institutional_employer_category' => \App\LoanInstitutionalEmployerCategory::Ched->value,
+    ]);
+
+    $chedData = waiverDocumentsBuildDocumentData($chedLoanRequest->fresh());
+
+    expect($chedData['deduction']['deped_institution_name'])->toBe('Local Community Learning Center');
+});
+
+test('an explicit deped institutional_employer_category keeps the basic variant even with a tertiary-sounding employer name', function () {
+    $depedLoanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Government',
+        'nature_of_business' => 'Education',
+        'employer_business_name' => 'Surigao State College of Technology',
+        'institutional_employer_category' => \App\LoanInstitutionalEmployerCategory::Deped->value,
+    ]);
+
+    $depedData = waiverDocumentsBuildDocumentData($depedLoanRequest->fresh());
+
+    expect($depedData['deduction']['deped_institution_name'])->toBeNull();
+});
+
 test('tertiary education waiver downloads as a real pdf for an applicable tertiary-institution borrower', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\LoanInstitutionalEmployerCategory;
 use App\LoanRequestPersonRole;
 use App\Support\LocationComposer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -55,6 +56,7 @@ class LoanRequestPerson extends Model
         'telephone_no',
         'current_position',
         'nature_of_business',
+        'institutional_employer_category',
         'years_in_work_business',
         'employer_date_employed',
         'gross_monthly_income',
@@ -131,6 +133,7 @@ class LoanRequestPerson extends Model
             'employer_date_employed' => 'date',
             'gross_monthly_income' => 'decimal:2',
             'role' => LoanRequestPersonRole::class,
+            'institutional_employer_category' => LoanInstitutionalEmployerCategory::class,
         ];
     }
 }

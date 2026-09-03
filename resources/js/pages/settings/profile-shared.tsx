@@ -87,6 +87,7 @@ export type MemberApplicationProfileData = {
     telephone_no: string | null;
     current_position: string | null;
     nature_of_business: string | null;
+    institutional_employer_category: string | null;
     years_in_work_business: string | null;
     employer_date_employed: string | null;
     gross_monthly_income: string | null;
@@ -215,6 +216,23 @@ export const NATURE_OF_BUSINESS_OPTIONS = [
     'Technology',
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
+];
+export const INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS: Array<{
+    value: string;
+    label: string;
+}> = [
+    { value: 'blgu', label: 'Barangay / BLGU' },
+    {
+        value: 'lgu',
+        label: 'City, Municipal, or Provincial Government (LGU)',
+    },
+    { value: 'mrdinc', label: 'MRDINC' },
+    {
+        value: 'healthcare',
+        label: 'Healthcare institution (hospital, clinic, etc.)',
+    },
+    { value: 'deped', label: 'DepEd (Basic Education)' },
+    { value: 'ched', label: 'CHED-covered institution (college/university)' },
 ];
 export const PROFILE_TAB_ORDER = [
     'account',

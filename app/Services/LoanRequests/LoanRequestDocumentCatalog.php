@@ -2,6 +2,7 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanInstitutionalEmployerCategory;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
@@ -701,7 +702,7 @@ class LoanRequestDocumentCatalog
         $employer = $loanRequest->applicant?->employer_business_name;
         $employer = is_string($employer) && trim($employer) !== '' ? trim($employer) : null;
 
-        if ($this->authorityToDeductCategory($loanRequest, $flatValues) === 'blgu') {
+        if ($this->authorityToDeductCategory($loanRequest, $flatValues) === LoanInstitutionalEmployerCategory::Blgu) {
             $barangayAgencyName = $flatValues['barangay_agency_name'] ?? null;
 
             if (is_string($barangayAgencyName) && trim($barangayAgencyName) !== '') {
@@ -736,7 +737,7 @@ class LoanRequestDocumentCatalog
                 'applicable' => false,
                 'category' => null,
                 'recommended_officers' => 0,
-                'note' => 'Not applicable — Authority to Deduct only applies to BLGU, LGU, MRDINC, or LDH institutional payroll employees. Other applicants use a Waiver document instead.',
+                'note' => 'Not applicable — Authority to Deduct only applies to BLGU, LGU, MRDINC, or Healthcare institutional payroll employees. Other applicants use a Waiver document instead.',
                 'saved_contact' => null,
             ];
         }
@@ -744,7 +745,7 @@ class LoanRequestDocumentCatalog
         if (($flatValues['payment_option'] ?? null) !== LoanPaymentOption::SalaryDeduction->value) {
             return [
                 'applicable' => false,
-                'category' => $category,
+                'category' => $category->value,
                 'recommended_officers' => 0,
                 'note' => 'Not applicable — this applicant belongs to an institutional payroll category, but their payment option isn\'t Salary Deduction, so no payroll office needs to be authorized.',
                 'saved_contact' => null,
@@ -754,33 +755,40 @@ class LoanRequestDocumentCatalog
         $savedContact = $this->savedAuthorityToDeductContact($loanRequest, $flatValues);
 
         return match ($category) {
-            'blgu' => [
+            LoanInstitutionalEmployerCategory::Blgu => [
                 'applicable' => true,
                 'category' => 'blgu',
                 'recommended_officers' => 2,
                 'note' => 'BLGU (Barangay Local Government Unit) institutions typically sign with 2 officers (e.g. treasurer and captain).',
                 'saved_contact' => $savedContact,
             ],
-            'lgu' => [
+            LoanInstitutionalEmployerCategory::Lgu => [
                 'applicable' => true,
                 'category' => 'lgu',
                 'recommended_officers' => 2,
                 'note' => 'LGU (Local Government Unit) offices typically use 2 signing officers.',
                 'saved_contact' => $savedContact,
             ],
-            'mrdinc' => [
+            LoanInstitutionalEmployerCategory::Mrdinc => [
                 'applicable' => true,
                 'category' => 'mrdinc',
                 'recommended_officers' => 1,
                 'note' => 'MRDINC in-house payroll typically requires only 1 authorized officer.',
                 'saved_contact' => $savedContact,
             ],
-            'ldh' => [
+            LoanInstitutionalEmployerCategory::Healthcare => [
                 'applicable' => true,
-                'category' => 'ldh',
+                'category' => 'healthcare',
                 'recommended_officers' => 1,
-                'note' => 'LDH typically requires only 1 authorized officer.',
+                'note' => 'Healthcare institutions typically require only 1 authorized officer.',
                 'saved_contact' => $savedContact,
+            ],
+            default => [
+                'applicable' => false,
+                'category' => $category->value,
+                'recommended_officers' => 0,
+                'note' => 'Not applicable — this category uses its own Waiver document instead of Authority to Deduct.',
+                'saved_contact' => null,
             ],
         };
     }
@@ -916,15 +924,15 @@ class LoanRequestDocumentCatalog
     }
 
     /**
-     * True when the applicant identifies as DepEd (Department of Education)
-     * personnel -- the only case the DepEd Salary Deduction Waiver (waiving DepEd
-     * Order No. 55's NTHP threshold) applies to. There is no dedicated "DepEd
-     * employee" field on the loan request, so this is signalled either by the
-     * Employment=Government + Nature of Business=Education combination (public
-     * school teachers hold Career Civil Service status under DepEd), or by a
-     * substring match for "deped"/"department of education" on the employer name.
-     * Like the other waiver documents, only applies when the loan is repaid via
-     * ATM Deduction -- DepEd employees on Salary Deduction use Authority to
+     * True when the applicant identifies as DepEd (basic education) or CHED
+     * (tertiary education) personnel -- the only cases the Salary Deduction
+     * Waiver applies to (which PDF variant renders is decided separately, see
+     * ApprovedLoanDocumentService::depedWaiverTemplateFilename()). Prefers the
+     * explicit institutional_employer_category selection; falls back to the
+     * old Employment=Government + Nature of Business=Education / employer-name
+     * substring heuristic only for records that predate that field. Like the
+     * other waiver documents, only applies when the loan is repaid via ATM
+     * Deduction -- DepEd/CHED employees on Salary Deduction use Authority to
      * Deduct instead.
      *
      * @param  array<string, mixed>  $flatValues
@@ -936,6 +944,14 @@ class LoanRequestDocumentCatalog
         }
 
         $applicant = $loanRequest->applicant;
+        $category = $applicant?->institutional_employer_category;
+
+        if ($category instanceof LoanInstitutionalEmployerCategory) {
+            return in_array($category, [
+                LoanInstitutionalEmployerCategory::Deped,
+                LoanInstitutionalEmployerCategory::Ched,
+            ], true);
+        }
 
         if ($applicant?->employment_type === 'Government'
             && $applicant?->nature_of_business === 'Education') {
@@ -972,15 +988,19 @@ class LoanRequestDocumentCatalog
     /**
      * True when the borrower's income is disbursed through a barangay LGU -- the
      * only case the Undertaking-Barangay document (MRDINC's guaranteed net
-     * take-home-pay commitment for barangay-payroll borrowers) applies to. Signalled
-     * by the applicant's employer/business name obviously naming a barangay, or --
-     * for the shorter "brgy"/"bgy" abbreviations, which are too ambiguous to trust
-     * on their own -- by the same abbreviations once Employment=Government + Nature
-     * of Business=Government confirms the applicant works in the government sector.
+     * take-home-pay commitment for barangay-payroll borrowers) applies to. Prefers
+     * the explicit institutional_employer_category selection; falls back to the
+     * old employer-name heuristic (InstitutionalEmployerCategoryResolver) only for
+     * records that predate that field.
      */
     private function barangayApplicable(LoanRequest $loanRequest, array $flatValues): bool
     {
         $applicant = $loanRequest->applicant;
+        $category = $applicant?->institutional_employer_category;
+
+        if ($category instanceof LoanInstitutionalEmployerCategory) {
+            return $category === LoanInstitutionalEmployerCategory::Blgu;
+        }
 
         return InstitutionalEmployerCategoryResolver::isBarangayEmployer(
             $applicant?->employer_business_name,
@@ -996,18 +1016,33 @@ class LoanRequestDocumentCatalog
      * applicants are excluded here even if they'd otherwise match, since those
      * borrowers use a Waiver document or Affidavit of Undertaking instead (see
      * atmPayoutWaiverApplicable(), depedEmployeeApplicable(), pensionerApplicable()).
+     * Prefers the explicit institutional_employer_category selection; falls back
+     * to the old employer-name heuristic only for records that predate that field.
      *
      * @param  array<string, mixed>  $flatValues
      */
-    private function authorityToDeductCategory(LoanRequest $loanRequest, array $flatValues): ?string
+    private function authorityToDeductCategory(LoanRequest $loanRequest, array $flatValues): ?LoanInstitutionalEmployerCategory
     {
         $applicant = $loanRequest->applicant;
+        $category = $applicant?->institutional_employer_category;
 
-        return InstitutionalEmployerCategoryResolver::resolve(
+        if ($category instanceof LoanInstitutionalEmployerCategory) {
+            return $category->isInstitutionalPayrollCategory() ? $category : null;
+        }
+
+        $legacy = InstitutionalEmployerCategoryResolver::resolve(
             $applicant?->employer_business_name,
             $applicant?->employment_type,
             $applicant?->nature_of_business,
         );
+
+        return match ($legacy) {
+            'blgu' => LoanInstitutionalEmployerCategory::Blgu,
+            'lgu' => LoanInstitutionalEmployerCategory::Lgu,
+            'mrdinc' => LoanInstitutionalEmployerCategory::Mrdinc,
+            'ldh' => LoanInstitutionalEmployerCategory::Healthcare,
+            default => null,
+        };
     }
 
     /**

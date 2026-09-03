@@ -4,6 +4,7 @@ namespace App\Http\Requests\Client;
 
 use App\Concerns\ResolvesPsgcFields;
 use App\LoanCivilStatus;
+use App\LoanInstitutionalEmployerCategory;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
@@ -23,6 +24,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Validator;
 
 class LoanRequestStoreRequest extends FormRequest
@@ -518,10 +520,10 @@ class LoanRequestStoreRequest extends FormRequest
             'insurance' => [$insuranceRequired, 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship,beneficiary_secondary_birthdate'],
             'insurance.beneficiary_primary_name' => [$insuranceRequired, 'string', 'max:255'],
             'insurance.beneficiary_primary_relationship' => [$insuranceRequired, 'string', 'max:255'],
-            'insurance.beneficiary_primary_birthdate' => [$insuranceRequired, 'date'],
+            'insurance.beneficiary_primary_birthdate' => [$insuranceRequired, 'date', 'before:today', 'after:1900-01-01'],
             'insurance.beneficiary_secondary_name' => ['nullable', 'string', 'max:255'],
             'insurance.beneficiary_secondary_relationship' => ['nullable', 'string', 'max:255'],
-            'insurance.beneficiary_secondary_birthdate' => ['nullable', 'date'],
+            'insurance.beneficiary_secondary_birthdate' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
             'health' => [$insuranceRequired, 'array:health_smoking_status,health_hypertension'],
             'health.health_smoking_status' => [$insuranceRequired, 'string', Rule::in(['none', 'light', 'heavy'])],
             'health.health_hypertension' => [$insuranceRequired, 'boolean'],
@@ -607,16 +609,44 @@ class LoanRequestStoreRequest extends FormRequest
                 return;
             }
 
-            $category = InstitutionalEmployerCategoryResolver::resolve(
-                $this->input('applicant.employer_business_name'),
-                $this->input('applicant.employment_type'),
-                $this->input('applicant.nature_of_business'),
+            $explicitCategory = LoanInstitutionalEmployerCategory::tryFrom(
+                (string) $this->input('applicant.institutional_employer_category'),
             );
 
-            if ($category === null) {
+            $isInstitutionalPayroll = $explicitCategory instanceof LoanInstitutionalEmployerCategory
+                ? $explicitCategory->isInstitutionalPayrollCategory()
+                : InstitutionalEmployerCategoryResolver::resolve(
+                    $this->input('applicant.employer_business_name'),
+                    $this->input('applicant.employment_type'),
+                    $this->input('applicant.nature_of_business'),
+                ) !== null;
+
+            if (! $isInstitutionalPayroll) {
                 $validator->errors()->add(
                     'banking.payment_option',
-                    'Salary Deduction is only available for BLGU, LGU, LDH, or MRDINC employees.',
+                    'Salary Deduction is only available for BLGU, LGU, Healthcare, or MRDINC employees.',
+                );
+            }
+        });
+
+        $validator->after(function (Validator $validator): void {
+            foreach (['applicant', 'co_maker_1', 'co_maker_2'] as $prefix) {
+                $employmentType = $this->input("{$prefix}.employment_type");
+
+                if (! MemberApplicationProfile::employmentTypeMatches(
+                    $employmentType,
+                    MemberApplicationProfile::SELF_EMPLOYED_EMPLOYMENT_TYPE,
+                )) {
+                    continue;
+                }
+
+                if (filled($this->input("{$prefix}.nature_of_business"))) {
+                    continue;
+                }
+
+                $validator->errors()->add(
+                    "{$prefix}.nature_of_business",
+                    'Nature of business is required for self-employed applicants.',
                 );
             }
         });
@@ -650,7 +680,7 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.last_name" => ['required', 'string', 'max:255'],
             "{$prefix}.middle_name" => ['nullable', 'string', 'max:255'],
             "{$prefix}.nickname" => ['nullable', 'string', 'max:255'],
-            "{$prefix}.birthdate" => ['required', 'date'],
+            "{$prefix}.birthdate" => ['required', 'date', 'before:today', 'after:1900-01-01'],
             "{$prefix}.birthplace_city" => ['required', 'string', 'max:255'],
             "{$prefix}.birthplace_province" => ['required', 'string', 'max:255'],
             "{$prefix}.address1" => ['required', 'string', 'max:255'],
@@ -658,21 +688,33 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.address2" => ['required', 'string', 'max:255'],
             "{$prefix}.address3" => ['required', 'string', 'max:255'],
             "{$prefix}.address_zip" => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
+            // length_of_stay/educational_attainment/employment_type are not
+            // tightened to integer/Rule::in -- real profile data (synced in
+            // from settings) carries free-text and legacy values outside the
+            // current frontend option sets; enforcing this needs a data
+            // audit/backfill first (see ProfileUpdateRequest for the same
+            // note).
             "{$prefix}.length_of_stay" => ['required', 'string', 'max:255'],
-            "{$prefix}.cell_no" => ['required', 'string', 'digits:11'],
+            "{$prefix}.cell_no" => ['required', 'string', 'regex:/^09\d{9}$/'],
             "{$prefix}.educational_attainment" => ['required', 'string', 'max:255'],
             "{$prefix}.employment_type" => ['required', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => [$employerRule, 'string', 'max:255'],
             "{$prefix}.employer_business_address1" => [$employerRule, 'string', 'max:255'],
             "{$prefix}.employer_business_address_barangay" => ['nullable', 'string', 'max:255'],
-            "{$prefix}.employer_business_address2" => [$employerRule, 'nullable', 'string', 'max:255'],
-            "{$prefix}.employer_business_address3" => [$employerRule, 'nullable', 'string', 'max:255'],
+            // Never actually enforced as required prior to this comment (the
+            // old rule combined $employerRule with 'nullable', which always
+            // wins) -- kept intentionally nullable rather than newly
+            // requiring it, since neither the wizard nor the correction
+            // dialog UI ever marks employer city/province as required.
+            "{$prefix}.employer_business_address2" => ['nullable', 'string', 'max:255'],
+            "{$prefix}.employer_business_address3" => ['nullable', 'string', 'max:255'],
             "{$prefix}.employer_business_address_zip" => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
             "{$prefix}.telephone_no" => ['nullable', 'string', 'max:20'],
             "{$prefix}.current_position" => [$employerRule, 'string', 'max:255'],
             "{$prefix}.nature_of_business" => [$employerRule, 'string', 'max:255'],
+            "{$prefix}.institutional_employer_category" => ['nullable', new Enum(LoanInstitutionalEmployerCategory::class)],
             "{$prefix}.years_in_work_business" => [$employerRule, 'string', 'max:255'],
-            "{$prefix}.gross_monthly_income" => ['required', 'numeric', 'min:0'],
+            "{$prefix}.gross_monthly_income" => ['required', 'numeric', 'min:1'],
             "{$prefix}.payday" => [
                 'required',
                 'string',
@@ -754,8 +796,8 @@ class LoanRequestStoreRequest extends FormRequest
 
         if ($includeSpouse) {
             $rules["{$prefix}.spouse_name"] = ['nullable', 'string', 'max:255'];
-            $rules["{$prefix}.spouse_birthdate"] = ['nullable', 'date'];
-            $rules["{$prefix}.spouse_cell_no"] = ['nullable', 'string', 'digits:11'];
+            $rules["{$prefix}.spouse_birthdate"] = ['nullable', 'date', 'before:today', 'after:1900-01-01'];
+            $rules["{$prefix}.spouse_cell_no"] = ['nullable', 'string', 'regex:/^09\d{9}$/'];
         }
 
         return $rules;

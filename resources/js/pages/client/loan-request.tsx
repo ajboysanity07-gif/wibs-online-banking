@@ -210,6 +210,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     telephone_no: '',
     current_position: '',
     nature_of_business: '',
+    institutional_employer_category: '',
     years_in_work_business: '',
     employer_date_employed: '',
     gross_monthly_income: '',
@@ -261,6 +262,8 @@ const toPersonForm = (
         telephone_no: person.telephone_no ?? '',
         current_position: person.current_position ?? '',
         nature_of_business: person.nature_of_business ?? '',
+        institutional_employer_category:
+            person.institutional_employer_category ?? '',
         years_in_work_business: person.years_in_work_business ?? '',
         employer_date_employed: person.employer_date_employed ?? '',
         gross_monthly_income: toStringValue(person.gross_monthly_income),
@@ -1354,6 +1357,10 @@ export default function LoanRequestPage({
                                             applicantNatureOfBusiness={
                                                 form.data.applicant
                                                     .nature_of_business
+                                            }
+                                            applicantInstitutionalEmployerCategory={
+                                                form.data.applicant
+                                                    .institutional_employer_category
                                             }
                                         />
 

@@ -588,6 +588,10 @@ test('loan processor correcting an unassigned request becomes its assigned offic
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
         'assigned_officer_id' => null,
+        'recommended_amount' => 20000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 1.25,
+        'recommended_payment_frequency' => 'Monthly',
     ]);
 
     LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::Applicant)->create();

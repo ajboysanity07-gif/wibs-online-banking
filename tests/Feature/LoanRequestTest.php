@@ -1300,6 +1300,154 @@ test('loan request submissions persist snapshots and enter pending review', func
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBeNull();
 });
 
+function loanRequestHardeningPayload(User $user, array $applicantOverrides = []): array
+{
+    $applicant = array_merge([
+        'first_name' => 'Loan',
+        'last_name' => 'Member',
+        'middle_name' => 'Q',
+        'nickname' => 'LM',
+        'birthdate' => '1990-04-10',
+        'birthplace_city' => 'Manila',
+        'birthplace_province' => 'Metro Manila',
+        'address1' => 'Loan Street',
+        'address2' => 'Manila',
+        'address3' => 'Metro Manila',
+        'length_of_stay' => '5 years',
+        'housing_status' => 'OWNED',
+        'cell_no' => '09123456789',
+        'civil_status' => 'Single',
+        'educational_attainment' => 'College',
+        'number_of_children' => 0,
+        'spouse_name' => null,
+        'spouse_birthdate' => null,
+        'spouse_cell_no' => null,
+        'employment_type' => 'Private',
+        'employer_business_name' => 'Loan Company',
+        'employer_business_address1' => 'Loan City Center',
+        'employer_business_address2' => 'Manila',
+        'employer_business_address3' => 'Metro Manila',
+        'telephone_no' => '021234567',
+        'current_position' => 'Analyst',
+        'nature_of_business' => 'Finance',
+        'years_in_work_business' => '3 years',
+        'employer_date_employed' => '2018-03-15',
+        'gross_monthly_income' => 25000,
+        'payday' => 'Quincenal',
+    ], $applicantOverrides);
+
+    $coMaker = static fn (string $suffix, array $overrides = []) => array_merge([
+        'first_name' => "Co{$suffix}",
+        'last_name' => 'Maker',
+        'middle_name' => null,
+        'nickname' => null,
+        'birthdate' => '1989-03-12',
+        'birthplace_city' => 'Cebu',
+        'birthplace_province' => 'Cebu',
+        'address1' => 'Co Maker Street',
+        'address2' => 'Cebu City',
+        'address3' => 'Cebu',
+        'length_of_stay' => '4 years',
+        'housing_status' => 'RENT',
+        'cell_no' => '09998887777',
+        'civil_status' => 'Married',
+        'educational_attainment' => 'College',
+        'employment_type' => 'Government',
+        'employer_business_name' => 'Co Maker Office',
+        'employer_business_address1' => 'Co Maker Plaza',
+        'employer_business_address2' => 'Cebu City',
+        'employer_business_address3' => 'Cebu',
+        'telephone_no' => '021234567',
+        'current_position' => 'Clerk',
+        'nature_of_business' => 'Government',
+        'years_in_work_business' => '6 years',
+        'gross_monthly_income' => 18000,
+        'payday' => 'Quincenal',
+    ], $overrides);
+
+    return [
+        'typecode' => 'LN-002',
+        'requested_amount' => 15000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Medical expenses',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload([], $user),
+        'applicant' => $applicant,
+        'co_maker_1' => $coMaker('1'),
+        'co_maker_2' => $coMaker('2'),
+    ];
+}
+
+function seedLoanRequestHardeningMember(string $acctno): User
+{
+    $user = User::factory()->create(['acctno' => $acctno]);
+
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    if (! DB::table('wlntype')->where('typecode', 'LN-002')->exists()) {
+        DB::table('wlntype')->insert([
+            'typecode' => 'LN-002',
+            'lntype' => 'Personal',
+        ]);
+    }
+
+    return $user;
+}
+
+test('loan request submission rejects a malformed applicant cell number', function () {
+    Storage::fake('public');
+
+    $user = seedLoanRequestHardeningMember('970001');
+
+    $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), loanRequestHardeningPayload($user, ['cell_no' => '12345']))
+        ->assertSessionHasErrors(['applicant.cell_no']);
+});
+
+test('loan request submission rejects a future applicant birthdate', function () {
+    Storage::fake('public');
+
+    $user = seedLoanRequestHardeningMember('970002');
+
+    $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), loanRequestHardeningPayload($user, [
+            'birthdate' => now()->addYear()->toDateString(),
+        ]))
+        ->assertSessionHasErrors(['applicant.birthdate']);
+});
+
+test('loan request submission requires nature of business for a self-employed applicant', function () {
+    Storage::fake('public');
+
+    $user = seedLoanRequestHardeningMember('970003');
+
+    $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), loanRequestHardeningPayload($user, [
+            'employment_type' => 'Self Employed',
+            'nature_of_business' => null,
+        ]))
+        ->assertSessionHasErrors(['applicant.nature_of_business']);
+});
+
 test('an Emergency (Micro Business Loan) submission does not require insurance/health data', function () {
     Storage::fake('public');
 

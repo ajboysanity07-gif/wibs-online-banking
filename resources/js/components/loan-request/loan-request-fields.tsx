@@ -84,6 +84,23 @@ const NATURE_OF_BUSINESS_OPTIONS = [
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
 ];
+const INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS: Array<{
+    value: string;
+    label: string;
+}> = [
+    { value: 'blgu', label: 'Barangay / BLGU' },
+    {
+        value: 'lgu',
+        label: 'City, Municipal, or Provincial Government (LGU)',
+    },
+    { value: 'mrdinc', label: 'MRDINC' },
+    {
+        value: 'healthcare',
+        label: 'Healthcare institution (hospital, clinic, etc.)',
+    },
+    { value: 'deped', label: 'DepEd (Basic Education)' },
+    { value: 'ched', label: 'CHED-covered institution (college/university)' },
+];
 const readOnlyInputClass =
     'bg-muted/30 text-muted-foreground/80 border-border/40';
 
@@ -1514,6 +1531,54 @@ export function LoanRequestWorkFields({
                                 )}
                             />
                         </div>
+
+                        {!isPensioner ? (
+                            <div className="grid gap-2">
+                                <Label
+                                    htmlFor={`${prefix}_institutional_employer_category`}
+                                >
+                                    Institutional employer category
+                                </Label>
+                                <Select
+                                    value={
+                                        values.institutional_employer_category ||
+                                        undefined
+                                    }
+                                    onValueChange={(value) =>
+                                        onChange(
+                                            'institutional_employer_category',
+                                            value,
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id={`${prefix}_institutional_employer_category`}
+                                        className="mt-1 w-full"
+                                    >
+                                        <SelectValue placeholder="Not applicable" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS.map(
+                                            (option) => (
+                                                <SelectItem
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
+                                                    {option.label}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                                <InputError
+                                    message={fieldError(
+                                        errors,
+                                        prefix,
+                                        'institutional_employer_category',
+                                    )}
+                                />
+                            </div>
+                        ) : null}
 
                         <div className="grid gap-2">
                             <Label htmlFor={`${prefix}_years_in_work_business`}>

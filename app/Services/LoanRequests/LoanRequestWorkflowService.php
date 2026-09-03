@@ -263,6 +263,12 @@ class LoanRequestWorkflowService
                     $lockedLoanRequest,
                     $actor,
                 );
+            } else {
+                // Legacy (pre-V2) requests skip the V2-only assignment/
+                // member-action/document-readiness checks, but the core
+                // financial fields must still be present before a request
+                // can move to RecommendedForApproval.
+                $this->ensureRecommendationFinancialFieldsPresent($lockedLoanRequest);
             }
 
             $before = $this->snapshotForAudit($lockedLoanRequest);
@@ -625,6 +631,13 @@ class LoanRequestWorkflowService
             ]);
         }
 
+        $this->ensureRecommendationFinancialFieldsPresent($loanRequest);
+
+        $this->documentWorkflowService->ensureRecommendationReady($loanRequest);
+    }
+
+    private function ensureRecommendationFinancialFieldsPresent(LoanRequest $loanRequest): void
+    {
         foreach ([
             'recommended_amount' => 'Recommended amount is required before recommendation.',
             'recommended_term' => 'Recommended term is required before recommendation.',
@@ -639,8 +652,6 @@ class LoanRequestWorkflowService
                 ]);
             }
         }
-
-        $this->documentWorkflowService->ensureRecommendationReady($loanRequest);
     }
 
     private function normalizeOptionalText(mixed $value): ?string

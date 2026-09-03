@@ -29,6 +29,14 @@ import {
     RELEASE_METHOD_OPTIONS,
 } from '../profile-shared';
 
+/** Mirrors the id_type-keyed digit-count check in ProfileUpdateRequest::idNumberFormatRule(). */
+const ID_NUMBER_PLACEHOLDERS: Record<string, string> = {
+    SSS: '10-digit SSS number',
+    GSIS: '11-digit GSIS number',
+    TIN: '9 or 12-digit TIN',
+    'Phil ID': '16-18 digit PhilID (PCN)',
+};
+
 type Props = {
     formErrors: Record<string, string>;
     memberApplicationProfile: MemberApplicationProfileData | null;
@@ -406,8 +414,17 @@ export function BankTab({
                                     memberApplicationProfile?.id_number ?? ''
                                 }
                                 name="id_number"
-                                placeholder="ID number"
+                                placeholder={
+                                    ID_NUMBER_PLACEHOLDERS[idTypeSelection] ??
+                                    'ID number'
+                                }
                             />
+
+                            {ID_NUMBER_PLACEHOLDERS[idTypeSelection] && (
+                                <p className="text-xs text-muted-foreground">
+                                    {ID_NUMBER_PLACEHOLDERS[idTypeSelection]}
+                                </p>
+                            )}
 
                             <InputError
                                 className="mt-2"

@@ -161,6 +161,7 @@ test('admin audit trail surfaces the approval terms recorded by the real approve
             'approved_amount' => 22000,
             'approved_term' => 18,
             'approved_interest_rate' => 1.25,
+            'approved_payment_frequency' => 'Monthly',
             'approval_remarks' => 'Approved by manager.',
         ])
         ->assertOk();

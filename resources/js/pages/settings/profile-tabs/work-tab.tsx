@@ -18,6 +18,7 @@ import { TabsContent } from '@/components/ui/tabs';
 import type { useLocationSearch } from '@/hooks/use-location-search';
 import { cn } from '@/lib/utils';
 import {
+    INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS,
     MISSING_FIELD_CLASS,
     NATURE_OF_BUSINESS_OPTIONS,
     NATURE_OF_BUSINESS_OTHER_VALUE,
@@ -53,6 +54,8 @@ type Props = {
     natureOfBusinessOther: string;
     setNatureOfBusinessOther: (value: string) => void;
     resolvedNatureOfBusiness: string;
+    institutionalEmployerCategory: string;
+    setInstitutionalEmployerCategory: (value: string) => void;
     yearsInWorkBusiness: string;
     setYearsInWorkBusiness: (value: string) => void;
     grossMonthlyIncome: string;
@@ -86,6 +89,8 @@ export function WorkTab({
     natureOfBusinessOther,
     setNatureOfBusinessOther,
     resolvedNatureOfBusiness,
+    institutionalEmployerCategory,
+    setInstitutionalEmployerCategory,
     yearsInWorkBusiness,
     setYearsInWorkBusiness,
     grossMonthlyIncome,
@@ -446,6 +451,64 @@ export function WorkTab({
                                                 event.target.value,
                                             );
                                         }}
+                                    />
+                                </div>
+                            )}
+
+                            {!isPensioner && (
+                                <div className="grid gap-2 md:col-span-2">
+                                    <Label htmlFor="institutional_employer_category">
+                                        Institutional employer category
+                                    </Label>
+
+                                    <Select
+                                        value={
+                                            institutionalEmployerCategory ||
+                                            undefined
+                                        }
+                                        onValueChange={
+                                            setInstitutionalEmployerCategory
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            id="institutional_employer_category"
+                                            className="mt-1 w-full"
+                                        >
+                                            <SelectValue placeholder="Not applicable" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS.map(
+                                                (option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+
+                                    <p className="text-xs text-muted-foreground">
+                                        Only select this if your employer falls
+                                        under one of these categories -- it
+                                        determines which salary deduction
+                                        document applies to your loan. Leave
+                                        blank if none apply.
+                                    </p>
+
+                                    <input
+                                        type="hidden"
+                                        name="institutional_employer_category"
+                                        value={institutionalEmployerCategory}
+                                    />
+
+                                    <InputError
+                                        className="mt-2"
+                                        message={
+                                            formErrors.institutional_employer_category
+                                        }
                                     />
                                 </div>
                             )}

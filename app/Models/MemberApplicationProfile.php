@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\LoanCivilStatus;
+use App\LoanInstitutionalEmployerCategory;
 use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
 use App\Support\LocationComposer;
@@ -22,6 +23,28 @@ class MemberApplicationProfile extends Model
     public const SELF_EMPLOYED_EMPLOYMENT_TYPE = 'Self Employed';
 
     public const ID_TYPE_OPTIONS = ['SSS', 'GSIS', 'TIN', 'Phil ID', 'Others'];
+
+    /**
+     * Mirrors EMPLOYMENT_TYPE_OPTIONS in loan-request-fields.tsx /
+     * work-tab.tsx -- kept in sync manually since the frontend also needs
+     * per-option labels the backend doesn't care about.
+     */
+    public const EMPLOYMENT_TYPE_OPTIONS = [
+        'Private',
+        'Government',
+        self::SELF_EMPLOYED_EMPLOYMENT_TYPE,
+        self::PENSIONER_EMPLOYMENT_TYPE,
+        'OFW',
+    ];
+
+    /** Mirrors EDUCATIONAL_ATTAINMENT_OPTIONS in loan-request-fields.tsx / personal-tab.tsx. */
+    public const EDUCATIONAL_ATTAINMENT_OPTIONS = [
+        'Elementary',
+        'High School',
+        'Vocational',
+        'College',
+        'Postgraduate',
+    ];
 
     /**
      * Compares an `employment_type` value against a canonical option
@@ -98,6 +121,7 @@ class MemberApplicationProfile extends Model
         'telephone_no',
         'current_position',
         'nature_of_business',
+        'institutional_employer_category',
         'years_in_work_business',
         'employer_date_employed',
         'gross_monthly_income',
@@ -239,6 +263,7 @@ class MemberApplicationProfile extends Model
             'telephone_no',
             'current_position',
             'nature_of_business',
+            'institutional_employer_category',
             'years_in_work_business',
             'employer_date_employed',
             'gross_monthly_income',
@@ -566,6 +591,7 @@ class MemberApplicationProfile extends Model
             'spouse_birthdate' => 'date',
             'employer_date_employed' => 'date',
             'profile_completed_at' => 'datetime',
+            'institutional_employer_category' => LoanInstitutionalEmployerCategory::class,
         ];
     }
 }

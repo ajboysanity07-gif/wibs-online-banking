@@ -166,6 +166,10 @@ test('loan processors can only perform review actions on requests assigned to th
         'status' => LoanRequestStatus::UnderReview,
         'assigned_officer_id' => $loanOfficer->user_id,
         'workflow_version' => LoanRequestWorkflowVersion::LegacyV1,
+        'recommended_amount' => 20000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 1.25,
+        'recommended_payment_frequency' => 'Monthly',
     ]);
 
     $this

@@ -66,7 +66,7 @@ trait ProfileValidationRules
         return [
             $required ? 'required' : 'nullable',
             'string',
-            'digits:11',
+            'regex:/^09\d{9}$/',
             $userId === null
                 ? Rule::unique(AppUser::class, 'phoneno')
                 : Rule::unique(AppUser::class, 'phoneno')->ignore($userId, 'user_id'),

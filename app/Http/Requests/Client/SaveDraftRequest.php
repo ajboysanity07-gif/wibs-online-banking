@@ -4,6 +4,7 @@ namespace App\Http\Requests\Client;
 
 use App\Concerns\ResolvesPsgcFields;
 use App\LoanCivilStatus;
+use App\LoanInstitutionalEmployerCategory;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
@@ -17,6 +18,7 @@ use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Validator;
 
 class SaveDraftRequest extends FormRequest
@@ -484,6 +486,7 @@ class SaveDraftRequest extends FormRequest
             "{$prefix}.telephone_no" => ['sometimes', 'nullable', 'string', 'max:20'],
             "{$prefix}.current_position" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.nature_of_business" => ['sometimes', 'nullable', 'string', 'max:255'],
+            "{$prefix}.institutional_employer_category" => ['sometimes', 'nullable', new Enum(LoanInstitutionalEmployerCategory::class)],
             "{$prefix}.years_in_work_business" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.gross_monthly_income" => ['sometimes', 'nullable', 'numeric', 'min:0'],
             "{$prefix}.payday" => [
@@ -608,16 +611,22 @@ class SaveDraftRequest extends FormRequest
                 return;
             }
 
-            $category = InstitutionalEmployerCategoryResolver::resolve(
-                $this->input('applicant.employer_business_name'),
-                $this->input('applicant.employment_type'),
-                $this->input('applicant.nature_of_business'),
+            $explicitCategory = LoanInstitutionalEmployerCategory::tryFrom(
+                (string) $this->input('applicant.institutional_employer_category'),
             );
 
-            if ($category === null) {
+            $isInstitutionalPayroll = $explicitCategory instanceof LoanInstitutionalEmployerCategory
+                ? $explicitCategory->isInstitutionalPayrollCategory()
+                : InstitutionalEmployerCategoryResolver::resolve(
+                    $this->input('applicant.employer_business_name'),
+                    $this->input('applicant.employment_type'),
+                    $this->input('applicant.nature_of_business'),
+                ) !== null;
+
+            if (! $isInstitutionalPayroll) {
                 $validator->errors()->add(
                     'banking.payment_option',
-                    'Salary Deduction is only available for BLGU, LGU, LDH, or MRDINC employees.',
+                    'Salary Deduction is only available for BLGU, LGU, Healthcare, or MRDINC employees.',
                 );
             }
         });
