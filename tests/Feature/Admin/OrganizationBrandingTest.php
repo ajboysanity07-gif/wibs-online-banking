@@ -31,6 +31,36 @@ test('superadmin can view organization branding settings page', function () {
             ->has('branding.communications.loanSmsTemplates'));
 });
 
+test('inertia-shared branding omits the base64 report design and font embeds', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put(
+        'branding/report-headers/custom-header.png',
+        'header-image',
+    );
+
+    OrganizationSetting::factory()->create([
+        'report_header_design_path' => 'branding/report-headers/custom-header.png',
+    ]);
+
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->get(route('admin.settings.organization'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('branding.reportHeader.designData', null)
+            ->where(
+                'branding.reportHeader.designUrl',
+                Storage::disk('public')->url('branding/report-headers/custom-header.png'),
+            )
+            ->where('branding.reportTypography.fontFaceCss', null));
+});
+
 test('admin users cannot view organization branding settings page', function () {
     $admin = AppUser::factory()->create();
     AdminProfile::factory()->admin()->create([

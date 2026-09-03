@@ -43,7 +43,7 @@ class HandleInertiaRequests extends Middleware
         $organizationSettings = app(OrganizationSettingsService::class);
 
         if ($this->isErrorPageRequest($request)) {
-            $branding = $organizationSettings->fallbackBranding();
+            $branding = $this->stripReportEmbeds($organizationSettings->fallbackBranding());
 
             return [
                 ...parent::share($request),
@@ -74,7 +74,7 @@ class HandleInertiaRequests extends Middleware
         OrganizationSettingsService $organizationSettings,
     ): array {
         try {
-            return $organizationSettings->branding();
+            return $this->stripReportEmbeds($organizationSettings->branding());
         } catch (Throwable $exception) {
             Log::warning('Inertia shared branding resolution failed. Using fallback branding.', [
                 'path' => $request->path(),
@@ -82,8 +82,40 @@ class HandleInertiaRequests extends Middleware
                 'exception_message' => $exception->getMessage(),
             ]);
 
-            return $organizationSettings->fallbackBranding();
+            return $this->stripReportEmbeds($organizationSettings->fallbackBranding());
         }
+    }
+
+    /**
+     * The browser never reads `reportHeader.designData` or
+     * `reportTypography.fontFaceCss` -- they exist only for PDF/report
+     * rendering (Blade views pull them straight from
+     * OrganizationSettingsService::branding(), not from Inertia props). Left
+     * in the shared prop, they ship several MB of base64 image/font data on
+     * every page load, including the public homepage.
+     *
+     * @param  array<string, mixed>  $branding
+     * @return array<string, mixed>
+     */
+    private function stripReportEmbeds(array $branding): array
+    {
+        if (isset($branding['reportHeader']['designData'])) {
+            $branding['reportHeader']['designData'] = null;
+        }
+
+        if (isset($branding['reportTypography']['fontFaceCss'])) {
+            $branding['reportTypography']['fontFaceCss'] = null;
+        }
+
+        if (isset($branding['reports']['header']['designData'])) {
+            $branding['reports']['header']['designData'] = null;
+        }
+
+        if (isset($branding['reports']['typography']['fontFaceCss'])) {
+            $branding['reports']['typography']['fontFaceCss'] = null;
+        }
+
+        return $branding;
     }
 
     /**

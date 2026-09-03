@@ -49,7 +49,20 @@ test('error page shared props bypass db-backed branding and auth lookups', funct
     $shared = app(HandleInertiaRequests::class)->share($request);
 
     expect($shared['name'])->toBe($fallbackBranding['appTitle']);
-    expect($shared['branding'])->toMatchArray($fallbackBranding);
+    expect($shared['branding'])->toMatchArray([
+        ...$fallbackBranding,
+        'reportTypography' => [
+            ...$fallbackBranding['reportTypography'],
+            'fontFaceCss' => null,
+        ],
+        'reports' => [
+            ...$fallbackBranding['reports'],
+            'typography' => [
+                ...$fallbackBranding['reports']['typography'],
+                'fontFaceCss' => null,
+            ],
+        ],
+    ]);
     expect($shared['auth'])->toBe([
         'user' => null,
         'isAdmin' => false,
