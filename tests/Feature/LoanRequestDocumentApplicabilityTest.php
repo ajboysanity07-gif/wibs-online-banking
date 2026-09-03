@@ -1054,7 +1054,7 @@ test('authority to deduct is applicable with 1 recommended officer for an MRDINC
         ->and($guidance['recommended_officers'])->toBe(1);
 });
 
-test('authority to deduct is applicable with 1 recommended officer for an LDH (healthcare) employer', function (): void {
+test('authority to deduct is applicable with 1 recommended officer for a healthcare employer', function (): void {
     $loanRequest = LoanRequest::factory()->create();
 
     LoanRequestPerson::factory()

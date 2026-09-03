@@ -1040,7 +1040,7 @@ class LoanRequestDocumentCatalog
             'blgu' => LoanInstitutionalEmployerCategory::Blgu,
             'lgu' => LoanInstitutionalEmployerCategory::Lgu,
             'mrdinc' => LoanInstitutionalEmployerCategory::Mrdinc,
-            'ldh' => LoanInstitutionalEmployerCategory::Healthcare,
+            'healthcare' => LoanInstitutionalEmployerCategory::Healthcare,
             default => null,
         };
     }

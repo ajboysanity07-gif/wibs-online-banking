@@ -7,7 +7,11 @@
  * independently via the PHP resolver, so drift here only affects UX, not
  * enforcement.
  */
-export type InstitutionalEmployerCategory = 'blgu' | 'lgu' | 'mrdinc' | 'ldh';
+export type InstitutionalEmployerCategory =
+    | 'blgu'
+    | 'lgu'
+    | 'mrdinc'
+    | 'healthcare';
 
 /**
  * Mirrors LoanInstitutionalEmployerCategory::isInstitutionalPayrollCategory() --
@@ -78,7 +82,7 @@ export function resolveInstitutionalEmployerCategory(
                 needle.includes('medical') ||
                 needle.includes('clinic')))
     ) {
-        return 'ldh';
+        return 'healthcare';
     }
 
     const isGovernmentSector =

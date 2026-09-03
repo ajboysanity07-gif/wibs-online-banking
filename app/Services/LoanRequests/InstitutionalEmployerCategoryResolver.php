@@ -13,7 +13,7 @@ namespace App\Services\LoanRequests;
 class InstitutionalEmployerCategoryResolver
 {
     /**
-     * @return 'blgu'|'lgu'|'mrdinc'|'ldh'|null
+     * @return 'blgu'|'lgu'|'mrdinc'|'healthcare'|null
      */
     public static function resolve(
         ?string $employerBusinessName,
@@ -39,7 +39,7 @@ class InstitutionalEmployerCategoryResolver
                 || str_contains($needle, 'clinic')
             ))
         ) {
-            return 'ldh';
+            return 'healthcare';
         }
 
         $isGovernmentSector = $employmentType === 'Government'
