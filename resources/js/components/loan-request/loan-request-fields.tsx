@@ -202,6 +202,7 @@ export function LoanRequestPersonalFields({
 
     const isReadOnly = (field: string) => Boolean(readOnly?.[field]);
     const hasReadOnlyFields = Object.values(readOnly ?? {}).some(Boolean);
+    const showSpouseFields = includeSpouse && values.civil_status === 'Married';
     const hasFamilySection =
         includeCivilHousing || includeChildren || includeSpouse;
     const birthplaceProvinceSearch = useLocationSearch({
@@ -941,7 +942,7 @@ export function LoanRequestPersonalFields({
                         </div>
                     ) : null}
 
-                    {includeSpouse ? (
+                    {showSpouseFields ? (
                         <>
                             <div className="grid gap-2">
                                 <FieldLabel

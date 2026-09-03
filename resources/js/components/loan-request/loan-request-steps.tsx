@@ -225,44 +225,51 @@ export function LoanRequestLoanDetailsStep({
                 )}
 
                 {isMicroBusinessLoan && (
-                    <div className="grid gap-2">
-                        <Label htmlFor="kind_of_loan">Kind of loan</Label>
-                        <Select
-                            value={data.kind_of_loan || undefined}
-                            onValueChange={(value) =>
-                                onChange('kind_of_loan', value)
-                            }
-                        >
-                            <SelectTrigger
-                                id="kind_of_loan"
-                                className="mt-1 w-full"
+                    <>
+                        <div className="grid gap-2">
+                            <Label htmlFor="kind_of_loan">Kind of loan</Label>
+                            <Select
+                                value={data.kind_of_loan || undefined}
+                                onValueChange={(value) =>
+                                    onChange('kind_of_loan', value)
+                                }
                             >
-                                <SelectValue placeholder="Select kind of loan" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {KIND_OF_LOAN_OPTIONS.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                        {option}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <InputError message={errors.kind_of_loan} />
-                        {loanTypeAbbreviation && (
-                            <p className="text-xs text-muted-foreground">
-                                Shown as{' '}
-                                <Badge variant="secondary">
-                                    {loanTypeAbbreviation}
-                                </Badge>
-                            </p>
+                                <SelectTrigger
+                                    id="kind_of_loan"
+                                    className="mt-1 w-full"
+                                >
+                                    <SelectValue placeholder="Select kind of loan" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {KIND_OF_LOAN_OPTIONS.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.kind_of_loan} />
+                        </div>
+                        {(loanTypeAbbreviation ||
+                            data.kind_of_loan === 'Emergency') && (
+                            <div className="grid gap-1 md:col-span-2">
+                                {loanTypeAbbreviation && (
+                                    <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                                        Shown as{' '}
+                                        <Badge variant="secondary">
+                                            {loanTypeAbbreviation}
+                                        </Badge>
+                                    </p>
+                                )}
+                                {data.kind_of_loan === 'Emergency' && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Emergency loans skip the insurance and
+                                        health questionnaire steps below.
+                                    </p>
+                                )}
+                            </div>
                         )}
-                        {data.kind_of_loan === 'Emergency' && (
-                            <p className="text-xs text-muted-foreground">
-                                Emergency loans skip the insurance and health
-                                questionnaire steps below.
-                            </p>
-                        )}
-                    </div>
+                    </>
                 )}
 
                 <div className="grid gap-2">
