@@ -47,10 +47,22 @@ class LoanRequestController extends Controller
             return redirect()->route('login');
         }
 
-        $user->loadMissing('userProfile', 'adminProfile');
+        $user->loadMissing('userProfile', 'adminProfile', 'memberApplicationProfile');
 
         if ($user->isAdminOnly()) {
             return redirect()->route('admin.dashboard');
+        }
+
+        $memberProfile = $user->memberApplicationProfile;
+
+        if (
+            $memberProfile !== null
+            && $memberProfile->institutionalEmployerCategoryApplies()
+            && $memberProfile->institutional_employer_category === null
+        ) {
+            return redirect()
+                ->route('profile.edit', ['tab' => 'work'])
+                ->with('status', 'loan-prerequisites-incomplete');
         }
 
         $payload = $this->sanitizePayload($service->getFormData($user));

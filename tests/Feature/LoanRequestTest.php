@@ -890,6 +890,65 @@ test('clients without completed profiles are redirected away from loan request f
     $response->assertRedirect(route('profile.edit', ['onboarding' => 1]));
 });
 
+test('a Government/Private member without an institutional employer category is redirected to settings', function () {
+    $user = User::factory()->create(['acctno' => '000714']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
+        'user_id' => $user->user_id,
+        'employment_type' => 'Government',
+        'institutional_employer_category' => null,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response->assertRedirect(route('profile.edit', ['tab' => 'work']));
+});
+
+test('a pensioner without an institutional employer category can still access the loan request form', function () {
+    $user = User::factory()->create(['acctno' => '000715']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
+        'user_id' => $user->user_id,
+        'employment_type' => 'Pensioner',
+        'institutional_employer_category' => null,
+        'employer_business_name' => null,
+        'current_position' => null,
+        'payday' => 'Monthly',
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-PEN',
+        'lntype' => 'Salary/Pension',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response->assertOk();
+});
+
 test('clients can save a loan request draft', function () {
     $user = User::factory()->create([
         'acctno' => '000712',

@@ -400,7 +400,36 @@ class MemberApplicationProfile extends Model
             $missing[] = 'id_type_other';
         }
 
+        if (
+            $this->institutionalEmployerCategoryApplies()
+            && self::isBlankOrPlaceholder($this->institutional_employer_category)
+        ) {
+            $missing[] = 'institutional_employer_category';
+        }
+
         return $missing;
+    }
+
+    /**
+     * Whether institutional_employer_category is a meaningful answer for
+     * this member -- excludes Pensioner/Self Employed/OFW, who have no local
+     * institutional employer to categorize.
+     */
+    public function institutionalEmployerCategoryApplies(): bool
+    {
+        if (self::employmentTypeMatches($this->employment_type, self::PENSIONER_EMPLOYMENT_TYPE)) {
+            return false;
+        }
+
+        if (self::employmentTypeMatches($this->employment_type, self::SELF_EMPLOYED_EMPLOYMENT_TYPE)) {
+            return false;
+        }
+
+        if (strtolower(trim((string) $this->employment_type)) === 'ofw') {
+            return false;
+        }
+
+        return true;
     }
 
     /**

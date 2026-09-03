@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\LoanInstitutionalEmployerCategory;
 use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
 use App\Models\AppUser;
@@ -59,6 +60,11 @@ class MemberApplicationProfileFactory extends Factory
                 'id_number' => fake()->numerify('###-###-###'),
                 'height_cm' => (string) fake()->numberBetween(150, 190),
                 'weight_kg' => (string) fake()->numberBetween(45, 95),
+                // Harmless for exempt employment types (Pensioner/Self
+                // Employed/OFW); satisfies the requirement whenever
+                // completed()'s randomly-picked employment_type is Private
+                // or Government.
+                'institutional_employer_category' => LoanInstitutionalEmployerCategory::Lgu->value,
             ])
             ->afterCreating(fn (MemberApplicationProfile $profile) => $this->attachSavedAccount($profile));
     }
@@ -85,6 +91,10 @@ class MemberApplicationProfileFactory extends Factory
                     'spouse_name' => fake()->name(),
                     'spouse_birthdate' => fake()->date(),
                     'employment_type' => fake()->randomElement(['Private', 'Government', 'Self Employed']),
+                    // Harmless when the randomly-picked employment_type above
+                    // is exempt (Self Employed/Pensioner/OFW); satisfies the
+                    // requirement whenever it lands on Private or Government.
+                    'institutional_employer_category' => LoanInstitutionalEmployerCategory::Lgu->value,
                     'employer_business_name' => fake()->company(),
                     'employer_business_address_barangay' => fake()->city(),
                     'current_position' => fake()->jobTitle(),

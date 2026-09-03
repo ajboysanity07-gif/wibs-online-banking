@@ -677,6 +677,19 @@ export default function Profile({
                                 </Alert>
                             )}
 
+                            {status === 'loan-prerequisites-incomplete' && (
+                                <Alert variant="destructive">
+                                    <AlertTitle>
+                                        Finish your Work details first
+                                    </AlertTitle>
+                                    <AlertDescription>
+                                        Select your Institutional Employer
+                                        Category below before starting a loan
+                                        request.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
                             <Form
                                 {...ProfileController.update.form()}
                                 options={{
