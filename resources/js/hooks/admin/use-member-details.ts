@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import type { MemberDetail } from '@/types/admin';
 
@@ -18,26 +18,33 @@ export function useMemberDetails(
         error: null,
     });
 
-    const refresh = async (signal?: AbortSignal) => {
-        if (!memberId) {
-            return null;
-        }
+    const refresh = useCallback(
+        async (signal?: AbortSignal) => {
+            if (!memberId) {
+                return null;
+            }
 
-        setState((current) => ({ ...current, loading: true, error: null }));
-
-        try {
-            const member = await adminApi.getMemberDetail(memberId, signal);
-            setState({ member, loading: false, error: null });
-            return member;
-        } catch {
             setState((current) => ({
                 ...current,
-                loading: false,
-                error: 'Unable to load this member right now.',
+                loading: true,
+                error: null,
             }));
-            return null;
-        }
-    };
+
+            try {
+                const member = await adminApi.getMemberDetail(memberId, signal);
+                setState({ member, loading: false, error: null });
+                return member;
+            } catch {
+                setState((current) => ({
+                    ...current,
+                    loading: false,
+                    error: 'Unable to load this member right now.',
+                }));
+                return null;
+            }
+        },
+        [memberId],
+    );
 
     useEffect(() => {
         const controller = new AbortController();

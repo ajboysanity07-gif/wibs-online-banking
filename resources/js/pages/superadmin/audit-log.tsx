@@ -1,7 +1,13 @@
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { Download, Filter } from 'lucide-react';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import {
+    type FormEvent,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
 import { PageHero } from '@/components/page-hero';
 import { PageShell } from '@/components/page-shell';
 import { SurfaceCard } from '@/components/surface-card';
@@ -93,35 +99,37 @@ export default function AuditLog() {
     const [meta, setMeta] = useState<Meta | null>(null);
     const [loading, setLoading] = useState(false);
 
-    const fetchAuditLog = async (
-        currentFilters: Filters,
-        currentPage: number,
-    ) => {
-        setLoading(true);
-        try {
-            const params: Record<string, string> = {
-                page: String(currentPage),
-            };
-            if (currentFilters.type && currentFilters.type !== 'all')
-                params.type = currentFilters.type;
-            if (currentFilters.user_id) params.user_id = currentFilters.user_id;
-            if (currentFilters.loan_reference)
-                params.loan_reference = currentFilters.loan_reference;
-            if (currentFilters.date_from)
-                params.date_from = currentFilters.date_from;
-            if (currentFilters.date_to) params.date_to = currentFilters.date_to;
+    const fetchAuditLog = useCallback(
+        async (currentFilters: Filters, currentPage: number) => {
+            setLoading(true);
+            try {
+                const params: Record<string, string> = {
+                    page: String(currentPage),
+                };
+                if (currentFilters.type && currentFilters.type !== 'all')
+                    params.type = currentFilters.type;
+                if (currentFilters.user_id)
+                    params.user_id = currentFilters.user_id;
+                if (currentFilters.loan_reference)
+                    params.loan_reference = currentFilters.loan_reference;
+                if (currentFilters.date_from)
+                    params.date_from = currentFilters.date_from;
+                if (currentFilters.date_to)
+                    params.date_to = currentFilters.date_to;
 
-            const response = await axios.get('/spa/superadmin/audit-log', {
-                params,
-            });
-            setItems(response.data.data.items);
-            setMeta(response.data.data.meta);
-        } catch {
-            showErrorToast(null, 'Failed to load audit log.');
-        } finally {
-            setLoading(false);
-        }
-    };
+                const response = await axios.get('/spa/superadmin/audit-log', {
+                    params,
+                });
+                setItems(response.data.data.items);
+                setMeta(response.data.data.meta);
+            } catch {
+                showErrorToast(null, 'Failed to load audit log.');
+            } finally {
+                setLoading(false);
+            }
+        },
+        [],
+    );
 
     const previousTextFilters = useRef({
         user_id: filters.user_id,

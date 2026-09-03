@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -304,14 +304,14 @@ export function NotificationBell() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const loadUnreadCount = async () => {
+    const loadUnreadCount = useCallback(async () => {
         try {
             const count = await notificationsApi.getUnreadCount();
             setUnreadCount(count);
         } catch {
             return;
         }
-    };
+    }, []);
 
     const loadNotifications = async () => {
         setLoading(true);

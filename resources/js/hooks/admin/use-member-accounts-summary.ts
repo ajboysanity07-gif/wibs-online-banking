@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api';
 import { adminApi } from '@/lib/api/admin';
 import type { MemberAccountsSummary } from '@/types/admin';
@@ -34,34 +34,41 @@ export function useMemberAccountsSummary(
         didSkipInitialFetch.current = { key: initialKey, skipped: false };
     }
 
-    const refresh = async (signal?: AbortSignal) => {
-        if (!memberKey) {
-            return null;
-        }
-
-        setState((current) => ({ ...current, loading: true, error: null }));
-
-        try {
-            const summary = await adminApi.getMemberAccountsSummary(
-                memberKey,
-                signal,
-            );
-            setState({ summary, loading: false, error: null });
-            return summary;
-        } catch (error) {
-            if (!signal?.aborted) {
-                setState((current) => ({
-                    ...current,
-                    loading: false,
-                    error: getApiErrorMessage(
-                        error,
-                        'Unable to load account summary right now.',
-                    ),
-                }));
+    const refresh = useCallback(
+        async (signal?: AbortSignal) => {
+            if (!memberKey) {
+                return null;
             }
-            return null;
-        }
-    };
+
+            setState((current) => ({
+                ...current,
+                loading: true,
+                error: null,
+            }));
+
+            try {
+                const summary = await adminApi.getMemberAccountsSummary(
+                    memberKey,
+                    signal,
+                );
+                setState({ summary, loading: false, error: null });
+                return summary;
+            } catch (error) {
+                if (!signal?.aborted) {
+                    setState((current) => ({
+                        ...current,
+                        loading: false,
+                        error: getApiErrorMessage(
+                            error,
+                            'Unable to load account summary right now.',
+                        ),
+                    }));
+                }
+                return null;
+            }
+        },
+        [memberKey],
+    );
 
     useEffect(() => {
         if (options?.enabled === false || !memberKey) {

@@ -11,7 +11,7 @@ import {
     UserCog,
     UserPlus,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { AssignOfficerDialog } from '@/components/loan-request/assign-officer-dialog';
 import { BulkCancelDialog } from '@/components/loan-request/bulk-cancel-dialog';
 import {
@@ -309,16 +309,21 @@ export function LoanRequestQueuePage({
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
     const [bulkCancelDialogOpen, setBulkCancelDialogOpen] = useState(false);
 
-    const toggleSort = (column: string) => {
-        if (sortBy === column) {
-            setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
-        } else {
-            setSortBy(column);
-            setSortDirection('desc');
-        }
+    const toggleSort = useCallback(
+        (column: string) => {
+            if (sortBy === column) {
+                setSortDirection((current) =>
+                    current === 'asc' ? 'desc' : 'asc',
+                );
+            } else {
+                setSortBy(column);
+                setSortDirection('desc');
+            }
 
-        setPage(1);
-    };
+            setPage(1);
+        },
+        [sortBy],
+    );
 
     const searchValue = search.trim();
     const minAmountValue = parseAmount(minAmount);

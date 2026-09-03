@@ -7,7 +7,7 @@ import {
     type LucideIcon,
     TriangleAlert,
 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { PageHero } from '@/components/page-hero';
 import { PageShell } from '@/components/page-shell';
 import { SurfaceCard } from '@/components/surface-card';
@@ -328,7 +328,7 @@ export default function NotificationsPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const loadNotifications = async () => {
+    const loadNotifications = useCallback(async () => {
         setLoading(true);
         setError(null);
 
@@ -346,7 +346,7 @@ export default function NotificationsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         void loadNotifications();

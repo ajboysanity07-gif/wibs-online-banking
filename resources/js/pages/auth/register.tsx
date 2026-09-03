@@ -1,6 +1,12 @@
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import {
+    type FormEvent,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -124,35 +130,35 @@ export default function Register({ memberName }: Props) {
         shownSuggestions.length > 0 &&
         (hasFocused || usernameValue !== '' || shownAvailability === 'taken');
 
-    const requestSuggestions = async (
-        currentValue: string,
-        signal: AbortSignal,
-    ): Promise<void> => {
-        if (signal.aborted) {
-            return;
-        }
+    const requestSuggestions = useCallback(
+        async (currentValue: string, signal: AbortSignal): Promise<void> => {
+            if (signal.aborted) {
+                return;
+            }
 
-        if (currentValue !== '') {
-            setAvailability('checking');
-        } else {
-            setAvailability('unknown');
-        }
+            if (currentValue !== '') {
+                setAvailability('checking');
+            } else {
+                setAvailability('unknown');
+            }
 
-        const data = await fetchSuggestions(currentValue, signal);
+            const data = await fetchSuggestions(currentValue, signal);
 
-        setSuggestions(data.suggestions ?? []);
+            setSuggestions(data.suggestions ?? []);
 
-        if (currentValue === '') {
-            setAvailability('unknown');
-            return;
-        }
+            if (currentValue === '') {
+                setAvailability('unknown');
+                return;
+            }
 
-        if (data.current?.available) {
-            setAvailability('available');
-        } else {
-            setAvailability('taken');
-        }
-    };
+            if (data.current?.available) {
+                setAvailability('available');
+            } else {
+                setAvailability('taken');
+            }
+        },
+        [],
+    );
 
     useEffect(() => {
         if (!hasMemberName) {
