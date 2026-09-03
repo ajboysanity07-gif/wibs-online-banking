@@ -166,7 +166,10 @@ export function BankTab({
                             {releaseNeedsAccount && (
                                 <p className="text-sm text-muted-foreground">
                                     {releaseAccountLabel ??
-                                        'No account selected'}
+                                        (releaseAccountId !== null &&
+                                        isLoadingAccounts
+                                            ? 'Loading account…'
+                                            : 'No account selected')}
                                 </p>
                             )}
                         </div>
@@ -231,7 +234,10 @@ export function BankTab({
                             {paymentNeedsAccount && (
                                 <p className="text-sm text-muted-foreground">
                                     {paymentAccountLabel ??
-                                        'No account selected'}
+                                        (paymentAccountId !== null &&
+                                        isLoadingAccounts
+                                            ? 'Loading account…'
+                                            : 'No account selected')}
                                 </p>
                             )}
                         </div>
