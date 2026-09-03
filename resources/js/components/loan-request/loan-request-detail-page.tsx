@@ -22,6 +22,7 @@ import {
     MapPin,
     PencilLine,
     Phone,
+    ShieldAlert,
     Users,
     User as UserIcon,
     Wallet,
@@ -76,6 +77,10 @@ import {
     formatHousingStatus,
     formatPayday,
 } from '@/lib/formatters';
+import {
+    institutionalEmployerCategoryMismatch,
+    INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS,
+} from '@/lib/institutional-employer-category';
 import { showErrorToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type {
@@ -857,6 +862,15 @@ export const LoanRequestApplicantCard = ({
             value: displayText(applicant?.nature_of_business),
         },
         {
+            label: 'Institutional employer category',
+            icon: ShieldAlert,
+            value: applicant?.institutional_employer_category
+                ? (INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS[
+                      applicant.institutional_employer_category
+                  ] ?? applicant.institutional_employer_category)
+                : '--',
+        },
+        {
             label: 'Years in work/business',
             icon: Clock,
             value: displayText(applicant?.years_in_work_business),
@@ -867,6 +881,13 @@ export const LoanRequestApplicantCard = ({
             value: displayDateValue(applicant?.employer_date_employed),
         },
     ];
+
+    const hasCategoryMismatch = institutionalEmployerCategoryMismatch(
+        applicant?.institutional_employer_category,
+        applicant?.employer_business_name,
+        applicant?.employment_type,
+        applicant?.nature_of_business,
+    );
 
     return (
         <Card className="border-border/30 bg-card/60 shadow-sm">
@@ -879,7 +900,21 @@ export const LoanRequestApplicantCard = ({
                     Primary borrower details from the request.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+                {hasCategoryMismatch ? (
+                    <Alert variant="destructive">
+                        <ShieldAlert className="size-4" />
+                        <AlertTitle>
+                            Institutional employer category may be outdated
+                        </AlertTitle>
+                        <AlertDescription>
+                            The declared category doesn&apos;t match this
+                            applicant&apos;s current employer details. Verify
+                            with the member before generating deduction
+                            documents.
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
                 <PersonAccordionRow
                     title="Applicant"
                     person={applicant}

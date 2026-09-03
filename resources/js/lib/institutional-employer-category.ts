@@ -51,6 +51,55 @@ export function isBarangayEmployer(
     return needle.includes('brgy') || needle.includes('bgy');
 }
 
+/**
+ * Labels for every explicit LoanInstitutionalEmployerCategory value,
+ * including 'deped'/'ched' -- which route to the DepEd/CHED Waiver document
+ * and have no InstitutionalEmployerCategory resolver equivalent, since
+ * nothing in the raw employer fields reliably signals "tertiary/basic
+ * education institution" the way an employer name signals BLGU/LGU/MRDINC/
+ * healthcare.
+ */
+export const INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS: Record<string, string> = {
+    blgu: 'Barangay / BLGU',
+    lgu: 'City, Municipal, or Provincial Government (LGU)',
+    mrdinc: 'MRDINC',
+    healthcare: 'Healthcare institution (hospital, clinic, etc.)',
+    deped: 'DepEd (Basic Education)',
+    ched: 'CHED-covered institution (college/university)',
+};
+
+/**
+ * Flags a stale/incorrect explicit institutional_employer_category -- e.g.
+ * the member declared it once, then changed employers without updating it.
+ * Only fires when the resolver confidently detects a *different* category
+ * from the applicant's current employer details; it never fires on a null
+ * resolver result, since the resolver is a weak name-matching heuristic and
+ * "no match" is not evidence the member's declared answer is wrong. 'deped'/
+ * 'ched' are excluded entirely -- the resolver has no way to detect those.
+ * Presentational only: this is a staff review hint, not a submission gate.
+ */
+export function institutionalEmployerCategoryMismatch(
+    declaredCategory: string | null | undefined,
+    employerBusinessName: string | null | undefined,
+    employmentType: string | null | undefined,
+    natureOfBusiness: string | null | undefined,
+): boolean {
+    if (
+        !declaredCategory ||
+        !INSTITUTIONAL_PAYROLL_CATEGORIES.has(declaredCategory)
+    ) {
+        return false;
+    }
+
+    const resolved = resolveInstitutionalEmployerCategory(
+        employerBusinessName,
+        employmentType,
+        natureOfBusiness,
+    );
+
+    return resolved !== null && resolved !== declaredCategory;
+}
+
 export function resolveInstitutionalEmployerCategory(
     employerBusinessName: string | null | undefined,
     employmentType: string | null | undefined,
