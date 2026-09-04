@@ -1490,6 +1490,29 @@ test('generali and generali application form remain applicable for non-Due-date 
         ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeTrue();
 });
 
+test('generali and generali application form are not applicable for a 1-month term regardless of payment frequency or kind_of_loan', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'recommended_payment_frequency' => 'Monthly',
+        'recommended_term' => 1,
+        'kind_of_loan' => 'Regular',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Generali, $loanRequest, []))->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeFalse();
+});
+
+test('generali and generali application form remain applicable for a 2-month term regardless of payment frequency', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'recommended_payment_frequency' => 'Monthly',
+        'recommended_term' => 2,
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Generali, $loanRequest, []))->toBeTrue()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::GeneraliApplicationForm, $loanRequest, []))->toBeTrue();
+});
+
 test('loan security agreement is not applicable for a 1-month Due-date', function (): void {
     $loanRequest = LoanRequest::factory()->make([
         'recommended_payment_frequency' => 'Due date',
@@ -1498,6 +1521,47 @@ test('loan security agreement is not applicable for a 1-month Due-date', functio
     $catalog = app(LoanRequestDocumentCatalog::class);
 
     expect($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, []))->toBeFalse();
+});
+
+test('grepalife is not applicable for a 1-month Due-date', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'recommended_payment_frequency' => 'Due date',
+        'recommended_term' => 1,
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeFalse();
+});
+
+test('grepalife remains applicable for a 2-month-or-longer Due-date', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'recommended_payment_frequency' => 'Due date',
+        'recommended_term' => 2,
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeTrue();
+});
+
+test('grepalife is not applicable for a 1-month term regardless of payment frequency or kind_of_loan', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'recommended_payment_frequency' => 'Monthly',
+        'recommended_term' => 1,
+        'kind_of_loan' => 'Regular',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeFalse();
+});
+
+test('grepalife remains applicable for a 2-month term regardless of payment frequency', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'recommended_payment_frequency' => 'Monthly',
+        'recommended_term' => 2,
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeTrue();
 });
 
 test('loan security agreement remains applicable for a 2-month-or-longer Due-date', function (): void {

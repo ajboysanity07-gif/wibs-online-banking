@@ -349,7 +349,7 @@ class LoanRequestDocumentCatalog
         ],
         'generali' => [
             'template_version' => 'generali-v1',
-            'applicability' => 'not_lumpsum',
+            'applicability' => 'not_one_month_term',
             'required_fields' => [],
             'source_fields' => [
                 'beneficiary_primary_name',
@@ -513,7 +513,7 @@ class LoanRequestDocumentCatalog
         ],
         'generali_application_form' => [
             'template_version' => 'generali-application-form-v2',
-            'applicability' => 'not_lumpsum',
+            'applicability' => 'not_one_month_term',
             // applicant_cycle_status/number are deliberately absent here --
             // they're auto-computed server-side (LoanRequestCycleStateService),
             // never a member-collected prerequisite.
@@ -659,7 +659,9 @@ class LoanRequestDocumentCatalog
             'atm_payout_employee' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues),
             'bank_release' => ($flatValues['release_method'] ?? null) === LoanReleaseMethod::BankTransfer->value,
             'not_lumpsum' => ! $this->isDueDateNoInsurance($loanRequest),
-            'not_emergency' => ! $this->isEmergencyLoan($loanRequest),
+            'not_emergency' => ! $this->isEmergencyLoan($loanRequest)
+                && ! $this->isOneMonthTerm($loanRequest),
+            'not_one_month_term' => ! $this->isOneMonthTerm($loanRequest),
             default => true,
         };
     }
@@ -679,12 +681,25 @@ class LoanRequestDocumentCatalog
      * Only a 1-month Due date skips insurance entirely -- a 2-month-or-longer
      * Due date still requires the insurance document (mirrors
      * LoanRequestDecisionService::isDueDateNoInsurance() and the insurance
-     * premium waiver in ApprovedLoanDocumentDataBuilder).
+     * premium waiver in ApprovedLoanDocumentDataBuilder). Used only by Loan
+     * Security Agreement, which is lumpsum-specific rather than insurance-specific.
      */
     private function isDueDateNoInsurance(LoanRequest $loanRequest): bool
     {
         return $loanRequest->recommended_payment_frequency === LoanPaydayOption::DueDate->value
             && (int) $loanRequest->recommended_term === 1;
+    }
+
+    /**
+     * True for any 1-month-term loan regardless of payment frequency or
+     * kind_of_loan -- the insurance documents (GREPALIFE, Generali, Generali
+     * Application Form) carry no premium once the term drops to a single
+     * month, unlike isDueDateNoInsurance() which only fires for the Due
+     * date frequency specifically.
+     */
+    private function isOneMonthTerm(LoanRequest $loanRequest): bool
+    {
+        return (int) $loanRequest->recommended_term === 1;
     }
 
     /**
