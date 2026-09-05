@@ -375,6 +375,19 @@ class LoanRequestService
             $profileData['employer_date_employed'] = null;
         }
 
+        // home_address_barangay / employer_business_address_barangay are
+        // never actually collected by the wizard (no field renders them --
+        // the applicant payload just carries them as an always-blank ''
+        // placeholder). Without this guard, every submission overwrites a
+        // real barangay value the member set in Profile Settings with null,
+        // which then fails member-profile-complete on the very next page
+        // load. Never let a blank value here clobber an existing one.
+        foreach (['home_address_barangay', 'employer_business_address_barangay'] as $barangayField) {
+            if (($profileData[$barangayField] ?? null) === null || $profileData[$barangayField] === '') {
+                unset($profileData[$barangayField]);
+            }
+        }
+
         if ($profileData === []) {
             return;
         }

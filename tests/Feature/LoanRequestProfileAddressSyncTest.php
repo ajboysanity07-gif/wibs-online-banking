@@ -113,6 +113,84 @@ test('a validated submission writes the applicant address back onto the member p
         ->and($profile->home_address_barangay)->toBe('Diatagon');
 });
 
+test('a blank address_barangay from the wizard does not clobber an existing profile barangay value', function (): void {
+    $member = AppUser::factory()->create([
+        'acctno' => '660301',
+        'email_verified_at' => now(),
+    ]);
+    $member->roles()->sync(Role::query()->where('name', Role::MEMBER)->pluck('id')->all());
+
+    UserProfile::factory()->approved()->create(['user_id' => $member->user_id]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
+        'user_id' => $member->user_id,
+        'home_address1' => 'Purok 3',
+        'home_address2' => 'Diatagon',
+        'home_address3' => 'Surigao del Sur',
+        'home_address_barangay' => 'Diatagon',
+        'employer_business_address_barangay' => 'Diatagon',
+    ]);
+
+    $member = $member->fresh(['roles.permissions', 'userProfile', 'memberApplicationProfile']);
+
+    // The wizard never actually renders a barangay field for the applicant
+    // section -- it always submits address_barangay / employer_business_address_barangay
+    // as an empty string placeholder (see loan-request.tsx initial form data).
+    app(LoanRequestService::class)->submit($member, [
+        'typecode' => 'LN-005',
+        'requested_amount' => 15000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Medical expenses',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        'insurance' => [
+            'beneficiary_primary_name' => 'Primary',
+            'beneficiary_primary_relationship' => 'Spouse',
+            'beneficiary_primary_birthdate' => '1992-01-01',
+        ],
+        'health' => [
+            'health_smoking_status' => 'none',
+            'health_hypertension' => false,
+        ],
+        'health_glapi' => [
+            'health_recent_hospitalization' => false,
+        ],
+        'banking' => [
+            'release_method' => 'Check',
+            'payment_option' => 'Cash',
+        ],
+        'barangay' => [
+            'barangay_official_designation' => null,
+            'barangay_agency_name' => null,
+            'barangay_agency_address' => null,
+        ],
+        'declarations' => [
+            'declaration_existing_loans' => false,
+            'declaration_pending_cases' => false,
+            'declaration_truth_confirmation' => true,
+            'declaration_data_privacy_consent' => true,
+        ],
+        'dependents' => [
+            'applicant_cycle_status' => 'New',
+        ],
+        'applicant' => addressSyncPersonPayload([
+            'sex' => 'Male',
+            'address1' => 'Purok 3',
+            'address2' => 'Diatagon',
+            'address3' => 'Surigao del Sur',
+            'address_barangay' => '',
+            'employer_business_address_barangay' => '',
+        ]),
+        'co_maker_1' => addressSyncPersonPayload(),
+        'co_maker_2' => addressSyncPersonPayload(),
+    ]);
+
+    $profile = $member->memberApplicationProfile()->firstOrFail()->refresh();
+
+    expect($profile->home_address_barangay)->toBe('Diatagon')
+        ->and($profile->employer_business_address_barangay)->toBe('Diatagon')
+        ->and($member->fresh()->memberApplicationProfileIsComplete())->toBeTrue();
+});
+
 function addressSyncPersonPayload(array $overrides = []): array
 {
     return array_merge([

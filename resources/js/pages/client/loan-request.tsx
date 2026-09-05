@@ -518,6 +518,50 @@ export default function LoanRequestPage({
         [isOneMonthLumpsumRequested, isEmergencyLoanRequested],
     );
 
+    const isBankingComplete = useMemo(() => {
+        const banking = form.data.banking;
+        const releaseMethod = banking.release_method;
+        const paymentOption = banking.payment_option;
+
+        if (!releaseMethod || !paymentOption) {
+            return false;
+        }
+
+        if (
+            (releaseMethod === 'ATM' || releaseMethod === 'Bank Transfer') &&
+            !banking.release_saved_account_id
+        ) {
+            return false;
+        }
+
+        if (
+            paymentOption === 'ATM Deduction' &&
+            !banking.payment_saved_account_id
+        ) {
+            return false;
+        }
+
+        return true;
+    }, [form.data.banking]);
+
+    const isInsuranceComplete = useMemo(() => {
+        if (!insurancePrefilledFromProfile) return true;
+        return beneficiariesConfirmed;
+    }, [insurancePrefilledFromProfile, beneficiariesConfirmed]);
+
+    const isDependentsComplete = useMemo(() => {
+        if (!dependentsPrefilledFromProfile) return true;
+        return dependentsConfirmed;
+    }, [dependentsPrefilledFromProfile, dependentsConfirmed]);
+
+    const isDeclarationsComplete = useMemo(() => {
+        const declarations = form.data.declarations;
+        return (
+            declarations.declaration_truth_confirmation === true &&
+            declarations.declaration_data_privacy_consent === true
+        );
+    }, [form.data.declarations]);
+
     useEffect(() => {
         setDraftState(draft);
     }, [draft]);
@@ -836,7 +880,12 @@ export default function LoanRequestPage({
                                                 true ||
                                                 form.data.declarations
                                                     .declaration_data_privacy_consent !==
-                                                    true))
+                                                    true)) ||
+                                        (isLastStep &&
+                                            (!isBankingComplete ||
+                                                !isInsuranceComplete ||
+                                                !isDependentsComplete ||
+                                                !isDeclarationsComplete))
                                     }
                                 />
                             </div>

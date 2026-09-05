@@ -528,7 +528,7 @@ class LoanRequestStoreRequest extends FormRequest
             'health.health_smoking_status' => [$insuranceRequired, 'string', Rule::in(['none', 'light', 'heavy'])],
             'health.health_hypertension' => [$insuranceRequired, 'boolean'],
             ...$this->healthGlapiRules(),
-            'banking' => ['required', 'array:release_method,release_saved_account_id,payment_option,payment_saved_account_id'],
+            'banking' => ['required', 'array'],
             'banking.release_saved_account_id' => [
                 Rule::requiredIf(fn () => in_array($this->input('banking.release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true)),
                 'nullable',
