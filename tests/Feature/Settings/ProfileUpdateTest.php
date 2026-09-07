@@ -268,6 +268,109 @@ test('profile update accepts salary deduction for an institutional (MRDINC) empl
     $response->assertSessionDoesntHaveErrors(['payment_option']);
 });
 
+test('institutional employer category persists and is exposed back on the profile page', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'City of Batac',
+            'birthplace_province' => 'Ilocos Norte',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'MRDINC Head Office',
+            'current_position' => 'Analyst',
+            'institutional_employer_category' => 'mrdinc',
+            'gross_monthly_income' => '35000.00',
+            'payday' => 'Quincenal',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'SSS',
+            'id_number' => '1234567890',
+        ]);
+
+    expect($user->refresh()->memberApplicationProfile->institutional_employer_category)
+        ->toBe(App\LoanInstitutionalEmployerCategory::Mrdinc);
+
+    $this
+        ->actingAs($user)
+        ->get(route('profile.edit'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('memberApplicationProfile.institutional_employer_category', 'mrdinc')
+        );
+});
+
+test('saving an already-complete profile stays on the settings page instead of redirecting to the dashboard', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $payload = [
+        'username' => 'TestUser',
+        'email' => 'test@example.com',
+        'phoneno' => '09123456789',
+        'nickname' => 'Renee',
+        'birthplace_city' => 'Cebu City',
+        'birthplace_province' => 'Cebu',
+        'educational_attainment' => 'High School',
+        'length_of_stay' => '2 years',
+        'number_of_children' => 2,
+        'sex' => 'Female',
+        'civil_status' => 'Married',
+        'housing_status' => 'OWNED',
+        'spouse_name' => 'Renee Santos',
+        'spouse_birthdate' => '1992-05-14',
+        'employment_type' => 'Regular',
+        'employer_business_name' => 'Acme Corp',
+        'employer_business_address1' => 'Acme Plaza',
+        'employer_business_address_barangay' => 'Aglipay',
+        'employer_business_address2' => 'Batac City',
+        'employer_business_address3' => 'Ilocos Norte',
+        'employer_business_address_zip' => '8100',
+        'telephone_no' => '02-123-4567',
+        'current_position' => 'Analyst',
+        'nature_of_business' => 'Finance',
+        'gross_monthly_income' => 'PHP 35,000.50',
+        'payday' => 'Quincenal',
+        'years_in_work_business' => '5 years',
+        'spouse_cell_no' => '09123456780',
+        'home_address1' => '123 Main Street',
+        'home_address_barangay' => 'Aglipay',
+        'home_address2' => 'Batac City',
+        'home_address3' => 'Ilocos Norte',
+        'release_method' => 'Cash',
+        'height_cm' => '165',
+        'weight_kg' => '68',
+        'source_of_fund_wealth' => 'Salary',
+        'id_type' => 'SSS',
+        'id_number' => '1234567890',
+    ];
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), $payload)
+        ->assertRedirect(route('client.dashboard'));
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), $payload)
+        ->assertRedirect(route('profile.edit'));
+});
+
 test('profile update accepts an optional real birthplace barangay', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([

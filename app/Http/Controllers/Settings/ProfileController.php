@@ -89,6 +89,8 @@ class ProfileController extends Controller
         }
 
         if ($hasMemberAccess) {
+            $wasProfileComplete = $user->memberApplicationProfileIsComplete();
+
             $memberProfileData = [
                 ...Arr::only($validated, MemberApplicationProfile::fields()),
                 ...Arr::only($validated, MemberApplicationProfile::payoutBankFields()),
@@ -149,11 +151,18 @@ class ProfileController extends Controller
                 );
             }
 
-            if ($user->memberApplicationProfileIsComplete()) {
+            if (! $user->memberApplicationProfileIsComplete()) {
+                return to_route('profile.edit', ['onboarding' => 1]);
+            }
+
+            // Only bounce to the dashboard the moment onboarding finishes --
+            // once the profile is already complete, saving from Settings
+            // should keep the member on the settings page they were editing.
+            if (! $wasProfileComplete) {
                 return to_route('client.dashboard');
             }
 
-            return to_route('profile.edit', ['onboarding' => 1]);
+            return to_route('profile.edit');
         }
 
         return to_route('profile.edit');

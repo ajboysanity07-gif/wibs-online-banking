@@ -191,6 +191,7 @@ class SettingsPageData
                 'telephone_no' => $memberApplicationProfile->telephone_no,
                 'current_position' => $memberApplicationProfile->current_position,
                 'nature_of_business' => $memberApplicationProfile->nature_of_business,
+                'institutional_employer_category' => $memberApplicationProfile->institutional_employer_category?->value,
                 'years_in_work_business' => $memberApplicationProfile->years_in_work_business,
                 'employer_date_employed' => $memberApplicationProfile->employer_date_employed?->toDateString(),
                 'gross_monthly_income' => $memberApplicationProfile->gross_monthly_income !== null
