@@ -1,4 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
+import { Copy } from 'lucide-react';
+import { type FormEvent, useState } from 'react';
 import { MemberProfileDetailsCard } from '@/components/member-profile-details-card';
 import { MemberProfileHeader } from '@/components/member-profile-header';
 import { MemberStatusCard } from '@/components/member-status-card';
@@ -6,6 +8,15 @@ import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { MemberAccountsSummarySection } from '@/features/member-accounts/components/member-accounts-summary-section';
 import { MemberRecentAccountActionsCard } from '@/features/member-accounts/components/member-recent-account-actions-card';
 import {
@@ -13,6 +24,7 @@ import {
     useMemberAccounts,
 } from '@/hooks/admin/use-member-accounts';
 import { useMemberDetails } from '@/hooks/admin/use-member-details';
+import { useResetMemberPassword } from '@/hooks/admin/use-reset-member-password';
 import { useUpdateMemberAdminAccess } from '@/hooks/admin/use-update-member-admin-access';
 import { useUpdateMemberStatus } from '@/hooks/admin/use-update-member-status';
 import { useInitials } from '@/hooks/use-initials';
@@ -24,6 +36,7 @@ import {
     getRegistrationStatusLabel,
     getRegistrationStatusVariant,
 } from '@/lib/member-status';
+import { showSuccessToast } from '@/lib/toast';
 import { dashboard } from '@/routes/admin';
 import {
     loanPayments,
@@ -49,6 +62,13 @@ type Props = {
 type PageProps = {
     auth: Auth;
 };
+
+type ResetPasswordResult = {
+    temporaryPassword: string;
+};
+
+const textareaClassName =
+    'border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-24 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50';
 
 function LoansAndLoanSecuritySummarySection() {
     const {
@@ -154,6 +174,31 @@ export default function MemberProfile({
         },
     });
 
+    const [resetPasswordDialogOpen, setResetPasswordDialogOpen] =
+        useState(false);
+    const [resetPasswordReason, setResetPasswordReason] = useState('');
+    const [resetPasswordResult, setResetPasswordResult] =
+        useState<ResetPasswordResult | null>(null);
+    const { resetPassword, processingKeys: resetPasswordProcessingKeys } =
+        useResetMemberPassword({
+            onReset: (updated, temporaryPassword) => {
+                setMember(updated);
+                setResetPasswordDialogOpen(false);
+                setResetPasswordReason('');
+                setResetPasswordResult({ temporaryPassword });
+            },
+        });
+
+    const handleResetPassword = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if (currentMember.user_id === null) {
+            return;
+        }
+
+        await resetPassword(currentMember.user_id, resetPasswordReason);
+    };
+
     const isProcessing =
         currentMember.user_id !== null
             ? processingIds[currentMember.user_id]
@@ -194,6 +239,11 @@ export default function MemberProfile({
         currentMember.admin_access_revocable === true;
     const isAdminAccessProcessing =
         processingKeys[currentMember.member_id] ?? false;
+    const canResetPassword = isSuperadmin && canManagePortalAccess && !isSelf;
+    const isResetPasswordProcessing =
+        currentMember.user_id !== null
+            ? (resetPasswordProcessingKeys[currentMember.user_id] ?? false)
+            : false;
     const portalAccessCard = (
         <MemberStatusCard
             title="Portal access"
@@ -233,6 +283,17 @@ export default function MemberProfile({
                             }
                         >
                             Reactivate
+                        </Button>
+                    ) : null}
+                    {canResetPassword ? (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={isResetPasswordProcessing}
+                            onClick={() => setResetPasswordDialogOpen(true)}
+                        >
+                            Reset password
                         </Button>
                     ) : null}
                 </>
@@ -415,6 +476,130 @@ export default function MemberProfile({
                     <LoansAndLoanSecuritySummarySection />
                     <RecentAccountActionsCard />
                 </MemberAccountsProvider>
+
+                <Dialog
+                    open={resetPasswordDialogOpen}
+                    onOpenChange={(open) => {
+                        setResetPasswordDialogOpen(open);
+
+                        if (!open) {
+                            setResetPasswordReason('');
+                        }
+                    }}
+                >
+                    <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle>Reset password</DialogTitle>
+                            <DialogDescription>
+                                {`Generate a new temporary password for ${memberName}. They must set their own password on next login.`}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form
+                            className="space-y-4"
+                            onSubmit={handleResetPassword}
+                        >
+                            <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm text-muted-foreground">
+                                A random temporary password will be generated
+                                and shown once. You will not be able to view it
+                                again, so relay it to the member right away.
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="reset-password-reason">
+                                    Reason
+                                </Label>
+                                <textarea
+                                    id="reset-password-reason"
+                                    className={textareaClassName}
+                                    value={resetPasswordReason}
+                                    onChange={(event) =>
+                                        setResetPasswordReason(
+                                            event.target.value,
+                                        )
+                                    }
+                                    placeholder="Document why this password is being reset."
+                                />
+                            </div>
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => {
+                                        setResetPasswordDialogOpen(false);
+                                        setResetPasswordReason('');
+                                    }}
+                                    disabled={isResetPasswordProcessing}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        isResetPasswordProcessing ||
+                                        resetPasswordReason.trim() === ''
+                                    }
+                                >
+                                    Reset password
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog
+                    open={resetPasswordResult !== null}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setResetPasswordResult(null);
+                        }
+                    }}
+                >
+                    <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle>
+                                Temporary password generated
+                            </DialogTitle>
+                            <DialogDescription>
+                                {`Share this temporary password with ${memberName} now. It will not be shown again, and they must set a new password on next login.`}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-muted/30 p-3">
+                            <code className="flex-1 font-mono text-sm break-all">
+                                {resetPasswordResult?.temporaryPassword}
+                            </code>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => {
+                                    if (!resetPasswordResult) {
+                                        return;
+                                    }
+
+                                    void navigator.clipboard
+                                        .writeText(
+                                            resetPasswordResult.temporaryPassword,
+                                        )
+                                        .then(() =>
+                                            showSuccessToast(
+                                                'Temporary password copied.',
+                                            ),
+                                        );
+                                }}
+                            >
+                                <Copy className="h-4 w-4" />
+                                <span className="sr-only">Copy password</span>
+                            </Button>
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                onClick={() => setResetPasswordResult(null)}
+                            >
+                                Done
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </PageShell>
         </AppLayout>
     );

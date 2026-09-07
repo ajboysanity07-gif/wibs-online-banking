@@ -217,6 +217,8 @@ Route::prefix('spa')->middleware('web')->group(function () {
         Route::get('admin/members/{user}', [SpaMembersController::class, 'show']);
         Route::patch('admin/members/{user}/suspend', [SpaMemberStatusController::class, 'suspend']);
         Route::patch('admin/members/{user}/reactivate', [SpaMemberStatusController::class, 'reactivate']);
+        Route::patch('admin/members/{user}/reset-password', [SpaMemberStatusController::class, 'resetPassword'])
+            ->middleware('superadmin');
         Route::patch('admin/members/{member}/grant-admin', [SpaMemberAdminAccessController::class, 'grant'])
             ->middleware('superadmin');
         Route::patch('admin/members/{member}/revoke-admin', [SpaMemberAdminAccessController::class, 'revoke'])

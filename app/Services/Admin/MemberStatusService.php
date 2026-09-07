@@ -3,6 +3,8 @@
 namespace App\Services\Admin;
 
 use App\Models\AppUser;
+use App\Notifications\MemberPasswordResetAuditNotification;
+use App\Notifications\MemberPasswordResetNotification;
 use App\Notifications\MemberStatusAuditNotification;
 use App\Notifications\MemberStatusChangedNotification;
 use App\Services\Notifications\NotificationRecipientService;
@@ -10,6 +12,7 @@ use App\Support\MemberStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class MemberStatusService
@@ -54,6 +57,46 @@ class MemberStatusService
         }
 
         return $this->updateStatus($user, $actor, MemberStatus::Active);
+    }
+
+    /**
+     * @return array{user: AppUser, temporary_password: string}
+     */
+    public function resetPassword(AppUser $target, AppUser $actor, string $reason): array
+    {
+        $this->guardTargetUser($target);
+
+        if ($target->user_id === $actor->user_id) {
+            throw ValidationException::withMessages([
+                'user' => 'You cannot reset your own password from this page. Use your account settings instead.',
+            ]);
+        }
+
+        $temporaryPassword = Str::password(16);
+
+        $member = DB::transaction(function () use ($target, $temporaryPassword): AppUser {
+            $target->password = $temporaryPassword;
+            $target->must_change_password = true;
+            $target->save();
+
+            return $this->loadMember($target->refresh());
+        });
+
+        $member->notify(new MemberPasswordResetNotification($member, $actor));
+
+        $superadmins = $this->notificationRecipients->superadmins();
+
+        if ($superadmins->isNotEmpty()) {
+            Notification::send(
+                $superadmins,
+                new MemberPasswordResetAuditNotification($member, $actor, $reason),
+            );
+        }
+
+        return [
+            'user' => $member,
+            'temporary_password' => $temporaryPassword,
+        ];
     }
 
     private function guardTargetUser(AppUser $user): void

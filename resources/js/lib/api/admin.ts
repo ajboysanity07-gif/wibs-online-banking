@@ -304,6 +304,12 @@ type StaffPasswordResetResponse = {
     message?: string;
 };
 
+type MemberPasswordResetResponse = {
+    member: MemberDetail;
+    temporary_password: string;
+    message?: string;
+};
+
 type StaffHistoryResponse = {
     items: StaffHistoryEntry[];
 };
@@ -371,6 +377,16 @@ export const adminApi = {
         >(`/spa/admin/members/${memberKey}/revoke-admin`);
 
         return unwrap(response).member;
+    },
+    async resetMemberPassword(
+        memberKey: string | number,
+        reason: string,
+    ): Promise<MemberPasswordResetResponse> {
+        const response = await client.patch<
+            ApiResponse<MemberPasswordResetResponse>
+        >(`/spa/admin/members/${memberKey}/reset-password`, { reason });
+
+        return unwrap(response);
     },
     async getRequests(
         params: RequestsQueryParams,
