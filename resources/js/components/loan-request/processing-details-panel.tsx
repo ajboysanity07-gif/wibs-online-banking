@@ -13,6 +13,7 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -1162,10 +1163,15 @@ export function ProcessingDetailsPanel({
             typeof statusValue === 'string' ? statusValue : '';
 
         if (locked) {
+            const numberDisplay =
+                numberValue !== null && numberValue !== undefined
+                    ? `${numberValue}`
+                    : '—';
+
             return (
                 <div
                     key={slotKey}
-                    className="grid gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 sm:grid-cols-[1fr_auto_auto]"
+                    className="grid gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 sm:grid-cols-[1fr_auto] sm:items-center"
                 >
                     <div className="flex flex-col justify-center">
                         <span className="text-sm font-medium">{label}</span>
@@ -1173,33 +1179,10 @@ export function ProcessingDetailsPanel({
                             Auto-computed from loan history.
                         </span>
                     </div>
-                    <div className="grid gap-2">
-                        <Label className="text-xs text-muted-foreground">
-                            Cycle status
-                        </Label>
-                        <Input
-                            value={statusStringValue}
-                            disabled
-                            className={readOnlyProcessingFieldClassName}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label className="text-xs text-muted-foreground">
-                            Cycle number
-                        </Label>
-                        <Input
-                            type="number"
-                            min={1}
-                            value={
-                                numberValue !== null &&
-                                numberValue !== undefined
-                                    ? `${numberValue}`
-                                    : ''
-                            }
-                            disabled
-                            className={readOnlyProcessingFieldClassName}
-                        />
-                    </div>
+                    <Badge variant="secondary" className="w-fit">
+                        {`Suggestion from system: Cycle ${numberDisplay}`}
+                        {statusStringValue ? ` (${statusStringValue})` : ''}
+                    </Badge>
                 </div>
             );
         }
