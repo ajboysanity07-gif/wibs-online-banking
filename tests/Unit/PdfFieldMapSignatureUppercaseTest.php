@@ -17,8 +17,8 @@ test('signature-line printed names render ALL CAPS regardless of stored casing',
     $cases = [
         [UndertakingBarangayPdfFieldMap::class, 'applicant.full_name', 205.0],
         [AffidavitUndertakingPdfFieldMap::class, 'applicant.full_name', 250.75],
-        [PensionDeductionWaiverPdfFieldMap::class, 'applicant.full_name', 171.0],
-        [DepedSalaryDeductionWaiverPdfFieldMap::class, 'applicant.full_name', 206.0],
+        [PensionDeductionWaiverPdfFieldMap::class, 'applicant.full_name', 140.0],
+        [DepedSalaryDeductionWaiverPdfFieldMap::class, 'applicant.full_name', 190.0],
         [LoanInformationPdfFieldMap::class, 'reviewer.witness_one_name', 297.76],
         [LoanInformationPdfFieldMap::class, 'reviewer.name', 303.74],
     ];
