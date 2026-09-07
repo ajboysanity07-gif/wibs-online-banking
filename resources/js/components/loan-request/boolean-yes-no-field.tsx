@@ -19,6 +19,7 @@ type BooleanYesNoFieldProps = {
     onChange: (value: boolean | null) => void;
     disabled?: boolean;
     'aria-label'?: string;
+    'aria-invalid'?: boolean;
     fullWidth?: boolean;
 };
 
@@ -28,6 +29,7 @@ export function BooleanYesNoField({
     onChange,
     disabled,
     'aria-label': ariaLabel,
+    'aria-invalid': ariaInvalid,
     fullWidth,
 }: BooleanYesNoFieldProps) {
     return (
@@ -41,7 +43,12 @@ export function BooleanYesNoField({
             }
             disabled={disabled}
             aria-label={ariaLabel}
-            className={cn(fullWidth ? 'w-full' : 'w-fit')}
+            aria-invalid={ariaInvalid}
+            className={cn(
+                fullWidth ? 'w-full' : 'w-fit',
+                ariaInvalid &&
+                    'rounded-md ring-1 ring-destructive ring-offset-1',
+            )}
         >
             <ToggleGroupItem
                 value="true"

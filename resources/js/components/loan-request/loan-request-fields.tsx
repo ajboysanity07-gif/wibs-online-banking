@@ -1,6 +1,5 @@
 import type { ChangeEvent } from 'react';
 import { useState } from 'react';
-import InputError from '@/components/input-error';
 import { BirthdateInput } from '@/components/loan-request/birthdate-input';
 import {
     CurrencyInput,
@@ -314,9 +313,9 @@ export function LoanRequestPersonalFields({
                                 isReadOnly('first_name') && readOnlyInputClass,
                             )}
                             onChange={updateField('first_name')}
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'first_name')}
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'first_name'),
+                            )}
                         />
                     </div>
 
@@ -337,9 +336,9 @@ export function LoanRequestPersonalFields({
                                 isReadOnly('last_name') && readOnlyInputClass,
                             )}
                             onChange={updateField('last_name')}
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'last_name')}
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'last_name'),
+                            )}
                         />
                     </div>
 
@@ -359,9 +358,9 @@ export function LoanRequestPersonalFields({
                                 isReadOnly('middle_name') && readOnlyInputClass,
                             )}
                             onChange={updateField('middle_name')}
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'middle_name')}
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'middle_name'),
+                            )}
                         />
                     </div>
 
@@ -376,9 +375,9 @@ export function LoanRequestPersonalFields({
                             value={values.nickname}
                             className="mt-1 block w-full"
                             onChange={updateField('nickname')}
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'nickname')}
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'nickname'),
+                            )}
                         />
                     </div>
 
@@ -400,9 +399,9 @@ export function LoanRequestPersonalFields({
                             onValueChange={(value) =>
                                 onChange('birthdate', value)
                             }
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'birthdate')}
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'birthdate'),
+                            )}
                         />
                     </div>
 
@@ -433,12 +432,12 @@ export function LoanRequestPersonalFields({
                                     onChange('birthplace_city', '');
                                 }
                             }}
-                        />
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'birthplace_province',
+                            aria-invalid={Boolean(
+                                fieldError(
+                                    errors,
+                                    prefix,
+                                    'birthplace_province',
+                                ),
                             )}
                         />
                     </div>
@@ -476,12 +475,8 @@ export function LoanRequestPersonalFields({
                             onValueChange={(value) =>
                                 onChange('birthplace_city', value)
                             }
-                        />
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'birthplace_city',
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'birthplace_city'),
                             )}
                         />
                     </div>
@@ -506,6 +501,9 @@ export function LoanRequestPersonalFields({
                                         'mt-1 w-full',
                                         isReadOnly('sex') && readOnlyInputClass,
                                     )}
+                                    aria-invalid={Boolean(
+                                        fieldError(errors, prefix, 'sex'),
+                                    )}
                                 >
                                     <SelectValue placeholder="Select sex" />
                                 </SelectTrigger>
@@ -517,9 +515,6 @@ export function LoanRequestPersonalFields({
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <InputError
-                                message={fieldError(errors, prefix, 'sex')}
-                            />
                         </div>
                     ) : null}
                 </div>
@@ -561,9 +556,9 @@ export function LoanRequestPersonalFields({
                                 }
                                 onChange('address_zip', '');
                             }}
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'address3')}
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'address3'),
+                            )}
                         />
                     </div>
 
@@ -603,9 +598,9 @@ export function LoanRequestPersonalFields({
                                 }
                                 void handleAddressCitySelect(suggestion.code);
                             }}
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'address2')}
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'address2'),
+                            )}
                         />
                     </div>
 
@@ -627,9 +622,9 @@ export function LoanRequestPersonalFields({
                                 'mt-1 block w-full',
                                 readOnlyInputClass,
                             )}
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'address_zip')}
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'address_zip'),
+                            )}
                         />
                     </div>
 
@@ -658,12 +653,8 @@ export function LoanRequestPersonalFields({
                             onValueChange={(value) =>
                                 onChange('address_barangay', value)
                             }
-                        />
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'address_barangay',
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'address_barangay'),
                             )}
                         />
                     </div>
@@ -685,9 +676,9 @@ export function LoanRequestPersonalFields({
                                 isReadOnly('address1') && readOnlyInputClass,
                             )}
                             onChange={updateField('address1')}
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'address1')}
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'address1'),
+                            )}
                         />
                     </div>
 
@@ -705,12 +696,8 @@ export function LoanRequestPersonalFields({
                             onChange={(value) =>
                                 onChange('length_of_stay', value)
                             }
-                        />
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'length_of_stay',
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'length_of_stay'),
                             )}
                         />
                     </div>
@@ -736,6 +723,13 @@ export function LoanRequestPersonalFields({
                                         isReadOnly('housing_status') &&
                                             readOnlyInputClass,
                                     )}
+                                    aria-invalid={Boolean(
+                                        fieldError(
+                                            errors,
+                                            prefix,
+                                            'housing_status',
+                                        ),
+                                    )}
                                 >
                                     <SelectValue placeholder="Select housing status" />
                                 </SelectTrigger>
@@ -750,13 +744,6 @@ export function LoanRequestPersonalFields({
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'housing_status',
-                                )}
-                            />
                         </div>
                     ) : null}
 
@@ -775,9 +762,9 @@ export function LoanRequestPersonalFields({
                             placeholder="09XXXXXXXXX"
                             required
                             onChange={updateMobileField('cell_no')}
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'cell_no')}
+                            aria-invalid={Boolean(
+                                fieldError(errors, prefix, 'cell_no'),
+                            )}
                         />
                     </div>
 
@@ -796,6 +783,13 @@ export function LoanRequestPersonalFields({
                                 <SelectTrigger
                                     id={`${prefix}_educational_attainment`}
                                     className="mt-1 w-full"
+                                    aria-invalid={Boolean(
+                                        fieldError(
+                                            errors,
+                                            prefix,
+                                            'educational_attainment',
+                                        ),
+                                    )}
                                 >
                                     <SelectValue placeholder="Select attainment" />
                                 </SelectTrigger>
@@ -812,13 +806,6 @@ export function LoanRequestPersonalFields({
                                     )}
                                 </SelectContent>
                             </Select>
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'educational_attainment',
-                                )}
-                            />
                         </div>
                     ) : null}
                 </div>
@@ -849,6 +836,13 @@ export function LoanRequestPersonalFields({
                                         isReadOnly('civil_status') &&
                                             readOnlyInputClass,
                                     )}
+                                    aria-invalid={Boolean(
+                                        fieldError(
+                                            errors,
+                                            prefix,
+                                            'civil_status',
+                                        ),
+                                    )}
                                 >
                                     <SelectValue placeholder="Select civil status" />
                                 </SelectTrigger>
@@ -860,13 +854,6 @@ export function LoanRequestPersonalFields({
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'civil_status',
-                                )}
-                            />
                         </div>
                     ) : null}
 
@@ -885,6 +872,13 @@ export function LoanRequestPersonalFields({
                                 <SelectTrigger
                                     id={`${prefix}_educational_attainment`}
                                     className="mt-1 w-full"
+                                    aria-invalid={Boolean(
+                                        fieldError(
+                                            errors,
+                                            prefix,
+                                            'educational_attainment',
+                                        ),
+                                    )}
                                 >
                                     <SelectValue placeholder="Select attainment" />
                                 </SelectTrigger>
@@ -901,13 +895,6 @@ export function LoanRequestPersonalFields({
                                     )}
                                 </SelectContent>
                             </Select>
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'educational_attainment',
-                                )}
-                            />
                         </div>
                     ) : null}
 
@@ -931,12 +918,12 @@ export function LoanRequestPersonalFields({
                                         readOnlyInputClass,
                                 )}
                                 onChange={updateField('number_of_children')}
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'number_of_children',
+                                aria-invalid={Boolean(
+                                    fieldError(
+                                        errors,
+                                        prefix,
+                                        'number_of_children',
+                                    ),
                                 )}
                             />
                         </div>
@@ -961,12 +948,12 @@ export function LoanRequestPersonalFields({
                                             readOnlyInputClass,
                                     )}
                                     onChange={updateField('spouse_name')}
-                                />
-                                <InputError
-                                    message={fieldError(
-                                        errors,
-                                        prefix,
-                                        'spouse_name',
+                                    aria-invalid={Boolean(
+                                        fieldError(
+                                            errors,
+                                            prefix,
+                                            'spouse_name',
+                                        ),
                                     )}
                                 />
                             </div>
@@ -983,12 +970,12 @@ export function LoanRequestPersonalFields({
                                     onValueChange={(value) =>
                                         onChange('spouse_birthdate', value)
                                     }
-                                />
-                                <InputError
-                                    message={fieldError(
-                                        errors,
-                                        prefix,
-                                        'spouse_birthdate',
+                                    aria-invalid={Boolean(
+                                        fieldError(
+                                            errors,
+                                            prefix,
+                                            'spouse_birthdate',
+                                        ),
                                     )}
                                 />
                             </div>
@@ -1028,12 +1015,12 @@ export function LoanRequestPersonalFields({
                                     onChange={updateMobileField(
                                         'spouse_cell_no',
                                     )}
-                                />
-                                <InputError
-                                    message={fieldError(
-                                        errors,
-                                        prefix,
-                                        'spouse_cell_no',
+                                    aria-invalid={Boolean(
+                                        fieldError(
+                                            errors,
+                                            prefix,
+                                            'spouse_cell_no',
+                                        ),
                                     )}
                                 />
                             </div>
@@ -1169,6 +1156,13 @@ export function LoanRequestWorkFields({
                             <SelectTrigger
                                 id={`${prefix}_employment_type`}
                                 className="mt-1 w-full"
+                                aria-invalid={Boolean(
+                                    fieldError(
+                                        errors,
+                                        prefix,
+                                        'employment_type',
+                                    ),
+                                )}
                             >
                                 <SelectValue placeholder="Select employment" />
                             </SelectTrigger>
@@ -1183,13 +1177,6 @@ export function LoanRequestWorkFields({
                                 ))}
                             </SelectContent>
                         </Select>
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'employment_type',
-                            )}
-                        />
                     </div>
 
                     {!isPensioner ? (
@@ -1211,12 +1198,12 @@ export function LoanRequestWorkFields({
                                         event.target.value,
                                     )
                                 }
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'employer_business_name',
+                                aria-invalid={Boolean(
+                                    fieldError(
+                                        errors,
+                                        prefix,
+                                        'employer_business_name',
+                                    ),
                                 )}
                             />
                         </div>
@@ -1261,12 +1248,12 @@ export function LoanRequestWorkFields({
                                         '',
                                     );
                                 }}
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'employer_business_address3',
+                                aria-invalid={Boolean(
+                                    fieldError(
+                                        errors,
+                                        prefix,
+                                        'employer_business_address3',
+                                    ),
                                 )}
                             />
                         </div>
@@ -1319,12 +1306,12 @@ export function LoanRequestWorkFields({
                                         suggestion.code,
                                     );
                                 }}
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'employer_business_address2',
+                                aria-invalid={Boolean(
+                                    fieldError(
+                                        errors,
+                                        prefix,
+                                        'employer_business_address2',
+                                    ),
                                 )}
                             />
                         </div>
@@ -1352,12 +1339,12 @@ export function LoanRequestWorkFields({
                                     'mt-1 block w-full',
                                     readOnlyInputClass,
                                 )}
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'employer_business_address_zip',
+                                aria-invalid={Boolean(
+                                    fieldError(
+                                        errors,
+                                        prefix,
+                                        'employer_business_address_zip',
+                                    ),
                                 )}
                             />
                         </div>
@@ -1390,12 +1377,12 @@ export function LoanRequestWorkFields({
                                         value,
                                     )
                                 }
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'employer_business_address_barangay',
+                                aria-invalid={Boolean(
+                                    fieldError(
+                                        errors,
+                                        prefix,
+                                        'employer_business_address_barangay',
+                                    ),
                                 )}
                             />
                         </div>
@@ -1422,12 +1409,12 @@ export function LoanRequestWorkFields({
                                         event.target.value,
                                     )
                                 }
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'employer_business_address1',
+                                aria-invalid={Boolean(
+                                    fieldError(
+                                        errors,
+                                        prefix,
+                                        'employer_business_address1',
+                                    ),
                                 )}
                             />
                         </div>
@@ -1454,12 +1441,8 @@ export function LoanRequestWorkFields({
                                 onChange={(event) =>
                                     onChange('telephone_no', event.target.value)
                                 }
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'telephone_no',
+                                aria-invalid={Boolean(
+                                    fieldError(errors, prefix, 'telephone_no'),
                                 )}
                             />
                         </div>
@@ -1479,12 +1462,12 @@ export function LoanRequestWorkFields({
                                         event.target.value,
                                     )
                                 }
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'current_position',
+                                aria-invalid={Boolean(
+                                    fieldError(
+                                        errors,
+                                        prefix,
+                                        'current_position',
+                                    ),
                                 )}
                             />
                         </div>
@@ -1500,6 +1483,13 @@ export function LoanRequestWorkFields({
                                 <SelectTrigger
                                     id={`${prefix}_nature_of_business`}
                                     className="mt-1 w-full"
+                                    aria-invalid={Boolean(
+                                        fieldError(
+                                            errors,
+                                            prefix,
+                                            'nature_of_business',
+                                        ),
+                                    )}
                                 >
                                     <SelectValue placeholder="Select nature of business" />
                                 </SelectTrigger>
@@ -1525,13 +1515,6 @@ export function LoanRequestWorkFields({
                                     onChange={handleNatureOfBusinessOtherChange}
                                 />
                             ) : null}
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'nature_of_business',
-                                )}
-                            />
                         </div>
 
                         {!isPensioner ? (
@@ -1559,6 +1542,13 @@ export function LoanRequestWorkFields({
                                     <SelectTrigger
                                         id={`${prefix}_institutional_employer_category`}
                                         className="mt-1 w-full"
+                                        aria-invalid={Boolean(
+                                            fieldError(
+                                                errors,
+                                                prefix,
+                                                'institutional_employer_category',
+                                            ),
+                                        )}
                                     >
                                         <SelectValue placeholder="Not applicable" />
                                     </SelectTrigger>
@@ -1582,13 +1572,6 @@ export function LoanRequestWorkFields({
                                         )}
                                     </SelectContent>
                                 </Select>
-                                <InputError
-                                    message={fieldError(
-                                        errors,
-                                        prefix,
-                                        'institutional_employer_category',
-                                    )}
-                                />
                             </div>
                         ) : null}
 
@@ -1604,12 +1587,12 @@ export function LoanRequestWorkFields({
                                 onChange={(value) =>
                                     onChange('years_in_work_business', value)
                                 }
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'years_in_work_business',
+                                aria-invalid={Boolean(
+                                    fieldError(
+                                        errors,
+                                        prefix,
+                                        'years_in_work_business',
+                                    ),
                                 )}
                             />
                         </div>
@@ -1636,12 +1619,12 @@ export function LoanRequestWorkFields({
                                             event.target.value,
                                         )
                                     }
-                                />
-                                <InputError
-                                    message={fieldError(
-                                        errors,
-                                        prefix,
-                                        'employer_date_employed',
+                                    aria-invalid={Boolean(
+                                        fieldError(
+                                            errors,
+                                            prefix,
+                                            'employer_date_employed',
+                                        ),
                                     )}
                                 />
                             </div>
@@ -1667,12 +1650,12 @@ export function LoanRequestWorkFields({
                                 onChange('gross_monthly_income', value)
                             }
                             required
-                        />
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'gross_monthly_income',
+                            aria-invalid={Boolean(
+                                fieldError(
+                                    errors,
+                                    prefix,
+                                    'gross_monthly_income',
+                                ),
                             )}
                         />
                     </div>
@@ -1686,6 +1669,9 @@ export function LoanRequestWorkFields({
                             <SelectTrigger
                                 id={`${prefix}_payday`}
                                 className="mt-1 w-full"
+                                aria-invalid={Boolean(
+                                    fieldError(errors, prefix, 'payday'),
+                                )}
                             >
                                 <SelectValue placeholder="Select payday" />
                             </SelectTrigger>
@@ -1697,9 +1683,6 @@ export function LoanRequestWorkFields({
                                 ))}
                             </SelectContent>
                         </Select>
-                        <InputError
-                            message={fieldError(errors, prefix, 'payday')}
-                        />
                     </div>
                 </div>
             ) : null}

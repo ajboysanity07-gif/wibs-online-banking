@@ -23,7 +23,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FieldMessage } from '@/components/ui/field-message';
+import { FormErrorSummary } from '@/components/ui/form-error-summary';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -60,7 +60,7 @@ import type {
 } from '@/types/loan-requests';
 
 export const textareaClassName =
-    'flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
+    'flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive';
 
 const actionCardClassName =
     'border-primary/25 bg-card/80 shadow-sm ring-1 ring-primary/10';
@@ -1313,6 +1313,12 @@ export function ProcessingDetailsPanel({
                         className="space-y-4"
                         onSubmit={submitProcessingDetails}
                     >
+                        <FormErrorSummary
+                            errors={{
+                                inline_processing_reason:
+                                    reasonError ?? undefined,
+                            }}
+                        />
                         {renderProcessingSectionLabel('Recommendation', {
                             first: true,
                         })}
@@ -2134,7 +2140,6 @@ export function ProcessingDetailsPanel({
                                         : 'Required — explain why you’re making this change.'
                                 }
                                 value={processingForm.reason}
-                                aria-describedby="inline_processing_reason_message"
                                 aria-invalid={reasonError !== null}
                                 onChange={(event) => {
                                     setReasonError(null);
@@ -2143,10 +2148,6 @@ export function ProcessingDetailsPanel({
                                         reason: event.target.value,
                                     }));
                                 }}
-                            />
-                            <FieldMessage
-                                id="inline_processing_reason_message"
-                                error={reasonError ?? undefined}
                             />
                         </div>
                         <Button

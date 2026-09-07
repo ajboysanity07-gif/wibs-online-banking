@@ -36,6 +36,7 @@ type Props = {
     errorMessage?: string;
     emptyMessage?: string;
     promptMessage?: string;
+    'aria-invalid'?: boolean;
 };
 
 const DEFAULT_LOADING_MESSAGE = 'Loading suggestions...';
@@ -67,6 +68,7 @@ export function LocationCombobox({
     errorMessage,
     emptyMessage,
     promptMessage,
+    'aria-invalid': ariaInvalid,
 }: Props) {
     const isInteractive = !readOnly && !disabled;
     const hasValue = search.selectedValue.trim() !== '';
@@ -153,11 +155,13 @@ export function LocationCombobox({
                     aria-expanded={isInteractive && search.open}
                     aria-label={ariaLabel}
                     aria-required={required}
+                    aria-invalid={ariaInvalid}
                     disabled={!isInteractive}
                     className={cn(
                         inputClassName,
                         'inline-flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
                         'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                        'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
                         !hasValue && 'text-muted-foreground',
                         readOnly &&
                             'pointer-events-none border-border/40 bg-muted/30 text-muted-foreground/80',

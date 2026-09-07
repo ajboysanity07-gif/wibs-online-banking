@@ -11,6 +11,7 @@ type AdornedNumberInputProps = {
     placeholder?: string;
     disabled?: boolean;
     required?: boolean;
+    'aria-invalid'?: boolean;
 };
 
 export function CurrencyInput({
@@ -22,6 +23,7 @@ export function CurrencyInput({
     placeholder = '0.00',
     disabled,
     required,
+    'aria-invalid': ariaInvalid,
 }: AdornedNumberInputProps) {
     return (
         <div className="relative">
@@ -44,6 +46,7 @@ export function CurrencyInput({
                 customInput={Input}
                 disabled={disabled}
                 required={required}
+                aria-invalid={ariaInvalid}
             />
         </div>
     );
@@ -125,6 +128,7 @@ type MonthsInputProps = {
     placeholder?: string;
     disabled?: boolean;
     required?: boolean;
+    'aria-invalid'?: boolean;
 };
 
 export function MonthsInput({
@@ -136,6 +140,7 @@ export function MonthsInput({
     placeholder,
     disabled,
     required,
+    'aria-invalid': ariaInvalid,
 }: MonthsInputProps) {
     return (
         <div className="relative self-start">
@@ -153,6 +158,7 @@ export function MonthsInput({
                 customInput={Input}
                 disabled={disabled}
                 required={required}
+                aria-invalid={ariaInvalid}
             />
             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-muted-foreground">
                 months
@@ -172,6 +178,7 @@ export function YearsInput({
     placeholder,
     disabled,
     required,
+    'aria-invalid': ariaInvalid,
 }: YearsInputProps) {
     return (
         <div className="relative self-start">
@@ -189,6 +196,7 @@ export function YearsInput({
                 customInput={Input}
                 disabled={disabled}
                 required={required}
+                aria-invalid={ariaInvalid}
             />
             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-muted-foreground">
                 years

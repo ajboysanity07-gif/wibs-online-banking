@@ -13,6 +13,7 @@ type BirthdateInputProps = {
     required?: boolean;
     readOnly?: boolean;
     disabled?: boolean;
+    'aria-invalid'?: boolean;
 };
 
 const isoToDisplay = (iso: string): string => {
@@ -62,6 +63,7 @@ export function BirthdateInput({
     required,
     readOnly,
     disabled,
+    'aria-invalid': ariaInvalid,
 }: BirthdateInputProps) {
     const [displayValue, setDisplayValue] = useState(() => isoToDisplay(value));
     const [lastProcessedValue, setLastProcessedValue] = useState(value);
@@ -93,6 +95,7 @@ export function BirthdateInput({
             readOnly={readOnly}
             required={required}
             disabled={disabled}
+            aria-invalid={ariaInvalid}
             inputMode="numeric"
         />
     );

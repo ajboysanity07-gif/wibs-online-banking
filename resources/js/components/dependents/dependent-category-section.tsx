@@ -2,7 +2,6 @@ import { Baby, Heart, UserRound, UsersRound, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ComponentType } from 'react';
 
-import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -161,8 +160,8 @@ export function DependentCategorySection({
                     type={type}
                     value={value ? `${value}` : ''}
                     onChange={(event) => onChange(fieldKey, event.target.value)}
+                    aria-invalid={Boolean(errors[errorKey])}
                 />
-                <InputError message={errors[errorKey]} />
             </div>
         );
     };
@@ -213,11 +212,19 @@ export function DependentCategorySection({
                     className="flex flex-row gap-6"
                 >
                     <div className="flex items-center gap-2">
-                        <RadioGroupItem value="New" id={`${statusKey}-new`} />
+                        <RadioGroupItem
+                            value="New"
+                            id={`${statusKey}-new`}
+                            aria-invalid={Boolean(errors[statusErrorKey])}
+                        />
                         <Label htmlFor={`${statusKey}-new`}>New</Label>
                     </div>
                     <div className="flex items-center gap-2">
-                        <RadioGroupItem value="Old" id={`${statusKey}-old`} />
+                        <RadioGroupItem
+                            value="Old"
+                            id={`${statusKey}-old`}
+                            aria-invalid={Boolean(errors[statusErrorKey])}
+                        />
                         <Label htmlFor={`${statusKey}-old`}>Old</Label>
                     </div>
                 </RadioGroup>
@@ -232,7 +239,6 @@ export function DependentCategorySection({
                         value={statusValue ? `${statusValue}` : ''}
                     />
                 ) : null}
-                <InputError message={errors[statusErrorKey]} />
 
                 {statusValue === 'Old' ? (
                     <div className="grid animate-in gap-2 pt-1 duration-150 fade-in slide-in-from-top-1 sm:max-w-xs">
@@ -246,8 +252,8 @@ export function DependentCategorySection({
                             onChange={(event) =>
                                 onChange(numberKey, event.target.value)
                             }
+                            aria-invalid={Boolean(errors[numberErrorKey])}
                         />
-                        <InputError message={errors[numberErrorKey]} />
                     </div>
                 ) : withNameAttribute ? (
                     // Keep a disabled, empty carrier so a native Form submit
@@ -413,6 +419,7 @@ export function SingletonCycleSection({
                             <RadioGroupItem
                                 value="New"
                                 id={`${statusKey}-new`}
+                                aria-invalid={Boolean(errors[statusErrorKey])}
                             />
                             <Label htmlFor={`${statusKey}-new`}>New</Label>
                         </div>
@@ -420,6 +427,7 @@ export function SingletonCycleSection({
                             <RadioGroupItem
                                 value="Old"
                                 id={`${statusKey}-old`}
+                                aria-invalid={Boolean(errors[statusErrorKey])}
                             />
                             <Label htmlFor={`${statusKey}-old`}>Old</Label>
                         </div>
@@ -431,7 +439,6 @@ export function SingletonCycleSection({
                             value={statusValue ? `${statusValue}` : ''}
                         />
                     ) : null}
-                    <InputError message={errors[statusErrorKey]} />
 
                     {statusValue === 'Old' ? (
                         <div className="grid animate-in gap-2 duration-150 fade-in slide-in-from-top-1">
@@ -445,8 +452,8 @@ export function SingletonCycleSection({
                                 onChange={(event) =>
                                     onChange(numberKey, event.target.value)
                                 }
+                                aria-invalid={Boolean(errors[numberErrorKey])}
                             />
-                            <InputError message={errors[numberErrorKey]} />
                         </div>
                     ) : withNameAttribute ? (
                         <input type="hidden" name={numberKey} value="" />

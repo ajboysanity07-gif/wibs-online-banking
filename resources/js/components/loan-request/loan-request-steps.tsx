@@ -11,7 +11,6 @@ import {
     slotFieldKey,
     summarizeDependents,
 } from '@/components/dependents/dependent-category-section';
-import InputError from '@/components/input-error';
 import { BooleanYesNoField } from '@/components/loan-request/boolean-yes-no-field';
 import {
     LoanRequestPersonalFields,
@@ -177,6 +176,7 @@ export function LoanRequestLoanDetailsStep({
         <LoanRequestSectionCard
             title="Loan details"
             description="Select your preferred loan type and request details."
+            errors={errors}
         >
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
@@ -185,7 +185,11 @@ export function LoanRequestLoanDetailsStep({
                         value={data.typecode || undefined}
                         onValueChange={(value) => onChange('typecode', value)}
                     >
-                        <SelectTrigger id="loan_type" className="mt-1 w-full">
+                        <SelectTrigger
+                            id="loan_type"
+                            className="mt-1 w-full"
+                            aria-invalid={Boolean(errors.typecode)}
+                        >
                             <SelectValue placeholder="Select loan type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -199,7 +203,6 @@ export function LoanRequestLoanDetailsStep({
                             ))}
                         </SelectContent>
                     </Select>
-                    <InputError message={errors.typecode} />
                 </div>
 
                 {isOtherLoan && (
@@ -219,8 +222,8 @@ export function LoanRequestLoanDetailsStep({
                                     event.target.value,
                                 )
                             }
+                            aria-invalid={Boolean(errors.other_loan_type_name)}
                         />
-                        <InputError message={errors.other_loan_type_name} />
                     </div>
                 )}
 
@@ -237,6 +240,7 @@ export function LoanRequestLoanDetailsStep({
                                 <SelectTrigger
                                     id="kind_of_loan"
                                     className="mt-1 w-full"
+                                    aria-invalid={Boolean(errors.kind_of_loan)}
                                 >
                                     <SelectValue placeholder="Select kind of loan" />
                                 </SelectTrigger>
@@ -248,7 +252,6 @@ export function LoanRequestLoanDetailsStep({
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <InputError message={errors.kind_of_loan} />
                         </div>
                         {(loanTypeAbbreviation ||
                             data.kind_of_loan === 'Emergency') && (
@@ -280,8 +283,8 @@ export function LoanRequestLoanDetailsStep({
                         onValueChange={(value) =>
                             onChange('requested_amount', value)
                         }
+                        aria-invalid={Boolean(errors.requested_amount)}
                     />
-                    <InputError message={errors.requested_amount} />
                 </div>
 
                 <div className="grid gap-2">
@@ -292,8 +295,8 @@ export function LoanRequestLoanDetailsStep({
                         placeholder="e.g. 12"
                         required
                         onChange={(value) => onChange('requested_term', value)}
+                        aria-invalid={Boolean(errors.requested_term)}
                     />
-                    <InputError message={errors.requested_term} />
                 </div>
 
                 <div className="grid gap-2">
@@ -307,6 +310,7 @@ export function LoanRequestLoanDetailsStep({
                         <SelectTrigger
                             id="availment_status"
                             className="mt-1 w-full"
+                            aria-invalid={Boolean(errors.availment_status)}
                         >
                             <SelectValue placeholder="Select status" />
                         </SelectTrigger>
@@ -318,7 +322,6 @@ export function LoanRequestLoanDetailsStep({
                             ))}
                         </SelectContent>
                     </Select>
-                    <InputError message={errors.availment_status} />
                 </div>
 
                 <div className="grid gap-2 md:col-span-2">
@@ -332,8 +335,8 @@ export function LoanRequestLoanDetailsStep({
                         onChange={(event) =>
                             onChange('loan_purpose', event.target.value)
                         }
+                        aria-invalid={Boolean(errors.loan_purpose)}
                     />
-                    <InputError message={errors.loan_purpose} />
                 </div>
 
                 {isOtherLoan && (
@@ -352,6 +355,9 @@ export function LoanRequestLoanDetailsStep({
                             <SelectTrigger
                                 id="requested_payment_frequency"
                                 className="mt-1 w-full"
+                                aria-invalid={Boolean(
+                                    errors.requested_payment_frequency,
+                                )}
                             >
                                 <SelectValue placeholder="Select repayment frequency" />
                             </SelectTrigger>
@@ -363,9 +369,6 @@ export function LoanRequestLoanDetailsStep({
                                 ))}
                             </SelectContent>
                         </Select>
-                        <InputError
-                            message={errors.requested_payment_frequency}
-                        />
                     </div>
                 )}
 
@@ -424,6 +427,7 @@ export function LoanRequestApplicantPersonalStep({
         <LoanRequestSectionCard
             title={PERSONAL_STEP_TITLES[section]}
             description={PERSONAL_STEP_DESCS[section]}
+            errors={errors}
         >
             <LoanRequestPersonalFields
                 prefix="applicant"
@@ -459,6 +463,7 @@ export function LoanRequestApplicantWorkStep({
         <LoanRequestSectionCard
             title="My work & finances"
             description={WORK_STEP_DESCS[section]}
+            errors={errors}
         >
             <LoanRequestWorkFields
                 prefix="applicant"
@@ -581,7 +586,11 @@ export function LoanRequestCoMakerStep({
     onToggleSaveForReuse,
 }: CoMakerStepProps) {
     return (
-        <LoanRequestSectionCard title={title} description={description}>
+        <LoanRequestSectionCard
+            title={title}
+            description={description}
+            errors={errors}
+        >
             {section === 'basic' && savedCoMakers ? (
                 <SavedCoMakerPicker
                     savedCoMakers={savedCoMakers}
@@ -658,7 +667,7 @@ const displayValue = (value: string): string =>
     value.trim() !== '' ? value : '--';
 
 const textareaClassName =
-    'flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
+    'flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive';
 
 const displayText = (value?: string | null): string => {
     const normalized = formatDisplayText(value);
@@ -993,7 +1002,13 @@ function BankingSectionFields({
                     </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 rounded-md border border-input p-3">
+                <div
+                    className="flex flex-wrap items-center gap-3 rounded-md border border-input p-3 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20"
+                    aria-invalid={Boolean(
+                        errors[`${sectionKey}.release_method`] ||
+                        errors[`${sectionKey}.release_saved_account_id`],
+                    )}
+                >
                     <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2">
                             <PaymentMethodIcon
@@ -1022,10 +1037,6 @@ function BankingSectionFields({
                         {releaseMethod ? 'Change' : 'Choose release method'}
                     </Button>
                 </div>
-                <InputError message={errors[`${sectionKey}.release_method`]} />
-                <InputError
-                    message={errors[`${sectionKey}.release_saved_account_id`]}
-                />
             </div>
 
             <Separator />
@@ -1038,7 +1049,13 @@ function BankingSectionFields({
                     </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 rounded-md border border-input p-3">
+                <div
+                    className="flex flex-wrap items-center gap-3 rounded-md border border-input p-3 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20"
+                    aria-invalid={Boolean(
+                        errors[`${sectionKey}.payment_option`] ||
+                        errors[`${sectionKey}.payment_saved_account_id`],
+                    )}
+                >
                     <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2">
                             <PaymentMethodIcon
@@ -1067,10 +1084,6 @@ function BankingSectionFields({
                         {paymentOption ? 'Change' : 'Choose repayment method'}
                     </Button>
                 </div>
-                <InputError message={errors[`${sectionKey}.payment_option`]} />
-                <InputError
-                    message={errors[`${sectionKey}.payment_saved_account_id`]}
-                />
                 {!isInstitutionalEmployer && (
                     <p className="text-xs text-muted-foreground">
                         Salary Deduction is only available for BLGU, LGU,
@@ -1131,6 +1144,7 @@ export function LoanRequestDataSectionStep({
                 title={title}
                 description={description}
                 contentClassName="space-y-5"
+                errors={errors}
             >
                 <BankingSectionFields
                     sectionKey={sectionKey}
@@ -1164,6 +1178,7 @@ export function LoanRequestDataSectionStep({
             title={title}
             description={description}
             contentClassName="space-y-5"
+            errors={errors}
         >
             <div className="grid gap-4 md:grid-cols-2">
                 {Object.entries(definition.fields).map(([fieldKey, field]) => {
@@ -1202,7 +1217,6 @@ export function LoanRequestDataSectionStep({
                                     Automatically determined from your account
                                     records.
                                 </p>
-                                <InputError message={errors[errorKey]} />
                             </div>
                         );
                     }
@@ -1218,6 +1232,7 @@ export function LoanRequestDataSectionStep({
                                         id={`${sectionKey}_${fieldKey}`}
                                         checked={value === true}
                                         aria-label={field.label}
+                                        aria-invalid={Boolean(errors[errorKey])}
                                         onCheckedChange={(checked) =>
                                             onChange(fieldKey, checked === true)
                                         }
@@ -1232,7 +1247,6 @@ export function LoanRequestDataSectionStep({
                                         </span>
                                     </Label>
                                 </div>
-                                <InputError message={errors[errorKey]} />
                             </div>
                         );
                     }
@@ -1259,6 +1273,7 @@ export function LoanRequestDataSectionStep({
                                         id={`${sectionKey}_${fieldKey}`}
                                         value={value}
                                         aria-label={field.label}
+                                        aria-invalid={Boolean(errors[errorKey])}
                                         fullWidth={isFullWidthToggle}
                                         disabled={
                                             fieldKey ===
@@ -1286,6 +1301,7 @@ export function LoanRequestDataSectionStep({
                                     onChange={(event) =>
                                         onChange(fieldKey, event.target.value)
                                     }
+                                    aria-invalid={Boolean(errors[errorKey])}
                                 />
                             ) : (
                                 <Input
@@ -1307,9 +1323,9 @@ export function LoanRequestDataSectionStep({
                                     onChange={(event) =>
                                         onChange(fieldKey, event.target.value)
                                     }
+                                    aria-invalid={Boolean(errors[errorKey])}
                                 />
                             )}
-                            <InputError message={errors[errorKey]} />
                         </div>
                     );
                 })}
@@ -1671,8 +1687,8 @@ export function LoanRequestHealthQuestionnaireStep({
                                     clearDescendants(fieldKey);
                                 }
                             }}
+                            aria-invalid={Boolean(errors[errorKey])}
                         />
-                        <InputError message={errors[errorKey]} />
                     </div>
                     {children.length > 0 ? (
                         <div className={childWrapperClassName(depth + 1)}>
@@ -1699,8 +1715,8 @@ export function LoanRequestHealthQuestionnaireStep({
                         onChange={(event) =>
                             onChange(fieldKey, event.target.value)
                         }
+                        aria-invalid={Boolean(errors[errorKey])}
                     />
-                    <InputError message={errors[errorKey]} />
                 </div>
             );
         }
@@ -1717,8 +1733,8 @@ export function LoanRequestHealthQuestionnaireStep({
                     value={value ? `${value}` : ''}
                     maxLength={1000}
                     onChange={(event) => onChange(fieldKey, event.target.value)}
+                    aria-invalid={Boolean(errors[errorKey])}
                 />
-                <InputError message={errors[errorKey]} />
             </div>
         );
     };
@@ -1838,9 +1854,9 @@ export function LoanRequestHealthQuestionnaireStep({
                                 onChange('health_smoking_status_details', null);
                             }
                         }}
-                    />
-                    <InputError
-                        message={errors['health.health_smoking_status']}
+                        aria-invalid={Boolean(
+                            errors['health.health_smoking_status'],
+                        )}
                     />
                 </div>
                 {detailsField && value && value !== 'none' ? (
@@ -1865,13 +1881,11 @@ export function LoanRequestHealthQuestionnaireStep({
                                         event.target.value,
                                     )
                                 }
-                            />
-                            <InputError
-                                message={
+                                aria-invalid={Boolean(
                                     errors[
                                         'health_glapi.health_smoking_status_details'
-                                    ]
-                                }
+                                    ],
+                                )}
                             />
                         </div>
                     </div>
@@ -1908,9 +1922,9 @@ export function LoanRequestHealthQuestionnaireStep({
                                 onChange('health_hypertension_details', null);
                             }
                         }}
-                    />
-                    <InputError
-                        message={errors['health.health_hypertension']}
+                        aria-invalid={Boolean(
+                            errors['health.health_hypertension'],
+                        )}
                     />
                 </div>
                 {detailsField && value === true ? (
@@ -1935,13 +1949,11 @@ export function LoanRequestHealthQuestionnaireStep({
                                         event.target.value,
                                     )
                                 }
-                            />
-                            <InputError
-                                message={
+                                aria-invalid={Boolean(
                                     errors[
                                         'health_glapi.health_hypertension_details'
-                                    ]
-                                }
+                                    ],
+                                )}
                             />
                         </div>
                     </div>
@@ -1968,6 +1980,7 @@ export function LoanRequestHealthQuestionnaireStep({
             title={title}
             description={description}
             contentClassName="space-y-5"
+            errors={errors}
         >
             <div className="space-y-4">
                 {renderedEntries.map((entry) =>
@@ -2024,6 +2037,7 @@ export function LoanRequestInsuranceBeneficiariesStep({
                         id={`${sectionKey}_${fieldKey}`}
                         value={value}
                         aria-label={field.label}
+                        aria-invalid={Boolean(errors[errorKey])}
                         onChange={(nextValue) => onChange(fieldKey, nextValue)}
                     />
                 ) : (
@@ -2031,12 +2045,12 @@ export function LoanRequestInsuranceBeneficiariesStep({
                         id={`${sectionKey}_${fieldKey}`}
                         type={field.type === 'date' ? 'date' : 'text'}
                         value={value ? `${value}` : ''}
+                        aria-invalid={Boolean(errors[errorKey])}
                         onChange={(event) =>
                             onChange(fieldKey, event.target.value)
                         }
                     />
                 )}
-                <InputError message={errors[errorKey]} />
             </div>
         );
     };
@@ -2046,6 +2060,7 @@ export function LoanRequestInsuranceBeneficiariesStep({
             title={title}
             description={description}
             contentClassName="space-y-5"
+            errors={errors}
         >
             <div className="space-y-3">
                 <p className="text-sm font-semibold text-foreground">
@@ -2203,6 +2218,7 @@ export function LoanRequestDependentsStep({
                 title={title}
                 description={description}
                 contentClassName="space-y-6"
+                errors={errors}
             >
                 {missingCycleStatusNames.length > 0 ? (
                     <Alert variant="destructive">
@@ -2295,6 +2311,7 @@ export function LoanRequestDependentsStep({
             title={title}
             description={description}
             contentClassName="space-y-6"
+            errors={errors}
         >
             {spouseVisible ? (
                 <DependentSpouseCycleSection
@@ -2748,6 +2765,7 @@ export function LoanRequestReviewStep({
             title="Review & undertaking"
             description="Review your application before submitting."
             contentClassName="space-y-5"
+            errors={errors}
         >
             <div className="rounded-lg border border-border/50 bg-muted/20 p-4 text-sm">
                 <p className="text-xs text-muted-foreground uppercase">
@@ -2950,11 +2968,13 @@ export function LoanRequestReviewStep({
                         }
                     />
                     <div className="space-y-2">
-                        <Label htmlFor="undertaking_accepted">
+                        <Label
+                            htmlFor="undertaking_accepted"
+                            aria-invalid={Boolean(errors.undertaking_accepted)}
+                        >
                             I confirm that I have read and agree to the
                             undertaking above.
                         </Label>
-                        <InputError message={errors.undertaking_accepted} />
                     </div>
                 </div>
             </SummaryCard>

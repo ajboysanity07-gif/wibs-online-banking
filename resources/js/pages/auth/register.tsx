@@ -7,10 +7,10 @@ import {
     useRef,
     useState,
 } from 'react';
-import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { FieldMessage } from '@/components/ui/field-message';
+import { FormErrorSummary } from '@/components/ui/form-error-summary';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -237,10 +237,7 @@ export default function Register({ memberName }: Props) {
             <Head title="Create login" />
             <form onSubmit={submit} className="flex flex-col gap-6">
                 <div className="grid gap-6">
-                    <InputError
-                        message={errors.verification}
-                        className="text-sm"
-                    />
+                    <FormErrorSummary errors={errors} />
 
                     <div className="grid gap-2">
                         <Label htmlFor="username">Username</Label>
@@ -254,6 +251,7 @@ export default function Register({ memberName }: Props) {
                             name="username"
                             placeholder="Choose a username"
                             value={usernameValue}
+                            aria-invalid={Boolean(errors.username)}
                             onChange={(event) => {
                                 setUsernameValue(event.target.value);
                                 clearError('username');
@@ -261,14 +259,9 @@ export default function Register({ memberName }: Props) {
                             onFocus={() => setHasFocused(true)}
                         />
                         <FieldMessage
-                            error={errors.username}
                             hint={availabilityLabel ?? undefined}
                             reserveSpace
-                            className={
-                                errors.username
-                                    ? undefined
-                                    : availabilityClassName
-                            }
+                            className={availabilityClassName}
                         />
                         {shouldShowSuggestions && (
                             <div className="space-y-2">
@@ -311,14 +304,11 @@ export default function Register({ memberName }: Props) {
                             name="email"
                             placeholder="email@example.com"
                             value={emailValue}
+                            aria-invalid={Boolean(errors.email)}
                             onChange={(event) => {
                                 setEmailValue(event.target.value);
                                 clearError('email');
                             }}
-                        />
-                        <FieldMessage
-                            error={errors.email}
-                            reserveSpace={false}
                         />
                     </div>
 
@@ -334,6 +324,7 @@ export default function Register({ memberName }: Props) {
                             placeholder="09XXXXXXXXX"
                             maxLength={11}
                             value={phoneValue}
+                            aria-invalid={Boolean(errors.phoneno)}
                             onChange={(event) => {
                                 const normalized = normalizeMobileNumberInput(
                                     event.target.value,
@@ -341,10 +332,6 @@ export default function Register({ memberName }: Props) {
                                 setPhoneValue(normalized);
                                 clearError('phoneno');
                             }}
-                        />
-                        <FieldMessage
-                            error={errors.phoneno}
-                            reserveSpace={false}
                         />
                     </div>
 
@@ -358,15 +345,12 @@ export default function Register({ memberName }: Props) {
                             name="password"
                             placeholder="Password"
                             value={passwordValue}
+                            aria-invalid={Boolean(errors.password)}
                             onChange={(event) => {
                                 setPasswordValue(event.target.value);
                                 clearError('password');
                                 clearError('password_confirmation');
                             }}
-                        />
-                        <FieldMessage
-                            error={errors.password}
-                            reserveSpace={false}
                         />
                     </div>
 
@@ -382,6 +366,7 @@ export default function Register({ memberName }: Props) {
                             name="password_confirmation"
                             placeholder="Confirm password"
                             value={passwordConfirmationValue}
+                            aria-invalid={Boolean(errors.password_confirmation)}
                             onChange={(event) => {
                                 const value = event.target.value;
                                 setPasswordConfirmationValue(value);
@@ -389,7 +374,6 @@ export default function Register({ memberName }: Props) {
                             }}
                         />
                         <FieldMessage
-                            error={errors.password_confirmation}
                             hint={confirmationHint}
                             reserveSpace
                             className={confirmationClassName}
