@@ -22,6 +22,7 @@ import {
     hasWmasterValue,
     MISSING_FIELD_CLASS,
     OriginalValueHint,
+    SEX_OPTIONS,
     WMASTER_VALUE_CLASS,
     type MemberApplicationProfileData,
     type MemberRecord,
@@ -42,6 +43,10 @@ type Props = {
     memberAge: number | null;
     memberCivilStatus: string;
     isCivilStatusLocked: boolean;
+    memberSex: string;
+    isSexLocked: boolean;
+    sexValue: string;
+    setSexValue: (value: string) => void;
     isHousingStatusLocked: boolean;
     isSpouseNameLocked: boolean;
     spouseFieldsHidden: boolean;
@@ -86,6 +91,10 @@ export function PersonalTab({
     memberAge,
     memberCivilStatus,
     isCivilStatusLocked,
+    memberSex,
+    isSexLocked,
+    sexValue,
+    setSexValue,
     isHousingStatusLocked,
     isSpouseNameLocked,
     spouseFieldsHidden,
@@ -622,6 +631,73 @@ export function PersonalTab({
                                     <InputError
                                         className="mt-2"
                                         message={formErrors.housing_status}
+                                    />
+                                </>
+                            )}
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor={isSexLocked ? 'member_sex' : 'sex'}>
+                                Sex
+                            </Label>
+
+                            {isSexLocked ? (
+                                <Select value={memberSex || undefined} disabled>
+                                    <SelectTrigger
+                                        id="member_sex"
+                                        className={cn(
+                                            'mt-1 w-full',
+                                            WMASTER_VALUE_CLASS,
+                                        )}
+                                    >
+                                        <SelectValue placeholder="Not available" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {SEX_OPTIONS.map((option) => (
+                                            <SelectItem
+                                                key={option}
+                                                value={option}
+                                            >
+                                                {option}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <>
+                                    <Select
+                                        value={sexValue || undefined}
+                                        onValueChange={setSexValue}
+                                    >
+                                        <SelectTrigger
+                                            id="sex"
+                                            className={cn(
+                                                'mt-1 w-full',
+                                                isFieldMissing('sex') &&
+                                                    MISSING_FIELD_CLASS,
+                                            )}
+                                        >
+                                            <SelectValue placeholder="Select sex" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {SEX_OPTIONS.map((option) => (
+                                                <SelectItem
+                                                    key={option}
+                                                    value={option}
+                                                >
+                                                    {option}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <input
+                                        type="hidden"
+                                        name="sex"
+                                        value={sexValue}
+                                    />
+                                    <InputError
+                                        className="mt-2"
+                                        message={formErrors.sex}
                                     />
                                 </>
                             )}

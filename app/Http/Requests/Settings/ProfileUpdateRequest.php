@@ -10,6 +10,7 @@ use App\LoanInstitutionalEmployerCategory;
 use App\LoanPaydayOption;
 use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
+use App\LoanSex;
 use App\Models\MemberApplicationProfile;
 use App\Models\MemberDependentProfile;
 use App\Rules\ValidPostalCode;
@@ -331,6 +332,10 @@ class ProfileUpdateRequest extends FormRequest
                 'min:0',
                 'max:255',
             ],
+            'sex' => [
+                $memberRequirement('sex'),
+                Rule::in(LoanSex::values()),
+            ],
             'civil_status' => [
                 $memberRequirement('civil_status'),
                 Rule::in(['Single', 'Married', 'Separated', 'Widowed']),
@@ -587,6 +592,7 @@ class ProfileUpdateRequest extends FormRequest
             'current_position.required' => 'Current position is required to complete your profile.',
             'gross_monthly_income.required' => 'Gross monthly income is required to complete your profile.',
             'payday.required' => 'Payday is required to complete your profile.',
+            'sex.required' => 'Sex is required to complete your profile.',
             'civil_status.required' => 'Civil status is required to complete your profile.',
             'housing_status.required' => 'Housing status is required to complete your profile.',
             'spouse_name.required' => 'Spouse name is required to complete your profile.',
@@ -635,8 +641,13 @@ class ProfileUpdateRequest extends FormRequest
             return 'nullable';
         }
 
-        // civil_status/housing_status are disabled (and so never submitted)
-        // once the core-banking record already has a value for them.
+        // sex/civil_status/housing_status are disabled (and so never
+        // submitted) once the core-banking record already has a value for
+        // them.
+        if ($field === 'sex' && $this->wmasterFieldHasValue('sex')) {
+            return 'nullable';
+        }
+
         if ($field === 'civil_status' && $this->wmasterFieldHasValue('civilstat')) {
             return 'nullable';
         }

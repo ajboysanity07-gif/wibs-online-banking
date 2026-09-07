@@ -535,9 +535,9 @@
     "semantic_hash": "54e41a7f7c2aeca5f853d2189bc7f46c"
   },
   "app/Http/Middleware/EnsureMemberProfileComplete.php": {
-    "mtime": 1785423357.8297534,
-    "ast_hash": "1bd919194022b4d37341f3c836fcd222",
-    "semantic_hash": "1bd919194022b4d37341f3c836fcd222"
+    "mtime": 1788765316.4384625,
+    "ast_hash": "d3df9f6cf68adad5be53a9b38d790de3",
+    "semantic_hash": ""
   },
   "app/Http/Middleware/EnsureMemberVerified.php": {
     "mtime": 1785423357.8297534,
@@ -3460,8 +3460,8 @@
     "semantic_hash": "e582a161119df4bd7b0eed74af36613b"
   },
   "routes/web.php": {
-    "mtime": 1788748687.8082888,
-    "ast_hash": "427f23b02b47608a2b1ead1167f1399b",
+    "mtime": 1788765307.3788505,
+    "ast_hash": "faaa651125023fb2222a8c19db0c6709",
     "semantic_hash": ""
   },
   "skills-lock.json": {
@@ -7160,8 +7160,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/payment-account-picker-sheet.tsx": {
-    "mtime": 1788229687.8225622,
-    "ast_hash": "30db241f5cb8b82a40511d23001c789d",
+    "mtime": 1788765445.3391879,
+    "ast_hash": "7b9021fdbf4b436651987260aeed5c29",
     "semantic_hash": ""
   },
   "resources/js/components/ui/radio-group.tsx": {
@@ -7185,8 +7185,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/SavedPaymentAccountsTest.php": {
-    "mtime": 1788229757.1730175,
-    "ast_hash": "13be3c77ca48cacdf1c2c59394305e7d",
+    "mtime": 1788765527.1439552,
+    "ast_hash": "b8b60f8f2e56ad274b08c843e85d2b99",
     "semantic_hash": ""
   },
   "app/Concerns/ResolvesSavedPaymentAccountFields.php": {
@@ -7317,6 +7317,11 @@
   "tests/Feature/Admin/MemberPasswordResetTest.php": {
     "mtime": 1788749112.9633636,
     "ast_hash": "e88f53111f4a67e2dba0722f9f34b258",
+    "semantic_hash": ""
+  },
+  "tests/Feature/EnsureMemberProfileCompleteMiddlewareTest.php": {
+    "mtime": 1788765541.4499762,
+    "ast_hash": "ad956fa3b836edcd603cd584219e06e5",
     "semantic_hash": ""
   }
 }

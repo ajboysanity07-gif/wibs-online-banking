@@ -41,6 +41,7 @@ import {
     NATURE_OF_BUSINESS_OTHER_VALUE,
     normalizeCivilStatusValue,
     normalizePaydayValue,
+    normalizeSexValue,
     PROFILE_PHOTO_ALLOWED_TYPES,
     PROFILE_PHOTO_MAX_BYTES,
     PROFILE_PHOTO_OUTPUT_QUALITY,
@@ -110,6 +111,7 @@ export default function Profile({
     const memberCivilStatus = normalizeCivilStatusValue(
         memberRecord?.civilstat ?? '',
     );
+    const memberSex = normalizeSexValue(memberRecord?.sex ?? '');
     const numberOfChildrenValue =
         memberApplicationProfile?.number_of_children ??
         memberRecord?.number_of_children ??
@@ -123,6 +125,7 @@ export default function Profile({
         memberCurrentPosition === '' && hasWmasterValue(memberOccupation);
     const isSpouseNameLocked = hasWmasterValue(memberRecord?.spouse_name);
     const isCivilStatusLocked = hasWmasterValue(memberCivilStatus);
+    const isSexLocked = hasWmasterValue(memberSex);
     const isHousingStatusLocked = hasWmasterValue(memberRecord?.housing_status);
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
     const missingProfileFields = profileCompletion?.missingFields ?? [];
@@ -284,6 +287,9 @@ export default function Profile({
     );
     const [civilStatusValue, setCivilStatusValue] = useState<string>(
         memberApplicationProfile?.civil_status?.trim() ?? '',
+    );
+    const [sexValue, setSexValue] = useState<string>(
+        memberApplicationProfile?.sex?.trim() ?? '',
     );
     const [housingStatusValue, setHousingStatusValue] = useState<string>(
         memberApplicationProfile?.housing_status?.trim() ?? '',
@@ -831,6 +837,10 @@ export default function Profile({
                                                     isCivilStatusLocked={
                                                         isCivilStatusLocked
                                                     }
+                                                    memberSex={memberSex}
+                                                    isSexLocked={isSexLocked}
+                                                    sexValue={sexValue}
+                                                    setSexValue={setSexValue}
                                                     isHousingStatusLocked={
                                                         isHousingStatusLocked
                                                     }

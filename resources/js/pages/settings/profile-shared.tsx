@@ -48,6 +48,7 @@ export type MemberRecord = {
     address3_raw: string | null;
     zip_code: string | null;
     display_address: string | null;
+    sex: string | null;
     civilstat: string | null;
     occupation: string | null;
     spouse_name: string | null;
@@ -70,6 +71,7 @@ export type MemberApplicationProfileData = {
     home_address3: string | null;
     home_address_zip: string | null;
     number_of_children: number | null;
+    sex: string | null;
     civil_status: string | null;
     housing_status: string | null;
     spouse_name: string | null;
@@ -161,6 +163,7 @@ export const EMPLOYMENT_TYPE_OPTIONS = [
     PENSIONER_EMPLOYMENT_TYPE,
     'OFW',
 ];
+export const SEX_OPTIONS = ['Male', 'Female'] as const;
 export const CIVIL_STATUS_OPTIONS = [
     'Single',
     'Married',
@@ -269,6 +272,7 @@ export const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'home_address3',
         'home_address_zip',
         'number_of_children',
+        'sex',
         'civil_status',
         'housing_status',
         'spouse_name',
@@ -417,6 +421,26 @@ export const hasWmasterValue = (
     }
 
     return false;
+};
+
+export const normalizeSexValue = (value?: string | null): string => {
+    const trimmed = value?.trim() ?? '';
+
+    if (trimmed === '') {
+        return '';
+    }
+
+    const upper = trimmed.toUpperCase();
+
+    if (upper === 'MALE' || upper === 'M') {
+        return 'Male';
+    }
+
+    if (upper === 'FEMALE' || upper === 'F') {
+        return 'Female';
+    }
+
+    return '';
 };
 
 export const normalizeCivilStatusValue = (value?: string | null): string => {

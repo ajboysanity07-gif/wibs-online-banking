@@ -667,5 +667,6 @@
   "665": "2026_09_02_210001_add_institutional_employer_category_to_loan_request_people_table.php",
   "666": "2026_09_04_000000_add_sex_to_member_application_profiles_table.php",
   "667": "2026_06_15_081813_add_phase_five_workflow_fields_to_loan_requests_table.php",
-  "668": "required-indicator.tsx"
+  "668": "required-indicator.tsx",
+  "669": "LoanRequestRecommendationPreviewRequest"
 }

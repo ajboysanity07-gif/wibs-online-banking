@@ -29,6 +29,7 @@ beforeEach(function () {
             $table->string('address4')->nullable();
             $table->string('zone_number')->nullable();
             $table->string('civilstat')->nullable();
+            $table->string('sex')->nullable();
             $table->string('occupation')->nullable();
             $table->string('spouse')->nullable();
             $table->string('restype')->nullable();
@@ -1682,6 +1683,7 @@ test('profile information can be updated', function () {
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
             'number_of_children' => 2,
+            'sex' => 'Female',
             'civil_status' => 'Married',
             'housing_status' => 'OWNED',
             'spouse_name' => 'Renee Santos',
@@ -1733,6 +1735,7 @@ test('profile information can be updated', function () {
     expect($memberProfile->educational_attainment)->toBe('High School');
     expect($memberProfile->length_of_stay)->toBe('2 years');
     expect($memberProfile->number_of_children)->toBe(2);
+    expect($memberProfile->sex)->toBe('Female');
     expect($memberProfile->civil_status)->toBe('Married');
     expect($memberProfile->housing_status)->toBe('OWNED');
     expect($memberProfile->spouse_name)->toBe('Renee Santos');
@@ -2304,6 +2307,26 @@ test('civil status and housing status stay locked once wmaster has a value', fun
 
     expect($memberProfile->civil_status)->toBeNull();
     expect($memberProfile->housing_status)->toBeNull();
+});
+
+test('sex is credited from wmaster on the profile page', function () {
+    $user = User::factory()->create(['acctno' => '000903']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Reyes, Juan',
+        'sex' => 'M',
+    ]);
+    MemberApplicationProfile::factory()->create(['user_id' => $user->user_id]);
+
+    $this
+        ->actingAs($user)
+        ->get(route('profile.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('memberRecord.sex', 'M'),
+        );
 });
 
 test('spouse name and birthdate are not required when civil status is Single', function () {

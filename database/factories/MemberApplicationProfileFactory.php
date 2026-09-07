@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\LoanInstitutionalEmployerCategory;
 use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
+use App\LoanSex;
 use App\Models\AppUser;
 use App\Models\MemberApplicationProfile;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -30,6 +31,7 @@ class MemberApplicationProfileFactory extends Factory
             'educational_attainment' => null,
             'length_of_stay' => null,
             'number_of_children' => null,
+            'sex' => null,
             'spouse_name' => null,
             'spouse_age' => null,
             'spouse_cell_no' => null,
@@ -86,6 +88,7 @@ class MemberApplicationProfileFactory extends Factory
                     'home_address_barangay' => fake()->city(),
                     'home_address2' => fake()->city(),
                     'home_address3' => fake()->state(),
+                    'sex' => fake()->randomElement(LoanSex::values()),
                     'civil_status' => 'Married',
                     'housing_status' => 'OWNED',
                     'spouse_name' => fake()->name(),
