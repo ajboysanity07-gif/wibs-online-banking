@@ -369,6 +369,7 @@ export function PaymentAccountPickerSheet({
                                                                             htmlFor={`edit-account_name-${account.id}`}
                                                                         >
                                                                             Account
+                                                                            holder
                                                                             name
                                                                         </Label>
                                                                         <Input
@@ -386,6 +387,10 @@ export function PaymentAccountPickerSheet({
                                                                                     ) => ({
                                                                                         ...current,
                                                                                         account_name:
+                                                                                            event
+                                                                                                .target
+                                                                                                .value,
+                                                                                        atm_holder_name:
                                                                                             event
                                                                                                 .target
                                                                                                 .value,
@@ -462,16 +467,17 @@ export function PaymentAccountPickerSheet({
                                                                                 </span>
                                                                             </>
                                                                         )}
-                                                                        {account.account_name && (
+                                                                        {(account.account_name ??
+                                                                            account.atm_holder_name) && (
                                                                             <>
                                                                                 <span className="text-muted-foreground">
                                                                                     Account
+                                                                                    holder
                                                                                     name
                                                                                 </span>
                                                                                 <span>
-                                                                                    {
-                                                                                        account.account_name
-                                                                                    }
+                                                                                    {account.account_name ??
+                                                                                        account.atm_holder_name}
                                                                                 </span>
                                                                             </>
                                                                         )}
@@ -521,19 +527,6 @@ export function PaymentAccountPickerSheet({
                                                                                 <span>
                                                                                     {
                                                                                         account.bank_branch
-                                                                                    }
-                                                                                </span>
-                                                                            </>
-                                                                        )}
-                                                                        {account.atm_holder_name && (
-                                                                            <>
-                                                                                <span className="text-muted-foreground">
-                                                                                    ATM
-                                                                                    holder
-                                                                                </span>
-                                                                                <span>
-                                                                                    {
-                                                                                        account.atm_holder_name
                                                                                     }
                                                                                 </span>
                                                                             </>
@@ -608,7 +601,7 @@ export function PaymentAccountPickerSheet({
                                                 </div>
                                                 <div className="grid gap-2">
                                                     <Label htmlFor="new_account_account_name">
-                                                        Account name
+                                                        Account holder name
                                                     </Label>
                                                     <Input
                                                         id="new_account_account_name"
@@ -621,6 +614,10 @@ export function PaymentAccountPickerSheet({
                                                                 (current) => ({
                                                                     ...current,
                                                                     account_name:
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    atm_holder_name:
                                                                         event
                                                                             .target
                                                                             .value,
@@ -668,30 +665,6 @@ export function PaymentAccountPickerSheet({
                                                                 (current) => ({
                                                                     ...current,
                                                                     atm_number:
-                                                                        event
-                                                                            .target
-                                                                            .value,
-                                                                }),
-                                                            )
-                                                        }
-                                                    />
-                                                </div>
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="new_account_atm_holder_name">
-                                                        ATM card holder name
-                                                        (optional)
-                                                    </Label>
-                                                    <Input
-                                                        id="new_account_atm_holder_name"
-                                                        value={
-                                                            newAccount.atm_holder_name ??
-                                                            ''
-                                                        }
-                                                        onChange={(event) =>
-                                                            setNewAccount(
-                                                                (current) => ({
-                                                                    ...current,
-                                                                    atm_holder_name:
                                                                         event
                                                                             .target
                                                                             .value,

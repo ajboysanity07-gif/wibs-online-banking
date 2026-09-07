@@ -27,7 +27,7 @@ beforeEach(function (): void {
     }
 });
 
-function createSavedPaymentAccountTestMember(string $acctno): AppUser
+function createSavedPaymentAccountTestMember(string $acctno, bool $completedProfile = true): AppUser
 {
     $member = AppUser::factory()->create([
         'acctno' => $acctno,
@@ -39,9 +39,14 @@ function createSavedPaymentAccountTestMember(string $acctno): AppUser
     );
 
     UserProfile::factory()->approved()->create(['user_id' => $member->user_id]);
-    MemberApplicationProfile::factory()->completed()->create([
+
+    $profileFactory = $completedProfile
+        ? MemberApplicationProfile::factory()->completed()
+        : MemberApplicationProfile::factory();
+
+    $profileFactory->create([
         'user_id' => $member->user_id,
-        'release_method' => 'Cash',
+        'release_method' => $completedProfile ? 'Cash' : null,
     ]);
 
     DB::table('wmaster')->updateOrInsert(
@@ -90,6 +95,42 @@ test('the owning member can list, create, update, and delete their saved payment
         ->assertNoContent();
 
     expect(MemberPaymentAccount::query()->whereKey($created['id'])->exists())->toBeFalse();
+});
+
+test('a member with an incomplete profile can still list and create saved payment accounts', function (): void {
+    $member = createSavedPaymentAccountTestMember('005505', completedProfile: false);
+
+    expect($member->memberApplicationProfileIsComplete())->toBeFalse();
+
+    $this->actingAs($member)
+        ->getJson('/client/saved-payment-accounts')
+        ->assertOk()
+        ->assertJsonPath('data', []);
+
+    $this->actingAs($member)
+        ->postJson('/client/saved-payment-accounts', [
+            'bank_name' => 'BDO',
+            'account_number' => '1234567890',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.bank_name', 'BDO');
+});
+
+test('creating a saved payment account accepts the same value for account holder name and atm holder name', function (): void {
+    $member = createSavedPaymentAccountTestMember('005506');
+
+    $created = $this->actingAs($member)
+        ->postJson('/client/saved-payment-accounts', [
+            'bank_name' => 'BDO',
+            'account_number' => '1234567890',
+            'account_name' => 'Juan Dela Cruz',
+            'atm_holder_name' => 'Juan Dela Cruz',
+        ])
+        ->assertCreated()
+        ->json('data');
+
+    expect($created['account_name'])->toBe('Juan Dela Cruz');
+    expect($created['atm_holder_name'])->toBe('Juan Dela Cruz');
 });
 
 test('a member cannot load, update, or delete another members saved payment account', function (): void {

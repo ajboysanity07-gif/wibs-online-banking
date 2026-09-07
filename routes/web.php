@@ -324,19 +324,19 @@ Route::delete('client/co-makers/{coMaker}', [SavedCoMakerController::class, 'des
     ->name('client.co-makers.destroy');
 
 Route::get('client/saved-payment-accounts', [SavedPaymentAccountController::class, 'index'])
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->middleware(['auth', 'approved', 'verified'])
     ->name('client.saved-payment-accounts.index');
 
 Route::post('client/saved-payment-accounts', [SavedPaymentAccountController::class, 'store'])
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->middleware(['auth', 'approved', 'verified'])
     ->name('client.saved-payment-accounts.store');
 
 Route::patch('client/saved-payment-accounts/{paymentAccount}', [SavedPaymentAccountController::class, 'update'])
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->middleware(['auth', 'approved', 'verified'])
     ->name('client.saved-payment-accounts.update');
 
 Route::delete('client/saved-payment-accounts/{paymentAccount}', [SavedPaymentAccountController::class, 'destroy'])
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->middleware(['auth', 'approved', 'verified'])
     ->name('client.saved-payment-accounts.destroy');
 
 Route::post('client/loans/requests/{loanRequest}/corrected-copy', [LoanRequestController::class, 'createCorrectedCopy'])

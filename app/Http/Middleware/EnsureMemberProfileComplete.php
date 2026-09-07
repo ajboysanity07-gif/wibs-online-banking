@@ -31,6 +31,13 @@ class EnsureMemberProfileComplete
             return $next($request);
         }
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Please complete your profile before continuing.',
+            ], 409);
+        }
+
         return to_route('profile.edit', ['onboarding' => 1]);
     }
 }
