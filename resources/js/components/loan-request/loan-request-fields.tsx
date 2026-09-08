@@ -1610,7 +1610,7 @@ export function LoanRequestWorkFields({
                             ) : null}
                         </div>
 
-                        {!isPensioner ? (
+                        {!isPensioner && prefix === 'applicant' ? (
                             <div className="grid gap-2">
                                 <Label
                                     htmlFor={`${prefix}_institutional_employer_category`}
