@@ -725,10 +725,36 @@ export function LoanRequestPersonalFields({
                     </div>
 
                     <div className="grid gap-2">
-                        <FieldLabel
-                            htmlFor={`${prefix}_length_of_stay`}
-                            label="Length of stay"
-                        />
+                        <div className="flex items-center justify-between gap-2">
+                            <Label htmlFor={`${prefix}_length_of_stay`}>
+                                Length of stay
+                            </Label>
+                            <label
+                                htmlFor={`${prefix}_length_of_stay_since_birth`}
+                                className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                            >
+                                <Checkbox
+                                    id={`${prefix}_length_of_stay_since_birth`}
+                                    checked={lengthOfStaySinceBirth}
+                                    disabled={!values.birthdate}
+                                    onCheckedChange={(checked) => {
+                                        const isChecked = checked === true;
+                                        setLengthOfStaySinceBirth(isChecked);
+
+                                        if (isChecked) {
+                                            const age = calculateAge(
+                                                values.birthdate,
+                                            );
+                                            onChange(
+                                                'length_of_stay',
+                                                age !== null ? String(age) : '',
+                                            );
+                                        }
+                                    }}
+                                />
+                                Since birth
+                            </label>
+                        </div>
                         <YearsInput
                             id={`${prefix}_length_of_stay`}
                             value={values.length_of_stay}
@@ -743,31 +769,6 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'length_of_stay'),
                             )}
                         />
-                        <label
-                            htmlFor={`${prefix}_length_of_stay_since_birth`}
-                            className="flex items-center gap-2 text-sm text-muted-foreground"
-                        >
-                            <Checkbox
-                                id={`${prefix}_length_of_stay_since_birth`}
-                                checked={lengthOfStaySinceBirth}
-                                disabled={!values.birthdate}
-                                onCheckedChange={(checked) => {
-                                    const isChecked = checked === true;
-                                    setLengthOfStaySinceBirth(isChecked);
-
-                                    if (isChecked) {
-                                        const age = calculateAge(
-                                            values.birthdate,
-                                        );
-                                        onChange(
-                                            'length_of_stay',
-                                            age !== null ? String(age) : '',
-                                        );
-                                    }
-                                }}
-                            />
-                            Since birth
-                        </label>
                     </div>
 
                     {includeCivilHousing ? (
