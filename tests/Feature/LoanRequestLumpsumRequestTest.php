@@ -10,6 +10,7 @@ use App\Models\MemberApplicationProfile;
 use App\Models\Role;
 use App\Models\UserProfile;
 use App\Services\LoanRequests\LoanRequestDecisionService;
+use App\Services\LoanRequests\LoanRequestService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -193,7 +194,7 @@ function setUpLumpsumMember(string $acctno): User
     return $user;
 }
 
-test('member can submit a 1-month Lumpsum Other Loan request without insurance or health data', function () {
+test('member cannot submit a 1-month Lumpsum Other Loan request without insurance or health data', function () {
     Storage::fake('public');
 
     $user = setUpLumpsumMember('000801');
@@ -227,15 +228,14 @@ test('member can submit a 1-month Lumpsum Other Loan request without insurance o
         ->actingAs($user)
         ->post(route('client.loan-requests.store'), $payload);
 
-    $loanRequest = LoanRequest::query()->first();
-
-    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
-    expect($loanRequest)->not->toBeNull();
-    expect($loanRequest->requested_payment_frequency)->toBe('Due date');
-    expect($loanRequest->requested_term)->toBe(1);
+    $response->assertSessionHasErrors([
+        'insurance.beneficiary_primary_name',
+        'health.health_smoking_status',
+    ]);
+    expect(LoanRequest::query()->count())->toBe(0);
 });
 
-test('member can submit a 1-month Lumpsum Other Loan request with null insurance and health data', function () {
+test('member cannot submit a 1-month Lumpsum Other Loan request with null insurance and health data', function () {
     Storage::fake('public');
 
     $user = setUpLumpsumMember('000806');
@@ -267,6 +267,45 @@ test('member can submit a 1-month Lumpsum Other Loan request with null insurance
                 'health_smoking_status' => null,
                 'health_hypertension' => null,
             ],
+            'dependents' => [],
+        ]),
+        'applicant' => lumpsumApplicantPayload(),
+        'co_maker_1' => lumpsumCoMakerPayload('CoOne'),
+        'co_maker_2' => lumpsumCoMakerPayload('CoTwo'),
+    ];
+    unset($payload['dependents']);
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $response->assertSessionHasErrors([
+        'insurance.beneficiary_primary_name',
+        'health.health_smoking_status',
+    ]);
+    expect(LoanRequest::query()->count())->toBe(0);
+});
+
+test('member can submit a 1-month Lumpsum Other Loan request when insurance and health data is provided', function () {
+    Storage::fake('public');
+
+    $user = setUpLumpsumMember('000807');
+
+    DB::table('wlntype')->insert([
+        'typecode' => '01',
+        'lntype' => 'OTHER LOAN',
+    ]);
+
+    $payload = [
+        'typecode' => '01',
+        'requested_amount' => 15000,
+        'requested_term' => 1,
+        'loan_purpose' => 'Emergency expenses',
+        'other_loan_type_name' => 'Emergency Loan',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        'requested_payment_frequency' => 'Due date',
+        ...lumpsumMemberSectionPayload((int) $user->memberApplicationProfile->release_saved_account_id, [
             'dependents' => [],
         ]),
         'applicant' => lumpsumApplicantPayload(),
@@ -345,6 +384,42 @@ test('member can request Due date for any loan type (no type restriction)', func
         'availment_status' => 'New',
         'undertaking_accepted' => true,
         'requested_payment_frequency' => 'Due date',
+        ...lumpsumMemberSectionPayload((int) $user->memberApplicationProfile->release_saved_account_id),
+        'applicant' => lumpsumApplicantPayload(),
+        'co_maker_1' => lumpsumCoMakerPayload('CoOne'),
+        'co_maker_2' => lumpsumCoMakerPayload('CoTwo'),
+    ];
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $loanRequest = LoanRequest::query()->first();
+
+    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
+    expect($loanRequest)->not->toBeNull();
+    expect($loanRequest->requested_payment_frequency)->toBe('Due date');
+});
+
+test('member requesting a 2-month Emergency loan still requires insurance and health data', function () {
+    Storage::fake('public');
+
+    $user = setUpLumpsumMember('000806');
+
+    DB::table('wlntype')->insert([
+        'typecode' => '02',
+        'lntype' => 'MICRO BUSINESS LOAN',
+    ]);
+
+    $payload = [
+        'typecode' => '02',
+        'requested_amount' => 15000,
+        'requested_term' => 2,
+        'loan_purpose' => 'Emergency expenses',
+        'kind_of_loan' => 'Emergency',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        'requested_payment_frequency' => 'Monthly',
         ...lumpsumMemberSectionPayload((int) $user->memberApplicationProfile->release_saved_account_id, [
             'insurance' => [],
             'health' => [],
@@ -359,14 +434,14 @@ test('member can request Due date for any loan type (no type restriction)', func
         ->actingAs($user)
         ->post(route('client.loan-requests.store'), $payload);
 
-    $loanRequest = LoanRequest::query()->first();
-
-    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
-    expect($loanRequest)->not->toBeNull();
-    expect($loanRequest->requested_payment_frequency)->toBe('Due date');
+    $response->assertSessionHasErrors([
+        'insurance.beneficiary_primary_name',
+        'health.health_smoking_status',
+    ]);
+    expect(LoanRequest::query()->count())->toBe(0);
 });
 
-test('staff cannot approve a non-lumpsum recommended frequency when insurance data is missing', function () {
+test('staff cannot approve a recommended term of 2+ months when insurance data is missing', function () {
     Queue::fake();
 
     $admin = User::factory()->create(['acctno' => '000804']);
@@ -382,6 +457,7 @@ test('staff cannot approve a non-lumpsum recommended frequency when insurance da
         'requested_payment_frequency' => 'Due date',
         'requested_term' => 1,
         'recommended_payment_frequency' => 'Monthly',
+        'recommended_term' => 12,
     ]);
 
     prepareLoanRequestForApproval($loanRequest, $admin);
@@ -400,4 +476,125 @@ test('staff cannot approve a non-lumpsum recommended frequency when insurance da
 
     $service = app(LoanRequestDecisionService::class);
     expect($service->requiresInsuranceDataBeforeApproval($loanRequest))->toBeTrue();
+});
+
+test('a request submitted with health data can still be approved after a processor recommends 2+ months', function () {
+    Queue::fake();
+    Storage::fake('public');
+
+    $user = setUpLumpsumMember('000808');
+
+    DB::table('wlntype')->insert([
+        'typecode' => '01',
+        'lntype' => 'OTHER LOAN',
+    ]);
+
+    $payload = [
+        'typecode' => '01',
+        'requested_amount' => 15000,
+        'requested_term' => 1,
+        'loan_purpose' => 'Emergency expenses',
+        'other_loan_type_name' => 'Emergency Loan',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        'requested_payment_frequency' => 'Due date',
+        ...lumpsumMemberSectionPayload((int) $user->memberApplicationProfile->release_saved_account_id, [
+            'dependents' => [],
+        ]),
+        'applicant' => lumpsumApplicantPayload(),
+        'co_maker_1' => lumpsumCoMakerPayload('CoOne'),
+        'co_maker_2' => lumpsumCoMakerPayload('CoTwo'),
+    ];
+    unset($payload['dependents']);
+
+    $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload)
+        ->assertRedirect();
+
+    $loanRequest = LoanRequest::query()->firstOrFail();
+
+    $service = app(LoanRequestDecisionService::class);
+    expect($service->hasInsuranceDataOnFile($loanRequest))->toBeTrue();
+
+    // Simulate a loan processor later recommending a longer term than the
+    // member originally requested (the exact scenario that used to leave a
+    // request with no health data on file -- now impossible, since the
+    // questionnaire is always collected at submission).
+    $loanRequest->forceFill([
+        'status' => LoanRequestStatus::RecommendedForApproval,
+        'recommended_payment_frequency' => 'Monthly',
+        'recommended_term' => 12,
+    ])->save();
+
+    expect($service->requiresInsuranceDataBeforeApproval($loanRequest))->toBeFalse();
+
+    $admin = User::factory()->create(['acctno' => '000809']);
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
+
+    prepareLoanRequestForApproval($loanRequest, $admin);
+
+    $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/approve", [
+            'approved_amount' => 15000,
+            'approved_term' => 12,
+        ])
+        ->assertOk();
+
+    $loanRequest->refresh();
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+});
+
+test('health questionnaire answers are written back to the profile and reused on the next loan request', function () {
+    Storage::fake('public');
+
+    $user = setUpLumpsumMember('000810');
+
+    DB::table('wlntype')->insert([
+        'typecode' => '01',
+        'lntype' => 'OTHER LOAN',
+    ]);
+
+    $payload = [
+        'typecode' => '01',
+        'requested_amount' => 15000,
+        'requested_term' => 1,
+        'loan_purpose' => 'Emergency expenses',
+        'other_loan_type_name' => 'Emergency Loan',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        'requested_payment_frequency' => 'Due date',
+        ...lumpsumMemberSectionPayload((int) $user->memberApplicationProfile->release_saved_account_id, [
+            'health' => [
+                'health_smoking_status' => 'light',
+                'health_hypertension' => true,
+            ],
+            'health_glapi' => [
+                'health_recent_hospitalization' => true,
+            ],
+            'dependents' => [],
+        ]),
+        'applicant' => lumpsumApplicantPayload(),
+        'co_maker_1' => lumpsumCoMakerPayload('CoOne'),
+        'co_maker_2' => lumpsumCoMakerPayload('CoTwo'),
+    ];
+    unset($payload['dependents']);
+
+    $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload)
+        ->assertRedirect();
+
+    $profile = $user->memberApplicationProfile()->firstOrFail();
+    expect($profile->health_smoking_status)->toBe('light');
+    expect($profile->health_hypertension)->toBeTrue();
+    expect($profile->health_recent_hospitalization)->toBeTrue();
+
+    $formData = app(LoanRequestService::class)->getFormData($user->fresh());
+
+    expect($formData['healthPrefilledFromProfile'])->toBeTrue();
+    expect($formData['dataSections']['health']['health_smoking_status'])->toBe('light');
+    expect($formData['dataSections']['health_glapi']['health_recent_hospitalization'])->toBeTrue();
 });

@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type Props = {
@@ -37,7 +38,7 @@ export function LoanRequestWizardActions({
                         Back
                     </Button>
                 </div>
-                <div className="order-2 flex sm:order-2 sm:ml-auto sm:mr-3">
+                <div className="order-2 flex sm:order-2 sm:mr-3 sm:ml-auto">
                     <Button
                         type="button"
                         variant="outline"
@@ -45,7 +46,14 @@ export function LoanRequestWizardActions({
                         onClick={onSaveDraft}
                         disabled={isSavingDraft || isSubmitting}
                     >
-                        Save draft
+                        {isSavingDraft ? (
+                            <>
+                                <Loader2 className="size-4 animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            'Save draft'
+                        )}
                     </Button>
                 </div>
                 <div className="order-1 flex sm:order-3">

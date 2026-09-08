@@ -68,6 +68,7 @@ class LoanRequestService
      *     dataSections: array<string, array<string, mixed>>,
      *     dataSectionDefinitions: array<string, mixed>,
      *     insurancePrefilledFromProfile: bool,
+     *     healthPrefilledFromProfile: bool,
      *     initialStep: int,
      *     autoFilledDeclarations: array<string, bool|string|float|null>,
      *     draft: array{
@@ -157,6 +158,20 @@ class LoanRequestService
             $user->memberApplicationProfile,
         );
 
+        [$dataSections['health'], $healthPrefilledFromHealth] = $this->applyProfileSectionDefaults(
+            $dataSections['health'],
+            $user->memberApplicationProfile,
+            MemberApplicationProfile::healthFields(),
+        );
+
+        [$dataSections['health_glapi'], $healthPrefilledFromGlapi] = $this->applyProfileSectionDefaults(
+            $dataSections['health_glapi'],
+            $user->memberApplicationProfile,
+            MemberApplicationProfile::healthGlapiFields(),
+        );
+
+        $healthPrefilledFromProfile = $healthPrefilledFromHealth || $healthPrefilledFromGlapi;
+
         return [
             'loanTypes' => $this->getLoanTypes()->values()->all(),
             'applicant' => $applicant,
@@ -178,7 +193,53 @@ class LoanRequestService
             'bankingPrefilledFromProfile' => $bankingPrefilledFromProfile,
             'insurancePrefilledFromProfile' => $insurancePrefilledFromProfile,
             'dependentsPrefilledFromProfile' => $dependentsPrefilledFromProfile,
+            'healthPrefilledFromProfile' => $healthPrefilledFromProfile,
         ];
+    }
+
+    /**
+     * Fill missing health-questionnaire wizard values (both the 'health' and
+     * 'health_glapi' sections) from the member's saved application profile --
+     * only null fields are overwritten so a member's own in-progress draft
+     * edits are never clobbered. Booleans and decimals pass through as-is
+     * (already normalized by MemberApplicationProfile's casts); only strings
+     * need blank-string normalization.
+     *
+     * @param  array<string, mixed>  $sectionValues
+     * @param  list<string>  $fields
+     * @return array{0: array<string, mixed>, 1: bool}
+     */
+    private function applyProfileSectionDefaults(
+        array $sectionValues,
+        ?MemberApplicationProfile $profile,
+        array $fields,
+    ): array {
+        if ($profile === null) {
+            return [$sectionValues, false];
+        }
+
+        $prefilled = false;
+
+        foreach ($fields as $field) {
+            if (($sectionValues[$field] ?? null) !== null) {
+                continue;
+            }
+
+            $rawValue = $profile->getAttribute($field);
+
+            $profileValue = is_string($rawValue)
+                ? $this->normalizeOptionalString($rawValue)
+                : $rawValue;
+
+            if ($profileValue === null) {
+                continue;
+            }
+
+            $sectionValues[$field] = $profileValue;
+            $prefilled = true;
+        }
+
+        return [$sectionValues, $prefilled];
     }
 
     /**
@@ -366,6 +427,14 @@ class LoanRequestService
             ...Arr::only(
                 is_array($payload['insurance'] ?? null) ? $payload['insurance'] : [],
                 MemberApplicationProfile::beneficiaryFields(),
+            ),
+            ...Arr::only(
+                is_array($payload['health'] ?? null) ? $payload['health'] : [],
+                MemberApplicationProfile::healthFields(),
+            ),
+            ...Arr::only(
+                is_array($payload['health_glapi'] ?? null) ? $payload['health_glapi'] : [],
+                MemberApplicationProfile::healthGlapiFields(),
             ),
         ];
 

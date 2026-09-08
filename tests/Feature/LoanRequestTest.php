@@ -1714,7 +1714,7 @@ test('loan request submission does not require a co-maker employer/business addr
     expect(LoanRequest::query()->count())->toBe(1);
 });
 
-test('an Emergency (Micro Business Loan) submission does not require insurance/health data', function () {
+test('an Emergency (Micro Business Loan) submission with a 1-month term still requires insurance/health data', function () {
     Storage::fake('public');
 
     $user = User::factory()->create([
@@ -1751,7 +1751,7 @@ test('an Emergency (Micro Business Loan) submission does not require insurance/h
     $payload = [
         'typecode' => 'LN-MBL',
         'requested_amount' => 15000,
-        'requested_term' => 12,
+        'requested_term' => 1,
         'loan_purpose' => 'Business capital',
         'availment_status' => 'New',
         'kind_of_loan' => 'Emergency',
@@ -1852,12 +1852,11 @@ test('an Emergency (Micro Business Loan) submission does not require insurance/h
         ->actingAs($user)
         ->post(route('client.loan-requests.store'), $payload);
 
-    $loanRequest = LoanRequest::query()->first();
-
-    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
-    expect($loanRequest)->not->toBeNull();
-    expect($loanRequest->kind_of_loan)->toBe('Emergency');
-    expect($loanRequest->status)->toBe(LoanRequestStatus::PendingReview);
+    $response->assertSessionHasErrors([
+        'insurance.beneficiary_primary_name',
+        'health.health_smoking_status',
+    ]);
+    expect(LoanRequest::query()->count())->toBe(0);
 });
 
 test('Other Loan submission requires a loan name', function () {

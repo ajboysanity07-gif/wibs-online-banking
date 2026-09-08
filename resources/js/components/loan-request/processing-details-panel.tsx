@@ -301,12 +301,11 @@ const withProcessingChargeDefaults = (
 
     // insurance_rate is always system-controlled, never manually entered:
     // table-driven when the applicant falls in a known senior-age band,
-    // otherwise fixed at 1 -- unless insurance itself is skipped (Due date +
-    // 1-month term, or an Emergency loan), in which case both insurance_rate
-    // and insurance_term are locked to 0, mirroring
-    // ApprovedLoanDocumentDataBuilder's $isDueDateNoInsurance. Force these
-    // every time (not just when blank) so a stale saved value never
-    // survives a re-render.
+    // otherwise fixed at 1 -- unless insurance itself is skipped (term under
+    // two months), in which case both insurance_rate and insurance_term are
+    // locked to 0, mirroring ApprovedLoanDocumentDataBuilder's
+    // $isDueDateNoInsurance. Force these every time (not just when blank) so
+    // a stale saved value never survives a re-render.
     const ageBandedRate = resolveAgeBandedInsuranceRate(applicantBirthdate);
     next = {
         ...next,
@@ -520,9 +519,7 @@ export function ProcessingDetailsPanel({
                         loanRequest.assigned_processor,
                     ),
                     applicant?.birthdate ?? null,
-                    (loanRequest.recommended_payment_frequency === 'Due date' &&
-                        `${loanRequest.recommended_term ?? ''}` === '1') ||
-                        loanRequest.kind_of_loan === 'Emergency',
+                    Number(loanRequest.recommended_term ?? '') < 2,
                 ),
                 dataSections.dependents,
                 cycleState,
@@ -555,13 +552,10 @@ export function ProcessingDetailsPanel({
         processingForm.processing.authority_to_deduct_officers_unknown === true;
     const isApplicantInInsuranceAgeBand =
         resolveAgeBandedInsuranceRate(applicant?.birthdate ?? null) !== null;
-    // Mirrors ApprovedLoanDocumentDataBuilder::$isDueDateNoInsurance: a
-    // Due-date loan locked to a 1-month term, or any Emergency loan, carries
-    // no insurance premium regardless of what staff enter here.
-    const isInsuranceSkipped =
-        (processingForm.recommended_payment_frequency === 'Due date' &&
-            processingForm.recommended_term === '1') ||
-        loanRequest.kind_of_loan === 'Emergency';
+    // Mirrors ApprovedLoanDocumentDataBuilder::$isDueDateNoInsurance: only a
+    // term under two months carries no insurance premium, regardless of
+    // payment frequency or kind_of_loan, regardless of what staff enter here.
+    const isInsuranceSkipped = Number(processingForm.recommended_term) < 2;
 
     // Keeps insurance_rate/insurance_term locked at 0 as staff live-edit the
     // payment frequency Select and/or the Recommended term input -- these
@@ -608,9 +602,7 @@ export function ProcessingDetailsPanel({
                         loanRequest.assigned_processor,
                     ),
                     applicant?.birthdate ?? null,
-                    (loanRequest.recommended_payment_frequency === 'Due date' &&
-                        `${loanRequest.recommended_term ?? ''}` === '1') ||
-                        loanRequest.kind_of_loan === 'Emergency',
+                    Number(loanRequest.recommended_term ?? '') < 2,
                 ),
                 dataSections.dependents,
                 cycleState,
@@ -1474,7 +1466,7 @@ export function ProcessingDetailsPanel({
                                 onBlur: scheduleGnthpRecalculation,
                                 disabled: true,
                                 tooltip: isInsuranceSkipped
-                                    ? 'No insurance premium applies to this loan (1-month Due date term, or an Emergency loan) — locked at 0.'
+                                    ? 'No insurance premium applies to this loan (recommended term under 2 months) — locked at 0.'
                                     : isApplicantInInsuranceAgeBand
                                       ? "Pesos per ₱1,000 of principal per month, NOT a percentage. Locked to the insurer's senior-age band rate for this applicant's age (66–70 → 2.05, 71–75 → 3.95)."
                                       : "Pesos per ₱1,000 of principal per month, NOT a percentage. Applicant is outside the insurer's senior-age bands (66–70 → 2.05, 71–75 → 3.95), so the rate is fixed at 1.",
@@ -1483,7 +1475,7 @@ export function ProcessingDetailsPanel({
                                 onBlur: scheduleGnthpRecalculation,
                                 disabled: isInsuranceSkipped,
                                 tooltip: isInsuranceSkipped
-                                    ? 'No insurance premium applies to this loan (1-month Due date term, or an Emergency loan) — locked at 0.'
+                                    ? 'No insurance premium applies to this loan (recommended term under 2 months) — locked at 0.'
                                     : undefined,
                             })}
                             {processingForm.recommended_payment_frequency !==

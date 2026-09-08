@@ -2,7 +2,6 @@
 
 namespace App\Services\LoanRequests;
 
-use App\LoanPaydayOption;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestDataChange;
@@ -1686,9 +1685,9 @@ class LoanRequestDataService
 
     /**
      * Sections whose required fields are waived when the member requested a
-     * 1-month Lumpsum repayment -- the insurance/health questionnaire is
+     * term under two months -- the insurance/health questionnaire is
      * skipped in the wizard for that choice (see
-     * LoanRequestStoreRequest::isDueDateNoInsuranceRequested()).
+     * LoanRequestStoreRequest::isUnderTwoMonthTermRequested()).
      *
      * @var list<string>
      */
@@ -1698,9 +1697,7 @@ class LoanRequestDataService
     {
         $flatValues = $this->loadFlatValues($loanRequest);
         $missing = [];
-        $skipsInsurance = ($loanRequest->requested_payment_frequency === LoanPaydayOption::DueDate->value
-            && (int) $loanRequest->requested_term === 1)
-            || $loanRequest->kind_of_loan === 'Emergency';
+        $skipsInsurance = (int) $loanRequest->requested_term < 2;
 
         foreach (self::FIELD_DEFINITIONS as $fieldKey => $definition) {
             if (

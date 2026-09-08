@@ -744,7 +744,7 @@ test('zeroed insurance_term does not block document generation for 1-month Due d
         ->and($entry['blockers'])->not->toContain('Insurance term must be greater than zero.');
 });
 
-test('zeroed insurance_term does not block document generation for Emergency loans', function (): void {
+test('zeroed insurance_term blocks document generation for an Emergency loan with a 2+ month term', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'kind_of_loan' => 'Emergency',
@@ -771,9 +771,7 @@ test('zeroed insurance_term does not block document generation for Emergency loa
 
     $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::LoanInformation);
 
-    expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
-        ->and($entry['blockers'])->not->toContain('Insurance rate must be numeric.')
-        ->and($entry['blockers'])->not->toContain('Insurance term must be greater than zero.');
+    expect($entry['blockers'])->toContain('Insurance term must be greater than zero.');
 });
 
 test('witness_two_name is no longer required for loan_information, plan_of_payment, or promissory_note', function (): void {
@@ -1706,25 +1704,37 @@ test('a 2-month-or-longer Due-date still charges an insurance premium but keeps 
         ->and($documentData['loan']['lumpsum_months'])->toBe(2);
 });
 
-test('grepalife is not applicable for an Emergency (Micro Business Loan) request', function (): void {
+test('grepalife is not applicable for a 1-month term Emergency (Micro Business Loan) request', function (): void {
     $loanRequest = LoanRequest::factory()->make([
         'kind_of_loan' => 'Emergency',
+        'recommended_term' => 1,
     ]);
     $catalog = app(LoanRequestDocumentCatalog::class);
 
     expect($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeFalse();
 });
 
-test('grepalife remains applicable for a Regular kind_of_loan', function (): void {
+test('grepalife remains applicable for an Emergency request with a 2+ month term', function (): void {
     $loanRequest = LoanRequest::factory()->make([
-        'kind_of_loan' => 'Regular',
+        'kind_of_loan' => 'Emergency',
+        'recommended_term' => 6,
     ]);
     $catalog = app(LoanRequestDocumentCatalog::class);
 
     expect($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeTrue();
 });
 
-test('an Emergency loan zeroes insurance without blocking the finance documents, regardless of payment frequency', function (): void {
+test('grepalife remains applicable for a Regular kind_of_loan with a 2+ month term', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'kind_of_loan' => 'Regular',
+        'recommended_term' => 12,
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeTrue();
+});
+
+test('an Emergency loan with a 2+ month term still requires insurance and does not zero it', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'kind_of_loan' => 'Emergency',
@@ -1753,9 +1763,9 @@ test('an Emergency loan zeroes insurance without blocking the finance documents,
 
     $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
 
-    expect($documentData['loan']['insurance_rate_raw'])->toBe(0.0)
-        ->and($documentData['loan']['insurance_term'])->toBe(0)
-        ->and($documentData['loan']['insurance_premium_raw'])->toBe(0.0);
+    expect($documentData['loan']['insurance_rate_raw'])->toBe(1.0)
+        ->and($documentData['loan']['insurance_term'])->toBe(12)
+        ->and($documentData['loan']['insurance_premium_raw'])->toBe(288.0);
 
     $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::PromissoryNote);
 

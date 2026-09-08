@@ -138,7 +138,7 @@ test('a legacy workflow request recommends successfully once the core financial 
         ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::RecommendedForApproval->value);
 });
 
-test('processing update rejects a non-zero insurance term on an Emergency loan', function (): void {
+test('processing update rejects a non-zero insurance term when recommended term is under two months', function (): void {
     $processor = createHardeningActor([Role::LOAN_PROCESSOR]);
     $member = createHardeningActor([Role::MEMBER], '960006');
 
@@ -163,6 +163,7 @@ test('processing update rejects a non-zero insurance term on an Emergency loan',
             'loan_purpose' => 'Home improvement',
             'availment_status' => 'New',
         ],
+        'recommended_term' => 1,
         'processing' => [
             'insurance_term' => 12,
         ],
@@ -175,7 +176,7 @@ test('processing update rejects a non-zero insurance term on an Emergency loan',
         ->assertJsonValidationErrors(['processing.insurance_term']);
 });
 
-test('processing update accepts a zero insurance term on an Emergency loan', function (): void {
+test('processing update accepts a zero insurance term when recommended term is under two months', function (): void {
     $processor = createHardeningActor([Role::LOAN_PROCESSOR]);
     $member = createHardeningActor([Role::MEMBER], '960007');
 
@@ -200,8 +201,46 @@ test('processing update accepts a zero insurance term on an Emergency loan', fun
             'loan_purpose' => 'Home improvement',
             'availment_status' => 'New',
         ],
+        'recommended_term' => 1,
         'processing' => [
             'insurance_term' => 0,
+        ],
+    ];
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $payload)
+        ->assertOk();
+});
+
+test('processing update accepts a non-zero insurance term on an Emergency loan once the recommended term reaches two months', function (): void {
+    $processor = createHardeningActor([Role::LOAN_PROCESSOR]);
+    $member = createHardeningActor([Role::MEMBER], '960016');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'requested_amount' => '25000.00',
+        'requested_term' => 12,
+        'loan_purpose' => 'Home improvement',
+        'availment_status' => 'New',
+        'kind_of_loan' => 'Emergency',
+        'submitted_at' => now(),
+    ]);
+
+    $payload = [
+        'reason' => 'Emergency loan no longer exempts insurance once the term is 2+ months.',
+        'loan_request' => [
+            'requested_amount' => '25000.00',
+            'requested_term' => 12,
+            'loan_purpose' => 'Home improvement',
+            'availment_status' => 'New',
+        ],
+        'recommended_term' => 12,
+        'processing' => [
+            'insurance_term' => 12,
         ],
     ];
 

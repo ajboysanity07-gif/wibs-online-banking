@@ -2,7 +2,6 @@
 
 namespace App\Services\LoanRequests;
 
-use App\LoanPaydayOption;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
@@ -26,7 +25,7 @@ class LoanRequestDecisionService
 
     private const CORRECTION_AUDIT_UNAVAILABLE_MESSAGE = 'Correction audit history is unavailable. Please save the correction before approving this admin-corrected request.';
 
-    private const INSURANCE_DATA_REQUIRED_MESSAGE = 'This request has no insurance/health questionnaire data on file (the member requested a 1-month Lump sum, which skips that step). Run an admin correction to collect it before approving a non-Lump sum or multi-month payment frequency.';
+    private const INSURANCE_DATA_REQUIRED_MESSAGE = 'This request has no insurance/health questionnaire data on file (it was submitted before the questionnaire became always-required). Run an admin correction to collect it before approving a recommended term of 2+ months.';
 
     public function __construct(
         private LoanRequestCorrectionReportService $correctionReports,
@@ -248,30 +247,17 @@ class LoanRequestDecisionService
     }
 
     /**
-     * True when staff have set a payment frequency other than a 1-month
-     * Lumpsum, but the member skipped the insurance/health wizard steps at
-     * submission time (because they had requested a 1-month Lumpsum) --
-     * meaning beneficiary/health data was never collected. See
+     * True when staff have recommended a term of 2+ months, but the member's
+     * submission has no insurance/health data on file -- this can only
+     * happen for a request submitted before the questionnaire became
+     * always-required (see LoanRequestStoreRequest), since every new
+     * submission now collects it regardless of term. See
      * LoanRequestCorrectionService for how staff backfill it.
      */
     public function requiresInsuranceDataBeforeApproval(
         LoanRequest $loanRequest,
     ): bool {
-        // Only relevant when the member's own submission skipped insurance
-        // by requesting a 1-month Due date -- unrelated requests were never
-        // exempted from insurance/health at submission time, so missing
-        // data there is out of scope for this guardrail.
-        if (! $this->isDueDateNoInsurance(
-            $loanRequest->requested_payment_frequency,
-            $loanRequest->requested_term,
-        )) {
-            return false;
-        }
-
-        if ($this->isDueDateNoInsurance(
-            $loanRequest->recommended_payment_frequency,
-            $loanRequest->recommended_term,
-        )) {
+        if ($this->isDueDateNoInsurance($loanRequest->recommended_term)) {
             return false;
         }
 
@@ -282,14 +268,13 @@ class LoanRequestDecisionService
     {
         return LoanRequestDataEntry::query()
             ->where('loan_request_id', $loanRequest->id)
-            ->where('section_key', 'insurance')
+            ->whereIn('section_key', ['insurance', 'health', 'health_glapi'])
             ->exists();
     }
 
-    private function isDueDateNoInsurance(?string $frequency, int|string|null $term): bool
+    private function isDueDateNoInsurance(int|string|null $term): bool
     {
-        return $frequency === LoanPaydayOption::DueDate->value
-            && (int) $term === 1;
+        return (int) $term < 2;
     }
 
     public function approvalBlockedMessage(

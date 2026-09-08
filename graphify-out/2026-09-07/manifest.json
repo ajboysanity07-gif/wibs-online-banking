@@ -340,8 +340,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Settings/ProfileController.php": {
-    "mtime": 1788230991.610191,
-    "ast_hash": "2ed11cc48941d541463f46d32cbc1f55",
+    "mtime": 1788784381.8221717,
+    "ast_hash": "a81409a4bd806949ee797ff3c4e4db68",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Settings/SecurityController.php": {
@@ -735,8 +735,8 @@
     "semantic_hash": "58b33239167751eb5dfb62f81f4f41da"
   },
   "app/Http/Requests/Settings/ProfileUpdateRequest.php": {
-    "mtime": 1788559546.897922,
-    "ast_hash": "0281453441b3b71888c61fb14d850487",
+    "mtime": 1788767217.4340446,
+    "ast_hash": "e55a50ab811830ad8f8da473de1f9b23",
     "semantic_hash": ""
   },
   "app/Http/Requests/Settings/TwoFactorAuthenticationRequest.php": {
@@ -1040,8 +1040,8 @@
     "semantic_hash": "964df8d1046e26b60e316340d0b6661b"
   },
   "app/Models/AppUser.php": {
-    "mtime": 1788559546.8992329,
-    "ast_hash": "9ed0c8e76077245c18f3f484abc05d02",
+    "mtime": 1788767230.6789813,
+    "ast_hash": "5edf4e3786ebffce5b4734c7b48e208a",
     "semantic_hash": ""
   },
   "app/Models/DocumentAccessLog.php": {
@@ -1095,8 +1095,8 @@
     "semantic_hash": "f07ff8dd9f4c3421e6e0a815526994d9"
   },
   "app/Models/MemberApplicationProfile.php": {
-    "mtime": 1788559546.8992329,
-    "ast_hash": "0ada11801b0a0650252310d889c8d14d",
+    "mtime": 1788767167.2656522,
+    "ast_hash": "734a533723d6f4257be694702252a024",
     "semantic_hash": ""
   },
   "app/Models/MemberDependent.php": {
@@ -1600,8 +1600,8 @@
     "semantic_hash": "77b14badf2b95aee854c64d175b984e5"
   },
   "app/Support/SettingsPageData.php": {
-    "mtime": 1788559546.9002388,
-    "ast_hash": "4a780fa751430f86d70c5edae703ab0d",
+    "mtime": 1788784327.6479108,
+    "ast_hash": "24d171a4f6d567dd98b1b3c59a3dc163",
     "semantic_hash": ""
   },
   "artisan": {
@@ -1775,8 +1775,8 @@
     "semantic_hash": "b46ea283a943270807318d33fe0cc021"
   },
   "database/factories/MemberApplicationProfileFactory.php": {
-    "mtime": 1788395516.4233313,
-    "ast_hash": "154e3fce8cdcf04127667c51d9805262",
+    "mtime": 1788767237.74348,
+    "ast_hash": "1de4de341bfc9db078228838f8ed88e6",
     "semantic_hash": ""
   },
   "database/factories/OrganizationSettingFactory.php": {
@@ -2325,8 +2325,8 @@
     "semantic_hash": "82dab99e121eed166d063fdfa7d4321a"
   },
   "resources/js/components/dependents/dependent-category-section.tsx": {
-    "mtime": 1788559546.9454262,
-    "ast_hash": "248bfd43f2b6380e025cebcb75eb6da6",
+    "mtime": 1788766713.5707316,
+    "ast_hash": "e65a09dd0c0de1bdfbe1026da48ac00d",
     "semantic_hash": ""
   },
   "resources/js/components/heading.tsx": {
@@ -2345,8 +2345,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/boolean-yes-no-field.tsx": {
-    "mtime": 1785423359.7598212,
-    "ast_hash": "3e96d5f0b43d38822693ac7ac4716d60",
+    "mtime": 1788766654.4811742,
+    "ast_hash": "90fa80073d2180b6108b7692e61cf453",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-animated-step.tsx": {
@@ -2365,8 +2365,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-fields.tsx": {
-    "mtime": 1788559546.94652,
-    "ast_hash": "151e1c5439275f8add0d1caea65f0ac6",
+    "mtime": 1788766736.5137668,
+    "ast_hash": "b15c63bf6944696b794de2e6aaef9e95",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-page-sections.tsx": {
@@ -2385,9 +2385,9 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-section-card.tsx": {
-    "mtime": 1785423359.7740743,
-    "ast_hash": "3f22c0ed45b553fff16f5415df4c629c",
-    "semantic_hash": "3f22c0ed45b553fff16f5415df4c629c"
+    "mtime": 1788766772.76913,
+    "ast_hash": "79d0f774c92cd36ab3c48b5c626dd478",
+    "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-status-badge.tsx": {
     "mtime": 1785863443.2036355,
@@ -2400,8 +2400,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-steps.tsx": {
-    "mtime": 1788559546.9475222,
-    "ast_hash": "75fe66f72ad2786bb3a10b60f051ec74",
+    "mtime": 1788767155.24466,
+    "ast_hash": "80060b152f1d0b35e33e749a373d5fed",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-summary-panel.tsx": {
@@ -2425,8 +2425,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/numeric-adorned-inputs.tsx": {
-    "mtime": 1788559546.9475222,
-    "ast_hash": "351f40f641005d9e6f8011d162251eae",
+    "mtime": 1788766612.218184,
+    "ast_hash": "60a9dbe7b55a1042cfff388aef7ae062",
     "semantic_hash": ""
   },
   "resources/js/components/location-autocomplete-input.tsx": {
@@ -3165,8 +3165,8 @@
     "semantic_hash": "fc9f0c9e001d0f9e520ac4c131a04a41"
   },
   "resources/js/pages/auth/register.tsx": {
-    "mtime": 1788414084.1182263,
-    "ast_hash": "f40a2016a00f5f3a1a717a4874558d87",
+    "mtime": 1788767038.0075667,
+    "ast_hash": "3ffb3a02bad9a71f43bfbb865891ac71",
     "semantic_hash": ""
   },
   "resources/js/pages/auth/reset-password.tsx": {
@@ -3255,8 +3255,8 @@
     "semantic_hash": "01444db510b27cd42f7a9d3cba45cd3f"
   },
   "resources/js/pages/settings/profile.tsx": {
-    "mtime": 1788559546.9547532,
-    "ast_hash": "7bc600b9672372c1061ffb490cb1b8b3",
+    "mtime": 1788767056.441071,
+    "ast_hash": "9f5357781e83f81a039dd2e5636fa5a2",
     "semantic_hash": ""
   },
   "resources/js/pages/settings/security.tsx": {
@@ -3890,8 +3890,8 @@
     "semantic_hash": "cdd68cfafaa25bc3796d30cc125f56cb"
   },
   "tests/Feature/Settings/ProfileUpdateTest.php": {
-    "mtime": 1788431790.5232997,
-    "ast_hash": "27c6b1d694b8954311fa2988eb8504f5",
+    "mtime": 1788784492.383005,
+    "ast_hash": "6f97bcc427b6c92b774bc7fd81596761",
     "semantic_hash": ""
   },
   "tests/Feature/Settings/TwoFactorAuthenticationTest.php": {
@@ -6100,8 +6100,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/birthdate-input.tsx": {
-    "mtime": 1788559546.94652,
-    "ast_hash": "39e87bc749d9e1709a580997ba468b96",
+    "mtime": 1788766558.362713,
+    "ast_hash": "988099269e4908272d519d402eaa32cc",
     "semantic_hash": ""
   },
   ".playwright-mcp/page-2026-07-27T16-32-51-484Z.yml": {
@@ -6275,8 +6275,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/processing-details-panel.tsx": {
-    "mtime": 1788740517.1449914,
-    "ast_hash": "c06caa5e8780b7e8291c6d7b49bd99c3",
+    "mtime": 1788767109.6136851,
+    "ast_hash": "791435f680a384e8d462c5839d5e400b",
     "semantic_hash": ""
   },
   "app/Http/Middleware/EnsureMustChangePassword.php": {
@@ -6660,8 +6660,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/location-combobox.tsx": {
-    "mtime": 1788559546.9485233,
-    "ast_hash": "6c86bf7ba7bac59dd3b9ee5fe35e4bf7",
+    "mtime": 1788766643.4527085,
+    "ast_hash": "483c06845f185c3f7371787623cfb2f8",
     "semantic_hash": ""
   },
   "resources/scripts/generate-ph-barangays.mjs": {
@@ -6710,8 +6710,8 @@
     "semantic_hash": ""
   },
   "app/LoanSex.php": {
-    "mtime": 1788559546.897922,
-    "ast_hash": "c6245d85b1a8ababb9f6bcd7b10640f2",
+    "mtime": 1788766872.055019,
+    "ast_hash": "54a0c713a9a999abc760057d8aa66768",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/ApprovedLoanDocumentDataBuilder.php": {
@@ -6725,8 +6725,8 @@
     "semantic_hash": ""
   },
   "resources/js/pages/settings/profile-shared.tsx": {
-    "mtime": 1788559546.949523,
-    "ast_hash": "4c5c1c5826a727d75004f36ddd891829",
+    "mtime": 1788767001.3365521,
+    "ast_hash": "4ae8affc33df88d676fd48039dba561f",
     "semantic_hash": ""
   },
   "resources/js/pages/settings/profile-tabs/account-tab.tsx": {
@@ -6745,8 +6745,8 @@
     "semantic_hash": ""
   },
   "resources/js/pages/settings/profile-tabs/personal-tab.tsx": {
-    "mtime": 1788559546.9505224,
-    "ast_hash": "c1cbf9bd1a6093dc6cd3ca7980aca6d6",
+    "mtime": 1788767107.6964645,
+    "ast_hash": "0a9d4933de86887796a14eefc7a0ddca",
     "semantic_hash": ""
   },
   "resources/js/pages/settings/profile-tabs/work-tab.tsx": {
@@ -6830,8 +6830,8 @@
     "semantic_hash": ""
   },
   "tests/Unit/PdfFieldMapSignatureUppercaseTest.php": {
-    "mtime": 1787112162.3335457,
-    "ast_hash": "f05a3a35ed33cffedcfbc3a7f7917cb9",
+    "mtime": 1788785113.9509616,
+    "ast_hash": "10a271a7725351ce29aeebc50e98c128",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_14_000000_enforce_single_editable_staff_role.php": {
@@ -7245,8 +7245,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/ui/form-error-summary.tsx": {
-    "mtime": 1788499660.4684925,
-    "ast_hash": "97ed8666415d960913c6de824818d130",
+    "mtime": 1788766188.504855,
+    "ast_hash": "33faac1925bfecb8a5e7f402ca4f6be7",
     "semantic_hash": ""
   },
   "resources/js/components/ui/required-indicator.tsx": {

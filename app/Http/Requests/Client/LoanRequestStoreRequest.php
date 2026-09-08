@@ -260,25 +260,6 @@ class LoanRequestStoreRequest extends FormRequest
     ];
 
     /**
-     * True when the member requested Due date repayment over a single month --
-     * the only combination that skips the insurance/health wizard steps.
-     */
-    private function isDueDateNoInsuranceRequested(): bool
-    {
-        return $this->input('requested_payment_frequency') === LoanPaydayOption::DueDate->value
-            && (int) $this->input('requested_term') === 1;
-    }
-
-    /**
-     * Emergency (Micro Business Loan) requests also skip the insurance/health
-     * wizard steps -- there is no insurance premium to underwrite.
-     */
-    private function isEmergencyLoanRequested(): bool
-    {
-        return $this->input('kind_of_loan') === 'Emergency';
-    }
-
-    /**
      * Checks the submitted typecode against wlntype's "Other Loan" row,
      * falling back to a label match in case typecode differs across
      * environments (wlntype is external WIBS-desktop-managed data).
@@ -485,9 +466,11 @@ class LoanRequestStoreRequest extends FormRequest
             }
         }
 
-        $insuranceRequired = $this->isDueDateNoInsuranceRequested() || $this->isEmergencyLoanRequested()
-            ? 'sometimes'
-            : 'required';
+        // Insurance/health questionnaire data is always collected at
+        // submission, regardless of requested term -- a loan processor may
+        // later recommend a longer term than the member requested, and this
+        // data must already be on file when that happens.
+        $insuranceRequired = 'required';
 
         return [
             'typecode' => $loanTypeRules,

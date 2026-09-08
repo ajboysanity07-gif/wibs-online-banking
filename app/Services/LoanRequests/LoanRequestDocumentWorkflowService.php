@@ -2,7 +2,6 @@
 
 namespace App\Services\LoanRequests;
 
-use App\LoanPaydayOption;
 use App\LoanReleaseMethod;
 use App\LoanRequestDocumentKey;
 use App\LoanRequestDocumentReadinessStatus;
@@ -1201,7 +1200,7 @@ class LoanRequestDocumentWorkflowService
             }
         }
 
-        if (! $this->isDueDateNoInsurance($loanRequest) && ! $this->isEmergencyLoan($loanRequest)) {
+        if (! $this->isDueDateNoInsurance($loanRequest)) {
             if (! $this->isNumericValue($flatValues['insurance_rate'] ?? null)) {
                 $blockers[] = 'Insurance rate must be numeric.';
             }
@@ -1328,26 +1327,14 @@ class LoanRequestDocumentWorkflowService
     }
 
     /**
-     * A 1-month Due date carries no insurance premium (mirrors
-     * LoanRequestDocumentCatalog::isDueDateNoInsurance() and
+     * A recommended term under two months carries no insurance premium
+     * (mirrors LoanRequestDocumentCatalog::isDueDateNoInsurance() and
      * LoanRequestDecisionService::isDueDateNoInsurance()), so insurance_term
      * legitimately stays 0 and must not block document generation.
      */
     private function isDueDateNoInsurance(LoanRequest $loanRequest): bool
     {
-        return $loanRequest->recommended_payment_frequency === LoanPaydayOption::DueDate->value
-            && (int) $loanRequest->recommended_term === 1;
-    }
-
-    /**
-     * Emergency (Micro Business Loan) requests carry no insurance premium
-     * (mirrors LoanRequestDocumentCatalog::isEmergencyLoan()), so
-     * insurance_term legitimately stays 0 and must not block document
-     * generation.
-     */
-    private function isEmergencyLoan(LoanRequest $loanRequest): bool
-    {
-        return $loanRequest->kind_of_loan === 'Emergency';
+        return (int) $loanRequest->recommended_term < 2;
     }
 
     private function workflowVersionValue(LoanRequest $loanRequest): string

@@ -254,23 +254,14 @@ export function LoanRequestLoanDetailsStep({
                                 </SelectContent>
                             </Select>
                         </div>
-                        {(loanTypeAbbreviation ||
-                            data.kind_of_loan === 'Emergency') && (
+                        {loanTypeAbbreviation && (
                             <div className="grid gap-1 md:col-span-2">
-                                {loanTypeAbbreviation && (
-                                    <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-                                        Shown as{' '}
-                                        <Badge variant="secondary">
-                                            {loanTypeAbbreviation}
-                                        </Badge>
-                                    </p>
-                                )}
-                                {data.kind_of_loan === 'Emergency' && (
-                                    <p className="text-xs text-muted-foreground">
-                                        Emergency loans skip the insurance and
-                                        health questionnaire steps below.
-                                    </p>
-                                )}
+                                <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                                    Shown as{' '}
+                                    <Badge variant="secondary">
+                                        {loanTypeAbbreviation}
+                                    </Badge>
+                                </p>
                             </div>
                         )}
                     </>
@@ -378,8 +369,6 @@ export function LoanRequestLoanDetailsStep({
                         <p className="text-sm text-muted-foreground">
                             Due date is repaid as a single payment after the
                             loan term above.
-                            {data.requested_term === '1' &&
-                                ' Paying in 1 month skips the insurance and health questionnaire steps below.'}
                         </p>
                     </div>
                 )}

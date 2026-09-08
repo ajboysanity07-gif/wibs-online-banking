@@ -90,11 +90,12 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
     }
 
     /**
-     * True for the two loan shapes that skip insurance entirely: a 1-month
-     * Due date (lumpsum) recommendation, or an Emergency loan regardless of
-     * payment frequency. Mirrors the exemption already applied at
-     * document-generation time in ApprovedLoanDocumentDataBuilder, so what's
-     * saved here can't diverge from what prints.
+     * True when the recommended term is explicitly set under two months --
+     * the only case that skips insurance entirely. A term that hasn't been
+     * decided yet (null) is never treated as exempt -- only a confirmed
+     * 1-month term is. Mirrors the exemption already applied at
+     * document-generation time in ApprovedLoanDocumentDataBuilder, so
+     * what's saved here can't diverge from what prints.
      */
     private function isDueDateNoInsuranceLoan(): bool
     {
@@ -102,16 +103,9 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             return false;
         }
 
-        $kindOfLoan = trim((string) $this->loanRequest->kind_of_loan);
-
-        if ($kindOfLoan === 'Emergency') {
-            return true;
-        }
-
-        $paymentFrequency = $this->input('recommended_payment_frequency', $this->loanRequest->recommended_payment_frequency);
         $term = $this->input('recommended_term', $this->loanRequest->recommended_term);
 
-        return $paymentFrequency === LoanPaydayOption::DueDate->value && (int) $term === 1;
+        return $term !== null && $term !== '' && (int) $term < 2;
     }
 
     /**
