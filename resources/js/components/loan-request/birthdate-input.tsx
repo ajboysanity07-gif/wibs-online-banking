@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PatternFormat } from 'react-number-format';
+import { DatePickerTrigger } from '@/components/ui/date-picker-trigger';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -74,29 +75,43 @@ export function BirthdateInput({
     }
 
     return (
-        <PatternFormat
-            id={id}
-            name={name}
-            format="##/##/####"
-            mask="_"
-            placeholder="MM/DD/YYYY"
-            value={displayValue}
-            onValueChange={(values) => {
-                setDisplayValue(values.formattedValue);
+        <div className="mt-1 flex gap-2">
+            <PatternFormat
+                id={id}
+                name={name}
+                format="##/##/####"
+                mask="_"
+                placeholder="MM/DD/YYYY"
+                value={displayValue}
+                onValueChange={(values) => {
+                    setDisplayValue(values.formattedValue);
 
-                const iso = digitsToIso(values.value);
+                    const iso = digitsToIso(values.value);
 
-                setLastProcessedValue(iso);
-                onValueChange(iso);
-            }}
-            onBlur={onBlur}
-            className={cn('mt-1 block w-full', className)}
-            customInput={Input}
-            readOnly={readOnly}
-            required={required}
-            disabled={disabled}
-            aria-invalid={ariaInvalid}
-            inputMode="numeric"
-        />
+                    setLastProcessedValue(iso);
+                    onValueChange(iso);
+                }}
+                onBlur={onBlur}
+                className={cn('block w-full', className)}
+                customInput={Input}
+                readOnly={readOnly}
+                required={required}
+                disabled={disabled}
+                aria-invalid={ariaInvalid}
+                inputMode="numeric"
+            />
+            <DatePickerTrigger
+                value={value}
+                onSelect={(iso) => {
+                    setLastProcessedValue(iso);
+                    setDisplayValue(isoToDisplay(iso));
+                    onValueChange(iso);
+                }}
+                disabled={readOnly || disabled}
+                toDate={new Date()}
+                fromYear={new Date().getFullYear() - 100}
+                aria-label="Choose birthdate"
+            />
+        </div>
     );
 }

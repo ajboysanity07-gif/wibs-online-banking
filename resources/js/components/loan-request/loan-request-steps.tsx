@@ -12,6 +12,7 @@ import {
     summarizeDependents,
 } from '@/components/dependents/dependent-category-section';
 import { BooleanYesNoField } from '@/components/loan-request/boolean-yes-no-field';
+import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
@@ -1303,6 +1304,17 @@ export function LoanRequestDataSectionStep({
                                     }
                                     aria-invalid={Boolean(errors[errorKey])}
                                 />
+                            ) : field.type === 'date' ? (
+                                <DateInputWithPicker
+                                    id={`${sectionKey}_${fieldKey}`}
+                                    value={value ? `${value}` : ''}
+                                    aria-invalid={Boolean(errors[errorKey])}
+                                    aria-label={`Choose ${field.label.toLowerCase()}`}
+                                    onChange={(nextValue) =>
+                                        onChange(fieldKey, nextValue)
+                                    }
+                                    className="mt-0"
+                                />
                             ) : (
                                 <Input
                                     id={`${sectionKey}_${fieldKey}`}
@@ -1310,9 +1322,7 @@ export function LoanRequestDataSectionStep({
                                         field.type === 'number' ||
                                         field.type === 'integer'
                                             ? 'number'
-                                            : field.type === 'date'
-                                              ? 'date'
-                                              : 'text'
+                                            : 'text'
                                     }
                                     step={
                                         field.type === 'number'
@@ -2040,10 +2050,19 @@ export function LoanRequestInsuranceBeneficiariesStep({
                         aria-invalid={Boolean(errors[errorKey])}
                         onChange={(nextValue) => onChange(fieldKey, nextValue)}
                     />
+                ) : field.type === 'date' ? (
+                    <DateInputWithPicker
+                        id={`${sectionKey}_${fieldKey}`}
+                        value={value ? `${value}` : ''}
+                        aria-invalid={Boolean(errors[errorKey])}
+                        aria-label={`Choose ${field.label.toLowerCase()}`}
+                        onChange={(nextValue) => onChange(fieldKey, nextValue)}
+                        className="mt-0"
+                    />
                 ) : (
                     <Input
                         id={`${sectionKey}_${fieldKey}`}
-                        type={field.type === 'date' ? 'date' : 'text'}
+                        type="text"
                         value={value ? `${value}` : ''}
                         aria-invalid={Boolean(errors[errorKey])}
                         onChange={(event) =>

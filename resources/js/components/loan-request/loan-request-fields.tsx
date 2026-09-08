@@ -1,6 +1,7 @@
 import type { ChangeEvent } from 'react';
 import { useState } from 'react';
 import { BirthdateInput } from '@/components/loan-request/birthdate-input';
+import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import {
     CurrencyInput,
     YearsInput,
@@ -1604,19 +1605,17 @@ export function LoanRequestWorkFields({
                                 >
                                     Date employed
                                 </Label>
-                                <Input
+                                <DateInputWithPicker
                                     id={`${prefix}_employer_date_employed`}
                                     name={fieldName(
                                         prefix,
                                         'employer_date_employed',
                                     )}
-                                    type="date"
                                     value={values.employer_date_employed}
-                                    className="mt-1 block w-full"
-                                    onChange={(event) =>
+                                    onChange={(value) =>
                                         onChange(
                                             'employer_date_employed',
-                                            event.target.value,
+                                            value,
                                         )
                                     }
                                     aria-invalid={Boolean(
@@ -1626,6 +1625,7 @@ export function LoanRequestWorkFields({
                                             'employer_date_employed',
                                         ),
                                     )}
+                                    aria-label="Choose date employed"
                                 />
                             </div>
                         ) : null}

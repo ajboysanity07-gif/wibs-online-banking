@@ -2,6 +2,7 @@ import { Baby, Heart, UserRound, UsersRound, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ComponentType } from 'react';
 
+import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -145,7 +146,6 @@ export function DependentCategorySection({
     const renderTextField = (slot: number, attribute: 'name' | 'birthdate') => {
         const fieldKey = slotFieldKey(category.key, slot, attribute);
         const label = defaultSlotFieldLabel(attribute);
-        const type = attribute === 'birthdate' ? 'date' : 'text';
         const errorKey = errorKeyPrefix
             ? `${errorKeyPrefix}.${fieldKey}`
             : fieldKey;
@@ -154,14 +154,28 @@ export function DependentCategorySection({
         return (
             <div key={fieldKey} className="grid gap-2">
                 <Label htmlFor={fieldKey}>{label}</Label>
-                <Input
-                    id={fieldKey}
-                    name={withNameAttribute ? fieldKey : undefined}
-                    type={type}
-                    value={value ? `${value}` : ''}
-                    onChange={(event) => onChange(fieldKey, event.target.value)}
-                    aria-invalid={Boolean(errors[errorKey])}
-                />
+                {attribute === 'birthdate' ? (
+                    <DateInputWithPicker
+                        id={fieldKey}
+                        name={withNameAttribute ? fieldKey : undefined}
+                        value={value ? `${value}` : ''}
+                        onChange={(nextValue) => onChange(fieldKey, nextValue)}
+                        aria-invalid={Boolean(errors[errorKey])}
+                        aria-label={`Choose ${label.toLowerCase()}`}
+                        className="mt-0"
+                    />
+                ) : (
+                    <Input
+                        id={fieldKey}
+                        name={withNameAttribute ? fieldKey : undefined}
+                        type="text"
+                        value={value ? `${value}` : ''}
+                        onChange={(event) =>
+                            onChange(fieldKey, event.target.value)
+                        }
+                        aria-invalid={Boolean(errors[errorKey])}
+                    />
+                )}
             </div>
         );
     };
