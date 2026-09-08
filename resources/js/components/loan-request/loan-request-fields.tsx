@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BirthdateInput } from '@/components/loan-request/birthdate-input';
 import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import {
@@ -7,6 +7,7 @@ import {
     YearsInput,
 } from '@/components/loan-request/numeric-adorned-inputs';
 import { LocationCombobox } from '@/components/location-combobox';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -202,6 +203,22 @@ export function LoanRequestPersonalFields({
 
     const isReadOnly = (field: string) => Boolean(readOnly?.[field]);
     const hasReadOnlyFields = Object.values(readOnly ?? {}).some(Boolean);
+    const [lengthOfStaySinceBirth, setLengthOfStaySinceBirth] = useState(false);
+
+    useEffect(() => {
+        if (!lengthOfStaySinceBirth) {
+            return;
+        }
+
+        const age = calculateAge(values.birthdate);
+        const nextValue = age !== null ? String(age) : '';
+
+        if (nextValue !== values.length_of_stay) {
+            onChange('length_of_stay', nextValue);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [lengthOfStaySinceBirth, values.birthdate]);
+
     const showSpouseFields = includeSpouse && values.civil_status === 'Married';
     const hasFamilySection =
         includeCivilHousing || includeChildren || includeSpouse;
@@ -718,6 +735,7 @@ export function LoanRequestPersonalFields({
                             className="mt-1 block w-full"
                             placeholder="e.g. 2"
                             required
+                            disabled={lengthOfStaySinceBirth}
                             onChange={(value) =>
                                 onChange('length_of_stay', value)
                             }
@@ -725,6 +743,31 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'length_of_stay'),
                             )}
                         />
+                        <label
+                            htmlFor={`${prefix}_length_of_stay_since_birth`}
+                            className="flex items-center gap-2 text-sm text-muted-foreground"
+                        >
+                            <Checkbox
+                                id={`${prefix}_length_of_stay_since_birth`}
+                                checked={lengthOfStaySinceBirth}
+                                disabled={!values.birthdate}
+                                onCheckedChange={(checked) => {
+                                    const isChecked = checked === true;
+                                    setLengthOfStaySinceBirth(isChecked);
+
+                                    if (isChecked) {
+                                        const age = calculateAge(
+                                            values.birthdate,
+                                        );
+                                        onChange(
+                                            'length_of_stay',
+                                            age !== null ? String(age) : '',
+                                        );
+                                    }
+                                }}
+                            />
+                            Since birth
+                        </label>
                     </div>
 
                     {includeCivilHousing ? (
