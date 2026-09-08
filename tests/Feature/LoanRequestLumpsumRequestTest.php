@@ -235,6 +235,58 @@ test('member can submit a 1-month Lumpsum Other Loan request without insurance o
     expect($loanRequest->requested_term)->toBe(1);
 });
 
+test('member can submit a 1-month Lumpsum Other Loan request with null insurance and health data', function () {
+    Storage::fake('public');
+
+    $user = setUpLumpsumMember('000806');
+
+    DB::table('wlntype')->insert([
+        'typecode' => '01',
+        'lntype' => 'OTHER LOAN',
+    ]);
+
+    $payload = [
+        'typecode' => '01',
+        'requested_amount' => 15000,
+        'requested_term' => 1,
+        'loan_purpose' => 'Emergency expenses',
+        'other_loan_type_name' => 'Emergency Loan',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        'requested_payment_frequency' => 'Due date',
+        ...lumpsumMemberSectionPayload((int) $user->memberApplicationProfile->release_saved_account_id, [
+            'insurance' => [
+                'beneficiary_primary_name' => null,
+                'beneficiary_primary_relationship' => null,
+                'beneficiary_primary_birthdate' => null,
+                'beneficiary_secondary_name' => null,
+                'beneficiary_secondary_relationship' => null,
+                'beneficiary_secondary_birthdate' => null,
+            ],
+            'health' => [
+                'health_smoking_status' => null,
+                'health_hypertension' => null,
+            ],
+            'dependents' => [],
+        ]),
+        'applicant' => lumpsumApplicantPayload(),
+        'co_maker_1' => lumpsumCoMakerPayload('CoOne'),
+        'co_maker_2' => lumpsumCoMakerPayload('CoTwo'),
+    ];
+    unset($payload['dependents']);
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $loanRequest = LoanRequest::query()->first();
+
+    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
+    expect($loanRequest)->not->toBeNull();
+    expect($loanRequest->requested_payment_frequency)->toBe('Due date');
+    expect($loanRequest->requested_term)->toBe(1);
+});
+
 test('member requesting 2-month Lumpsum still requires insurance and health data', function () {
     Storage::fake('public');
 
