@@ -184,19 +184,26 @@ export function LocationCombobox({
                                 ? search.selectedValue
                                 : effectivePlaceholder}
                         </span>
-                        <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
+                        {hasValue && isInteractive ? (
+                            <span className="size-4 shrink-0" />
+                        ) : (
+                            <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
+                        )}
                     </button>
                 </PopoverTrigger>
                 {hasValue && isInteractive ? (
-                    <button
-                        type="button"
-                        aria-label="Clear selection"
-                        tabIndex={-1}
-                        onClick={handleClear}
-                        className="absolute top-1/2 right-7 flex size-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-                    >
-                        <XIcon className="size-3.5" />
-                    </button>
+                    <span className="pointer-events-none absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1">
+                        <button
+                            type="button"
+                            aria-label="Clear selection"
+                            tabIndex={-1}
+                            onClick={handleClear}
+                            className="pointer-events-auto flex size-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                        >
+                            <XIcon className="size-3.5" />
+                        </button>
+                        <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
+                    </span>
                 ) : null}
             </div>
             <PopoverContent
