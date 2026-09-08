@@ -123,7 +123,7 @@ test('psgc service searches barangays scoped to a municipality', function () {
     expect($result['results'][0]['label'])->toBe('Acacia');
     expect($result['results'][0]['value'])->toBe('Acacia');
     expect($result['results'][0]['type'])->toBe('barangay');
-    expect($result['results'][0]['province'])->toBeNull();
+    expect($result['results'][0]['province'])->toBe('City of Davao');
 });
 
 test('psgc service returns every barangay for a municipality when the requested limit exceeds its total', function () {

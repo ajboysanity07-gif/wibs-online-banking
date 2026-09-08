@@ -1200,6 +1200,34 @@ class PsgcService
             ];
         }
 
+        // Highly urbanized / independent cities are treated as their own
+        // "province" (see normalizeBirthplace()) -- surface them in the
+        // province list too, or they'd have no way of being selected.
+        $seenHucProvinces = [];
+
+        foreach ($birthplaces as $birthplace) {
+            if ($birthplace['type'] !== 'city' || $birthplace['province'] !== $birthplace['name']) {
+                continue;
+            }
+
+            if (isset($seenHucProvinces[$birthplace['name']])) {
+                continue;
+            }
+
+            $seenHucProvinces[$birthplace['name']] = true;
+
+            $provinceSuggestions[] = [
+                'code' => $birthplace['code'],
+                'name' => $birthplace['name'],
+                'type' => 'province',
+                'province' => null,
+                'region' => null,
+                'label' => $birthplace['name'],
+                'value' => $birthplace['name'],
+                'name_lower' => Str::lower($birthplace['name']),
+            ];
+        }
+
         return [
             'birthplaces' => $birthplaces,
             'provinces' => $provinceSuggestions,
@@ -1260,8 +1288,19 @@ class PsgcService
             $province = 'Metro Manila';
         }
 
+        // Highly urbanized / independent cities (e.g. Davao, Cagayan de Oro)
+        // self-reference their own code as `province_code` in PSGC -- they
+        // don't belong to any province. Treat the city itself as its own
+        // selectable "province" so the province-scoped city picker can find
+        // it, mirroring the Metro Manila fallback above.
+        if ($province === null && $provinceCode !== null && $provinceCode === $code) {
+            $province = $displayName;
+        }
+
         $suffix = $province ?? $region;
-        $label = $suffix !== null ? sprintf('%s, %s', $displayName, $suffix) : $displayName;
+        $label = ($suffix !== null && $suffix !== $displayName)
+            ? sprintf('%s, %s', $displayName, $suffix)
+            : $displayName;
 
         return [
             'code' => $code,
