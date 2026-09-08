@@ -674,6 +674,10 @@ class LoanRequestStoreRequest extends FormRequest
         );
         $employerRule = $isPensioner ? 'nullable' : 'required';
         $dateEmployedRule = ($isPensioner || $isSelfEmployed) ? 'nullable' : 'required';
+        // Co-makers' employer/business address is never shown on any generated
+        // document (unlike the applicant's), so it's collected as optional
+        // rather than required.
+        $employerAddressRule = ($isPensioner || $prefix !== 'applicant') ? 'nullable' : 'required';
 
         $rules = [
             "{$prefix}.first_name" => ['required', 'string', 'max:255'],
@@ -699,7 +703,7 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.educational_attainment" => ['required', 'string', 'max:255'],
             "{$prefix}.employment_type" => ['required', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => [$employerRule, 'string', 'max:255'],
-            "{$prefix}.employer_business_address1" => [$employerRule, 'string', 'max:255'],
+            "{$prefix}.employer_business_address1" => [$employerAddressRule, 'string', 'max:255'],
             "{$prefix}.employer_business_address_barangay" => ['nullable', 'string', 'max:255'],
             // Never actually enforced as required prior to this comment (the
             // old rule combined $employerRule with 'nullable', which always
@@ -746,21 +750,23 @@ class LoanRequestStoreRequest extends FormRequest
                 $rules["{$prefix}.address3"],
                 new ValidPsgcProvince,
             );
-            array_push(
-                $rules["{$prefix}.employer_business_address_barangay"],
-                new ValidPsgcBarangay(
-                    $this->input("{$prefix}.employer_business_address2"),
-                    $this->input("{$prefix}.employer_business_address3"),
-                ),
-            );
-            array_push(
-                $rules["{$prefix}.employer_business_address2"],
-                new ValidPsgcLocality,
-            );
-            array_push(
-                $rules["{$prefix}.employer_business_address3"],
-                new ValidPsgcProvince,
-            );
+            if ($prefix === 'applicant') {
+                array_push(
+                    $rules["{$prefix}.employer_business_address_barangay"],
+                    new ValidPsgcBarangay(
+                        $this->input("{$prefix}.employer_business_address2"),
+                        $this->input("{$prefix}.employer_business_address3"),
+                    ),
+                );
+                array_push(
+                    $rules["{$prefix}.employer_business_address2"],
+                    new ValidPsgcLocality,
+                );
+                array_push(
+                    $rules["{$prefix}.employer_business_address3"],
+                    new ValidPsgcProvince,
+                );
+            }
         }
 
         if ($includeDateEmployed) {

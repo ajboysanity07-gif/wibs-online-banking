@@ -1277,7 +1277,7 @@ export function LoanRequestWorkFields({
                         </div>
                     ) : null}
 
-                    {!isPensioner ? (
+                    {!isPensioner && prefix === 'applicant' ? (
                         <div className="grid gap-2">
                             <Label
                                 htmlFor={`${prefix}_employer_business_address3`}
@@ -1340,7 +1340,7 @@ export function LoanRequestWorkFields({
                         </div>
                     ) : null}
 
-                    {!isPensioner ? (
+                    {!isPensioner && prefix === 'applicant' ? (
                         <div className="grid gap-2">
                             <Label
                                 htmlFor={`${prefix}_employer_business_address2`}
@@ -1409,7 +1409,7 @@ export function LoanRequestWorkFields({
                         </div>
                     ) : null}
 
-                    {!isPensioner ? (
+                    {!isPensioner && prefix === 'applicant' ? (
                         <div className="grid gap-2">
                             <Label
                                 htmlFor={`${prefix}_employer_business_address_zip`}
@@ -1442,7 +1442,7 @@ export function LoanRequestWorkFields({
                         </div>
                     ) : null}
 
-                    {!isPensioner ? (
+                    {!isPensioner && prefix === 'applicant' ? (
                         <div className="grid gap-2">
                             <Label
                                 htmlFor={`${prefix}_employer_business_address_barangay`}
@@ -1480,7 +1480,7 @@ export function LoanRequestWorkFields({
                         </div>
                     ) : null}
 
-                    {!isPensioner ? (
+                    {!isPensioner && prefix === 'applicant' ? (
                         <div className="grid gap-2 md:col-span-2">
                             <Label
                                 htmlFor={`${prefix}_employer_business_address1`}

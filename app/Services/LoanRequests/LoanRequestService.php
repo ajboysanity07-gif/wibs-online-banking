@@ -1233,6 +1233,19 @@ class LoanRequestService
             'role' => $role,
         ]);
 
+        // Co-makers' employer/business address is no longer collected by the
+        // wizard, so the payload never carries these keys for them -- fall
+        // back to whatever is already on the row instead of nulling it out
+        // on every autosave/correction/processing update.
+        $employerBusinessAddress = $employerAddressValues['legacy'] ?? $person->employer_business_address;
+        $employerBusinessAddress1 = $employerAddressValues['address1'] ?? $person->employer_business_address1;
+        $employerBusinessAddressBarangay = $employerAddressValues['barangay'] ?? $person->employer_business_address_barangay;
+        $employerBusinessAddress2 = $employerAddressValues['address2'] ?? $person->employer_business_address2;
+        $employerBusinessAddress3 = $employerAddressValues['address3'] ?? $person->employer_business_address3;
+        $employerBusinessAddressZip = $this->normalizeOptionalString(
+            $data['employer_business_address_zip'] ?? null,
+        ) ?? $person->employer_business_address_zip;
+
         $attributes = [
             'role' => $role,
             'first_name' => (string) ($data['first_name'] ?? ''),
@@ -1269,14 +1282,12 @@ class LoanRequestService
             'employer_business_name' => $this->normalizeOptionalString(
                 $data['employer_business_name'] ?? null,
             ),
-            'employer_business_address' => $employerAddressValues['legacy'],
-            'employer_business_address1' => $employerAddressValues['address1'],
-            'employer_business_address_barangay' => $employerAddressValues['barangay'],
-            'employer_business_address2' => $employerAddressValues['address2'],
-            'employer_business_address3' => $employerAddressValues['address3'],
-            'employer_business_address_zip' => $this->normalizeOptionalString(
-                $data['employer_business_address_zip'] ?? null,
-            ),
+            'employer_business_address' => $employerBusinessAddress,
+            'employer_business_address1' => $employerBusinessAddress1,
+            'employer_business_address_barangay' => $employerBusinessAddressBarangay,
+            'employer_business_address2' => $employerBusinessAddress2,
+            'employer_business_address3' => $employerBusinessAddress3,
+            'employer_business_address_zip' => $employerBusinessAddressZip,
             'telephone_no' => $this->normalizeOptionalString($data['telephone_no'] ?? null),
             'current_position' => $this->normalizeOptionalString(
                 $data['current_position'] ?? null,

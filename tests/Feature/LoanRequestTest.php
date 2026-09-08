@@ -1041,6 +1041,78 @@ test('clients can save a loan request draft', function () {
     expect(LoanRequest::query()->count())->toBe(1);
 });
 
+test('a co-maker employer/business address already on record survives a later draft save that omits it', function () {
+    $user = User::factory()->create(['acctno' => '970006']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-004',
+        'lntype' => 'Personal',
+    ]);
+
+    $basePayload = [
+        'typecode' => 'LN-004',
+        'requested_amount' => 12000,
+        'requested_term' => 10,
+        'loan_purpose' => 'Home repair',
+        'availment_status' => 'New',
+        'applicant' => [
+            'first_name' => 'Loan',
+            'last_name' => 'Member',
+            'birthdate' => '1990-04-10',
+            'employment_type' => 'Private',
+        ],
+        'co_maker_1' => [
+            'first_name' => 'Co',
+            'last_name' => 'Maker',
+            'employment_type' => 'Government',
+            'employer_business_address1' => 'Old Co-Maker Plaza',
+            'employer_business_address2' => 'Cebu City',
+            'employer_business_address3' => 'Cebu',
+        ],
+    ];
+
+    $this
+        ->actingAs($user)
+        ->patch(route('client.loan-requests.draft'), $basePayload)
+        ->assertRedirect(route('client.loan-requests.create'));
+
+    $draft = LoanRequest::query()->first();
+
+    $coMaker = fn () => LoanRequestPerson::query()
+        ->where('loan_request_id', $draft->id)
+        ->where('role', LoanRequestPersonRole::CoMakerOne)
+        ->first();
+
+    expect($coMaker()->employer_business_address1)->toBe('Old Co-Maker Plaza');
+
+    $followUpPayload = $basePayload;
+    unset(
+        $followUpPayload['co_maker_1']['employer_business_address1'],
+        $followUpPayload['co_maker_1']['employer_business_address2'],
+        $followUpPayload['co_maker_1']['employer_business_address3'],
+    );
+    $followUpPayload['loan_purpose'] = 'Tuition';
+
+    $this
+        ->actingAs($user)
+        ->patch(route('client.loan-requests.draft'), $followUpPayload);
+
+    expect($coMaker()->employer_business_address1)->toBe('Old Co-Maker Plaza');
+});
+
 test('clients can save applicant PEP status and cycle status via the loan request draft', function () {
     $user = User::factory()->create([
         'acctno' => '000713',
@@ -1599,6 +1671,47 @@ test('loan request submission requires nature of business for a self-employed ap
             'nature_of_business' => null,
         ]))
         ->assertSessionHasErrors(['applicant.nature_of_business']);
+});
+
+test('loan request submission still requires the applicant employer/business address', function () {
+    Storage::fake('public');
+
+    $user = seedLoanRequestHardeningMember('970004');
+
+    $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), loanRequestHardeningPayload($user, [
+            'employer_business_address1' => null,
+        ]))
+        ->assertSessionHasErrors(['applicant.employer_business_address1']);
+});
+
+test('loan request submission does not require a co-maker employer/business address', function () {
+    Storage::fake('public');
+
+    $user = seedLoanRequestHardeningMember('970005');
+
+    $payload = loanRequestHardeningPayload($user);
+    $payload['co_maker_1']['employer_business_address1'] = null;
+    $payload['co_maker_1']['employer_business_address2'] = null;
+    $payload['co_maker_1']['employer_business_address3'] = null;
+    $payload['co_maker_2']['employer_business_address1'] = null;
+    $payload['co_maker_2']['employer_business_address2'] = null;
+    $payload['co_maker_2']['employer_business_address3'] = null;
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $response->assertSessionDoesntHaveErrors([
+        'co_maker_1.employer_business_address1',
+        'co_maker_1.employer_business_address2',
+        'co_maker_1.employer_business_address3',
+        'co_maker_2.employer_business_address1',
+        'co_maker_2.employer_business_address2',
+        'co_maker_2.employer_business_address3',
+    ]);
+    expect(LoanRequest::query()->count())->toBe(1);
 });
 
 test('an Emergency (Micro Business Loan) submission does not require insurance/health data', function () {
