@@ -634,10 +634,10 @@
             "code": "0330100000",
             "name": "City of Angeles",
             "type": "city",
-            "province": "City of Angeles",
+            "province": "Pampanga",
             "region": "Region III (Central Luzon)",
-            "label": "City of Angeles",
-            "value": "City of Angeles",
+            "label": "City of Angeles, Pampanga",
+            "value": "City of Angeles, Pampanga",
             "name_lower": "city of angeles"
         },
         {
@@ -974,10 +974,10 @@
             "code": "1830200000",
             "name": "City of Bacolod",
             "type": "city",
-            "province": "City of Bacolod",
+            "province": "Negros Occidental",
             "region": "Negros Island Region (NIR)",
-            "label": "City of Bacolod",
-            "value": "City of Bacolod",
+            "label": "City of Bacolod, Negros Occidental",
+            "value": "City of Bacolod, Negros Occidental",
             "name_lower": "city of bacolod"
         },
         {
@@ -1124,10 +1124,10 @@
             "code": "1430300000",
             "name": "City of Baguio",
             "type": "city",
-            "province": "City of Baguio",
+            "province": "Benguet",
             "region": "Cordillera Administrative Region (CAR)",
-            "label": "City of Baguio",
-            "value": "City of Baguio",
+            "label": "City of Baguio, Benguet",
+            "value": "City of Baguio, Benguet",
             "name_lower": "city of baguio"
         },
         {
@@ -2784,10 +2784,10 @@
             "code": "1630400000",
             "name": "City of Butuan",
             "type": "city",
-            "province": "City of Butuan",
+            "province": "Agusan del Norte",
             "region": "Region XIII (Caraga)",
-            "label": "City of Butuan",
-            "value": "City of Butuan",
+            "label": "City of Butuan, Agusan del Norte",
+            "value": "City of Butuan, Agusan del Norte",
             "name_lower": "city of butuan"
         },
         {
@@ -2954,10 +2954,10 @@
             "code": "1030500000",
             "name": "City of Cagayan de Oro",
             "type": "city",
-            "province": "City of Cagayan de Oro",
+            "province": "Misamis Oriental",
             "region": "Region X (Northern Mindanao)",
-            "label": "City of Cagayan de Oro",
-            "value": "City of Cagayan de Oro",
+            "label": "City of Cagayan de Oro, Misamis Oriental",
+            "value": "City of Cagayan de Oro, Misamis Oriental",
             "name_lower": "city of cagayan de oro"
         },
         {
@@ -3794,10 +3794,10 @@
             "code": "0730600000",
             "name": "City of Cebu",
             "type": "city",
-            "province": "City of Cebu",
+            "province": "Cebu",
             "region": "Region VII (Central Visayas)",
-            "label": "City of Cebu",
-            "value": "City of Cebu",
+            "label": "City of Cebu, Cebu",
+            "value": "City of Cebu, Cebu",
             "name_lower": "city of cebu"
         },
         {
@@ -4434,10 +4434,10 @@
             "code": "1130700000",
             "name": "City of Davao",
             "type": "city",
-            "province": "City of Davao",
+            "province": "Davao del Sur",
             "region": "Region XI (Davao Region)",
-            "label": "City of Davao",
-            "value": "City of Davao",
+            "label": "City of Davao, Davao del Sur",
+            "value": "City of Davao, Davao del Sur",
             "name_lower": "city of davao"
         },
         {
@@ -5264,10 +5264,10 @@
             "code": "1230800000",
             "name": "City of General Santos",
             "type": "city",
-            "province": "City of General Santos",
+            "province": "South Cotabato",
             "region": "Region XII (SOCCSKSARGEN)",
-            "label": "City of General Santos",
-            "value": "City of General Santos",
+            "label": "City of General Santos, South Cotabato",
+            "value": "City of General Santos, South Cotabato",
             "name_lower": "city of general santos"
         },
         {
@@ -5844,10 +5844,10 @@
             "code": "1030900000",
             "name": "City of Iligan",
             "type": "city",
-            "province": "City of Iligan",
+            "province": "Lanao del Norte",
             "region": "Region X (Northern Mindanao)",
-            "label": "City of Iligan",
-            "value": "City of Iligan",
+            "label": "City of Iligan, Lanao del Norte",
+            "value": "City of Iligan, Lanao del Norte",
             "name_lower": "city of iligan"
         },
         {
@@ -5864,10 +5864,10 @@
             "code": "0631000000",
             "name": "City of Iloilo",
             "type": "city",
-            "province": "City of Iloilo",
+            "province": "Iloilo",
             "region": "Region VI (Western Visayas)",
-            "label": "City of Iloilo",
-            "value": "City of Iloilo",
+            "label": "City of Iloilo, Iloilo",
+            "value": "City of Iloilo, Iloilo",
             "name_lower": "city of iloilo"
         },
         {
@@ -7124,10 +7124,10 @@
             "code": "0731100000",
             "name": "City of Lapu-Lapu",
             "type": "city",
-            "province": "City of Lapu-Lapu",
+            "province": "Cebu",
             "region": "Region VII (Central Visayas)",
-            "label": "City of Lapu-Lapu",
-            "value": "City of Lapu-Lapu",
+            "label": "City of Lapu-Lapu, Cebu",
+            "value": "City of Lapu-Lapu, Cebu",
             "name_lower": "city of lapu-lapu"
         },
         {
@@ -7814,10 +7814,10 @@
             "code": "0431200000",
             "name": "City of Lucena",
             "type": "city",
-            "province": "City of Lucena",
+            "province": "Quezon",
             "region": "Region IV-A (CALABARZON)",
-            "label": "City of Lucena",
-            "value": "City of Lucena",
+            "label": "City of Lucena, Quezon",
+            "value": "City of Lucena, Quezon",
             "name_lower": "city of lucena"
         },
         {
@@ -8844,10 +8844,10 @@
             "code": "0731300000",
             "name": "City of Mandaue",
             "type": "city",
-            "province": "City of Mandaue",
+            "province": "Cebu",
             "region": "Region VII (Central Visayas)",
-            "label": "City of Mandaue",
-            "value": "City of Mandaue",
+            "label": "City of Mandaue, Cebu",
+            "value": "City of Mandaue, Cebu",
             "name_lower": "city of mandaue"
         },
         {
@@ -10154,10 +10154,10 @@
             "code": "0331400000",
             "name": "City of Olongapo",
             "type": "city",
-            "province": "City of Olongapo",
+            "province": "Zambales",
             "region": "Region III (Central Luzon)",
-            "label": "City of Olongapo",
-            "value": "City of Olongapo",
+            "label": "City of Olongapo, Zambales",
+            "value": "City of Olongapo, Zambales",
             "name_lower": "city of olongapo"
         },
         {
@@ -11644,10 +11644,10 @@
             "code": "1731500000",
             "name": "City of Puerto Princesa",
             "type": "city",
-            "province": "City of Puerto Princesa",
+            "province": "Palawan",
             "region": "Mimaropa Region",
-            "label": "City of Puerto Princesa",
-            "value": "City of Puerto Princesa",
+            "label": "City of Puerto Princesa, Palawan",
+            "value": "City of Puerto Princesa, Palawan",
             "name_lower": "city of puerto princesa"
         },
         {
@@ -15014,10 +15014,10 @@
             "code": "0831600000",
             "name": "City of Tacloban",
             "type": "city",
-            "province": "City of Tacloban",
+            "province": "Leyte",
             "region": "Region VIII (Eastern Visayas)",
-            "label": "City of Tacloban",
-            "value": "City of Tacloban",
+            "label": "City of Tacloban, Leyte",
+            "value": "City of Tacloban, Leyte",
             "name_lower": "city of tacloban"
         },
         {
@@ -16514,10 +16514,10 @@
             "code": "0931700000",
             "name": "City of Zamboanga",
             "type": "city",
-            "province": "City of Zamboanga",
+            "province": "Zamboanga del Sur",
             "region": "Region IX (Zamboanga Peninsula)",
-            "label": "City of Zamboanga",
-            "value": "City of Zamboanga",
+            "label": "City of Zamboanga, Zamboanga del Sur",
+            "value": "City of Zamboanga, Zamboanga del Sur",
             "name_lower": "city of zamboanga"
         },
         {
@@ -17561,176 +17561,6 @@
             "label": "Zamboanga Sibugay",
             "value": "Zamboanga Sibugay",
             "name_lower": "zamboanga sibugay"
-        },
-        {
-            "code": "0330100000",
-            "name": "City of Angeles",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Angeles (HUC)",
-            "value": "City of Angeles",
-            "name_lower": "city of angeles"
-        },
-        {
-            "code": "1830200000",
-            "name": "City of Bacolod",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Bacolod (HUC)",
-            "value": "City of Bacolod",
-            "name_lower": "city of bacolod"
-        },
-        {
-            "code": "1430300000",
-            "name": "City of Baguio",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Baguio (HUC)",
-            "value": "City of Baguio",
-            "name_lower": "city of baguio"
-        },
-        {
-            "code": "1630400000",
-            "name": "City of Butuan",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Butuan (HUC)",
-            "value": "City of Butuan",
-            "name_lower": "city of butuan"
-        },
-        {
-            "code": "1030500000",
-            "name": "City of Cagayan de Oro",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Cagayan de Oro (HUC)",
-            "value": "City of Cagayan de Oro",
-            "name_lower": "city of cagayan de oro"
-        },
-        {
-            "code": "0730600000",
-            "name": "City of Cebu",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Cebu (HUC)",
-            "value": "City of Cebu",
-            "name_lower": "city of cebu"
-        },
-        {
-            "code": "1130700000",
-            "name": "City of Davao",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Davao (HUC)",
-            "value": "City of Davao",
-            "name_lower": "city of davao"
-        },
-        {
-            "code": "1230800000",
-            "name": "City of General Santos",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of General Santos (HUC)",
-            "value": "City of General Santos",
-            "name_lower": "city of general santos"
-        },
-        {
-            "code": "1030900000",
-            "name": "City of Iligan",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Iligan (HUC)",
-            "value": "City of Iligan",
-            "name_lower": "city of iligan"
-        },
-        {
-            "code": "0631000000",
-            "name": "City of Iloilo",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Iloilo (HUC)",
-            "value": "City of Iloilo",
-            "name_lower": "city of iloilo"
-        },
-        {
-            "code": "0731100000",
-            "name": "City of Lapu-Lapu",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Lapu-Lapu (HUC)",
-            "value": "City of Lapu-Lapu",
-            "name_lower": "city of lapu-lapu"
-        },
-        {
-            "code": "0431200000",
-            "name": "City of Lucena",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Lucena (HUC)",
-            "value": "City of Lucena",
-            "name_lower": "city of lucena"
-        },
-        {
-            "code": "0731300000",
-            "name": "City of Mandaue",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Mandaue (HUC)",
-            "value": "City of Mandaue",
-            "name_lower": "city of mandaue"
-        },
-        {
-            "code": "0331400000",
-            "name": "City of Olongapo",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Olongapo (HUC)",
-            "value": "City of Olongapo",
-            "name_lower": "city of olongapo"
-        },
-        {
-            "code": "1731500000",
-            "name": "City of Puerto Princesa",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Puerto Princesa (HUC)",
-            "value": "City of Puerto Princesa",
-            "name_lower": "city of puerto princesa"
-        },
-        {
-            "code": "0831600000",
-            "name": "City of Tacloban",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Tacloban (HUC)",
-            "value": "City of Tacloban",
-            "name_lower": "city of tacloban"
-        },
-        {
-            "code": "0931700000",
-            "name": "City of Zamboanga",
-            "type": "province",
-            "province": null,
-            "region": null,
-            "label": "City of Zamboanga (HUC)",
-            "value": "City of Zamboanga",
-            "name_lower": "city of zamboanga"
         }
     ]
 }

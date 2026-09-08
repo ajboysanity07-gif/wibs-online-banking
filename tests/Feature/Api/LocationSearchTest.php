@@ -123,26 +123,19 @@ test('city search endpoint returns empty data for an empty search without a prov
         ]);
 });
 
-test('highly urbanized cities are selectable as their own province and findable in the scoped city search', function () {
-    $provinceResponse = $this
-        ->actingAs($this->user)
-        ->get(route('api.locations.provinces', ['search' => 'Davao']));
-
-    $provinceResponse->assertSuccessful();
-    expect(collect($provinceResponse->json('data'))->pluck('label'))->toContain('City of Davao (HUC)');
-
+test('highly urbanized cities are grouped under their geographic province and findable in the scoped city search', function () {
     $cityResponse = $this
         ->actingAs($this->user)
         ->get(route('api.locations.cities', [
             'search' => 'Davao City',
-            'province' => 'City of Davao',
+            'province' => 'Davao del Sur',
         ]));
 
     $cityResponse->assertSuccessful();
     $data = collect($cityResponse->json('data'));
 
     expect($data->pluck('label'))->toContain('City of Davao');
-    expect($data->pluck('province'))->toContain('City of Davao');
+    expect($data->pluck('province'))->toContain('Davao del Sur');
 });
 
 test('province search returns davao provinces', function () {

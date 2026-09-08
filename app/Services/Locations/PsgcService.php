@@ -18,6 +18,34 @@ class PsgcService
     private const NCR_REGION_CODE = '1300000000';
 
     /**
+     * Highly urbanized / independent cities have no province in PSGC (their
+     * `province_code` self-references their own code). Map each one to the
+     * province it's geographically/historically associated with -- the one
+     * it's commonly known by (e.g. "Cagayan de Oro, Misamis Oriental") --
+     * rather than leaving it unfindable or inventing a pseudo-province.
+     * Keyed and valued by PSGC code so lookups stay stable across renames.
+     */
+    private const HUC_HOME_PROVINCE_CODES = [
+        '0330100000' => '0305400000', // Angeles City -> Pampanga
+        '1830200000' => '1804500000', // Bacolod City -> Negros Occidental
+        '1430300000' => '1401100000', // Baguio City -> Benguet
+        '1630400000' => '1600200000', // Butuan City -> Agusan del Norte
+        '1030500000' => '1004300000', // Cagayan de Oro City -> Misamis Oriental
+        '0730600000' => '0702200000', // Cebu City -> Cebu
+        '1130700000' => '1102400000', // Davao City -> Davao del Sur
+        '1230800000' => '1206300000', // General Santos City -> South Cotabato
+        '1030900000' => '1003500000', // Iligan City -> Lanao del Norte
+        '0631000000' => '0603000000', // Iloilo City -> Iloilo
+        '0731100000' => '0702200000', // Lapu-Lapu City -> Cebu
+        '0431200000' => '0405600000', // Lucena City -> Quezon
+        '0731300000' => '0702200000', // Mandaue City -> Cebu
+        '0331400000' => '0307100000', // Olongapo City -> Zambales
+        '1731500000' => '1705300000', // Puerto Princesa City -> Palawan
+        '0831600000' => '0803700000', // Tacloban City -> Leyte
+        '0931700000' => '0907300000', // Zamboanga City -> Zamboanga del Sur
+    ];
+
+    /**
      * Legacy wmaster province codes -> canonical PSGC province name. Seeded
      * from known examples; not exhaustive, since the full set of codes used
      * in production wmaster data isn't visible from the dataset alone.
@@ -1200,34 +1228,6 @@ class PsgcService
             ];
         }
 
-        // Highly urbanized / independent cities are treated as their own
-        // "province" (see normalizeBirthplace()) -- surface them in the
-        // province list too, or they'd have no way of being selected.
-        $seenHucProvinces = [];
-
-        foreach ($birthplaces as $birthplace) {
-            if ($birthplace['type'] !== 'city' || $birthplace['province'] !== $birthplace['name']) {
-                continue;
-            }
-
-            if (isset($seenHucProvinces[$birthplace['name']])) {
-                continue;
-            }
-
-            $seenHucProvinces[$birthplace['name']] = true;
-
-            $provinceSuggestions[] = [
-                'code' => $birthplace['code'],
-                'name' => $birthplace['name'],
-                'type' => 'province',
-                'province' => null,
-                'region' => null,
-                'label' => sprintf('%s (HUC)', $birthplace['name']),
-                'value' => $birthplace['name'],
-                'name_lower' => Str::lower($birthplace['name']),
-            ];
-        }
-
         return [
             'birthplaces' => $birthplaces,
             'provinces' => $provinceSuggestions,
@@ -1290,11 +1290,13 @@ class PsgcService
 
         // Highly urbanized / independent cities (e.g. Davao, Cagayan de Oro)
         // self-reference their own code as `province_code` in PSGC -- they
-        // don't belong to any province. Treat the city itself as its own
-        // selectable "province" so the province-scoped city picker can find
-        // it, mirroring the Metro Manila fallback above.
-        if ($province === null && $provinceCode !== null && $provinceCode === $code) {
-            $province = $displayName;
+        // don't belong to any province administratively. Group them under
+        // the real province they're geographically/historically associated
+        // with instead (the one they're commonly known by, e.g. "Cagayan de
+        // Oro, Misamis Oriental"), so they're findable the way users expect
+        // and the picker doesn't need a separate pseudo-province option.
+        if ($province === null && isset(self::HUC_HOME_PROVINCE_CODES[$code])) {
+            $province = $provinces[self::HUC_HOME_PROVINCE_CODES[$code]] ?? null;
         }
 
         $suffix = $province ?? $region;
