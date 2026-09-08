@@ -433,6 +433,12 @@ export function LoanRequestPersonalFields({
                                     onChange('birthplace_city', '');
                                 }
                             }}
+                            onClear={() => {
+                                if (!isReadOnly('birthplace_city')) {
+                                    birthplaceCitySearch.setSelectedValue('');
+                                    onChange('birthplace_city', '');
+                                }
+                            }}
                             aria-invalid={Boolean(
                                 fieldError(
                                     errors,
@@ -557,6 +563,17 @@ export function LoanRequestPersonalFields({
                                 }
                                 onChange('address_zip', '');
                             }}
+                            onClear={() => {
+                                if (!isReadOnly('address2')) {
+                                    addressCitySearch.setSelectedValue('');
+                                    onChange('address2', '');
+                                }
+                                if (!isReadOnly('address_barangay')) {
+                                    addressBarangaySearch.setSelectedValue('');
+                                    onChange('address_barangay', '');
+                                }
+                                onChange('address_zip', '');
+                            }}
                             aria-invalid={Boolean(
                                 fieldError(errors, prefix, 'address3'),
                             )}
@@ -598,6 +615,13 @@ export function LoanRequestPersonalFields({
                                     onChange('address_barangay', '');
                                 }
                                 void handleAddressCitySelect(suggestion.code);
+                            }}
+                            onClear={() => {
+                                if (!isReadOnly('address_barangay')) {
+                                    addressBarangaySearch.setSelectedValue('');
+                                    onChange('address_barangay', '');
+                                }
+                                onChange('address_zip', '');
                             }}
                             aria-invalid={Boolean(
                                 fieldError(errors, prefix, 'address2'),
@@ -1249,6 +1273,19 @@ export function LoanRequestWorkFields({
                                         '',
                                     );
                                 }}
+                                onClear={() => {
+                                    employerCitySearch.setSelectedValue('');
+                                    onChange('employer_business_address2', '');
+                                    employerBarangaySearch.setSelectedValue('');
+                                    onChange(
+                                        'employer_business_address_barangay',
+                                        '',
+                                    );
+                                    onChange(
+                                        'employer_business_address_zip',
+                                        '',
+                                    );
+                                }}
                                 aria-invalid={Boolean(
                                     fieldError(
                                         errors,
@@ -1305,6 +1342,17 @@ export function LoanRequestWorkFields({
                                     );
                                     void handleEmployerCitySelect(
                                         suggestion.code,
+                                    );
+                                }}
+                                onClear={() => {
+                                    employerBarangaySearch.setSelectedValue('');
+                                    onChange(
+                                        'employer_business_address_barangay',
+                                        '',
+                                    );
+                                    onChange(
+                                        'employer_business_address_zip',
+                                        '',
                                     );
                                 }}
                                 aria-invalid={Boolean(

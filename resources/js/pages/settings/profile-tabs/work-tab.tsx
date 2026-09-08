@@ -205,6 +205,15 @@ export function WorkTab({
                                     );
                                     setEmployerBusinessAddressZipValue('');
                                 }}
+                                onClear={() => {
+                                    employerBusinessCitySearch.setSelectedValue(
+                                        '',
+                                    );
+                                    employerBusinessBarangaySearch.setSelectedValue(
+                                        '',
+                                    );
+                                    setEmployerBusinessAddressZipValue('');
+                                }}
                             />
 
                             <InputError
@@ -244,6 +253,12 @@ export function WorkTab({
                                     void handleEmployerCitySelect(
                                         suggestion.code,
                                     );
+                                }}
+                                onClear={() => {
+                                    employerBusinessBarangaySearch.setSelectedValue(
+                                        '',
+                                    );
+                                    setEmployerBusinessAddressZipValue('');
                                 }}
                             />
 

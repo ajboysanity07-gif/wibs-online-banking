@@ -288,6 +288,12 @@ export function PersonalTab({
                                         '',
                                     );
                                 }}
+                                onClear={() => {
+                                    birthplaceCitySearch.setSelectedValue('');
+                                    birthplaceBarangaySearch.setSelectedValue(
+                                        '',
+                                    );
+                                }}
                             />
 
                             <InputError
@@ -323,6 +329,11 @@ export function PersonalTab({
                                         );
                                     }
 
+                                    birthplaceBarangaySearch.setSelectedValue(
+                                        '',
+                                    );
+                                }}
+                                onClear={() => {
                                     birthplaceBarangaySearch.setSelectedValue(
                                         '',
                                     );
@@ -406,6 +417,11 @@ export function PersonalTab({
                                         homeBarangaySearch.setSelectedValue('');
                                         setHomeAddressZipValue('');
                                     }}
+                                    onClear={() => {
+                                        homeCitySearch.setSelectedValue('');
+                                        homeBarangaySearch.setSelectedValue('');
+                                        setHomeAddressZipValue('');
+                                    }}
                                 />
 
                                 <InputError
@@ -448,6 +464,10 @@ export function PersonalTab({
                                         void handleHomeCitySelect(
                                             suggestion.code,
                                         );
+                                    }}
+                                    onClear={() => {
+                                        homeBarangaySearch.setSelectedValue('');
+                                        setHomeAddressZipValue('');
                                     }}
                                 />
 

@@ -1,5 +1,5 @@
-import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { CheckIcon, ChevronsUpDownIcon, XIcon } from 'lucide-react';
+import type { MouseEvent, ReactNode } from 'react';
 import {
     Command,
     CommandEmpty,
@@ -32,6 +32,7 @@ type Props = {
     inputClassName?: string;
     onValueChange?: (value: string) => void;
     onSelect?: (suggestion: LocationSuggestion) => void;
+    onClear?: () => void;
     loadingMessage?: string;
     errorMessage?: string;
     emptyMessage?: string;
@@ -64,6 +65,7 @@ export function LocationCombobox({
     inputClassName,
     onValueChange,
     onSelect,
+    onClear,
     loadingMessage,
     errorMessage,
     emptyMessage,
@@ -81,6 +83,14 @@ export function LocationCombobox({
         search.handleSelect(suggestion);
         onValueChange?.(suggestion.value);
         onSelect?.(suggestion);
+    };
+
+    const handleClear = (event: MouseEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        search.setSelectedValue('');
+        onValueChange?.('');
+        onClear?.();
     };
 
     const renderOptions = (): ReactNode => {
@@ -147,32 +157,48 @@ export function LocationCombobox({
                 }
             }}
         >
-            <PopoverTrigger asChild>
-                <button
-                    id={id}
-                    type="button"
-                    role="combobox"
-                    aria-expanded={isInteractive && search.open}
-                    aria-label={ariaLabel}
-                    aria-required={required}
-                    aria-invalid={ariaInvalid}
-                    disabled={!isInteractive}
-                    className={cn(
-                        inputClassName,
-                        'inline-flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
-                        'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                        'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
-                        !hasValue && 'text-muted-foreground',
-                        readOnly &&
-                            'pointer-events-none border-border/40 bg-muted/30 text-muted-foreground/80',
-                    )}
-                >
-                    <span className="truncate">
-                        {hasValue ? search.selectedValue : effectivePlaceholder}
-                    </span>
-                    <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
-                </button>
-            </PopoverTrigger>
+            <div className="relative">
+                <PopoverTrigger asChild>
+                    <button
+                        id={id}
+                        type="button"
+                        role="combobox"
+                        aria-expanded={isInteractive && search.open}
+                        aria-label={ariaLabel}
+                        aria-required={required}
+                        aria-invalid={ariaInvalid}
+                        disabled={!isInteractive}
+                        className={cn(
+                            inputClassName,
+                            'inline-flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+                            'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                            'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
+                            !hasValue && 'text-muted-foreground',
+                            hasValue && isInteractive && 'pr-14',
+                            readOnly &&
+                                'pointer-events-none border-border/40 bg-muted/30 text-muted-foreground/80',
+                        )}
+                    >
+                        <span className="truncate">
+                            {hasValue
+                                ? search.selectedValue
+                                : effectivePlaceholder}
+                        </span>
+                        <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
+                    </button>
+                </PopoverTrigger>
+                {hasValue && isInteractive ? (
+                    <button
+                        type="button"
+                        aria-label="Clear selection"
+                        tabIndex={-1}
+                        onClick={handleClear}
+                        className="absolute top-1/2 right-7 flex size-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                        <XIcon className="size-3.5" />
+                    </button>
+                ) : null}
+            </div>
             <PopoverContent
                 portal={portal}
                 align="start"
