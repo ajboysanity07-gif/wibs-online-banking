@@ -1222,7 +1222,7 @@ class PsgcService
                 'type' => 'province',
                 'province' => null,
                 'region' => null,
-                'label' => $birthplace['name'],
+                'label' => sprintf('%s (HUC)', $birthplace['name']),
                 'value' => $birthplace['name'],
                 'name_lower' => Str::lower($birthplace['name']),
             ];

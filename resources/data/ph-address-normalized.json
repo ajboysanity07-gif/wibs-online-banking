@@ -17568,7 +17568,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Angeles",
+            "label": "City of Angeles (HUC)",
             "value": "City of Angeles",
             "name_lower": "city of angeles"
         },
@@ -17578,7 +17578,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Bacolod",
+            "label": "City of Bacolod (HUC)",
             "value": "City of Bacolod",
             "name_lower": "city of bacolod"
         },
@@ -17588,7 +17588,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Baguio",
+            "label": "City of Baguio (HUC)",
             "value": "City of Baguio",
             "name_lower": "city of baguio"
         },
@@ -17598,7 +17598,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Butuan",
+            "label": "City of Butuan (HUC)",
             "value": "City of Butuan",
             "name_lower": "city of butuan"
         },
@@ -17608,7 +17608,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Cagayan de Oro",
+            "label": "City of Cagayan de Oro (HUC)",
             "value": "City of Cagayan de Oro",
             "name_lower": "city of cagayan de oro"
         },
@@ -17618,7 +17618,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Cebu",
+            "label": "City of Cebu (HUC)",
             "value": "City of Cebu",
             "name_lower": "city of cebu"
         },
@@ -17628,7 +17628,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Davao",
+            "label": "City of Davao (HUC)",
             "value": "City of Davao",
             "name_lower": "city of davao"
         },
@@ -17638,7 +17638,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of General Santos",
+            "label": "City of General Santos (HUC)",
             "value": "City of General Santos",
             "name_lower": "city of general santos"
         },
@@ -17648,7 +17648,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Iligan",
+            "label": "City of Iligan (HUC)",
             "value": "City of Iligan",
             "name_lower": "city of iligan"
         },
@@ -17658,7 +17658,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Iloilo",
+            "label": "City of Iloilo (HUC)",
             "value": "City of Iloilo",
             "name_lower": "city of iloilo"
         },
@@ -17668,7 +17668,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Lapu-Lapu",
+            "label": "City of Lapu-Lapu (HUC)",
             "value": "City of Lapu-Lapu",
             "name_lower": "city of lapu-lapu"
         },
@@ -17678,7 +17678,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Lucena",
+            "label": "City of Lucena (HUC)",
             "value": "City of Lucena",
             "name_lower": "city of lucena"
         },
@@ -17688,7 +17688,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Mandaue",
+            "label": "City of Mandaue (HUC)",
             "value": "City of Mandaue",
             "name_lower": "city of mandaue"
         },
@@ -17698,7 +17698,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Olongapo",
+            "label": "City of Olongapo (HUC)",
             "value": "City of Olongapo",
             "name_lower": "city of olongapo"
         },
@@ -17708,7 +17708,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Puerto Princesa",
+            "label": "City of Puerto Princesa (HUC)",
             "value": "City of Puerto Princesa",
             "name_lower": "city of puerto princesa"
         },
@@ -17718,7 +17718,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Tacloban",
+            "label": "City of Tacloban (HUC)",
             "value": "City of Tacloban",
             "name_lower": "city of tacloban"
         },
@@ -17728,7 +17728,7 @@
             "type": "province",
             "province": null,
             "region": null,
-            "label": "City of Zamboanga",
+            "label": "City of Zamboanga (HUC)",
             "value": "City of Zamboanga",
             "name_lower": "city of zamboanga"
         }

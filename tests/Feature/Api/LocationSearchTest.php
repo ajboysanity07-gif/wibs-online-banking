@@ -129,7 +129,7 @@ test('highly urbanized cities are selectable as their own province and findable 
         ->get(route('api.locations.provinces', ['search' => 'Davao']));
 
     $provinceResponse->assertSuccessful();
-    expect(collect($provinceResponse->json('data'))->pluck('label'))->toContain('City of Davao');
+    expect(collect($provinceResponse->json('data'))->pluck('label'))->toContain('City of Davao (HUC)');
 
     $cityResponse = $this
         ->actingAs($this->user)
