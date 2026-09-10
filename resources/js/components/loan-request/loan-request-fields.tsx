@@ -658,11 +658,14 @@ export function LoanRequestPersonalFields({
                             value={values.address_zip}
                             inputMode="numeric"
                             autoComplete="postal-code"
-                            readOnly
+                            readOnly={isReadOnly('address_zip')}
                             placeholder="Auto-filled from city"
+                            onChange={(event) =>
+                                onChange('address_zip', event.target.value)
+                            }
                             className={cn(
                                 'mt-1 block w-full',
-                                readOnlyInputClass,
+                                isReadOnly('address_zip') && readOnlyInputClass,
                             )}
                             aria-invalid={Boolean(
                                 fieldError(errors, prefix, 'address_zip'),
