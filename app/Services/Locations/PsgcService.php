@@ -217,7 +217,13 @@ class PsgcService
      * Normalizes a raw, possibly ALL-CAPS legacy barangay name into
      * canonical PSGC form, scoped to the given (already-resolved)
      * municipality/city name. Falls back to best-effort title-casing when
-     * the municipality can't be resolved or no canonical match is found.
+     * the municipality can't be resolved or no canonical match is found --
+     * unless that raw value is itself a city/municipality or province name,
+     * in which case it's discarded (empty string). This guards against
+     * legacy wmaster rows that predate the barangay column: their
+     * "address2" slot held the municipality (or, less often, the province)
+     * rather than a barangay, and blindly keeping it produces a duplicated
+     * value alongside the real city/province parts.
      */
     public function resolveBarangayName(string $raw, string $municipality, ?string $province = null): string
     {
@@ -232,6 +238,10 @@ class PsgcService
 
         if ($municipality === '') {
             return $normalized;
+        }
+
+        if ($this->isMunicipalityOrProvinceName($raw, $normalized, $municipality, $province)) {
+            return '';
         }
 
         $municipalityCode = $this->municipalityCodeForName($municipality, $province);
@@ -250,6 +260,42 @@ class PsgcService
         }
 
         return $normalized;
+    }
+
+    private function isMunicipalityOrProvinceName(string $raw, string $normalized, string $municipality, ?string $province): bool
+    {
+        if (array_key_exists(Str::upper(trim($raw)), self::PROVINCE_ABBREVIATIONS)) {
+            return true;
+        }
+
+        $needle = Str::lower($normalized);
+
+        if ($needle === Str::lower(trim($municipality))) {
+            return true;
+        }
+
+        if ($province !== null && $needle === Str::lower(trim($province))) {
+            return true;
+        }
+
+        return $this->isKnownProvinceName($needle);
+    }
+
+    private function isKnownProvinceName(string $lowercaseName): bool
+    {
+        foreach (self::PROVINCE_ABBREVIATIONS as $abbreviation) {
+            if (Str::lower($abbreviation) === $lowercaseName) {
+                return true;
+            }
+        }
+
+        foreach ($this->productionDataset()['provinces'] as $province) {
+            if (Str::lower($province['value']) === $lowercaseName) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

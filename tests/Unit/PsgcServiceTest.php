@@ -259,3 +259,16 @@ test('psgc service normalizes ALL CAPS barangay names scoped to their municipali
     expect($service->resolveBarangayName('', 'City of Tagum', 'Davao del Norte'))->toBe('');
     expect($service->resolveBarangayName('SOME BARANGAY', '', null))->toBe('Some Barangay');
 });
+
+test('psgc service discards a barangay value that is really the municipality or province', function () {
+    // Regression case: legacy wmaster rows that predate the barangay column
+    // put the municipality (or province) in the slot now read as barangay.
+    // Keeping that value produces a duplicated address like "Purok 2 Poblacion
+    // Lianga, Surigao Del Sur, Lianga, Surigao del Sur" once composed with the
+    // real city/province parts.
+    $service = app(PsgcService::class);
+
+    expect($service->resolveBarangayName('Lianga', 'Lianga', 'Surigao del Sur'))->toBe('');
+    expect($service->resolveBarangayName('Surigao Del Sur', 'Lianga', 'Surigao del Sur'))->toBe('');
+    expect($service->resolveBarangayName('SDS', 'Lianga', 'Surigao del Sur'))->toBe('');
+});

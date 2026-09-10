@@ -87,13 +87,101 @@ const normalizeLocationParts = (
 ): string[] =>
     parts.map((value) => value?.trim() ?? '').filter((value) => value !== '');
 
+const normalizeForMatch = (value: string): string =>
+    value.toLowerCase().trim().replace(/\s+/g, ' ');
+
+const significantWords = (value: string): string[] =>
+    (value.match(/[a-z0-9]+/g) ?? []).filter((word) => word.length >= 3);
+
+const levenshteinDistance = (left: string, right: string): number => {
+    const rows = left.length + 1;
+    const cols = right.length + 1;
+    const distances: number[][] = Array.from({ length: rows }, () =>
+        new Array<number>(cols).fill(0),
+    );
+
+    for (let i = 0; i < rows; i += 1) {
+        distances[i][0] = i;
+    }
+
+    for (let j = 0; j < cols; j += 1) {
+        distances[0][j] = j;
+    }
+
+    for (let i = 1; i < rows; i += 1) {
+        for (let j = 1; j < cols; j += 1) {
+            const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+            distances[i][j] = Math.min(
+                distances[i - 1][j] + 1,
+                distances[i][j - 1] + 1,
+                distances[i - 1][j - 1] + cost,
+            );
+        }
+    }
+
+    return distances[rows - 1][cols - 1];
+};
+
+// Mirrors LocationComposer::isRedundantPart() on the backend so address
+// values that mix a pre-composed legacy string (e.g. address1 already
+// containing the barangay/city/province) with the now-separate structured
+// fields don't render as a duplicated, comma-noisy mess.
+const isRedundantPart = (part: string, joined: string): boolean => {
+    if (joined === '' || part === '') {
+        return false;
+    }
+
+    if (joined.includes(part)) {
+        return true;
+    }
+
+    const partWords = significantWords(part);
+
+    if (partWords.length < 2) {
+        return false;
+    }
+
+    const joinedWords = significantWords(joined);
+    const tail = joinedWords.slice(-partWords.length);
+
+    if (tail.length !== partWords.length) {
+        return false;
+    }
+
+    return partWords.every(
+        (word, index) => levenshteinDistance(word, tail[index]) <= 2,
+    );
+};
+
+const composeUniqueLocationParts = (
+    parts: Array<string | null | undefined>,
+): string => {
+    const normalizedParts = normalizeLocationParts(parts);
+
+    const kept: string[] = [];
+    let joined = '';
+
+    for (const part of normalizedParts) {
+        const normalized = normalizeForMatch(part);
+
+        if (normalized !== '' && isRedundantPart(normalized, joined)) {
+            continue;
+        }
+
+        kept.push(part);
+        joined = joined !== '' ? `${joined} ${normalized},` : `${normalized},`;
+    }
+
+    return kept.join(', ');
+};
+
 export const composeAddress = (
     address1?: string | null,
     address2?: string | null,
     address3?: string | null,
     barangay?: string | null,
 ): string =>
-    normalizeLocationParts([address1, barangay, address2, address3]).join(', ');
+    composeUniqueLocationParts([address1, barangay, address2, address3]);
 
 export const composeBirthplace = (
     city?: string | null,
