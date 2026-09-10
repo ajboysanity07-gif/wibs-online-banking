@@ -1122,7 +1122,7 @@ export function ProcessingDetailsPanel({
         return typeof name === 'string' && name.trim() !== '';
     })
         .map((slotKey) => {
-            const label =
+            const categoryLabel =
                 slotKey === 'applicant'
                     ? 'Applicant'
                     : slotKey === 'spouse'
@@ -1132,6 +1132,16 @@ export function ProcessingDetailsPanel({
                                 `dependent_${slotKey}_name`
                             ]?.label ?? slotKey
                         ).replace(/ name$/, '');
+
+            const dependentName =
+                slotKey !== 'applicant' && slotKey !== 'spouse'
+                    ? dataSections.dependents?.[`dependent_${slotKey}_name`]
+                    : undefined;
+
+            const label =
+                typeof dependentName === 'string' && dependentName.trim()
+                    ? `${categoryLabel} — ${dependentName.trim()}`
+                    : categoryLabel;
 
             return { slotKey, label };
         })
