@@ -1268,6 +1268,12 @@ class LoanRequestService
             'role' => $role,
         ]);
 
+        // Barangay is edited from several separate UIs (wizard, staff
+        // correction dialog, processing panel) and any one of them omitting
+        // the key would otherwise null out an already-selected barangay --
+        // fall back to whatever is already on the row instead of wiping it.
+        $addressBarangay = $addressValues['barangay'] ?? $person->address_barangay;
+
         // Co-makers' employer/business address is no longer collected by the
         // wizard, so the payload never carries these keys for them -- fall
         // back to whatever is already on the row instead of nulling it out
@@ -1293,7 +1299,7 @@ class LoanRequestService
             'birthplace_province' => $birthplaceValues['province'],
             'address' => $addressValues['legacy'],
             'address1' => $addressValues['address1'],
-            'address_barangay' => $addressValues['barangay'],
+            'address_barangay' => $addressBarangay,
             'address2' => $addressValues['address2'],
             'address3' => $addressValues['address3'],
             'address_zip' => $this->normalizeOptionalString($data['address_zip'] ?? null),

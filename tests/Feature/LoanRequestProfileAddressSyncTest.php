@@ -191,6 +191,90 @@ test('a blank address_barangay from the wizard does not clobber an existing prof
         ->and($member->fresh()->memberApplicationProfileIsComplete())->toBeTrue();
 });
 
+test('a later upsertPeopleSnapshots call with address_barangay omitted does not clobber the co-maker\'s already-saved barangay', function (): void {
+    // Regression for the admin correction dialog bug: toPersonForm() never
+    // hydrated address_barangay from the existing person, so every
+    // correction submission sent address_barangay as '' for every person,
+    // silently nulling out a barangay the member had already selected.
+    $member = AppUser::factory()->create([
+        'acctno' => '660302',
+        'email_verified_at' => now(),
+    ]);
+    $member->roles()->sync(Role::query()->where('name', Role::MEMBER)->pluck('id')->all());
+
+    UserProfile::factory()->approved()->create(['user_id' => $member->user_id]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
+        'user_id' => $member->user_id,
+    ]);
+
+    $member = $member->fresh(['roles.permissions', 'userProfile', 'memberApplicationProfile']);
+
+    $loanRequest = app(LoanRequestService::class)->submit($member, [
+        'typecode' => 'LN-005',
+        'requested_amount' => 15000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Medical expenses',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        'insurance' => [
+            'beneficiary_primary_name' => 'Primary',
+            'beneficiary_primary_relationship' => 'Spouse',
+            'beneficiary_primary_birthdate' => '1992-01-01',
+        ],
+        'health' => [
+            'health_smoking_status' => 'none',
+            'health_hypertension' => false,
+        ],
+        'health_glapi' => [
+            'health_recent_hospitalization' => false,
+        ],
+        'banking' => [
+            'release_method' => 'Check',
+            'payment_option' => 'Cash',
+        ],
+        'barangay' => [
+            'barangay_official_designation' => null,
+            'barangay_agency_name' => null,
+            'barangay_agency_address' => null,
+        ],
+        'declarations' => [
+            'declaration_existing_loans' => false,
+            'declaration_pending_cases' => false,
+            'declaration_truth_confirmation' => true,
+            'declaration_data_privacy_consent' => true,
+        ],
+        'dependents' => [
+            'applicant_cycle_status' => 'New',
+        ],
+        'applicant' => addressSyncPersonPayload(['sex' => 'Male']),
+        'co_maker_1' => addressSyncPersonPayload([
+            'first_name' => 'Julius Carlo',
+            'address1' => 'Purok 2',
+            'address2' => 'Lianga',
+            'address3' => 'Surigao del Sur',
+            'address_barangay' => 'Anibongan',
+        ]),
+        'co_maker_2' => addressSyncPersonPayload(),
+    ]);
+
+    app(LoanRequestService::class)->upsertPeopleSnapshots($loanRequest, [
+        'co_maker_1' => addressSyncPersonPayload([
+            'first_name' => 'Julius Carlo',
+            'address1' => 'Purok 2',
+            'address2' => 'Lianga',
+            'address3' => 'Surigao del Sur',
+            // address_barangay intentionally omitted -- mirrors the
+            // correction dialog sending '' for a field it never hydrated.
+        ]),
+    ]);
+
+    $coMakerOne = $loanRequest->people()
+        ->where('role', 'co_maker_1')
+        ->firstOrFail();
+
+    expect($coMakerOne->address_barangay)->toBe('Anibongan');
+});
+
 function addressSyncPersonPayload(array $overrides = []): array
 {
     return array_merge([
