@@ -22,6 +22,7 @@ beforeEach(function (): void {
             $table->date('birthday')->nullable();
             $table->string('address')->nullable();
             $table->string('civilstat')->nullable();
+            $table->string('sex')->nullable();
             $table->string('occupation')->nullable();
         });
     }
@@ -92,4 +93,32 @@ test('getFormData does not overwrite an applicant civil status the member alread
     $formData = app(LoanRequestService::class)->getFormData($member->fresh(['memberApplicationProfile']));
 
     expect($formData['applicant']['civil_status'])->toBe('Single');
+});
+
+test('getFormData surfaces the applicant sex from wmaster when no draft exists yet', function (): void {
+    $member = createApplicantSyncTestMember('004402');
+
+    DB::table('wmaster')->where('acctno', '004402')->update(['sex' => 'F']);
+
+    $formData = app(LoanRequestService::class)->getFormData($member->fresh(['wmaster', 'memberApplicationProfile']));
+
+    expect($formData['applicant']['sex'])->toBe('Female')
+        ->and($formData['applicantReadOnly']['sex'] ?? null)->toBeTrue();
+});
+
+test('getFormData backfills applicant sex from the profile once a draft already exists', function (): void {
+    $member = createApplicantSyncTestMember('004403');
+
+    app(LoanRequestService::class)->saveDraft($member, [
+        'applicant' => [
+            'first_name' => 'Cecilia',
+            'last_name' => 'De Gracia',
+        ],
+    ]);
+
+    $member->memberApplicationProfile()->update(['sex' => 'Female']);
+
+    $formData = app(LoanRequestService::class)->getFormData($member->fresh(['memberApplicationProfile']));
+
+    expect($formData['applicant']['sex'])->toBe('Female');
 });

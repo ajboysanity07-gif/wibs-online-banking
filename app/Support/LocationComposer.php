@@ -292,6 +292,87 @@ class LocationComposer
     }
 
     /**
+     * Strips a known barangay/city/province out of a street line that
+     * already has them crammed in (legacy wmaster records where address1
+     * duplicates what address2/address3/address4 already store separately,
+     * e.g. address1 = "Purok 2 Poblacion Lianga, Surigao del Sur" while
+     * address2/3/4 correctly hold "Poblacion"/"Lianga"/"Surigao del Sur").
+     * Only strips comma-separated segments or trailing word-runs that
+     * closely match a known sibling value, so a legitimately distinct
+     * street name is left untouched.
+     */
+    public static function extractStreetOnly(
+        ?string $address1,
+        ?string $barangay,
+        ?string $city,
+        ?string $province,
+    ): ?string {
+        $street = trim((string) $address1);
+
+        if ($street === '') {
+            return null;
+        }
+
+        $known = array_values(array_filter(
+            [trim((string) $province), trim((string) $city), trim((string) $barangay)],
+            static fn (string $value): bool => $value !== '',
+        ));
+
+        if ($known === []) {
+            return $street;
+        }
+
+        $parts = self::splitParts($street);
+
+        while (count($parts) > 1) {
+            $last = trim((string) end($parts));
+            $matchesKnown = false;
+
+            foreach ($known as $value) {
+                if (self::levenshteinDistance(self::normalizeForMatch($last), self::normalizeForMatch($value)) <= 2) {
+                    $matchesKnown = true;
+                    break;
+                }
+            }
+
+            if (! $matchesKnown) {
+                break;
+            }
+
+            array_pop($parts);
+        }
+
+        $street = implode(', ', $parts);
+
+        foreach ($known as $value) {
+            $street = self::stripTrailingWordRun($street, $value);
+        }
+
+        return $street !== '' ? $street : trim((string) $address1);
+    }
+
+    private static function stripTrailingWordRun(string $street, string $value): string
+    {
+        $valueWords = preg_split('/\s+/', trim($value), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $streetWords = preg_split('/\s+/', trim($street), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $valueCount = count($valueWords);
+
+        if ($valueCount === 0 || count($streetWords) <= $valueCount) {
+            return $street;
+        }
+
+        $tail = array_slice($streetWords, -$valueCount);
+
+        foreach ($valueWords as $index => $word) {
+            if (self::levenshteinDistance(mb_strtolower($word), mb_strtolower($tail[$index])) > 2) {
+                return $street;
+            }
+        }
+
+        return trim(implode(' ', array_slice($streetWords, 0, count($streetWords) - $valueCount)));
+    }
+
+    /**
      * @return list<string>
      */
     private static function splitParts(?string $value): array

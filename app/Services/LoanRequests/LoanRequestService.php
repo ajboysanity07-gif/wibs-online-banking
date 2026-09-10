@@ -1877,6 +1877,15 @@ class LoanRequestService
             );
         }
 
+        if ($address1 !== null) {
+            $address1 = LocationComposer::extractStreetOnly(
+                $address1,
+                $addressBarangay,
+                $address2,
+                $address3,
+            );
+        }
+
         $address = LocationComposer::compose($address1, $address2, $address3, $addressBarangay);
         $address = $address !== ''
             ? $address
@@ -1961,6 +1970,8 @@ class LoanRequestService
             'cell_no' => $user->phoneno,
             'civil_status' => $this->normalizeCivilStatusValue($wmaster?->civilstat)
                 ?? $this->normalizeCivilStatusValue($profile?->civil_status),
+            'sex' => $this->normalizeSexValue($wmaster?->sex)
+                ?? $this->normalizeSexValue($profile?->sex),
             'educational_attainment' => $profile?->educational_attainment,
             'number_of_children' => $numberOfChildren,
             'spouse_name' => $spouseName ?? $profile?->spouse_name,
@@ -2012,6 +2023,7 @@ class LoanRequestService
 
         $fields = [
             'civil_status',
+            'sex',
             'housing_status',
             'length_of_stay',
             'spouse_name',
@@ -2111,6 +2123,7 @@ class LoanRequestService
             'address_zip' => $addressZip !== null,
             'housing_status' => $this->hasValue($wmaster?->restype),
             'civil_status' => $this->normalizeCivilStatusValue($wmaster?->civilstat) !== null,
+            'sex' => $this->normalizeSexValue($wmaster?->sex) !== null,
             'number_of_children' => $hasDependentColumn
                 && $this->hasValue($wmaster?->dependent),
             'spouse_name' => $this->hasValue($wmaster?->spouse),

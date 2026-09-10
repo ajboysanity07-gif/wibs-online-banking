@@ -107,3 +107,33 @@ test('recomposeLegacyBirthplace falls back to the raw string when nothing recogn
     expect(LocationComposer::recomposeLegacyBirthplace('nowhere in particular'))
         ->toBe('nowhere in particular');
 });
+
+test('extractStreetOnly strips a comma-separated province already known from a sibling column', function (): void {
+    expect(LocationComposer::extractStreetOnly(
+        'Purok 2 Poblacion Lianga, Surigao del Sur',
+        'Poblacion',
+        'Lianga',
+        'Surigao del Sur',
+    ))->toBe('Purok 2');
+});
+
+test('extractStreetOnly leaves a genuinely distinct street untouched', function (): void {
+    expect(LocationComposer::extractStreetOnly(
+        '123 Loan Street',
+        'Barangay Uno',
+        'Loan City',
+        'Loan Province',
+    ))->toBe('123 Loan Street');
+});
+
+test('extractStreetOnly falls back to the raw street when nothing known is present', function (): void {
+    expect(LocationComposer::extractStreetOnly('Purok 2 Poblacion Lianga', null, null, null))
+        ->toBe('Purok 2 Poblacion Lianga');
+});
+
+test('extractStreetOnly returns null for a blank street', function (): void {
+    expect(LocationComposer::extractStreetOnly(null, 'Poblacion', 'Lianga', 'Surigao del Sur'))
+        ->toBeNull();
+    expect(LocationComposer::extractStreetOnly('', 'Poblacion', 'Lianga', 'Surigao del Sur'))
+        ->toBeNull();
+});

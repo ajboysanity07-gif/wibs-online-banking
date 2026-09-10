@@ -113,6 +113,24 @@ test('a stale wmaster barangay does not get paired with profile city/province', 
         ->and($formData['applicant']['address3'])->toBe('Profile Province');
 });
 
+test('a wmaster street that duplicates the barangay/city/province is trimmed down to the street only', function (): void {
+    // Regression case: some legacy wmaster records have address1 crammed
+    // with the full address (street + barangay + city + province) even
+    // though address2/3/4 already store those parts separately and
+    // correctly -- the wizard's street field must show only the street,
+    // not the whole blob.
+    $member = createAddressPrefillTestMember('970005', [
+        'address1' => 'Purok 2 Poblacion Lianga, Surigao del Sur',
+        'address2' => 'Poblacion',
+        'address3' => 'Lianga',
+        'address4' => 'Surigao del Sur',
+    ]);
+
+    $formData = app(LoanRequestService::class)->getFormData($member);
+
+    expect($formData['applicant']['address1'])->toBe('Purok 2');
+});
+
 test('a non-canonical legacy city name is normalized against the PSGC dataset', function (): void {
     $member = createAddressPrefillTestMember('970004', [], [
         'home_address2' => 'Cebu City',
