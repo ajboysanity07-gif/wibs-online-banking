@@ -442,6 +442,9 @@ export default function LoanRequestPage({
     );
     const [savedCoMakers, setSavedCoMakers] =
         useState<SavedCoMakerOption[]>(initialSavedCoMakers);
+    const [savingCoMakerSlot, setSavingCoMakerSlot] = useState<
+        'co_maker_1' | 'co_maker_2' | null
+    >(null);
 
     const glapiChunks = chunkGlapiItemGroups(
         getGlapiItemGroups(dataSectionDefinitions.health_glapi),
@@ -671,12 +674,63 @@ export default function LoanRequestPage({
         }
     };
 
-    const toggleSaveCoMakerForReuse =
-        (personKey: 'co_maker_1' | 'co_maker_2') => (checked: boolean) => {
-            form.setData(personKey, {
-                ...form.data[personKey],
-                save_for_reuse: checked,
-            });
+    // Explicit action only: saving a co-maker for reuse is a direct button
+    // press, not a passive checkbox that silently applies at submit time.
+    // The backend matches on normalized name + birthdate/cell number to
+    // avoid forking a duplicate contact when the member re-enters the same
+    // person's details from scratch instead of loading them from the saved
+    // list. See SavedCoMakersService::findDuplicate().
+    const saveCoMakerNow =
+        (personKey: 'co_maker_1' | 'co_maker_2') => async () => {
+            const person = form.data[personKey];
+
+            setSavingCoMakerSlot(personKey);
+
+            try {
+                const response = await client.post<{
+                    ok: boolean;
+                    data: LoanRequestPersonData & {
+                        id: number;
+                        label: string | null;
+                    };
+                    duplicate: boolean;
+                }>('/client/co-makers', {
+                    ...person,
+                    saved_co_maker_id: person.saved_co_maker_id || null,
+                    label: person.saved_co_maker_label || null,
+                });
+                const record = response.data.data;
+                const isDuplicate = response.data.duplicate;
+
+                form.setData(personKey, {
+                    ...person,
+                    saved_co_maker_id: String(record.id),
+                    saved_co_maker_label: record.label ?? '',
+                });
+
+                setSavedCoMakers((current) => {
+                    const option: SavedCoMakerOption = {
+                        id: record.id,
+                        label: record.label ?? '',
+                        last_used_at: new Date().toISOString(),
+                    };
+                    const withoutExisting = current.filter(
+                        (existing) => existing.id !== record.id,
+                    );
+
+                    return [option, ...withoutExisting];
+                });
+
+                showSuccessToast(
+                    isDuplicate
+                        ? "Already saved -- updated this co-maker's details."
+                        : 'Co-maker saved for reuse.',
+                );
+            } catch (error) {
+                showErrorToast(error, 'Unable to save this co-maker.');
+            } finally {
+                setSavingCoMakerSlot(null);
+            }
         };
 
     const updateDataSection =
@@ -1144,9 +1198,12 @@ export default function LoanRequestPage({
                                         onChange={updatePersonField(
                                             'co_maker_1',
                                         )}
-                                        onToggleSaveForReuse={toggleSaveCoMakerForReuse(
+                                        onSaveCoMaker={saveCoMakerNow(
                                             'co_maker_1',
                                         )}
+                                        isSavingCoMaker={
+                                            savingCoMakerSlot === 'co_maker_1'
+                                        }
                                     />
                                 </LoanRequestAnimatedStep>
 
@@ -1234,9 +1291,12 @@ export default function LoanRequestPage({
                                         onChange={updatePersonField(
                                             'co_maker_2',
                                         )}
-                                        onToggleSaveForReuse={toggleSaveCoMakerForReuse(
+                                        onSaveCoMaker={saveCoMakerNow(
                                             'co_maker_2',
                                         )}
+                                        isSavingCoMaker={
+                                            savingCoMakerSlot === 'co_maker_2'
+                                        }
                                     />
                                 </LoanRequestAnimatedStep>
 

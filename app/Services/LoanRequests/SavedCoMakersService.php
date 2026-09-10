@@ -49,14 +49,17 @@ class SavedCoMakersService
     }
 
     /**
-     * Persist a co-maker's details for reuse -- only called when the
-     * borrower explicitly checked "save for reuse" on submission. Updates
-     * the loaded contact in place when $existingId belongs to this profile,
-     * otherwise creates a new one.
+     * Persist a co-maker's details for reuse -- called explicitly by the
+     * member via the "Save co-maker" action. Updates the loaded contact in
+     * place when $existingId belongs to this profile; otherwise looks for an
+     * existing contact matching the same person (see findDuplicate()) and
+     * updates that instead of forking a duplicate row. Only creates a new
+     * record when neither match is found.
      *
      * @param  array<string, mixed>  $personPayload
+     * @return array{coMaker: MemberCoMaker, wasDuplicate: bool}
      */
-    public function saveOrUpdate(MemberApplicationProfile $profile, array $personPayload, ?int $existingId, ?string $label = null): MemberCoMaker
+    public function saveOrUpdate(MemberApplicationProfile $profile, array $personPayload, ?int $existingId, ?string $label = null): array
     {
         $data = [
             ...Arr::only($personPayload, MemberCoMaker::personFields()),
@@ -65,14 +68,75 @@ class SavedCoMakersService
         ];
 
         $coMaker = $existingId !== null ? $this->find($profile, $existingId) : null;
+        $wasDuplicate = false;
+
+        if ($coMaker === null) {
+            $coMaker = $this->findDuplicate($profile, $data);
+            $wasDuplicate = $coMaker !== null;
+        }
 
         if ($coMaker !== null) {
             $coMaker->update($data);
 
-            return $coMaker;
+            return ['coMaker' => $coMaker, 'wasDuplicate' => $wasDuplicate];
         }
 
-        return $profile->coMakers()->create($data);
+        return ['coMaker' => $profile->coMakers()->create($data), 'wasDuplicate' => false];
+    }
+
+    /**
+     * Finds an already-saved co-maker matching the same person -- normalized
+     * first/last name plus at least one corroborating identity field
+     * (birthdate or cell number), since there's no government-ID field to
+     * key on. Used to avoid forking a duplicate record when the member
+     * re-enters a contact's details from scratch instead of loading them
+     * from the saved list.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function findDuplicate(MemberApplicationProfile $profile, array $data, ?int $excludeId = null): ?MemberCoMaker
+    {
+        $firstName = $this->normalizeForMatch($data['first_name'] ?? null);
+        $lastName = $this->normalizeForMatch($data['last_name'] ?? null);
+
+        if ($firstName === '' || $lastName === '') {
+            return null;
+        }
+
+        $birthdate = $this->normalizeForMatch($data['birthdate'] ?? null);
+        $cellNo = $this->normalizeForMatch($data['cell_no'] ?? null);
+
+        if ($birthdate === '' && $cellNo === '') {
+            return null;
+        }
+
+        return MemberCoMaker::query()
+            ->where('member_application_profile_id', $profile->id)
+            ->when($excludeId !== null, fn ($query) => $query->whereKeyNot($excludeId))
+            ->get()
+            ->first(function (MemberCoMaker $candidate) use ($firstName, $lastName, $birthdate, $cellNo): bool {
+                if ($this->normalizeForMatch($candidate->first_name) !== $firstName
+                    || $this->normalizeForMatch($candidate->last_name) !== $lastName) {
+                    return false;
+                }
+
+                $candidateBirthdate = $this->normalizeForMatch(
+                    $candidate->birthdate?->toDateString(),
+                );
+                $candidateCellNo = $this->normalizeForMatch($candidate->cell_no);
+
+                return ($birthdate !== '' && $birthdate === $candidateBirthdate)
+                    || ($cellNo !== '' && $cellNo === $candidateCellNo);
+            });
+    }
+
+    private function normalizeForMatch(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        return strtolower((string) preg_replace('/[\s-]+/', ' ', trim((string) $value)));
     }
 
     /**

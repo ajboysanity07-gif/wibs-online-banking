@@ -149,7 +149,7 @@ function submitLoanWithCoMakers(AppUser $member, array $coMakerOneOverrides = []
     ]);
 }
 
-test('submit does not save a co-maker for reuse unless explicitly opted in', function (): void {
+test('submit never saves a co-maker for reuse -- saving is a standalone action', function (): void {
     $member = createSavedCoMakerTestMember('004400');
 
     submitLoanWithCoMakers($member);
@@ -157,15 +157,17 @@ test('submit does not save a co-maker for reuse unless explicitly opted in', fun
     expect(MemberCoMaker::query()->count())->toBe(0);
 });
 
-test('submit saves a co-maker for reuse when the borrower opts in', function (): void {
+test('the store endpoint saves a co-maker for reuse', function (): void {
     $member = createSavedCoMakerTestMember('004401');
 
-    submitLoanWithCoMakers($member, [
-        'first_name' => 'Juan',
-        'last_name' => 'DelaCruz',
-        'save_for_reuse' => true,
-        'saved_co_maker_label' => 'Juan - officemate',
-    ]);
+    $this->actingAs($member)
+        ->postJson('/client/co-makers', coMakerPersonPayload([
+            'first_name' => 'Juan',
+            'last_name' => 'DelaCruz',
+            'label' => 'Juan - officemate',
+        ]))
+        ->assertOk()
+        ->assertJsonPath('duplicate', false);
 
     $profile = MemberApplicationProfile::query()->where('user_id', $member->user_id)->first();
 
@@ -180,26 +182,85 @@ test('submit saves a co-maker for reuse when the borrower opts in', function ():
     expect($saved->last_used_at)->not->toBeNull();
 });
 
-test('resubmitting with the same saved co-maker id updates it instead of duplicating', function (): void {
+test('saving with the same saved co-maker id updates it instead of duplicating', function (): void {
     $member = createSavedCoMakerTestMember('004402');
 
-    submitLoanWithCoMakers($member, [
-        'first_name' => 'Juan',
-        'save_for_reuse' => true,
-    ]);
+    $this->actingAs($member)
+        ->postJson('/client/co-makers', coMakerPersonPayload(['first_name' => 'Juan']))
+        ->assertOk();
 
     $profile = MemberApplicationProfile::query()->where('user_id', $member->user_id)->first();
     $saved = MemberCoMaker::query()->where('member_application_profile_id', $profile->id)->first();
 
-    submitLoanWithCoMakers($member, [
-        'first_name' => 'Juan',
-        'last_name' => 'Updated',
-        'save_for_reuse' => true,
-        'saved_co_maker_id' => $saved->id,
-    ]);
+    $this->actingAs($member)
+        ->postJson('/client/co-makers', coMakerPersonPayload([
+            'first_name' => 'Juan',
+            'last_name' => 'Updated',
+            'saved_co_maker_id' => $saved->id,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('duplicate', false);
 
     expect(MemberCoMaker::query()->where('member_application_profile_id', $profile->id)->count())->toBe(1);
     expect($saved->fresh()->last_name)->toBe('Updated');
+});
+
+test('saving matching details from scratch updates the existing contact instead of duplicating', function (): void {
+    $member = createSavedCoMakerTestMember('004408');
+
+    $this->actingAs($member)
+        ->postJson('/client/co-makers', coMakerPersonPayload([
+            'first_name' => 'Juan',
+            'last_name' => 'DelaCruz',
+            'birthdate' => '1990-04-10',
+        ]))
+        ->assertOk()
+        ->assertJsonPath('duplicate', false);
+
+    // Same person, re-entered from scratch -- no saved_co_maker_id this time.
+    $this->actingAs($member)
+        ->postJson('/client/co-makers', coMakerPersonPayload([
+            'first_name' => 'juan',
+            'last_name' => ' DelaCruz ',
+            'birthdate' => '1990-04-10',
+            'cell_no' => '09999999999',
+        ]))
+        ->assertOk()
+        ->assertJsonPath('duplicate', true);
+
+    $profile = MemberApplicationProfile::query()->where('user_id', $member->user_id)->first();
+
+    expect(MemberCoMaker::query()->where('member_application_profile_id', $profile->id)->count())->toBe(1);
+    expect(
+        MemberCoMaker::query()->where('member_application_profile_id', $profile->id)->first()->cell_no,
+    )->toBe('09999999999');
+});
+
+test('saving a same-named person with no matching birthdate or cell number creates a new contact', function (): void {
+    $member = createSavedCoMakerTestMember('004409');
+
+    $this->actingAs($member)
+        ->postJson('/client/co-makers', coMakerPersonPayload([
+            'first_name' => 'Juan',
+            'last_name' => 'DelaCruz',
+            'birthdate' => '1990-04-10',
+            'cell_no' => '09123456789',
+        ]))
+        ->assertOk();
+
+    $this->actingAs($member)
+        ->postJson('/client/co-makers', coMakerPersonPayload([
+            'first_name' => 'Juan',
+            'last_name' => 'DelaCruz',
+            'birthdate' => '1985-01-01',
+            'cell_no' => '09000000000',
+        ]))
+        ->assertOk()
+        ->assertJsonPath('duplicate', false);
+
+    $profile = MemberApplicationProfile::query()->where('user_id', $member->user_id)->first();
+
+    expect(MemberCoMaker::query()->where('member_application_profile_id', $profile->id)->count())->toBe(2);
 });
 
 test('getFormData lists a member saved co-makers', function (): void {
@@ -252,7 +313,7 @@ test('the owning member can load and delete their own saved co-maker', function 
     expect(MemberCoMaker::query()->whereKey($saved->id)->exists())->toBeFalse();
 });
 
-test('barangay flows through applicant/co-maker submission and saved co-maker reuse', function (): void {
+test('barangay flows through applicant/co-maker submission', function (): void {
     $member = createSavedCoMakerTestMember('004407');
 
     submitLoanWithCoMakers($member, [
@@ -260,8 +321,6 @@ test('barangay flows through applicant/co-maker submission and saved co-maker re
         'last_name' => 'DelaCruz',
         'address_barangay' => 'Barangay Uno',
         'employer_business_address_barangay' => 'Barangay Dos',
-        'save_for_reuse' => true,
-        'saved_co_maker_label' => 'Juan - officemate',
     ]);
 
     $loanRequest = LoanRequest::query()->first();
@@ -274,6 +333,20 @@ test('barangay flows through applicant/co-maker submission and saved co-maker re
     expect($coMakerOne->employer_business_address_barangay)->toBe('Barangay Dos');
     expect($coMakerOne->composedAddress())->toContain('Barangay Uno');
     expect($coMakerOne->composedEmployerBusinessAddress())->toContain('Barangay Dos');
+});
+
+test('barangay flows through the saved co-maker store endpoint', function (): void {
+    $member = createSavedCoMakerTestMember('004410');
+
+    $this->actingAs($member)
+        ->postJson('/client/co-makers', coMakerPersonPayload([
+            'first_name' => 'Juan',
+            'last_name' => 'DelaCruz',
+            'address_barangay' => 'Barangay Uno',
+            'employer_business_address_barangay' => 'Barangay Dos',
+            'label' => 'Juan - officemate',
+        ]))
+        ->assertOk();
 
     $profile = MemberApplicationProfile::query()->where('user_id', $member->user_id)->first();
     $saved = MemberCoMaker::query()

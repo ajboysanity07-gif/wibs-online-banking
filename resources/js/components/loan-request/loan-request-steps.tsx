@@ -489,7 +489,8 @@ type CoMakerStepProps = {
     savedCoMakers?: SavedCoMakerOption[];
     onLoadSavedCoMaker?: (id: number) => void;
     onRemoveSavedCoMaker?: (id: number) => void;
-    onToggleSaveForReuse?: (checked: boolean) => void;
+    onSaveCoMaker?: () => void;
+    isSavingCoMaker?: boolean;
 };
 
 // "Load a saved co-maker" only appears on the first (basic) step of each
@@ -573,7 +574,8 @@ export function LoanRequestCoMakerStep({
     savedCoMakers,
     onLoadSavedCoMaker,
     onRemoveSavedCoMaker,
-    onToggleSaveForReuse,
+    onSaveCoMaker,
+    isSavingCoMaker,
 }: CoMakerStepProps) {
     return (
         <LoanRequestSectionCard
@@ -615,21 +617,22 @@ export function LoanRequestCoMakerStep({
                                     loan release.
                                 </AlertDescription>
                             </Alert>
-                            <div className="flex items-center gap-2">
-                                <Checkbox
-                                    id={`${prefix}_save_for_reuse`}
-                                    checked={values.save_for_reuse}
-                                    onCheckedChange={(checked) =>
-                                        onToggleSaveForReuse?.(checked === true)
-                                    }
-                                />
-                                <Label
-                                    htmlFor={`${prefix}_save_for_reuse`}
-                                    className="text-sm font-normal"
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="text-sm text-muted-foreground">
+                                    Save this co-maker&apos;s details so you can
+                                    reuse them on a future loan.
+                                </p>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={isSavingCoMaker}
+                                    onClick={() => onSaveCoMaker?.()}
                                 >
-                                    Save this co-maker&apos;s details so I can
-                                    reuse them on a future loan
-                                </Label>
+                                    {isSavingCoMaker
+                                        ? 'Saving…'
+                                        : 'Save co-maker for reuse'}
+                                </Button>
                             </div>
                         </>
                     ) : null}

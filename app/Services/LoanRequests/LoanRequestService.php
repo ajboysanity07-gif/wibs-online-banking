@@ -471,9 +471,6 @@ class LoanRequestService
             $profile,
             is_array($payload['dependents'] ?? null) ? $payload['dependents'] : [],
         );
-
-        $this->saveCoMakerForReuse($profile, $payload, 'co_maker_1');
-        $this->saveCoMakerForReuse($profile, $payload, 'co_maker_2');
     }
 
     /**
@@ -509,37 +506,6 @@ class LoanRequestService
         }
 
         return $fields;
-    }
-
-    /**
-     * Persist a co-maker's details onto the member's reusable contact list --
-     * only when the borrower explicitly checked "save for reuse" on that
-     * slot (opt-in, see SavedCoMakersService). Editing a previously loaded
-     * saved contact (saved_co_maker_id present) updates it in place instead
-     * of forking a duplicate entry.
-     *
-     * @param  array<string, mixed>  $payload
-     */
-    private function saveCoMakerForReuse(
-        MemberApplicationProfile $profile,
-        array $payload,
-        string $key,
-    ): void {
-        $data = $this->extractPersonPayload($payload, $key);
-        $shouldSave = filter_var($data['save_for_reuse'] ?? false, FILTER_VALIDATE_BOOLEAN);
-
-        if ($data === [] || ! $shouldSave) {
-            return;
-        }
-
-        $existingId = $data['saved_co_maker_id'] ?? null;
-
-        $this->savedCoMakers->saveOrUpdate(
-            $profile,
-            $data,
-            is_numeric($existingId) ? (int) $existingId : null,
-            $this->normalizeOptionalString($data['saved_co_maker_label'] ?? null),
-        );
     }
 
     /**

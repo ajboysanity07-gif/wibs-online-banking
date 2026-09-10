@@ -315,6 +315,10 @@ Route::post(
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.correction-reports.store');
 
+Route::post('client/co-makers', [SavedCoMakerController::class, 'store'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.co-makers.store');
+
 Route::get('client/co-makers/{coMaker}', [SavedCoMakerController::class, 'show'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.co-makers.show');
