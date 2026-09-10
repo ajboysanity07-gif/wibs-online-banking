@@ -212,7 +212,8 @@ class ApprovedLoanDocumentDataBuilder
                 ? ($approvedAmountRaw / 1000) * $insuranceTerm * $insuranceRateRaw
                 : null,
         );
-        $loanSecurityRateRaw = $isLumpsum ? 0.0 : $this->resolveNumericOverride(
+        $isEmergency = $this->normalizeText($loanRequest->kind_of_loan) === 'Emergency';
+        $loanSecurityRateRaw = ($isLumpsum || $isEmergency) ? 0.0 : $this->resolveNumericOverride(
             $overrideLoan['loan_security_rate_raw']
                 ?? $flatValues['loan_security_rate']
                 ?? null,

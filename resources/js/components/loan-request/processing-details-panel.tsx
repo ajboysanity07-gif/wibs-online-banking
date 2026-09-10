@@ -556,6 +556,10 @@ export function ProcessingDetailsPanel({
     // term under two months carries no insurance premium, regardless of
     // payment frequency or kind_of_loan, regardless of what staff enter here.
     const isInsuranceSkipped = Number(processingForm.recommended_term) < 2;
+    // Mirrors ApprovedLoanDocumentDataBuilder::$isEmergency: Emergency loans
+    // carry no loan security, so the rate is locked at 0 and the Loan
+    // Security Agreement document is skipped (LoanRequestDocumentCatalog).
+    const isEmergencyLoan = loanRequest.kind_of_loan === 'Emergency';
 
     // Keeps insurance_rate/insurance_term locked at 0 as staff live-edit the
     // payment frequency Select and/or the Recommended term input -- these
@@ -1479,48 +1483,54 @@ export function ProcessingDetailsPanel({
                                     : undefined,
                             })}
                             {processingForm.recommended_payment_frequency !==
-                                'Due date' && (
-                                <div className="grid gap-2">
-                                    <Label
-                                        htmlFor="inline_processing_loan_security_rate"
-                                        className="inline-flex items-center gap-1.5"
-                                    >
-                                        Loan security / Savings rate
-                                        <TooltipProvider delayDuration={0}>
-                                            <Tooltip>
-                                                <TooltipTrigger>
-                                                    <Info className="size-3.5 text-muted-foreground" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>
-                                                        Fixed institutional rate
-                                                        (2%), matching the
-                                                        reference workbook. Not
-                                                        editable per loan.
-                                                        Zeroed automatically for
-                                                        Due date loans.
-                                                    </p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    </Label>
-                                    <PercentInput
-                                        id="inline_processing_loan_security_rate"
-                                        value={
-                                            processingForm.processing
-                                                .loan_security_rate !== null &&
-                                            processingForm.processing
-                                                .loan_security_rate !==
-                                                undefined
-                                                ? `${processingForm.processing.loan_security_rate}`
-                                                : ''
-                                        }
-                                        onValueChange={updateLoanSecurityRate}
-                                        onBlur={scheduleGnthpRecalculation}
-                                        disabled
-                                    />
-                                </div>
-                            )}
+                                'Due date' &&
+                                !isEmergencyLoan && (
+                                    <div className="grid gap-2">
+                                        <Label
+                                            htmlFor="inline_processing_loan_security_rate"
+                                            className="inline-flex items-center gap-1.5"
+                                        >
+                                            Loan security / Savings rate
+                                            <TooltipProvider delayDuration={0}>
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <Info className="size-3.5 text-muted-foreground" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>
+                                                            Fixed institutional
+                                                            rate (2%), matching
+                                                            the reference
+                                                            workbook. Not
+                                                            editable per loan.
+                                                            Zeroed automatically
+                                                            for Due date and
+                                                            Emergency loans.
+                                                        </p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </Label>
+                                        <PercentInput
+                                            id="inline_processing_loan_security_rate"
+                                            value={
+                                                processingForm.processing
+                                                    .loan_security_rate !==
+                                                    null &&
+                                                processingForm.processing
+                                                    .loan_security_rate !==
+                                                    undefined
+                                                    ? `${processingForm.processing.loan_security_rate}`
+                                                    : ''
+                                            }
+                                            onValueChange={
+                                                updateLoanSecurityRate
+                                            }
+                                            onBlur={scheduleGnthpRecalculation}
+                                            disabled
+                                        />
+                                    </div>
+                                )}
                             {renderProcessingField('documentary_stamp_rate', {
                                 onBlur: scheduleGnthpRecalculation,
                                 disabled: true,
