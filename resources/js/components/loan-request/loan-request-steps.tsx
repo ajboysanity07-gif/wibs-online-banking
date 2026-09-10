@@ -2515,28 +2515,8 @@ export function LoanRequestReviewStep({
         { label: 'Length of stay', value: displayText(person.length_of_stay) },
         { label: 'Cell no.', value: displayValue(person.cell_no) },
         {
-            label: 'Civil status',
-            value: formatCivilStatus(person.civil_status),
-        },
-        { label: 'Sex', value: displayText(person.sex) },
-        {
             label: 'Educational attainment',
             value: displayText(person.educational_attainment),
-        },
-        {
-            label: 'No. of children',
-            value: displayValue(person.number_of_children),
-        },
-        { label: 'Spouse name', value: displayText(person.spouse_name) },
-        {
-            label: 'Spouse age',
-            value: displayValue(
-                calculateAge(person.spouse_birthdate)?.toString() ?? '',
-            ),
-        },
-        {
-            label: 'Spouse cell no.',
-            value: displayValue(person.spouse_cell_no),
         },
         {
             label: 'Employment type',
@@ -2545,10 +2525,6 @@ export function LoanRequestReviewStep({
         {
             label: 'Employer/Business name',
             value: displayText(person.employer_business_name),
-        },
-        {
-            label: 'Employer/Business address',
-            value: displayText(resolveEmployerBusinessAddress(person)),
         },
         { label: 'Telephone no.', value: displayValue(person.telephone_no) },
         {

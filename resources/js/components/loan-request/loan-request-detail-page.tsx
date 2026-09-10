@@ -991,11 +991,6 @@ const buildCoMakerMoreFields = (
         ),
     },
     {
-        label: 'Sex',
-        icon: UserIcon,
-        value: displayValue(person?.sex),
-    },
-    {
         label: 'Length of stay',
         icon: Clock,
         value: displayText(person?.length_of_stay),
@@ -1004,11 +999,6 @@ const buildCoMakerMoreFields = (
         label: 'Educational attainment',
         icon: GraduationCap,
         value: displayText(person?.educational_attainment),
-    },
-    {
-        label: 'Employer/Business address',
-        icon: MapPin,
-        value: displayText(resolveEmployerBusinessAddress(person)),
     },
     {
         label: 'Telephone no.',
@@ -1024,11 +1014,6 @@ const buildCoMakerMoreFields = (
         label: 'Years in work/business',
         icon: Clock,
         value: displayText(person?.years_in_work_business),
-    },
-    {
-        label: 'Date employed',
-        icon: CalendarDays,
-        value: displayDateValue(person?.employer_date_employed),
     },
 ];
 
