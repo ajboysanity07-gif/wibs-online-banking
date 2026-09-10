@@ -192,6 +192,7 @@ const toPersonForm = (
         birthplace_city: person.birthplace_city ?? '',
         birthplace_province: person.birthplace_province ?? '',
         address1: person.address1 ?? '',
+        address_barangay: person.address_barangay ?? '',
         address2: person.address2 ?? '',
         address3: person.address3 ?? '',
         address_zip: person.address_zip ?? '',
@@ -199,6 +200,7 @@ const toPersonForm = (
         housing_status: person.housing_status ?? '',
         cell_no: person.cell_no ?? '',
         civil_status: person.civil_status ?? '',
+        sex: person.sex ?? '',
         educational_attainment: person.educational_attainment ?? '',
         number_of_children: toStringValue(person.number_of_children, {
             emptyIfZero: false,
@@ -209,6 +211,8 @@ const toPersonForm = (
         employment_type: person.employment_type ?? '',
         employer_business_name: person.employer_business_name ?? '',
         employer_business_address1: person.employer_business_address1 ?? '',
+        employer_business_address_barangay:
+            person.employer_business_address_barangay ?? '',
         employer_business_address2: person.employer_business_address2 ?? '',
         employer_business_address3: person.employer_business_address3 ?? '',
         employer_business_address_zip:
