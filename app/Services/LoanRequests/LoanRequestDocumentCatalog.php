@@ -331,7 +331,7 @@ class LoanRequestDocumentCatalog
         ],
         'loan_security_agreement' => [
             'template_version' => 'loan-security-agreement-v2',
-            'applicability' => 'not_lumpsum_not_emergency',
+            'applicability' => 'not_lumpsum',
             'required_fields' => [],
             'source_fields' => [],
             'source_paths' => [
@@ -681,8 +681,7 @@ class LoanRequestDocumentCatalog
             'atm_payout_employee' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues),
             'bank_release' => ($flatValues['release_method'] ?? null) === LoanReleaseMethod::BankTransfer->value,
             'check_payment_option' => ($flatValues['payment_option'] ?? null) === LoanPaymentOption::Check->value,
-            'not_lumpsum_not_emergency' => ! $this->isDueDateNoInsurance($loanRequest)
-                && ! $this->isEmergencyLoan($loanRequest),
+            'not_lumpsum' => ! $this->isDueDateNoInsurance($loanRequest),
             'not_one_month_term' => ! $this->isOneMonthTerm($loanRequest),
             default => true,
         };
@@ -699,16 +698,6 @@ class LoanRequestDocumentCatalog
     {
         return $loanRequest->recommended_payment_frequency === LoanPaydayOption::DueDate->value
             && (int) $loanRequest->recommended_term === 1;
-    }
-
-    /**
-     * Emergency loans (kind_of_loan = 'Emergency', Micro Business Loan only)
-     * carry no loan security -- the Loan Security Agreement is skipped and
-     * loan_security_rate is forced to 0 (see ApprovedLoanDocumentDataBuilder).
-     */
-    private function isEmergencyLoan(LoanRequest $loanRequest): bool
-    {
-        return $loanRequest->kind_of_loan === 'Emergency';
     }
 
     /**
