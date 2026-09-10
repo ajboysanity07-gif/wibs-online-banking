@@ -541,6 +541,66 @@ test('saving authority to deduct officers records a reusable contact for the ins
         ->and($contact->officer_1_title)->toBe('HR Officer');
 });
 
+/**
+ * Regression test: authority_to_deduct_institution_name is auto-suggested
+ * from the applicant's employer name for every applicant, including ones
+ * for whom Authority to Deduct doesn't apply at all (e.g. an ordinary
+ * private-sector employee). The panel always resubmits the full processing
+ * section on save, so that suggested name comes back in the payload even
+ * though the "Authority to Deduct" section — and its officer name/title
+ * fields — is never rendered for these applicants. The officer_1_name
+ * requiredIf must not fire off institution_name alone, or saving is
+ * permanently blocked with no visible field for staff to fix. See
+ * LoanRequestProcessingUpdateRequest::authorityToDeductApplicable().
+ */
+test('saving processing details succeeds for an ordinary applicant even though an authority to deduct institution name is auto-suggested', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950009');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employer_business_name' => 'Some Ordinary Private Company',
+            'employment_type' => 'Private',
+            'institutional_employer_category' => null,
+        ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Recorded verified processing terms.',
+            'loan_request' => [],
+            'processing' => [
+                // Mirrors what the panel resubmits: the panel always sends
+                // every processing field, so the auto-suggested institution
+                // name comes back explicitly alongside a null officer name --
+                // that section was never shown for this applicant, so staff
+                // never had the chance to fill it in.
+                'authority_to_deduct_institution_name' => 'Some Ordinary Private Company',
+                'authority_to_deduct_officer_1_name' => null,
+                'authority_to_deduct_officer_1_title' => null,
+                'authority_to_deduct_officers_unknown' => false,
+            ],
+        ])
+        ->assertOk();
+
+    $entry = LoanRequestDataEntry::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('field_key', 'authority_to_deduct_officer_1_name')
+        ->first();
+
+    expect($entry)->toBeNull();
+});
+
 test('first processing update with a blank reason succeeds and auto-generates a first-save audit summary', function (): void {
     $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
     $member = createProcessingActor([Role::MEMBER], '950008');

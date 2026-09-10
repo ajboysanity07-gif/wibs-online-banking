@@ -475,6 +475,11 @@ type ProcessingDetailsPanelProps = {
         payload: LoanRequestProcessingDetailsPayload,
     ) => Promise<LoanRequestWorkflowResult | null>;
     loanManagers?: LoanManagerOption[];
+    // Full validation failure from the last failed save, so it can stay
+    // visible for review/troubleshooting instead of only flashing as a
+    // toast (see use-loan-request-workflow's lastErrors).
+    saveError?: { fieldErrors: Record<string, string> } | null;
+    onDismissSaveError?: () => void;
 };
 
 function ChargeLineItem({
@@ -506,6 +511,8 @@ export function ProcessingDetailsPanel({
     isProcessing,
     updateProcessingDetails,
     loanManagers = [],
+    saveError = null,
+    onDismissSaveError,
 }: ProcessingDetailsPanelProps) {
     const [processingForm, setProcessingForm] =
         useState<InlineProcessingFormState>({
@@ -2152,6 +2159,25 @@ export function ProcessingDetailsPanel({
                                 }}
                             />
                         </div>
+                        {saveError && (
+                            <div className="space-y-2">
+                                <FormErrorSummary
+                                    errors={saveError.fieldErrors}
+                                    idResolver={(key) =>
+                                        `inline_processing_${key.replace(/^processing\./, '')}`
+                                    }
+                                />
+                                {onDismissSaveError && (
+                                    <button
+                                        type="button"
+                                        className="text-xs text-muted-foreground hover:underline"
+                                        onClick={onDismissSaveError}
+                                    >
+                                        Dismiss
+                                    </button>
+                                )}
+                            </div>
+                        )}
                         <Button
                             type="submit"
                             className="w-full"

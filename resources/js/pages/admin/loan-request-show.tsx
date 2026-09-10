@@ -212,6 +212,8 @@ export default function LoanRequestShow({
         approveLoanRequest,
         declineLoanRequest,
         processingIds: workflowProcessingIds,
+        lastErrors: workflowLastErrors,
+        clearLastError: clearWorkflowLastError,
     } = useLoanRequestWorkflow({
         onUpdated: (result) => {
             setCurrentRequest(result.loanRequest);
@@ -839,6 +841,15 @@ export default function LoanRequestShow({
                                     updateProcessingDetails
                                 }
                                 loanManagers={loanManagers}
+                                saveError={
+                                    workflowLastErrors[currentRequest.id]
+                                        ?.action === 'updateProcessingDetails'
+                                        ? workflowLastErrors[currentRequest.id]
+                                        : null
+                                }
+                                onDismissSaveError={() =>
+                                    clearWorkflowLastError(currentRequest.id)
+                                }
                             />
                             <LoanRequestDocumentChecklistCard
                                 documentChecklist={currentDocumentChecklist}

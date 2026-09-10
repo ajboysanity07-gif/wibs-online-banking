@@ -13,6 +13,8 @@ use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
 use App\Rules\ValidPsgcProvince;
 use App\Services\LoanRequests\LoanManagerWitnessResolver;
+use App\Services\LoanRequests\LoanRequestDataService;
+use App\Services\LoanRequests\LoanRequestDocumentCatalog;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -25,6 +27,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
 
     public function __construct(
         private readonly LoanManagerWitnessResolver $loanManagerWitnessResolver,
+        private readonly LoanRequestDataService $loanRequestDataService,
         array $query = [],
         array $request = [],
         array $attributes = [],
@@ -68,6 +71,34 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
         return $user instanceof AppUser
             && $this->loanRequest !== null
             && $user->can('updateProcessingDetails', $this->loanRequest);
+    }
+
+    /**
+     * Whether Authority to Deduct actually applies to this loan request
+     * (see LoanRequestDocumentCatalog::authorityToDeductGuidance()).
+     *
+     * authority_to_deduct_institution_name is auto-suggested from the
+     * applicant's employer name for *any* applicant -- including ones for
+     * whom Authority to Deduct doesn't apply at all, e.g. an ordinary
+     * private-sector employee -- purely as a convenience if staff later
+     * switch the payment option to Salary Deduction. The officer name/title
+     * fields must NOT be required off the back of that suggestion alone:
+     * when Authority to Deduct isn't applicable, the UI never renders those
+     * fields (see the "Authority to Deduct" section guard in
+     * processing-details-panel.tsx), so a requiredIf keyed only on
+     * institution_name being filled would permanently block "Save
+     * processing details" with no visible field for staff to fix.
+     */
+    private function authorityToDeductApplicable(): bool
+    {
+        if (! $this->loanRequest) {
+            return false;
+        }
+
+        $flatValues = $this->loanRequestDataService->loadFlatValues($this->loanRequest);
+
+        return (new LoanRequestDocumentCatalog)
+            ->authorityToDeductGuidance($this->loanRequest, $flatValues)['applicable'];
     }
 
     /**
@@ -252,12 +283,14 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'processing.authority_to_deduct_institution_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.authority_to_deduct_officer_1_name' => [
                 'sometimes', 'nullable', 'string', 'max:255',
-                Rule::requiredIf(fn (): bool => ! $this->boolean('processing.authority_to_deduct_officers_unknown')
+                Rule::requiredIf(fn (): bool => $this->authorityToDeductApplicable()
+                    && ! $this->boolean('processing.authority_to_deduct_officers_unknown')
                     && filled($this->input('processing.authority_to_deduct_institution_name'))),
             ],
             'processing.authority_to_deduct_officer_1_title' => [
                 'sometimes', 'nullable', 'string', 'max:255',
-                Rule::requiredIf(fn (): bool => ! $this->boolean('processing.authority_to_deduct_officers_unknown')
+                Rule::requiredIf(fn (): bool => $this->authorityToDeductApplicable()
+                    && ! $this->boolean('processing.authority_to_deduct_officers_unknown')
                     && filled($this->input('processing.authority_to_deduct_institution_name'))),
             ],
             'processing.authority_to_deduct_officer_2_name' => ['sometimes', 'nullable', 'string', 'max:255'],

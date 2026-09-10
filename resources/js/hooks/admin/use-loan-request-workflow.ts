@@ -1,7 +1,47 @@
+import axios from 'axios';
 import { useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import type { LoanRequestWorkflowResult } from '@/types/loan-requests';
+
+type LaravelValidationPayload = {
+    message?: string;
+    errors?: Record<string, string[] | string>;
+};
+
+// Full multi-field validation detail behind the single-line toast, so a
+// caller (e.g. the processing details panel) can show every failing field
+// in a persistent banner (via FormErrorSummary) instead of only the toast's
+// "(and N more errors)" summary that disappears after a few seconds.
+const extractValidationFailure = (
+    error: unknown,
+): { fieldErrors: Record<string, string> } | null => {
+    if (!axios.isAxiosError(error) || error.response?.status !== 422) {
+        return null;
+    }
+
+    const payload = error.response.data as LaravelValidationPayload | undefined;
+    const errors = payload?.errors;
+
+    if (!errors) {
+        return null;
+    }
+
+    const fieldErrors = Object.entries(errors).reduce<Record<string, string>>(
+        (normalized, [field, messages]) => {
+            const message = Array.isArray(messages) ? messages[0] : messages;
+
+            if (message) {
+                normalized[field] = message;
+            }
+
+            return normalized;
+        },
+        {},
+    );
+
+    return Object.keys(fieldErrors).length > 0 ? { fieldErrors } : null;
+};
 
 export type LoanRequestWorkflowAction =
     | 'claim'
@@ -183,6 +223,31 @@ export function useLoanRequestWorkflow(options?: LoanRequestWorkflowOptions) {
     const [processingIds, setProcessingIds] = useState<Record<number, boolean>>(
         {},
     );
+    // Full validation failure detail behind the last failed action, keyed by
+    // loan request id -- lets a caller show a persistent, reviewable error
+    // (every failing field, not just the toast's truncated first message)
+    // instead of only a toast that disappears after a few seconds.
+    const [lastErrors, setLastErrors] = useState<
+        Record<
+            number,
+            {
+                action: LoanRequestWorkflowAction;
+                fieldErrors: Record<string, string>;
+            }
+        >
+    >({});
+
+    const clearLastError = (loanRequestId: number) => {
+        setLastErrors((current) => {
+            if (!(loanRequestId in current)) {
+                return current;
+            }
+
+            const next = { ...current };
+            delete next[loanRequestId];
+            return next;
+        });
+    };
 
     const runAction = async (
         loanRequestId: number,
@@ -194,6 +259,7 @@ export function useLoanRequestWorkflow(options?: LoanRequestWorkflowOptions) {
             ...current,
             [loanRequestId]: true,
         }));
+        clearLastError(loanRequestId);
 
         const toastId = `loan-request-workflow-${action}-${loanRequestId}`;
 
@@ -340,6 +406,15 @@ export function useLoanRequestWorkflow(options?: LoanRequestWorkflowOptions) {
                 showErrorToast(error, errorCopy[action], { id: toastId });
             }
 
+            const validationFailure = extractValidationFailure(error);
+
+            if (validationFailure) {
+                setLastErrors((current) => ({
+                    ...current,
+                    [loanRequestId]: { action, ...validationFailure },
+                }));
+            }
+
             return null;
         } finally {
             setProcessingIds((current) => {
@@ -353,6 +428,8 @@ export function useLoanRequestWorkflow(options?: LoanRequestWorkflowOptions) {
 
     return {
         processingIds,
+        lastErrors,
+        clearLastError,
         claimLoanRequest: (
             loanRequestId: number,
             payload: LoanRequestClaimPayload = {},
