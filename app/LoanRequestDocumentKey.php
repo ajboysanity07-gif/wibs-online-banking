@@ -19,6 +19,7 @@ enum LoanRequestDocumentKey: string
     case DepedSalaryDeductionWaiver = 'deped_salary_deduction_waiver';
     case PensionDeductionWaiver = 'pension_deduction_waiver';
     case GeneraliApplicationForm = 'generali_application_form';
+    case PdcSchedule = 'pdc_schedule';
 
     public function label(): string
     {
@@ -38,6 +39,7 @@ enum LoanRequestDocumentKey: string
             self::DepedSalaryDeductionWaiver => 'Salary Deduction Authorization Waiver (Education Sector)',
             self::PensionDeductionWaiver => 'Waiver (Pensioners)',
             self::GeneraliApplicationForm => 'Generali (GLAPI) Individual Application Form',
+            self::PdcSchedule => 'Post-Dated Checks Schedule (Annex A)',
         };
     }
 
@@ -58,7 +60,8 @@ enum LoanRequestDocumentKey: string
             self::UndertakingBarangay,
             self::AuthorityToDeduct,
             self::DepedSalaryDeductionWaiver,
-            self::PensionDeductionWaiver => 'repayment_authorization',
+            self::PensionDeductionWaiver,
+            self::PdcSchedule => 'repayment_authorization',
         };
     }
 

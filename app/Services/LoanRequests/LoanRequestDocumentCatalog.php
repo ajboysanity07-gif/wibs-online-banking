@@ -463,6 +463,28 @@ class LoanRequestDocumentCatalog
             ],
             'requires_financials' => false,
         ],
+        'pdc_schedule' => [
+            'template_version' => 'pdc-schedule-v1',
+            'applicability' => 'check_payment_option',
+            'required_fields' => [],
+            'source_fields' => [
+                'pdc_drawee_bank',
+                'payment_option',
+            ],
+            'source_paths' => [
+                'loan_request.recommended_amount',
+                'loan_request.recommended_term',
+                'loan_request.recommended_payment_frequency',
+                'applicant.',
+            ],
+            'template_files' => [
+                [
+                    'path' => 'resources/views/reports/pdc-schedule.blade.php',
+                    'description' => 'Post-Dated Checks Schedule (Annex A) blade template',
+                ],
+            ],
+            'requires_financials' => false,
+        ],
         'deped_salary_deduction_waiver' => [
             'template_version' => 'deped-salary-deduction-waiver-v1',
             'applicability' => 'deped_employee',
@@ -658,6 +680,7 @@ class LoanRequestDocumentCatalog
                 && ($flatValues['payment_option'] ?? null) === LoanPaymentOption::SalaryDeduction->value,
             'atm_payout_employee' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues),
             'bank_release' => ($flatValues['release_method'] ?? null) === LoanReleaseMethod::BankTransfer->value,
+            'check_payment_option' => ($flatValues['payment_option'] ?? null) === LoanPaymentOption::Check->value,
             'not_lumpsum' => ! $this->isDueDateNoInsurance($loanRequest),
             'not_one_month_term' => ! $this->isOneMonthTerm($loanRequest),
             default => true,
