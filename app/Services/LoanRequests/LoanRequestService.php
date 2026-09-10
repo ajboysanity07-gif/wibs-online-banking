@@ -1981,6 +1981,9 @@ class LoanRequestService
             'employer_business_name' => $profile?->employer_business_name,
             'employer_business_address' => $employerBusinessAddress,
             'employer_business_address1' => $employerAddress1,
+            'employer_business_address_barangay' => $this->normalizeOptionalString(
+                $profile?->employer_business_address_barangay,
+            ),
             'employer_business_address2' => $employerAddress2,
             'employer_business_address3' => $employerAddress3,
             'employer_business_address_zip' => $this->normalizeOptionalString(
@@ -2030,6 +2033,8 @@ class LoanRequestService
             'spouse_birthdate',
             'spouse_cell_no',
             'number_of_children',
+            'employer_business_address_barangay',
+            'employer_business_address_zip',
         ];
 
         foreach ($fields as $field) {

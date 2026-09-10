@@ -2834,6 +2834,36 @@ test('loan request form prefills date employed from the member profile', functio
     expect($payload['applicant']['employer_date_employed'])->toBe('2018-02-14');
 });
 
+test('loan request form prefills employer business address barangay and zip from the member profile', function () {
+    $user = User::factory()->create([
+        'acctno' => '000757',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Private',
+        'fname' => 'Private',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Private Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+        'employer_business_address_barangay' => 'Diatagon',
+        'employer_business_address_zip' => '8401',
+    ]);
+
+    $service = app(\App\Services\LoanRequests\LoanRequestService::class);
+    $payload = $service->getFormData($user);
+
+    expect($payload['applicant']['employer_business_address_barangay'])->toBe('Diatagon')
+        ->and($payload['applicant']['employer_business_address_zip'])->toBe('8401');
+});
+
 test('applicant legacy location values need not be selected from the PSGC suggestions', function () {
     Storage::fake('public');
 

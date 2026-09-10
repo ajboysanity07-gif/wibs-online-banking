@@ -1426,12 +1426,14 @@ export function LoanRequestWorkFields({
                                 value={values.employer_business_address_zip}
                                 inputMode="numeric"
                                 autoComplete="postal-code"
-                                readOnly
                                 placeholder="Auto-filled from city"
-                                className={cn(
-                                    'mt-1 block w-full',
-                                    readOnlyInputClass,
-                                )}
+                                onChange={(event) =>
+                                    onChange(
+                                        'employer_business_address_zip',
+                                        event.target.value,
+                                    )
+                                }
+                                className="mt-1 block w-full"
                                 aria-invalid={Boolean(
                                     fieldError(
                                         errors,
