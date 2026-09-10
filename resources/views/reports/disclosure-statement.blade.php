@@ -505,7 +505,7 @@
                     <td class="nw" colspan="3">a. Single Payment Due On</td>
                     <td class="r">P</td>
                     <td class="b10 bold r ub">{{ $amortizationTotal !== null ? $fmt($amortizationTotal) : '' }}</td>
-                    <td colspan="9"></td>
+                    <td class="nw" colspan="9">Lump-sum</td>
                 </tr>
             @else
                 <tr>
