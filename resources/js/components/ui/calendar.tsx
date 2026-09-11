@@ -7,16 +7,28 @@ import { cn } from '@/lib/utils';
 
 type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
-function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
+function Calendar({
+    className,
+    classNames,
+    showOutsideDays = true,
+    captionLayout = 'dropdown',
+    ...props
+}: CalendarProps) {
     return (
         <DayPicker
             showOutsideDays={showOutsideDays}
+            captionLayout={captionLayout}
             className={cn('p-3', className)}
             classNames={{
                 months: 'flex flex-col sm:flex-row gap-2',
                 month: 'flex flex-col gap-4',
-                month_caption: 'flex justify-center pt-1 relative items-center w-full',
+                month_caption: 'flex justify-center pt-1 relative items-center w-full gap-1',
                 caption_label: 'text-sm font-medium',
+                dropdowns: 'flex items-center justify-center gap-1 text-sm font-medium',
+                dropdown_root: 'relative border rounded-md',
+                dropdown: 'absolute inset-0 opacity-0 cursor-pointer',
+                months_dropdown: 'px-2 py-1',
+                years_dropdown: 'px-2 py-1',
                 nav: 'flex items-center justify-between absolute inset-x-0 top-0',
                 button_previous: cn(
                     buttonVariants({ variant: 'outline' }),
