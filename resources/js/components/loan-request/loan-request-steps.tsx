@@ -1,3 +1,13 @@
+import {
+    Banknote,
+    Briefcase,
+    CreditCard,
+    DollarSign,
+    FileCheck2,
+    Landmark,
+    PenTool,
+    type LucideIcon,
+} from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 
 import {
@@ -93,6 +103,26 @@ const PAYMENT_OPTION_OPTIONS = [
     'Check',
     'Cash',
 ] as const;
+
+const PAYMENT_OPTION_LABELS: Record<
+    (typeof PAYMENT_OPTION_OPTIONS)[number],
+    string
+> = {
+    'Salary Deduction': 'Salary Deduction',
+    'ATM Deduction': 'Auto-Debit / Bank Account (ADA)',
+    Check: 'Post-Dated Check (PDC)',
+    Cash: 'Over-the-Counter Cash',
+};
+
+const PAYMENT_OPTION_ICONS: Record<
+    (typeof PAYMENT_OPTION_OPTIONS)[number],
+    LucideIcon
+> = {
+    'Salary Deduction': Briefcase,
+    'ATM Deduction': CreditCard,
+    Check: PenTool,
+    Cash: DollarSign,
+};
 
 export const OTHER_LOAN_TYPECODE = '01';
 
@@ -890,10 +920,31 @@ type BankingSectionFieldsProps = {
     applicantInstitutionalEmployerCategory?: string | null;
 };
 
+const RELEASE_METHOD_LABELS: Record<
+    (typeof RELEASE_METHOD_OPTIONS)[number],
+    string
+> = {
+    ATM: 'ATM / Debit Card',
+    'Bank Transfer': 'Bank Transfer',
+    Check: 'Check',
+    Cash: 'Cash Release',
+};
+
+const RELEASE_METHOD_ICONS: Record<
+    (typeof RELEASE_METHOD_OPTIONS)[number],
+    LucideIcon
+> = {
+    ATM: CreditCard,
+    'Bank Transfer': Landmark,
+    Check: FileCheck2,
+    Cash: Banknote,
+};
+
 const RELEASE_METHOD_PICKER_OPTIONS: PaymentMethodOption[] =
     RELEASE_METHOD_OPTIONS.map((value) => ({
         value,
-        label: value,
+        label: RELEASE_METHOD_LABELS[value],
+        icon: RELEASE_METHOD_ICONS[value],
         needsAccount: value === 'ATM' || value === 'Bank Transfer',
     }));
 
@@ -958,9 +1009,16 @@ function BankingSectionFields({
                 isInstitutionalEmployer || option !== 'Salary Deduction',
         ).map((value) => ({
             value,
-            label: value,
+            label: PAYMENT_OPTION_LABELS[value],
+            icon: PAYMENT_OPTION_ICONS[value],
             needsAccount: value === 'ATM Deduction',
         }));
+    const selectedPaymentOption = paymentOptionPickerOptions.find(
+        (option) => option.value === paymentOption,
+    );
+    const selectedReleaseOption = RELEASE_METHOD_PICKER_OPTIONS.find(
+        (option) => option.value === releaseMethod,
+    );
     const releaseNeedsAccount =
         releaseMethod === 'ATM' || releaseMethod === 'Bank Transfer';
     const paymentNeedsAccount = paymentOption === 'ATM Deduction';
@@ -1006,10 +1064,11 @@ function BankingSectionFields({
                         <div className="flex items-center gap-2">
                             <PaymentMethodIcon
                                 method={releaseMethod || null}
+                                icon={selectedReleaseOption?.icon}
                                 className="h-4 w-4 text-muted-foreground"
                             />
                             <p className="text-sm font-medium">
-                                {releaseMethod || 'Not set'}
+                                {selectedReleaseOption?.label || 'Not set'}
                             </p>
                         </div>
                         {releaseNeedsAccount && (
@@ -1053,10 +1112,11 @@ function BankingSectionFields({
                         <div className="flex items-center gap-2">
                             <PaymentMethodIcon
                                 method={paymentOption || null}
+                                icon={selectedPaymentOption?.icon}
                                 className="h-4 w-4 text-muted-foreground"
                             />
                             <p className="text-sm font-medium">
-                                {paymentOption || 'Not set'}
+                                {selectedPaymentOption?.label || 'Not set'}
                             </p>
                         </div>
                         {paymentNeedsAccount && (

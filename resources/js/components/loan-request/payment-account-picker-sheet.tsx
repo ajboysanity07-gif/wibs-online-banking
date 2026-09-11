@@ -49,22 +49,27 @@ const METHOD_FALLBACK_ICONS: Record<string, LucideIcon> = {
     'Salary Deduction': Wallet,
 };
 
-export const resolveMethodIcon = (method: string | null): LucideIcon | null => {
+export const resolveMethodIcon = (
+    method: string | null,
+    icon?: LucideIcon,
+): LucideIcon | null => {
     if (method === null) {
         return null;
     }
 
-    return METHOD_FALLBACK_ICONS[method] ?? Building2;
+    return icon ?? METHOD_FALLBACK_ICONS[method] ?? Building2;
 };
 
 export function PaymentMethodIcon({
     method,
+    icon,
     className = 'h-4 w-4',
 }: {
     method: string | null;
+    icon?: LucideIcon;
     className?: string;
 }) {
-    const Icon = resolveMethodIcon(method);
+    const Icon = resolveMethodIcon(method, icon);
 
     if (Icon === null) {
         return null;
@@ -239,6 +244,7 @@ export function PaymentAccountPickerSheet({
                                         <span className="shrink-0 text-muted-foreground">
                                             <PaymentMethodIcon
                                                 method={option.value}
+                                                icon={option.icon}
                                             />
                                         </span>
                                         <Label
