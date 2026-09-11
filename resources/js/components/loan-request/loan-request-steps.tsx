@@ -2285,6 +2285,8 @@ export function LoanRequestDependentsStep({
     const spouseCycleStatus = values[SPOUSE_CYCLE_STATUS_KEY];
     const spouseCycleNumber = values[SPOUSE_CYCLE_NUMBER_KEY];
     const hasSpouseCycleData = spouseVisible && Boolean(spouseCycleStatus);
+    const spouseName = crossSectionValues['applicant.spouse_name'];
+    const spouseSummaryLabel = spouseName ? `${spouseName}` : 'Spouse';
 
     if (hasExistingProfileData && !forceEditable) {
         const summaries = summarizeDependents(visibleCategories, values);
@@ -2298,7 +2300,7 @@ export function LoanRequestDependentsStep({
         });
 
         if (hasSpouseCycleData) {
-            summaryCounts.unshift('Spouse');
+            summaryCounts.unshift(spouseSummaryLabel);
         }
 
         const totalLabel =
@@ -2922,7 +2924,9 @@ export function LoanRequestReviewStep({
                             {spouseCycleStatus ? (
                                 <div className="space-y-1">
                                     <p className="text-sm font-medium">
-                                        Spouse (group life coverage)
+                                        {data.applicant.spouse_name
+                                            ? `${data.applicant.spouse_name} (group life coverage)`
+                                            : 'Spouse (group life coverage)'}
                                     </p>
                                     <p className="text-sm text-muted-foreground">
                                         {displayText(spouseCycleLabel)}

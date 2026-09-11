@@ -1044,6 +1044,9 @@ export default function LoanRequestPage({
                                                 'applicant.civil_status':
                                                     form.data.applicant
                                                         .civil_status,
+                                                'applicant.spouse_name':
+                                                    form.data.applicant
+                                                        .spouse_name,
                                             }}
                                             onChange={updateDataSection(
                                                 'dependents',
