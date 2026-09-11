@@ -1024,6 +1024,14 @@ class LoanRequestDataService
             'section' => 'processing',
             'type' => 'number',
         ],
+        'pdc_drawee_bank' => [
+            'label' => 'PDC drawee bank',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+        ],
         'employer_date_employed' => [
             'label' => 'Date employed',
             'owner' => self::OWNER_STAFF,

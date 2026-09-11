@@ -187,11 +187,14 @@ const SNAPSHOT_PENSION_FIELDS = [
     'pension_deduction_amount',
 ];
 
+const SNAPSHOT_PDC_FIELDS = ['pdc_drawee_bank'];
+
 const SNAPSHOT_GATED_FIELDS = new Set([
     ...SNAPSHOT_BARANGAY_FIELDS,
     ...SNAPSHOT_AUTHORITY_TO_DEDUCT_FIELDS,
     ...SNAPSHOT_DEPED_FIELDS,
     ...SNAPSHOT_PENSION_FIELDS,
+    ...SNAPSHOT_PDC_FIELDS,
 ]);
 
 const BANKING_ACCOUNT_DETAIL_LABELS: {
@@ -2137,6 +2140,17 @@ export function ProcessingDetailsPanel({
                             </>
                         )}
 
+                        {dataSections.banking?.payment_option === 'Check' && (
+                            <>
+                                {renderProcessingSectionLabel(
+                                    'Post-Dated Checks (PDC)',
+                                )}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {renderProcessingField('pdc_drawee_bank')}
+                                </div>
+                            </>
+                        )}
+
                         <Separator className="bg-border/40" />
                         <div className="grid gap-2">
                             <Label htmlFor="inline_processing_reason">
@@ -2294,6 +2308,19 @@ export function ProcessingDetailsPanel({
                                 )}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {SNAPSHOT_PENSION_FIELDS.map((fieldKey) =>
+                                        renderSnapshotField(fieldKey),
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        {dataSections.banking?.payment_option === 'Check' && (
+                            <>
+                                {renderProcessingSectionLabel(
+                                    'Post-Dated Checks (PDC)',
+                                )}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {SNAPSHOT_PDC_FIELDS.map((fieldKey) =>
                                         renderSnapshotField(fieldKey),
                                     )}
                                 </div>

@@ -233,7 +233,7 @@
             <tbody>
                 @for ($i = 1; $i <= $checkCount; $i++)
                     <tr>
-                        <td class="check-no">{{ $i }}</td>
+                        <td class="check-no">&nbsp;</td>
                         <td class="check-date">&nbsp;</td>
                         <td class="amt">{{ $fmt($principalPerCheck) }}</td>
                         <td class="amt">{{ $fmt($interestPerCheck) }}</td>

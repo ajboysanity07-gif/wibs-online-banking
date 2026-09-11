@@ -306,6 +306,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'processing.pension_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.pension_atm_card_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.pension_deduction_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'processing.pdc_drawee_bank' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.employer_date_employed' => ['sometimes', 'nullable', 'date'],
             'processing.applicant_pep_status' => ['sometimes', 'nullable', 'boolean'],
             'processing.applicant_pep_status_details' => ['sometimes', 'nullable', 'string', 'max:1000'],
@@ -343,7 +344,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'authority_to_deduct_officer_2_title', 'authority_to_deduct_officers_unknown',
             'guaranteed_net_take_home_pay', 'deped_school_id_number', 'deped_deduction_amount',
             'pension_provider', 'pension_bank_name', 'pension_atm_card_number',
-            'pension_deduction_amount', 'employer_date_employed', 'applicant_pep_status',
+            'pension_deduction_amount', 'pdc_drawee_bank', 'employer_date_employed', 'applicant_pep_status',
             'applicant_pep_status_details', 'applicant_cycle_status', 'applicant_cycle_number',
             ...array_map(
                 static fn (string $key): string => Str::after($key, 'processing.'),
