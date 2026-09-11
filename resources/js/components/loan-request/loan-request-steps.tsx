@@ -91,6 +91,13 @@ import type {
 
 const AVAILMENT_OPTIONS = ['New', 'Re-Loan', 'Restructured'] as const;
 
+const LOAN_PURPOSE_PRESETS = ['Additional Capital', 'Personal'] as const;
+const LOAN_PURPOSE_OTHERS = 'Others';
+const LOAN_PURPOSE_OPTIONS = [
+    ...LOAN_PURPOSE_PRESETS,
+    LOAN_PURPOSE_OTHERS,
+] as const;
+
 const RELEASE_METHOD_OPTIONS = [
     'ATM',
     'Bank Transfer',
@@ -182,6 +189,12 @@ export function LoanRequestLoanDetailsStep({
     onChange,
 }: LoanDetailsProps) {
     const isOtherLoan = data.typecode === OTHER_LOAN_TYPECODE;
+    const loanPurposeCategory = (
+        LOAN_PURPOSE_PRESETS as readonly string[]
+    ).includes(data.loan_purpose)
+        ? data.loan_purpose
+        : LOAN_PURPOSE_OTHERS;
+    const isOtherLoanPurpose = loanPurposeCategory === LOAN_PURPOSE_OTHERS;
     const selectedLoanTypeLabel =
         loanTypes.find((option) => option.typecode === data.typecode)?.label ??
         null;
@@ -348,17 +361,44 @@ export function LoanRequestLoanDetailsStep({
 
                 <div className="grid gap-2 md:col-span-2">
                     <Label htmlFor="loan_purpose">Loan purpose</Label>
-                    <Input
-                        id="loan_purpose"
-                        value={data.loan_purpose}
-                        className="mt-1 block w-full"
-                        placeholder="Describe your loan purpose"
-                        required
-                        onChange={(event) =>
-                            onChange('loan_purpose', event.target.value)
-                        }
-                        aria-invalid={Boolean(errors.loan_purpose)}
-                    />
+                    <Select
+                        value={loanPurposeCategory}
+                        onValueChange={(value) => {
+                            if (value === LOAN_PURPOSE_OTHERS) {
+                                onChange('loan_purpose', '');
+                            } else {
+                                onChange('loan_purpose', value);
+                            }
+                        }}
+                    >
+                        <SelectTrigger
+                            id="loan_purpose"
+                            className="mt-1 w-full"
+                            aria-invalid={Boolean(errors.loan_purpose)}
+                        >
+                            <SelectValue placeholder="Select loan purpose" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {LOAN_PURPOSE_OPTIONS.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {isOtherLoanPurpose && (
+                        <Input
+                            id="loan_purpose_other"
+                            value={data.loan_purpose}
+                            className="mt-1 block w-full"
+                            placeholder="Describe your loan purpose"
+                            required
+                            onChange={(event) =>
+                                onChange('loan_purpose', event.target.value)
+                            }
+                            aria-invalid={Boolean(errors.loan_purpose)}
+                        />
+                    )}
                 </div>
 
                 {isOtherLoan && (
