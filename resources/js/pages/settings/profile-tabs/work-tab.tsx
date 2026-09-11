@@ -1,4 +1,5 @@
 import InputError from '@/components/input-error';
+import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import {
     CurrencyInput,
     YearsInput,
@@ -572,17 +573,12 @@ export function WorkTab({
                                         Date employed
                                     </Label>
 
-                                    <Input
+                                    <DateInputWithPicker
                                         id="employer_date_employed"
-                                        type="date"
-                                        className="mt-1 block w-full"
-                                        value={employerDateEmployed}
                                         name="employer_date_employed"
-                                        onChange={(event) => {
-                                            setEmployerDateEmployed(
-                                                event.target.value,
-                                            );
-                                        }}
+                                        value={employerDateEmployed}
+                                        onChange={setEmployerDateEmployed}
+                                        aria-label="Choose date employed"
                                     />
 
                                     <InputError

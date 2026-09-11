@@ -1,6 +1,7 @@
 ﻿import { Head, router, usePage } from '@inertiajs/react';
 import { Bell, CheckCircle2, Clock, HeartPulse } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
+import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import {
     LoanRequestApplicantCard,
@@ -1523,16 +1524,15 @@ export default function StaffLoanRequestShow({
                                                 <Label htmlFor="wibs_release_date">
                                                     Release Date
                                                 </Label>
-                                                <Input
+                                                <DateInputWithPicker
                                                     id="wibs_release_date"
-                                                    type="date"
+                                                    name="wibs_release_date"
                                                     value={wibsReleaseDate}
-                                                    onChange={(e) =>
-                                                        setWibsReleaseDate(
-                                                            e.target.value,
-                                                        )
+                                                    onChange={
+                                                        setWibsReleaseDate
                                                     }
                                                     required
+                                                    aria-label="Choose release date"
                                                 />
                                             </div>
                                             <Button
