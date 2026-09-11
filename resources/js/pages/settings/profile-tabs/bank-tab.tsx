@@ -1,3 +1,13 @@
+import {
+    Banknote,
+    Briefcase,
+    CreditCard,
+    DollarSign,
+    FileCheck2,
+    Landmark,
+    PenTool,
+    type LucideIcon,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
 import {
@@ -55,17 +65,47 @@ type Props = {
     setPaymentAccountId: (value: number | null) => void;
 };
 
+const RELEASE_METHOD_LABELS: Record<string, string> = {
+    ATM: 'ATM / Debit Card',
+    'Bank Transfer': 'Bank Transfer',
+    Check: 'Check',
+    Cash: 'Cash Release',
+};
+
+const RELEASE_METHOD_ICONS: Record<string, LucideIcon> = {
+    ATM: CreditCard,
+    'Bank Transfer': Landmark,
+    Check: FileCheck2,
+    Cash: Banknote,
+};
+
+const PAYMENT_OPTION_LABELS: Record<string, string> = {
+    'Salary Deduction': 'Salary Deduction',
+    'ATM Deduction': 'Auto-Debit / Bank Account (ADA)',
+    Check: 'Post-Dated Check (PDC)',
+    Cash: 'Over-the-Counter Cash',
+};
+
+const PAYMENT_OPTION_ICONS: Record<string, LucideIcon> = {
+    'Salary Deduction': Briefcase,
+    'ATM Deduction': CreditCard,
+    Check: PenTool,
+    Cash: DollarSign,
+};
+
 const RELEASE_METHOD_OPTIONS_LIST: PaymentMethodOption[] =
     RELEASE_METHOD_OPTIONS.map((value) => ({
         value,
-        label: value,
+        label: RELEASE_METHOD_LABELS[value] ?? value,
+        icon: RELEASE_METHOD_ICONS[value],
         needsAccount: value === 'ATM' || value === 'Bank Transfer',
     }));
 
 const PAYMENT_OPTION_OPTIONS_LIST: PaymentMethodOption[] =
     PAYMENT_OPTION_OPTIONS.map((value) => ({
         value,
-        label: value,
+        label: PAYMENT_OPTION_LABELS[value] ?? value,
+        icon: PAYMENT_OPTION_ICONS[value],
         needsAccount: value === 'ATM Deduction',
     }));
 
@@ -164,7 +204,10 @@ export function BankTab({
                                     className="h-4 w-4 text-muted-foreground"
                                 />
                                 <p className="text-sm font-medium">
-                                    {releaseMethod || 'Not set'}
+                                    {(releaseMethod &&
+                                        RELEASE_METHOD_LABELS[releaseMethod]) ||
+                                        releaseMethod ||
+                                        'Not set'}
                                 </p>
                             </div>
                             {releaseNeedsAccount && (
@@ -232,7 +275,10 @@ export function BankTab({
                                     className="h-4 w-4 text-muted-foreground"
                                 />
                                 <p className="text-sm font-medium">
-                                    {paymentOption || 'Not set'}
+                                    {(paymentOption &&
+                                        PAYMENT_OPTION_LABELS[paymentOption]) ||
+                                        paymentOption ||
+                                        'Not set'}
                                 </p>
                             </div>
                             {paymentNeedsAccount && (
