@@ -27,7 +27,7 @@ function CalendarDropdown({ options, value, onChange }: DropdownProps) {
 
                 <SelectValue />
             </SelectTrigger>
-            <SelectContent className="max-h-64">
+            <SelectContent className="z-[60] max-h-64">
                 {options?.map((option) => (
                     <SelectItem
                         key={option.value}
