@@ -1562,14 +1562,14 @@ test('grepalife remains applicable for a 2-month term regardless of payment freq
     expect($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeTrue();
 });
 
-test('loan security agreement remains applicable for a 2-month-or-longer Due-date', function (): void {
+test('loan security agreement is not applicable for a 2-month-or-longer Due-date', function (): void {
     $loanRequest = LoanRequest::factory()->make([
         'recommended_payment_frequency' => 'Due date',
         'recommended_term' => 2,
     ]);
     $catalog = app(LoanRequestDocumentCatalog::class);
 
-    expect($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, []))->toBeTrue();
+    expect($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, []))->toBeFalse();
 });
 
 test('loan security agreement remains applicable for non-Due-date frequencies', function (): void {

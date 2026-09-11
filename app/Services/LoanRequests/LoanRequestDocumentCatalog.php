@@ -681,23 +681,21 @@ class LoanRequestDocumentCatalog
             'atm_payout_employee' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues),
             'bank_release' => ($flatValues['release_method'] ?? null) === LoanReleaseMethod::BankTransfer->value,
             'check_payment_option' => ($flatValues['payment_option'] ?? null) === LoanPaymentOption::Check->value,
-            'not_lumpsum' => ! $this->isDueDateNoInsurance($loanRequest),
+            'not_lumpsum' => ! $this->isLumpsumPaymentFrequency($loanRequest),
             'not_one_month_term' => ! $this->isOneMonthTerm($loanRequest),
             default => true,
         };
     }
 
     /**
-     * Only a 1-month Due date skips insurance entirely -- a 2-month-or-longer
-     * Due date still requires the insurance document (mirrors
-     * LoanRequestDecisionService::isDueDateNoInsurance() and the insurance
-     * premium waiver in ApprovedLoanDocumentDataBuilder). Used only by Loan
-     * Security Agreement, which is lumpsum-specific rather than insurance-specific.
+     * The Loan Security Agreement pledges savings/shares against an amortized
+     * repayment schedule; a lumpsum (Due date) loan repays everything in one
+     * shot with no amortization to secure, so the document is not applicable
+     * for any Due date term -- not just the 1-month case.
      */
-    private function isDueDateNoInsurance(LoanRequest $loanRequest): bool
+    private function isLumpsumPaymentFrequency(LoanRequest $loanRequest): bool
     {
-        return $loanRequest->recommended_payment_frequency === LoanPaydayOption::DueDate->value
-            && (int) $loanRequest->recommended_term === 1;
+        return $loanRequest->recommended_payment_frequency === LoanPaydayOption::DueDate->value;
     }
 
     /**
