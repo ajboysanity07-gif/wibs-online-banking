@@ -1,11 +1,46 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import * as React from 'react';
-import { DayPicker } from 'react-day-picker';
+import { DayPicker, type DropdownProps } from 'react-day-picker';
 
 import { buttonVariants } from '@/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 type CalendarProps = React.ComponentProps<typeof DayPicker>;
+
+function CalendarDropdown({ options, value, onChange }: DropdownProps) {
+    const handleChange = (newValue: string) => {
+        onChange?.({
+            target: { value: newValue },
+        } as React.ChangeEvent<HTMLSelectElement>);
+    };
+
+    return (
+        <Select value={String(value)} onValueChange={handleChange}>
+            <SelectTrigger className="h-7 w-fit gap-1 border-none px-2 text-sm font-medium shadow-none focus:ring-0">
+
+                <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-64">
+                {options?.map((option) => (
+                    <SelectItem
+                        key={option.value}
+                        value={String(option.value)}
+                        disabled={option.disabled}
+                    >
+                        {option.label}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    );
+}
 
 function Calendar({
     className,
@@ -24,11 +59,7 @@ function Calendar({
                 month: 'flex flex-col gap-4',
                 month_caption: 'flex justify-center pt-1 relative items-center w-full gap-1',
                 caption_label: 'text-sm font-medium',
-                dropdowns: 'flex items-center justify-center gap-1 text-sm font-medium',
-                dropdown_root: 'relative border rounded-md',
-                dropdown: 'absolute inset-0 opacity-0 cursor-pointer',
-                months_dropdown: 'px-2 py-1',
-                years_dropdown: 'px-2 py-1',
+                dropdowns: 'flex items-center justify-center gap-1',
                 nav: 'flex items-center justify-between absolute inset-x-0 top-0',
                 button_previous: cn(
                     buttonVariants({ variant: 'outline' }),
@@ -63,6 +94,7 @@ function Calendar({
                     ) : (
                         <ChevronRight className="size-4" {...chevronProps} />
                     ),
+                Dropdown: CalendarDropdown,
             }}
             {...props}
         />
