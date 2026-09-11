@@ -671,8 +671,15 @@ export function ProcessingDetailsPanel({
     };
 
     // GNTHP is system-computed (never manually editable), so this always
-    // applies the server's suggestion once it resolves.
+    // applies the server's suggestion once it resolves. Skipped entirely when
+    // the viewer can't update processing details (e.g. review not started
+    // yet) -- the preview endpoint authorizes against the same policy as
+    // saving, so calling it here would 403 and surface a spurious toast.
     const recalculateGnthp = async () => {
+        if (!canUpdateProcessing) {
+            return;
+        }
+
         setIsRecommendationPreviewLoading(true);
         setRecommendationPreviewError(null);
 
