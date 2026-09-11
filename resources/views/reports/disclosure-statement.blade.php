@@ -45,7 +45,9 @@
         if ($value === null || !is_numeric((string) $value)) {
             return '';
         }
-        return number_format((float) $value * 100, 2, '.', '') . '%';
+        $percent  = (float) $value * 100;
+        $decimals = abs($percent - round($percent)) < 0.0001 ? 0 : 2;
+        return number_format($percent, $decimals, '.', '') . '%';
     };
 
     $int = static function (mixed $value): string {
@@ -398,42 +400,52 @@
                 <td class="bold" colspan="14">NON FINANCE CHARGES</td>
             </tr>
 
-            {{-- Rows 28-32: a-e non finance charge lines --}}
-            <tr>
-                <td></td>
-                <td class="nw" colspan="3">a. Insurance Premium</td>
-                <td class="r">P</td>
-                <td class="b9 r u">{{ $insurancePremium !== null ? $fmt($insurancePremium) : '' }}</td>
-                <td colspan="9"></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td class="nw" colspan="3">b. Loan Security</td>
-                <td class="r">P</td>
-                <td class="b9 r ub">{{ $loanSecurityAmt !== null ? $fmt($loanSecurityAmt) : '' }}</td>
-                <td colspan="9"></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td class="nw" colspan="3">c. Documentary Stamps</td>
-                <td class="r">P</td>
-                <td class="b9 r ub">{{ $docStampAmt !== null ? $fmt($docStampAmt) : '' }}</td>
-                <td colspan="9"></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td class="nw" colspan="3">d. Notarial Fees</td>
-                <td class="r">P</td>
-                <td class="b9 r ub">{{ $notarialFee !== null ? $fmt($notarialFee) : '' }}</td>
-                <td colspan="9"></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td class="nw" colspan="3">e. Others:{{ $otherChargesDescription !== '' ? ' '.$otherChargesDescription : '' }}</td>
-                <td class="r">P</td>
-                <td class="b9 r ub">{{ $otherCharges !== null ? $fmt($otherCharges) : '' }}</td>
-                <td colspan="9"></td>
-            </tr>
+            {{-- Rows 28-32: a-e non finance charge lines (hidden entirely when the amount is zero) --}}
+            @if ($insurancePremium !== null && (float) $insurancePremium != 0.0)
+                <tr>
+                    <td></td>
+                    <td class="nw" colspan="3">a. Insurance Premium</td>
+                    <td class="r">P</td>
+                    <td class="b9 r u">{{ $fmt($insurancePremium) }}</td>
+                    <td colspan="9"></td>
+                </tr>
+            @endif
+            @if ($loanSecurityAmt !== null && (float) $loanSecurityAmt != 0.0)
+                <tr>
+                    <td></td>
+                    <td class="nw" colspan="3">b. Loan Security</td>
+                    <td class="r">P</td>
+                    <td class="b9 r ub">{{ $fmt($loanSecurityAmt) }}</td>
+                    <td colspan="9"></td>
+                </tr>
+            @endif
+            @if ($docStampAmt !== null && (float) $docStampAmt != 0.0)
+                <tr>
+                    <td></td>
+                    <td class="nw" colspan="3">c. Documentary Stamps</td>
+                    <td class="r">P</td>
+                    <td class="b9 r ub">{{ $fmt($docStampAmt) }}</td>
+                    <td colspan="9"></td>
+                </tr>
+            @endif
+            @if ($notarialFee !== null && (float) $notarialFee != 0.0)
+                <tr>
+                    <td></td>
+                    <td class="nw" colspan="3">d. Notarial Fees</td>
+                    <td class="r">P</td>
+                    <td class="b9 r ub">{{ $fmt($notarialFee) }}</td>
+                    <td colspan="9"></td>
+                </tr>
+            @endif
+            @if ($otherCharges !== null && (float) $otherCharges != 0.0)
+                <tr>
+                    <td></td>
+                    <td class="nw" colspan="3">e. Others:{{ $otherChargesDescription !== '' ? ' '.$otherChargesDescription : '' }}</td>
+                    <td class="r">P</td>
+                    <td class="b9 r ub">{{ $fmt($otherCharges) }}</td>
+                    <td colspan="9"></td>
+                </tr>
+            @endif
 
             {{-- Row 33: Total Non Finance Charges (C) --}}
             <tr>
