@@ -20,6 +20,7 @@ beforeEach(function (): void {
             $table->string('mname')->nullable();
             $table->string('bname')->nullable();
             $table->date('birthday')->nullable();
+            $table->string('birthplace')->nullable();
             $table->string('address')->nullable();
             $table->string('address1')->nullable();
             $table->string('address2')->nullable();
@@ -140,4 +141,39 @@ test('a non-canonical legacy city name is normalized against the PSGC dataset', 
     $formData = app(LoanRequestService::class)->getFormData($member);
 
     expect($formData['applicant']['address2'])->toBe('City of Cebu');
+});
+
+test('applicant birthplace comes from the profile even when wmaster has a legacy birthplace blob', function (): void {
+    // Regression case: unlike address, wmaster only ever stores birthplace as
+    // a single unstructured string. Previously this legacy blob unconditionally
+    // won over the member's own verified, structured profile birthplace,
+    // wiping out the city/province the member had carefully filled in on
+    // their profile (e.g. wmaster's "Taytay Rizal Manila" with no comma to
+    // split on collapsed everything into the city with no province).
+    $member = createAddressPrefillTestMember('970006', [
+        'birthplace' => 'Taytay Rizal Manila',
+    ], [
+        'birthplace_city' => 'Taytay',
+        'birthplace_province' => 'Rizal',
+    ]);
+
+    $formData = app(LoanRequestService::class)->getFormData($member);
+
+    expect($formData['applicant']['birthplace_city'])->toBe('Taytay')
+        ->and($formData['applicant']['birthplace_province'])->toBe('Rizal');
+});
+
+test('applicant birthplace falls back to the legacy wmaster blob when the profile has no structured birthplace', function (): void {
+    $member = createAddressPrefillTestMember('970007', [
+        'birthplace' => 'Taytay, Rizal',
+    ], [
+        'birthplace_city' => null,
+        'birthplace_province' => null,
+        'birthplace' => null,
+    ]);
+
+    $formData = app(LoanRequestService::class)->getFormData($member);
+
+    expect($formData['applicant']['birthplace_city'])->toBe('Taytay')
+        ->and($formData['applicant']['birthplace_province'])->toBe('Rizal');
 });

@@ -1814,49 +1814,34 @@ class LoanRequestService
         $middleName = $this->normalizeOptionalString($nameParts['middle_name']);
         $lastName = $this->normalizeOptionalString($nameParts['last_name']);
         $wmasterBirthplace = $this->normalizeOptionalString($wmaster?->birthplace);
-        $birthplaceCity = null;
-        $birthplaceProvince = null;
+        $birthplaceCity = $this->normalizeOptionalString(
+            $profile?->birthplace_city,
+        );
+        $birthplaceProvince = $this->normalizeOptionalString(
+            $profile?->birthplace_province,
+        );
 
-        if ($wmasterBirthplace !== null) {
-            $parsedBirthplace = LocationComposer::parseLegacyBirthplace(
-                $wmasterBirthplace,
-            );
-            $birthplaceCity = $parsedBirthplace['city'];
-            $birthplaceProvince = $parsedBirthplace['province'];
-        } else {
-            $birthplaceCity = $this->normalizeOptionalString(
-                $profile?->birthplace_city,
-            );
-            $birthplaceProvince = $this->normalizeOptionalString(
-                $profile?->birthplace_province,
+        if ($birthplaceCity === null && $birthplaceProvince === null) {
+            $legacyBirthplace = $wmasterBirthplace ?? $this->normalizeOptionalString(
+                $profile?->birthplace,
             );
 
-            if ($birthplaceCity === null && $birthplaceProvince === null) {
-                $legacyBirthplace = $this->normalizeOptionalString(
-                    $profile?->birthplace,
+            if ($legacyBirthplace !== null) {
+                $parsedBirthplace = LocationComposer::parseLegacyBirthplace(
+                    $legacyBirthplace,
                 );
-
-                if ($legacyBirthplace !== null) {
-                    $parsedBirthplace = LocationComposer::parseLegacyBirthplace(
-                        $legacyBirthplace,
-                    );
-                    $birthplaceCity = $parsedBirthplace['city'];
-                    $birthplaceProvince = $parsedBirthplace['province'];
-                }
+                $birthplaceCity = $parsedBirthplace['city'];
+                $birthplaceProvince = $parsedBirthplace['province'];
             }
         }
 
-        $birthplace = $wmasterBirthplace;
-
-        if ($birthplace === null) {
-            $birthplace = LocationComposer::composeBirthplace(
-                $birthplaceCity,
-                $birthplaceProvince,
-            );
-            $birthplace = $birthplace !== ''
-                ? $birthplace
-                : $this->normalizeOptionalString($profile?->birthplace);
-        }
+        $birthplace = LocationComposer::composeBirthplace(
+            $birthplaceCity,
+            $birthplaceProvince,
+        );
+        $birthplace = $birthplace !== ''
+            ? $birthplace
+            : ($wmasterBirthplace ?? $this->normalizeOptionalString($profile?->birthplace));
 
         [$address1, $address2, $address3, $addressBarangay] = $this->resolvePairedApplicantAddress(
             $wmaster,

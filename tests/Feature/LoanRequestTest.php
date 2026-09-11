@@ -366,6 +366,8 @@ test('loan request form uses structured wmaster names and address parts', functi
     MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
         'birthplace' => 'Davao City',
+        'birthplace_city' => null,
+        'birthplace_province' => null,
     ]);
     DB::table('wlntype')->insert([
         'typecode' => 'LN-003',
