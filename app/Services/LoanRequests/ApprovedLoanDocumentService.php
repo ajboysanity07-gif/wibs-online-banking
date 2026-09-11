@@ -74,6 +74,7 @@ class ApprovedLoanDocumentService
         'pension_deduction_waiver' => '13-Pension-Deduction-Waiver.pdf',
         'generali_application_form' => '14-Generali-Application-Form.pdf',
         'authorization' => '15-Authorization.pdf',
+        'pdc_schedule' => '16-Post-Dated-Checks-Schedule.pdf',
     ];
 
     public function __construct(
@@ -101,6 +102,7 @@ class ApprovedLoanDocumentService
         private GeneraliApplicationFormPdfFieldMap $generaliApplicationFormPdfFieldMap,
         private AuthorizationPdfFieldMap $authorizationPdfFieldMap,
         private ApprovedLoanDocumentDataBuilder $documentDataBuilder,
+        private PdcSchedulePdfService $pdcSchedulePdfService,
     ) {}
 
     /**
@@ -434,6 +436,11 @@ class ApprovedLoanDocumentService
                 $loanRequest,
                 $flatValues,
             );
+            $includePdcSchedule = $this->documentCatalog->isApplicable(
+                LoanRequestDocumentKey::PdcSchedule,
+                $loanRequest,
+                $flatValues,
+            );
             $applicationFormPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['application_form'];
             $grepalifePath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['grepalife'];
             $affidavitUndertakingPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['affidavit_undertaking'];
@@ -448,6 +455,7 @@ class ApprovedLoanDocumentService
             $depedSalaryDeductionWaiverPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['deped_salary_deduction_waiver'];
             $pensionDeductionWaiverPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['pension_deduction_waiver'];
             $generaliApplicationFormPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['generali_application_form'];
+            $pdcSchedulePath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['pdc_schedule'];
 
             $bladeDocumentClosures = [
                 fn () => app(LoanRequestPdfService::class)->saveToPath(
@@ -476,6 +484,12 @@ class ApprovedLoanDocumentService
             if ($includeAuthorityToDeduct) {
                 $bladeDocumentClosures[] = fn () => app(AuthorityToDeductPdfService::class)->generate(
                     $authorityToDeductPath,
+                    $documentData,
+                );
+            }
+            if ($includePdcSchedule) {
+                $bladeDocumentClosures[] = fn () => app(PdcSchedulePdfService::class)->generate(
+                    $pdcSchedulePath,
                     $documentData,
                 );
             }
@@ -744,6 +758,13 @@ class ApprovedLoanDocumentService
                         $documentData,
                         $this->generaliApplicationFormPdfFieldMap,
                     );
+                },
+            ),
+            LoanRequestDocumentKey::PdcSchedule => $this->generatePdfDocumentToPath(
+                $outputPath,
+                $documentKey,
+                function (string $path) use ($documentData): void {
+                    $this->pdcSchedulePdfService->generate($path, $documentData);
                 },
             ),
         };

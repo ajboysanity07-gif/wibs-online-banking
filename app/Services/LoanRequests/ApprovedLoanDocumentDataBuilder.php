@@ -480,6 +480,11 @@ class ApprovedLoanDocumentDataBuilder
                     $overrideProcessing['payout_atm_holder_name'] ?? $authorizationAccount['atm_holder_name'] ?? null,
                 ),
             ],
+            'pdc' => [
+                'drawee_bank' => $this->normalizeText(
+                    $overrideProcessing['pdc_drawee_bank'] ?? $flatValues['pdc_drawee_bank'] ?? null,
+                ),
+            ],
             'barangay' => [
                 'official_name' => $this->normalizeText(
                     $overrideProcessing['barangay_official_name'] ?? $flatValues['barangay_official_name'] ?? null,
