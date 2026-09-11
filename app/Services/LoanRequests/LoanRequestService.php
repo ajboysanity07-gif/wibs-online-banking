@@ -1044,6 +1044,8 @@ class LoanRequestService
             ->whereIn('status', [
                 LoanRequestStatus::Draft->value,
                 LoanRequestStatus::PendingCoMakerSignatures->value,
+                LoanRequestStatus::Submitted->value,
+                LoanRequestStatus::PendingReview->value,
                 LoanRequestStatus::NeedsRevision->value,
             ])
             ->orderByDesc('updated_at')

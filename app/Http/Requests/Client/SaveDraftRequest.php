@@ -362,7 +362,12 @@ class SaveDraftRequest extends FormRequest
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
 
-        return $status === LoanRequestStatus::Draft->value;
+        return in_array($status, [
+            LoanRequestStatus::Draft->value,
+            LoanRequestStatus::PendingCoMakerSignatures->value,
+            LoanRequestStatus::Submitted->value,
+            LoanRequestStatus::PendingReview->value,
+        ], true);
     }
 
     /**

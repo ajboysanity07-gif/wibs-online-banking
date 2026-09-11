@@ -98,6 +98,8 @@ type Props = {
     coMakerTwo: LoanRequestPersonData | null;
     backHref: string;
     backLabel: string;
+    editHref?: string | null;
+    editLabel?: string;
     pdfHref: string;
     approvedDocumentHrefs?: ApprovedDocumentHrefs | null;
     packageZipDownload?: {
@@ -1068,6 +1070,8 @@ export function LoanRequestDetailPage({
     coMakerTwo,
     backHref,
     backLabel,
+    editHref = null,
+    editLabel = 'Edit Application',
     pdfHref,
     approvedDocumentHrefs = null,
     packageZipDownload = null,
@@ -1872,6 +1876,17 @@ export function LoanRequestDetailPage({
                                     </div>
                                     <Separator className="bg-border/40" />
                                 </div>
+                            ) : null}
+                            {editHref !== null ? (
+                                <Button
+                                    asChild
+                                    className="w-full justify-start"
+                                >
+                                    <Link href={editHref}>
+                                        <PencilLine />
+                                        {editLabel}
+                                    </Link>
+                                </Button>
                             ) : null}
                             {showCancellationAction ? (
                                 <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">

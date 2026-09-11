@@ -48,6 +48,7 @@ import { getAccountDisplayLabel } from '@/lib/payment-accounts';
 import { dashboard as clientDashboard } from '@/routes/client';
 import {
     approvedDocuments as loanRequestApprovedDocuments,
+    create as loanRequestCreate,
     index as loanRequestsIndex,
     pdf as loanRequestPdf,
     show as loanRequestShow,
@@ -281,6 +282,12 @@ export default function LoanRequestShow({
         ['submitted', 'pending_review', 'under_review'].includes(
             currentLoanRequest.status,
         );
+    const canEditApplication =
+        currentLoanRequest.status !== null &&
+        ['submitted', 'pending_review'].includes(currentLoanRequest.status);
+    const editApplicationHref = canEditApplication
+        ? loanRequestCreate().url
+        : null;
     const fieldDirectory = new Map<
         string,
         {
@@ -1017,6 +1024,7 @@ export default function LoanRequestShow({
                 coMakerTwo={coMakerTwo}
                 backHref={loanRequestsIndexHref}
                 backLabel="Back to loan requests"
+                editHref={editApplicationHref}
                 pdfHref={pdfHref}
                 releaseMethod={
                     bankingReleaseMethod ? bankingReleaseMethod : undefined

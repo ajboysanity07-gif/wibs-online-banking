@@ -592,6 +592,14 @@ test('health questionnaire answers are written back to the profile and reused on
     expect($profile->health_hypertension)->toBeTrue();
     expect($profile->health_recent_hospitalization)->toBeTrue();
 
+    // Members can now edit/resubmit a request while it's still pending
+    // processing, so getFormData() would otherwise resume this same
+    // request. Finalize it first to simulate a genuinely new, separate
+    // "next loan request" for this prefill-from-profile assertion.
+    LoanRequest::query()->latest('id')->firstOrFail()->update([
+        'status' => LoanRequestStatus::Cancelled,
+    ]);
+
     $formData = app(LoanRequestService::class)->getFormData($user->fresh());
 
     expect($formData['healthPrefilledFromProfile'])->toBeTrue();

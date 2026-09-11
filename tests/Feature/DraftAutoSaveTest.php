@@ -83,8 +83,22 @@ test('save draft returns 403 when the request belongs to a different user', func
         ->assertForbidden();
 });
 
-test('save draft returns 403 when the request is not in draft status', function (): void {
+test('save draft returns 403 when the request is under review or later', function (): void {
     $member = createDraftMember('002004');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'acctno' => $member->acctno,
+        'submitted_at' => now(),
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [])
+        ->assertForbidden();
+});
+
+test('save draft returns 204 and drops status back to draft when the request is pending review', function (): void {
+    $member = createDraftMember('002020');
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::PendingReview,
@@ -93,8 +107,28 @@ test('save draft returns 403 when the request is not in draft status', function 
     ]);
 
     $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [
+            'loan_purpose' => 'Updated purpose while pending review',
+        ])
+        ->assertNoContent();
+
+    expect($loanRequest->fresh()->status)->toBe(LoanRequestStatus::Draft);
+});
+
+test('save draft returns 204 and drops status back to draft when the request is submitted', function (): void {
+    $member = createDraftMember('002021');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Submitted,
+        'acctno' => $member->acctno,
+        'submitted_at' => now(),
+    ]);
+
+    $this->actingAs($member)
         ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [])
-        ->assertForbidden();
+        ->assertNoContent();
+
+    expect($loanRequest->fresh()->status)->toBe(LoanRequestStatus::Draft);
 });
 
 test('save draft does not create a LoanRequestChange entry', function (): void {
