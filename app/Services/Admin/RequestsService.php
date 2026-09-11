@@ -8,6 +8,7 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
 use App\Services\LoanRequests\LoanWorkflowWorkspaceService;
+use App\Support\SchemaCapabilities;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -34,6 +35,7 @@ class RequestsService
     public function __construct(
         private LoanWorkflowWorkspaceService $workspaceService,
         private LoanRequestAssignmentService $assignmentService,
+        private SchemaCapabilities $schemaCapabilities,
     ) {}
 
     /**
@@ -361,12 +363,12 @@ class RequestsService
 
     private function hasRequestsTable(): bool
     {
-        return LoanRequest::query()->getConnection()->getSchemaBuilder()->hasTable('loan_requests');
+        return $this->schemaCapabilities->hasTable('loan_requests');
     }
 
     private function hasCorrectionReportsTable(): bool
     {
-        return LoanRequest::query()->getConnection()->getSchemaBuilder()->hasTable('loan_request_correction_reports');
+        return $this->schemaCapabilities->hasTable('loan_request_correction_reports');
     }
 
     private function baseQuery(): Builder

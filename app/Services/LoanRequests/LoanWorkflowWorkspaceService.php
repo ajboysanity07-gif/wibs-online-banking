@@ -19,6 +19,16 @@ class LoanWorkflowWorkspaceService
 
     private const ACTIVE_WORKSPACE_SESSION_KEY = 'active_workspace';
 
+    /**
+     * Memoizes recommendedRequestIdsAssignedToOtherManagers() per user for
+     * the lifetime of this service instance, since applyVisibleScope() can
+     * be invoked several times in a single request (main query, correction
+     * report count, loan type options) for the same loan manager.
+     *
+     * @var array<int, list<int>>
+     */
+    private array $recommendedRequestIdsCache = [];
+
     public function canAccess(?AppUser $user): bool
     {
         return $this->canAccessLoanWorkflow($user);
@@ -408,6 +418,21 @@ class LoanWorkflowWorkspaceService
      * @return list<int>
      */
     private function recommendedRequestIdsAssignedToOtherManagers(AppUser $user): array
+    {
+        $userId = (int) $user->user_id;
+
+        if (array_key_exists($userId, $this->recommendedRequestIdsCache)) {
+            return $this->recommendedRequestIdsCache[$userId];
+        }
+
+        return $this->recommendedRequestIdsCache[$userId] =
+            $this->loadRecommendedRequestIdsAssignedToOtherManagers($user);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function loadRecommendedRequestIdsAssignedToOtherManagers(AppUser $user): array
     {
         $recommendedIds = LoanRequest::query()
             ->where('status', LoanRequestStatus::RecommendedForApproval->value)

@@ -14,6 +14,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
@@ -245,6 +246,7 @@ class LoanRequestAssignmentService
             $lockedLoanRequest->forceFill([
                 'assigned_officer_id' => null,
             ])->save();
+            $this->forgetEligibleOfficerOptionsCache();
 
             $updatedLoanRequest = $this->refreshLoanRequest($lockedLoanRequest);
 
@@ -333,6 +335,30 @@ class LoanRequestAssignmentService
      * }>
      */
     public function eligibleOfficerOptions(?LoanRequest $loanRequest = null): array
+    {
+        if ($loanRequest === null) {
+            return Cache::remember(
+                'loan-request-assignment.eligible-officer-options',
+                20,
+                fn () => $this->loadEligibleOfficerOptions(null),
+            );
+        }
+
+        return $this->loadEligibleOfficerOptions($loanRequest);
+    }
+
+    /**
+     * @return array<int, array{
+     *     user_id:int,
+     *     name:string,
+     *     display_code:string,
+     *     username:string|null,
+     *     active_assignment_count:int,
+     *     has_workload_warning:bool,
+     *     workload_warning_label:string|null
+     * }>
+     */
+    private function loadEligibleOfficerOptions(?LoanRequest $loanRequest): array
     {
         /** @var Collection<int, AppUser> $officers */
         $officers = AppUser::query()
@@ -618,6 +644,7 @@ class LoanRequestAssignmentService
         $loanRequest->forceFill([
             'assigned_officer_id' => $actor->user_id,
         ])->save();
+        $this->forgetEligibleOfficerOptionsCache();
 
         $updatedLoanRequest = $this->refreshLoanRequest($loanRequest);
 
@@ -654,6 +681,7 @@ class LoanRequestAssignmentService
         $loanRequest->forceFill([
             'assigned_officer_id' => $actor->user_id,
         ])->save();
+        $this->forgetEligibleOfficerOptionsCache();
 
         $updatedLoanRequest = $this->refreshLoanRequest($loanRequest);
 
@@ -691,6 +719,7 @@ class LoanRequestAssignmentService
         $loanRequest->forceFill([
             'assigned_officer_id' => $targetOfficer->user_id,
         ])->save();
+        $this->forgetEligibleOfficerOptionsCache();
 
         $updatedLoanRequest = $this->refreshLoanRequest($loanRequest);
 
@@ -1010,6 +1039,11 @@ class LoanRequestAssignmentService
         $normalizedFilter = trim($assignmentFilter);
 
         return $normalizedFilter !== '' ? $normalizedFilter : null;
+    }
+
+    private function forgetEligibleOfficerOptionsCache(): void
+    {
+        Cache::forget('loan-request-assignment.eligible-officer-options');
     }
 
     private function normalizeOptionalString(mixed $value): ?string
