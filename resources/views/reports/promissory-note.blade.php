@@ -108,7 +108,9 @@
         if ($value === null || !is_numeric((string) $value)) {
             return '';
         }
-        return number_format((float) $value * 100, 2, '.', '') . '%';
+        $percent  = (float) $value * 100;
+        $decimals = abs($percent - round($percent)) < 0.0001 ? 0 : 2;
+        return number_format($percent, $decimals, '.', '') . '%';
     };
 
     $renderValue = static function (

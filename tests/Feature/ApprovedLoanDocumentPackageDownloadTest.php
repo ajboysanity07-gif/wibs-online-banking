@@ -499,7 +499,7 @@ test('promissory note pdf prints the staff-entered penalty rate, not a hardcoded
     $text = approvedLoanDocumentsExtractPdfText($response);
 
     expect($text)
-        ->toContain('7.00%')
+        ->toContain('7%')
         ->not->toContain('5.00%')
         ->not->toContain('a penalty of 5%');
 });
@@ -1866,10 +1866,10 @@ test('loan information field map pins all field coordinates and resolves the del
     expect($resolve($loanApproved['value'], $documentData))->toBe('25,000.00');
 
     $interestRate = $findByY(91.12);
-    expect($resolve($interestRate['value'], $documentData))->toBe('36.00%');
+    expect($resolve($interestRate['value'], $documentData))->toBe('36%');
 
     $penaltyPerMonth = $findByY(275.11);
-    expect($resolve($penaltyPerMonth['value'], $documentData))->toBe('5.00%');
+    expect($resolve($penaltyPerMonth['value'], $documentData))->toBe('5%');
 
     // Resolved decision (explicit, deliberate): hardcoded to match Disclosure Statement's
     // commit 0d9d2a3 precedent exactly, even though reviewer.name/position are properly
