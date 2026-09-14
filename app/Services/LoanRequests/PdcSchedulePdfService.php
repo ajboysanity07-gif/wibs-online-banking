@@ -138,19 +138,22 @@ class PdcSchedulePdfService
         $balance = $principal;
         $totals = ['principal' => 0.0, 'interest' => 0.0, 'loan_security' => 0.0, 'total' => 0.0];
 
-        // $balance is rounded to centavos at the end of every iteration, so each
-        // row's interest is computed from an already-rounded balance rather than
-        // an accumulating float — this is what keeps the final row's principal
-        // (the exact remaining balance) reconciling to zero with no drift.
+        // Checks are written for whole-peso amounts (no centavos), so every
+        // figure is rounded to the nearest peso — not just for display, but
+        // immediately in the loop, so $balance is always a whole-peso value
+        // and each row's interest is computed from that rounded balance
+        // rather than an accumulating float. This is what keeps the final
+        // row's principal (the exact remaining balance) reconciling to zero
+        // with no drift.
         for ($i = 1; $i <= $count; $i++) {
-            $interestDue = round($balance * $periodicRate, 2);
+            $interestDue = round($balance * $periodicRate, 0);
             $principalDue = $i === $count
-                ? round($balance, 2)
-                : round($payment - $interestDue, 2);
-            $loanSecurityDue = round($principalDue * $savingsRate, 2);
-            $totalDue = round($principalDue + $interestDue + $loanSecurityDue, 2);
+                ? round($balance, 0)
+                : round($payment - $interestDue, 0);
+            $loanSecurityDue = round($principalDue * $savingsRate, 0);
+            $totalDue = round($principalDue + $interestDue + $loanSecurityDue, 0);
 
-            $balance = round($balance - $principalDue, 2);
+            $balance = round($balance - $principalDue, 0);
 
             $rows[] = [
                 'principal' => $principalDue,
@@ -167,7 +170,7 @@ class PdcSchedulePdfService
 
         return [
             'rows' => $rows,
-            'totals' => array_map(static fn (float $value): float => round($value, 2), $totals),
+            'totals' => array_map(static fn (float $value): float => round($value, 0), $totals),
         ];
     }
 

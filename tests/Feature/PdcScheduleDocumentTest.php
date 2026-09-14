@@ -130,19 +130,28 @@ test('pdc schedule uses declining-balance amortization, not the flat add-on figu
     // Periodic rate = 36% / 24 quincenal periods per year = 1.5% per period.
     $periodicRate = 0.36 / 24;
     $factor = (1 + $periodicRate) ** 24;
-    $expectedPayment = round(24000.0 * $periodicRate * $factor / ($factor - 1), 2);
+    $expectedPayment = 24000.0 * $periodicRate * $factor / ($factor - 1);
 
-    // Constant payment (principal + interest) every period, unlike the flat
-    // add-on method where principal is flat but interest is also flat.
+    // Checks are for whole-peso amounts - every figure is rounded to the
+    // nearest peso, not centavos.
+    foreach ($rows as $row) {
+        foreach (['principal', 'interest', 'loan_security', 'total'] as $field) {
+            expect($row[$field])->toBe(round($row[$field]));
+        }
+    }
+
+    // Payment (principal + interest) stays within a peso of the theoretical
+    // constant payment every period, unlike the flat add-on method where
+    // principal is flat but interest is also flat.
     foreach (array_slice($rows, 0, 23) as $row) {
-        expect(round($row['principal'] + $row['interest'], 2))->toBe($expectedPayment);
+        expect(abs(($row['principal'] + $row['interest']) - $expectedPayment))->toBeLessThanOrEqual(1.0);
     }
 
     // Interest declines and principal grows as the balance amortizes.
     expect($rows[0]['interest'])->toBeGreaterThan($rows[1]['interest']);
     expect($rows[0]['principal'])->toBeLessThan($rows[1]['principal']);
 
-    // The flat/add-on method divides interest evenly across every row (360.00
+    // The flat/add-on method divides interest evenly across every row (360
     // each); declining-balance must diverge from that flat figure by the last row.
     expect($rows[23]['interest'])->not->toBe(360.0);
 
