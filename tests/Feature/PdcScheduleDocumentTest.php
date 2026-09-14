@@ -9,6 +9,7 @@ use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
+use App\Services\LoanRequests\PdcSchedulePdfService;
 
 function pdcScheduleCreateApprovedLoanRequest(): LoanRequest
 {
@@ -105,4 +106,46 @@ test('pdc schedule generates a real pdf with per-check principal, interest, loan
     expect($content)->toStartWith('%PDF');
 
     @unlink($outputPath);
+});
+
+test('pdc schedule uses declining-balance amortization, not the flat add-on figures', function () {
+    $loan = [
+        'approved_amount_raw' => 24000.0,
+        'interest_rate_raw' => 0.36,
+        'amortization_count' => 24,
+        'payment_mode_workbook' => 'QUINCENAL',
+        'lumpsum_months' => null,
+        'savings_rate_raw' => 0.02,
+    ];
+
+    $service = app(PdcSchedulePdfService::class);
+    $method = (new ReflectionClass($service))->getMethod('buildAmortizationSchedule');
+    $method->setAccessible(true);
+
+    $schedule = $method->invoke($service, $loan);
+    $rows = $schedule['rows'];
+
+    expect($rows)->toHaveCount(24);
+
+    // Periodic rate = 36% / 24 quincenal periods per year = 1.5% per period.
+    $periodicRate = 0.36 / 24;
+    $factor = (1 + $periodicRate) ** 24;
+    $expectedPayment = round(24000.0 * $periodicRate * $factor / ($factor - 1), 2);
+
+    // Constant payment (principal + interest) every period, unlike the flat
+    // add-on method where principal is flat but interest is also flat.
+    foreach (array_slice($rows, 0, 23) as $row) {
+        expect(round($row['principal'] + $row['interest'], 2))->toBe($expectedPayment);
+    }
+
+    // Interest declines and principal grows as the balance amortizes.
+    expect($rows[0]['interest'])->toBeGreaterThan($rows[1]['interest']);
+    expect($rows[0]['principal'])->toBeLessThan($rows[1]['principal']);
+
+    // The flat/add-on method divides interest evenly across every row (360.00
+    // each); declining-balance must diverge from that flat figure by the last row.
+    expect($rows[23]['interest'])->not->toBe(360.0);
+
+    // Total principal across all checks must reconcile to the loan amount.
+    expect($schedule['totals']['principal'])->toBe(24000.0);
 });

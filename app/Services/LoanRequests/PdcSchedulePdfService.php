@@ -76,6 +76,7 @@ class PdcSchedulePdfService
             'applicant' => $applicant,
             'loan' => $loan,
             'pdc' => $pdc,
+            'schedule' => $this->buildAmortizationSchedule($loan),
             'reportHeader' => $reportHeader,
             'reportTypography' => is_array(
                 $organization['report_typography'] ?? null,
@@ -87,6 +88,82 @@ class PdcSchedulePdfService
             )
                 ? $organization['logo_data_uri']
                 : null,
+        ];
+    }
+
+    /**
+     * Builds a true declining-balance amortization schedule for the checks,
+     * unlike the flat/add-on figures (amortization_*_raw) shared by the other
+     * loan documents: the periodic payment is constant but its principal/
+     * interest split shifts each check as the outstanding balance shrinks.
+     *
+     * @param  array<string, mixed>  $loan
+     * @return array{rows: list<array<string, float>>, totals: array<string, float|null>}
+     */
+    private function buildAmortizationSchedule(array $loan): array
+    {
+        $emptyTotals = ['principal' => null, 'interest' => null, 'loan_security' => null, 'total' => null];
+
+        $principal = is_numeric($loan['approved_amount_raw'] ?? null) ? (float) $loan['approved_amount_raw'] : null;
+        $annualRate = is_numeric($loan['interest_rate_raw'] ?? null) ? (float) $loan['interest_rate_raw'] : null;
+        $count = is_numeric($loan['amortization_count'] ?? null) ? (int) $loan['amortization_count'] : null;
+        $paymentMode = is_string($loan['payment_mode_workbook'] ?? null) ? $loan['payment_mode_workbook'] : null;
+        $lumpsumMonths = is_numeric($loan['lumpsum_months'] ?? null) ? (int) $loan['lumpsum_months'] : null;
+        $savingsRate = is_numeric($loan['savings_rate_raw'] ?? null) ? (float) $loan['savings_rate_raw'] : 0.0;
+
+        if ($principal === null || $annualRate === null || $count === null || $count <= 0) {
+            return ['rows' => [], 'totals' => $emptyTotals];
+        }
+
+        $periodsPerYear = match ($paymentMode) {
+            'DAILY' => 360.0,
+            'QUINCENAL' => 24.0,
+            'SEMI-ANNUAL' => 2.0,
+            'WEEKLY' => 52.0,
+            'YEARLY' => 1.0,
+            'DUE-DATE' => $lumpsumMonths !== null && $lumpsumMonths > 0 ? 12.0 / $lumpsumMonths : 12.0,
+            default => 12.0,
+        };
+
+        $periodicRate = $annualRate / $periodsPerYear;
+
+        if ($periodicRate > 0) {
+            $factor = (1 + $periodicRate) ** $count;
+            $payment = $principal * $periodicRate * $factor / ($factor - 1);
+        } else {
+            $payment = $principal / $count;
+        }
+
+        $rows = [];
+        $balance = $principal;
+        $totals = ['principal' => 0.0, 'interest' => 0.0, 'loan_security' => 0.0, 'total' => 0.0];
+
+        for ($i = 1; $i <= $count; $i++) {
+            $interestDue = round($balance * $periodicRate, 2);
+            $principalDue = $i === $count
+                ? round($balance, 2)
+                : round($payment - $interestDue, 2);
+            $loanSecurityDue = round($principalDue * $savingsRate, 2);
+            $totalDue = round($principalDue + $interestDue + $loanSecurityDue, 2);
+
+            $balance = round($balance - $principalDue, 2);
+
+            $rows[] = [
+                'principal' => $principalDue,
+                'interest' => $interestDue,
+                'loan_security' => $loanSecurityDue,
+                'total' => $totalDue,
+            ];
+
+            $totals['principal'] += $principalDue;
+            $totals['interest'] += $interestDue;
+            $totals['loan_security'] += $loanSecurityDue;
+            $totals['total'] += $totalDue;
+        }
+
+        return [
+            'rows' => $rows,
+            'totals' => array_map(static fn (float $value): float => round($value, 2), $totals),
         ];
     }
 

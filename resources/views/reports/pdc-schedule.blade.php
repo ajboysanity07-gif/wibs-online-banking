@@ -8,11 +8,8 @@
     $approvedAmount = $loan['approved_amount_raw'] ?? null;
     $draweeBank = trim((string) ($pdc['drawee_bank'] ?? ''));
 
-    $checkCount = (int) ($loan['amortization_count'] ?? 0);
-    $principalPerCheck = $loan['amortization_principal_raw'] ?? null;
-    $interestPerCheck = $loan['amortization_interest_raw'] ?? null;
-    $loanSecurityPerCheck = $loan['amortization_loan_security_raw'] ?? null;
-    $totalPerCheck = $loan['amortization_total_raw'] ?? null;
+    $scheduleRows = $schedule['rows'] ?? [];
+    $scheduleTotals = $schedule['totals'] ?? [];
 
     $fmt = static function (mixed $value): string {
         if ($value === null || ! is_numeric((string) $value)) {
@@ -22,14 +19,10 @@
         return number_format((float) $value, 2, '.', ',');
     };
 
-    $sum = static function (?float $perCheck, int $count) {
-        return $perCheck !== null ? $perCheck * $count : null;
-    };
-
-    $totalPrincipal = $sum($principalPerCheck, $checkCount);
-    $totalInterest = $sum($interestPerCheck, $checkCount);
-    $totalLoanSecurity = $sum($loanSecurityPerCheck, $checkCount);
-    $totalOverall = $sum($totalPerCheck, $checkCount);
+    $totalPrincipal = $scheduleTotals['principal'] ?? null;
+    $totalInterest = $scheduleTotals['interest'] ?? null;
+    $totalLoanSecurity = $scheduleTotals['loan_security'] ?? null;
+    $totalOverall = $scheduleTotals['total'] ?? null;
 @endphp
 <!doctype html>
 <html lang="en">
@@ -231,16 +224,16 @@
                 </tr>
             </thead>
             <tbody>
-                @for ($i = 1; $i <= $checkCount; $i++)
+                @foreach ($scheduleRows as $row)
                     <tr>
                         <td class="check-no">&nbsp;</td>
                         <td class="check-date">&nbsp;</td>
-                        <td class="amt">{{ $fmt($principalPerCheck) }}</td>
-                        <td class="amt">{{ $fmt($interestPerCheck) }}</td>
-                        <td class="amt">{{ $fmt($loanSecurityPerCheck) }}</td>
-                        <td class="amt">{{ $fmt($totalPerCheck) }}</td>
+                        <td class="amt">{{ $fmt($row['principal'] ?? null) }}</td>
+                        <td class="amt">{{ $fmt($row['interest'] ?? null) }}</td>
+                        <td class="amt">{{ $fmt($row['loan_security'] ?? null) }}</td>
+                        <td class="amt">{{ $fmt($row['total'] ?? null) }}</td>
                     </tr>
-                @endfor
+                @endforeach
             </tbody>
             <tfoot>
                 <tr>
