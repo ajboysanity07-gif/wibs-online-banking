@@ -109,7 +109,7 @@ class PdcSchedulePdfService
         $count = is_numeric($loan['amortization_count'] ?? null) ? (int) $loan['amortization_count'] : null;
         $paymentMode = is_string($loan['payment_mode_workbook'] ?? null) ? $loan['payment_mode_workbook'] : null;
         $lumpsumMonths = is_numeric($loan['lumpsum_months'] ?? null) ? (int) $loan['lumpsum_months'] : null;
-        $savingsRate = is_numeric($loan['savings_rate_raw'] ?? null) ? (float) $loan['savings_rate_raw'] : 0.0;
+        $loanSecurityRate = is_numeric($loan['loan_security_rate_raw'] ?? null) ? (float) $loan['loan_security_rate_raw'] : 0.0;
 
         if ($principal === null || $annualRate === null || $count === null || $count <= 0) {
             return ['rows' => [], 'totals' => $emptyTotals];
@@ -149,7 +149,7 @@ class PdcSchedulePdfService
         // add-on figures elsewhere), not scaled to that row's principal —
         // otherwise it would rise alongside the growing principal share
         // instead of staying flat.
-        $totalLoanSecurity = round($principal * $savingsRate, 0);
+        $totalLoanSecurity = round($principal * $loanSecurityRate, 0);
         $flatLoanSecurity = $count > 0 ? round($totalLoanSecurity / $count, 0) : 0.0;
 
         // Checks are written for whole-peso amounts (no centavos), so every

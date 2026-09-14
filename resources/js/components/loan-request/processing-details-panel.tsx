@@ -211,6 +211,8 @@ const BANKING_ACCOUNT_DETAIL_LABELS: {
 ];
 
 const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
+    // Fallback only -- loan_security_rate/savings_rate are actually resolved
+    // by resolveDefaultLoanSecurityRate() below, which is typecode-aware.
     loan_security_rate: 0.02,
     savings_rate: 0.02,
     // Institutional documentary stamp constant (₱1.50 per ₱200 of loan =
@@ -218,6 +220,17 @@ const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
     documentary_stamp_rate: 0.0075,
     penalty_rate_per_month: 0.05,
 };
+
+// Mirrors WIBS desktop's loanpay.SCT: loansec = IIF(typc='01', prn*.02, prn*.05).
+// Typecode '01' ("Other Loan") is hardcoded there to 2% Loan Security; every
+// other loan type is hardcoded to 5%. There is no rate field on the WIBS
+// side -- just this typecode branch -- so it's reproduced here as the
+// suggested default (still staff-editable, same as before).
+const OTHER_LOAN_TYPECODE = '01';
+
+const resolveDefaultLoanSecurityRate = (
+    typecode: string | null | undefined,
+): number => (typecode === OTHER_LOAN_TYPECODE ? 0.02 : 0.05);
 
 // Insurer's senior-age insurance rate bands (from the loan processors'
 // reference table). Only these two bands are currently known; applicants
@@ -285,12 +298,18 @@ const withProcessingChargeDefaults = (
     processing: Record<string, string | number | boolean | null>,
     applicantBirthdate: string | null = null,
     isInsuranceSkipped = false,
+    typecode: string | null | undefined = null,
 ): Record<string, string | number | boolean | null> => {
     let next = processing;
 
-    for (const [key, defaultValue] of Object.entries(
-        PROCESSING_CHARGE_DEFAULTS,
-    )) {
+    const defaultLoanSecurityRate = resolveDefaultLoanSecurityRate(typecode);
+    const defaults: Record<string, number> = {
+        ...PROCESSING_CHARGE_DEFAULTS,
+        loan_security_rate: defaultLoanSecurityRate,
+        savings_rate: defaultLoanSecurityRate,
+    };
+
+    for (const [key, defaultValue] of Object.entries(defaults)) {
         const current = next[key];
         const isBlank =
             current === null ||
@@ -530,6 +549,7 @@ export function ProcessingDetailsPanel({
                     ),
                     applicant?.birthdate ?? null,
                     Number(loanRequest.recommended_term ?? '') < 2,
+                    loanRequest.typecode,
                 ),
                 dataSections.dependents,
                 cycleState,
@@ -613,6 +633,7 @@ export function ProcessingDetailsPanel({
                     ),
                     applicant?.birthdate ?? null,
                     Number(loanRequest.recommended_term ?? '') < 2,
+                    loanRequest.typecode,
                 ),
                 dataSections.dependents,
                 cycleState,
@@ -1442,9 +1463,13 @@ export function ProcessingDetailsPanel({
                                                     : {
                                                           ...current.processing,
                                                           loan_security_rate:
-                                                              PROCESSING_CHARGE_DEFAULTS.loan_security_rate,
+                                                              resolveDefaultLoanSecurityRate(
+                                                                  loanRequest.typecode,
+                                                              ),
                                                           savings_rate:
-                                                              PROCESSING_CHARGE_DEFAULTS.savings_rate,
+                                                              resolveDefaultLoanSecurityRate(
+                                                                  loanRequest.typecode,
+                                                              ),
                                                       },
                                         }));
                                         scheduleGnthpRecalculation();

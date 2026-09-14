@@ -115,7 +115,11 @@ test('pdc schedule uses declining-balance amortization, not the flat add-on figu
         'amortization_count' => 24,
         'payment_mode_workbook' => 'QUINCENAL',
         'lumpsum_months' => null,
-        'savings_rate_raw' => 0.02,
+        // The LS column is driven by loan_security_rate_raw, not
+        // savings_rate_raw -- confirmed against a real, borrower-signed
+        // Annex A (Loan Security computed independently of Service Charge
+        // and of the UI's mirrored "savings" field).
+        'loan_security_rate_raw' => 0.02,
     ];
 
     $service = app(PdcSchedulePdfService::class);
@@ -175,7 +179,7 @@ test('pdc schedule matches the official Annex A reference schedule for a 100,000
         'amortization_count' => 12,
         'payment_mode_workbook' => null,
         'lumpsum_months' => null,
-        'savings_rate_raw' => 0.0,
+        'loan_security_rate_raw' => 0.0,
     ];
 
     $service = app(PdcSchedulePdfService::class);

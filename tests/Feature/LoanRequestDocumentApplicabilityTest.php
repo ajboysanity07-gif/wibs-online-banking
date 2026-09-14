@@ -381,6 +381,10 @@ test('savings_rate drives the amortization savings figure independently from loa
 
 test('savings_rate defaults to the 2% institutional constant when not set, matching the Excel-derived defaults for loan_security_rate/documentary_stamp_rate/notarial_fee', function (): void {
     $loanRequest = LoanRequest::factory()->create([
+        // WIBS desktop's loanpay.SCT hardcodes Loan Security at 2% only for
+        // typecode '01' ("Other Loan"); every other typecode is 5%. Pin
+        // typecode here so this test exercises the 2% branch specifically.
+        'typecode' => '01',
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 24000,
         'recommended_term' => 12,

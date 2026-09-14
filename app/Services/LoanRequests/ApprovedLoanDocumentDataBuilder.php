@@ -35,6 +35,17 @@ class ApprovedLoanDocumentDataBuilder
 
     private const DOCUMENTARY_STAMP_BAND_SIZE = 200;
 
+    // Mirrors WIBS desktop's loanpay.SCT: loansec = IIF(typc='01', prn*.02, prn*.05).
+    // Typecode '01' ("Other Loan") carries a 2% Loan Security rate; every other
+    // loan type (Micro Business, Micro Buko, Buko Unlad, ...) carries 5%. This
+    // is a hardcoded WIBS rule, not a configurable rate, so it's the default
+    // here too -- only an explicit override should ever change it per loan.
+    private const OTHER_LOAN_TYPECODE = '01';
+
+    private const LOAN_SECURITY_RATE_OTHER_LOAN = 0.02;
+
+    private const LOAN_SECURITY_RATE_DEFAULT = 0.05;
+
     public function __construct(
         private LoanRequestDataService $loanRequestDataService,
         private OrganizationSettingsService $organizationSettingsService,
@@ -212,11 +223,12 @@ class ApprovedLoanDocumentDataBuilder
                 ? ($approvedAmountRaw / 1000) * $insuranceTerm * $insuranceRateRaw
                 : null,
         );
+        $defaultLoanSecurityRate = $this->defaultLoanSecurityRate($loanRequest);
         $loanSecurityRateRaw = $isLumpsum ? 0.0 : $this->resolveNumericOverride(
             $overrideLoan['loan_security_rate_raw']
                 ?? $flatValues['loan_security_rate']
                 ?? null,
-            0.02,
+            $defaultLoanSecurityRate,
         );
         $loanSecurityAmountRaw = $this->roundCurrency(
             $approvedAmountRaw !== null && $loanSecurityRateRaw !== null
@@ -227,7 +239,7 @@ class ApprovedLoanDocumentDataBuilder
             $overrideLoan['savings_rate_raw']
                 ?? $flatValues['savings_rate']
                 ?? null,
-            0.02,
+            $defaultLoanSecurityRate,
         );
         $documentaryStampRateRaw = $this->resolveNumericOverride(
             $overrideLoan['documentary_stamp_rate_raw']
@@ -1167,6 +1179,19 @@ class ApprovedLoanDocumentDataBuilder
         );
 
         return $normalized ?? $default;
+    }
+
+    /**
+     * WIBS desktop's loanpay.SCT hardcodes Loan Security at 2% for typecode
+     * '01' ("Other Loan") and 5% for every other loan type -- there is no
+     * rate field behind it on the WIBS side, just this IIF branch on
+     * typecode. This mirrors that rule as the default here.
+     */
+    private function defaultLoanSecurityRate(LoanRequest $loanRequest): float
+    {
+        return (string) $loanRequest->typecode === self::OTHER_LOAN_TYPECODE
+            ? self::LOAN_SECURITY_RATE_OTHER_LOAN
+            : self::LOAN_SECURITY_RATE_DEFAULT;
     }
 
     /**
