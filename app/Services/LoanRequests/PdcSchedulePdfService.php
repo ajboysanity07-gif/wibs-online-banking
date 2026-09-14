@@ -134,6 +134,13 @@ class PdcSchedulePdfService
             $payment = $principal / $count;
         }
 
+        // The payment is fixed to a whole peso once, up front, rather than
+        // recomputed from the raw float every row. It's rounded UP (not to
+        // nearest) so every regular check is never a peso short of covering
+        // its due interest — the shortfall from rounding up is absorbed by
+        // a smaller final balloon payment instead.
+        $payment = ceil($payment);
+
         $rows = [];
         $balance = $principal;
         $totals = ['principal' => 0.0, 'interest' => 0.0, 'loan_security' => 0.0, 'total' => 0.0];

@@ -167,3 +167,36 @@ test('pdc schedule uses declining-balance amortization, not the flat add-on figu
     }
     expect($schedule['totals']['loan_security'])->toBe(round(24000.0 * 0.02));
 });
+
+test('pdc schedule matches the official Annex A reference schedule for a 100,000 loan at 44% over 12 monthly checks', function () {
+    $loan = [
+        'approved_amount_raw' => 100000.0,
+        'interest_rate_raw' => 0.44,
+        'amortization_count' => 12,
+        'payment_mode_workbook' => null,
+        'lumpsum_months' => null,
+        'savings_rate_raw' => 0.0,
+    ];
+
+    $service = app(PdcSchedulePdfService::class);
+    $method = (new ReflectionClass($service))->getMethod('buildAmortizationSchedule');
+    $method->setAccessible(true);
+
+    $rows = $method->invoke($service, $loan)['rows'];
+
+    // Reference: Annex A schedule prepared for Ruth R. Miranda's ₱100,000
+    // loan — the fixed installment is rounded UP to a whole peso (10,451,
+    // not the raw annuity payment's 10,450.16), so every regular check
+    // still fully covers its due interest; the final check absorbs the
+    // resulting shortfall as a smaller balloon payment.
+    $expected = [
+        [6784.0, 3667.0], [7033.0, 3418.0], [7291.0, 3160.0], [7558.0, 2893.0],
+        [7835.0, 2616.0], [8123.0, 2328.0], [8421.0, 2030.0], [8729.0, 1722.0],
+        [9049.0, 1402.0], [9381.0, 1070.0], [9725.0, 726.0], [10071.0, 369.0],
+    ];
+
+    foreach ($expected as $i => [$principal, $interest]) {
+        expect($rows[$i]['principal'])->toBe($principal);
+        expect($rows[$i]['interest'])->toBe($interest);
+    }
+});
