@@ -138,6 +138,13 @@ class PdcSchedulePdfService
         $balance = $principal;
         $totals = ['principal' => 0.0, 'interest' => 0.0, 'loan_security' => 0.0, 'total' => 0.0];
 
+        // Loan security is spread evenly across every check (like the flat/
+        // add-on figures elsewhere), not scaled to that row's principal —
+        // otherwise it would rise alongside the growing principal share
+        // instead of staying flat.
+        $totalLoanSecurity = round($principal * $savingsRate, 0);
+        $flatLoanSecurity = $count > 0 ? round($totalLoanSecurity / $count, 0) : 0.0;
+
         // Checks are written for whole-peso amounts (no centavos), so every
         // figure is rounded to the nearest peso — not just for display, but
         // immediately in the loop, so $balance is always a whole-peso value
@@ -150,7 +157,9 @@ class PdcSchedulePdfService
             $principalDue = $i === $count
                 ? round($balance, 0)
                 : round($payment - $interestDue, 0);
-            $loanSecurityDue = round($principalDue * $savingsRate, 0);
+            $loanSecurityDue = $i === $count
+                ? round($totalLoanSecurity - $totals['loan_security'], 0)
+                : $flatLoanSecurity;
             $totalDue = round($principalDue + $interestDue + $loanSecurityDue, 0);
 
             $balance = round($balance - $principalDue, 0);

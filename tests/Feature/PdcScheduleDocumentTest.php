@@ -157,4 +157,13 @@ test('pdc schedule uses declining-balance amortization, not the flat add-on figu
 
     // Total principal across all checks must reconcile to the loan amount.
     expect($schedule['totals']['principal'])->toBe(24000.0);
+
+    // Loan security is spread evenly across every check (like the flat/
+    // add-on figures elsewhere) — it must NOT scale with that row's rising
+    // principal share, or it would grow check-to-check instead of staying flat.
+    $flatLoanSecurity = round(24000.0 * 0.02 / 24);
+    foreach (array_slice($rows, 0, 23) as $row) {
+        expect($row['loan_security'])->toBe($flatLoanSecurity);
+    }
+    expect($schedule['totals']['loan_security'])->toBe(round(24000.0 * 0.02));
 });
