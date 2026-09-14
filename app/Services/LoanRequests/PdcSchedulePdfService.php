@@ -138,6 +138,10 @@ class PdcSchedulePdfService
         $balance = $principal;
         $totals = ['principal' => 0.0, 'interest' => 0.0, 'loan_security' => 0.0, 'total' => 0.0];
 
+        // $balance is rounded to centavos at the end of every iteration, so each
+        // row's interest is computed from an already-rounded balance rather than
+        // an accumulating float — this is what keeps the final row's principal
+        // (the exact remaining balance) reconciling to zero with no drift.
         for ($i = 1; $i <= $count; $i++) {
             $interestDue = round($balance * $periodicRate, 2);
             $principalDue = $i === $count
