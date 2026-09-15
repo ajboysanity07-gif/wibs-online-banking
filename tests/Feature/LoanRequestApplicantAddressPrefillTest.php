@@ -132,6 +132,25 @@ test('a wmaster street that duplicates the barangay/city/province is trimmed dow
     expect($formData['applicant']['address1'])->toBe('Purok 2');
 });
 
+test('a blank wmaster street falls back to the profile street even when wmaster has city/province', function (): void {
+    // Regression case: wmaster has city/province filled in (so the "entire
+    // from wmaster" branch wins) but its own address1/street column is
+    // blank -- the wizard's street field must still fall back to the
+    // profile's street instead of rendering empty.
+    $member = createAddressPrefillTestMember('970006', [
+        'address2' => 'Wmaster Barangay',
+        'address3' => 'Wmaster City',
+        'address4' => 'Wmaster Province',
+    ]);
+
+    $formData = app(LoanRequestService::class)->getFormData($member);
+
+    expect($formData['applicant']['address1'])->toBe('Profile Street')
+        ->and($formData['applicant']['address_barangay'])->toBe('Wmaster Barangay')
+        ->and($formData['applicant']['address2'])->toBe('Wmaster City')
+        ->and($formData['applicant']['address3'])->toBe('Wmaster Province');
+});
+
 test('a non-canonical legacy city name is normalized against the PSGC dataset', function (): void {
     $member = createAddressPrefillTestMember('970004', [], [
         'home_address2' => 'Cebu City',

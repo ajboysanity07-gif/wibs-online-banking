@@ -1785,6 +1785,14 @@ class LoanRequestService
         }
 
         if ($wmasterAddress1 !== null || $wmasterAddress2 !== null || $wmasterAddress3 !== null) {
+            // Street (address1) doesn't need to be paired with
+            // barangay/city/province the way those three do -- it's free
+            // text with nothing to mismatch against. Some legacy wmaster
+            // records have city/province filled in but a blank street, so
+            // fall back to the profile's own street rather than leaving it
+            // empty when wmaster otherwise "wins" this address.
+            $wmasterAddress1 ??= $this->normalizeOptionalString($profile?->home_address1);
+
             return [$wmasterAddress1, $wmasterAddress2, $wmasterAddress3, $wmasterBarangay];
         }
 
