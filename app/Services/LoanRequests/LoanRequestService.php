@@ -1955,9 +1955,8 @@ class LoanRequestService
             'address_barangay' => $addressBarangay,
             'address2' => $address2,
             'address3' => $address3,
-            'address_zip' => $this->normalizeOptionalString(
-                $wmaster?->zone_number ?? $profile?->home_address_zip,
-            ),
+            'address_zip' => $this->normalizeOptionalString($wmaster?->zone_number)
+                ?? $this->normalizeOptionalString($profile?->home_address_zip),
             'length_of_stay' => $profile?->length_of_stay,
             'housing_status' => $this->normalizeHousingStatusValue(
                 $wmaster?->restype ?? $profile?->housing_status,

@@ -26,6 +26,7 @@ beforeEach(function (): void {
             $table->string('address2')->nullable();
             $table->string('address3')->nullable();
             $table->string('address4')->nullable();
+            $table->string('zone_number')->nullable();
             $table->string('civilstat')->nullable();
             $table->string('occupation')->nullable();
         });
@@ -57,6 +58,7 @@ function createAddressPrefillTestMember(string $acctno, array $wmasterOverrides,
         'home_address_barangay' => 'Profile Barangay',
         'home_address2' => 'Profile City',
         'home_address3' => 'Profile Province',
+        'home_address_zip' => 'Profile Zip',
     ], $profileOverrides));
 
     DB::table('wmaster')->updateOrInsert(
@@ -149,6 +151,23 @@ test('a blank wmaster street falls back to the profile street even when wmaster 
         ->and($formData['applicant']['address_barangay'])->toBe('Wmaster Barangay')
         ->and($formData['applicant']['address2'])->toBe('Wmaster City')
         ->and($formData['applicant']['address3'])->toBe('Wmaster Province');
+});
+
+test('a blank wmaster zip falls back to the profile zip even when wmaster has city/province', function (): void {
+    // Regression case: wmaster's zone_number column is an empty string
+    // (common for legacy VARCHAR NOT NULL DEFAULT '' columns) rather than
+    // null, so a bare `??` against it never falls through to the profile's
+    // zip -- normalize both sides to null-or-string before coalescing.
+    $member = createAddressPrefillTestMember('970007', [
+        'address2' => 'Wmaster Barangay',
+        'address3' => 'Wmaster City',
+        'address4' => 'Wmaster Province',
+        'zone_number' => '',
+    ]);
+
+    $formData = app(LoanRequestService::class)->getFormData($member);
+
+    expect($formData['applicant']['address_zip'])->toBe('Profile Zip');
 });
 
 test('a non-canonical legacy city name is normalized against the PSGC dataset', function (): void {
