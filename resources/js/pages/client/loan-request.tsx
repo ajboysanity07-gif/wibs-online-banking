@@ -1144,7 +1144,12 @@ export default function LoanRequestPage({
                                         onChange={updatePersonField(
                                             'co_maker_1',
                                         )}
-                                        savedCoMakers={savedCoMakers}
+                                        savedCoMakers={savedCoMakers.filter(
+                                            (option) =>
+                                                String(option.id) !==
+                                                form.data.co_maker_2
+                                                    .saved_co_maker_id,
+                                        )}
                                         onLoadSavedCoMaker={loadSavedCoMaker(
                                             'co_maker_1',
                                         )}
@@ -1237,7 +1242,12 @@ export default function LoanRequestPage({
                                         onChange={updatePersonField(
                                             'co_maker_2',
                                         )}
-                                        savedCoMakers={savedCoMakers}
+                                        savedCoMakers={savedCoMakers.filter(
+                                            (option) =>
+                                                String(option.id) !==
+                                                form.data.co_maker_1
+                                                    .saved_co_maker_id,
+                                        )}
                                         onLoadSavedCoMaker={loadSavedCoMaker(
                                             'co_maker_2',
                                         )}
