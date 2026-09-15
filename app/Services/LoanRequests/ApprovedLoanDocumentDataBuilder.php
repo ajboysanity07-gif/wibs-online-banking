@@ -436,6 +436,12 @@ class ApprovedLoanDocumentDataBuilder
                 'service_charge_rate_raw' => $serviceChargeRateRaw,
                 'insurance_rate_raw' => $insuranceRateRaw,
                 'loan_security_rate_raw' => $loanSecurityRateRaw,
+                // Unlike loan_security_rate_raw above, this ignores any staff
+                // override -- the PDC Schedule (Annex A) must always reflect
+                // the standard typecode-based institutional rate, not what a
+                // processor entered on the request. Due-date/lumpsum loans
+                // still zero it out, matching the override-able rate's rule.
+                'loan_security_rate_standard_raw' => $isLumpsum ? 0.0 : $defaultLoanSecurityRate,
                 'savings_rate_raw' => $savingsRateRaw,
                 'documentary_stamp_rate_raw' => $documentaryStampRateRaw,
                 'interest_rate_words' => $this->formatPercentWords($interestRateRaw),

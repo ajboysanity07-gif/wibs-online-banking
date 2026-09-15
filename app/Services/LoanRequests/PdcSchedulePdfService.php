@@ -109,7 +109,11 @@ class PdcSchedulePdfService
         $count = is_numeric($loan['amortization_count'] ?? null) ? (int) $loan['amortization_count'] : null;
         $paymentMode = is_string($loan['payment_mode_workbook'] ?? null) ? $loan['payment_mode_workbook'] : null;
         $lumpsumMonths = is_numeric($loan['lumpsum_months'] ?? null) ? (int) $loan['lumpsum_months'] : null;
-        $loanSecurityRate = is_numeric($loan['loan_security_rate_raw'] ?? null) ? (float) $loan['loan_security_rate_raw'] : 0.0;
+        // Always the standard typecode-based rate (2% for "Other Loan", 5% for
+        // every other loan type), never a staff-entered override -- the Annex
+        // A schedule must match the institutional rate regardless of what was
+        // entered in loan processing.
+        $loanSecurityRate = is_numeric($loan['loan_security_rate_standard_raw'] ?? null) ? (float) $loan['loan_security_rate_standard_raw'] : 0.0;
 
         if ($principal === null || $annualRate === null || $count === null || $count <= 0) {
             return ['rows' => [], 'totals' => $emptyTotals];

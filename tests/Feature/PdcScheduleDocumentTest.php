@@ -115,11 +115,12 @@ test('pdc schedule uses declining-balance amortization, not the flat add-on figu
         'amortization_count' => 24,
         'payment_mode_workbook' => 'QUINCENAL',
         'lumpsum_months' => null,
-        // The LS column is driven by loan_security_rate_raw, not
+        // The LS column is driven by loan_security_rate_standard_raw, not
         // savings_rate_raw -- confirmed against a real, borrower-signed
         // Annex A (Loan Security computed independently of Service Charge
-        // and of the UI's mirrored "savings" field).
-        'loan_security_rate_raw' => 0.02,
+        // and of the UI's mirrored "savings" field). It always uses the
+        // standard typecode-based rate, ignoring any staff override.
+        'loan_security_rate_standard_raw' => 0.02,
     ];
 
     $service = app(PdcSchedulePdfService::class);
@@ -172,6 +173,29 @@ test('pdc schedule uses declining-balance amortization, not the flat add-on figu
     expect($schedule['totals']['loan_security'])->toBe(round(24000.0 * 0.02));
 });
 
+test('pdc schedule ignores a staff-overridden loan security rate and uses the standard typecode rate', function () {
+    $loan = [
+        'approved_amount_raw' => 24000.0,
+        'interest_rate_raw' => 0.36,
+        'amortization_count' => 24,
+        'payment_mode_workbook' => 'QUINCENAL',
+        'lumpsum_months' => null,
+        // Simulates a staff override entered in loan processing -- the
+        // Annex A schedule must not use this and must fall back to the
+        // standard rate instead.
+        'loan_security_rate_raw' => 0.10,
+        'loan_security_rate_standard_raw' => 0.05,
+    ];
+
+    $service = app(PdcSchedulePdfService::class);
+    $method = (new ReflectionClass($service))->getMethod('buildAmortizationSchedule');
+    $method->setAccessible(true);
+
+    $schedule = $method->invoke($service, $loan);
+
+    expect($schedule['totals']['loan_security'])->toBe(round(24000.0 * 0.05));
+});
+
 test('pdc schedule matches the official Annex A reference schedule for a 100,000 loan at 44% over 12 monthly checks', function () {
     $loan = [
         'approved_amount_raw' => 100000.0,
@@ -179,7 +203,7 @@ test('pdc schedule matches the official Annex A reference schedule for a 100,000
         'amortization_count' => 12,
         'payment_mode_workbook' => null,
         'lumpsum_months' => null,
-        'loan_security_rate_raw' => 0.0,
+        'loan_security_rate_standard_raw' => 0.0,
     ];
 
     $service = app(PdcSchedulePdfService::class);
