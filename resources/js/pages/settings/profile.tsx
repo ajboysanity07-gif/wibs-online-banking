@@ -297,6 +297,19 @@ export default function Profile({
     const [lengthOfStay, setLengthOfStay] = useState<string>(
         memberApplicationProfile?.length_of_stay ?? '',
     );
+    const [lengthOfStaySinceBirth, setLengthOfStaySinceBirth] = useState(false);
+    useEffect(() => {
+        if (!lengthOfStaySinceBirth) {
+            return;
+        }
+
+        const nextValue = memberAge !== null ? String(memberAge) : '';
+
+        if (nextValue !== lengthOfStay) {
+            setLengthOfStay(nextValue);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [lengthOfStaySinceBirth, memberAge]);
     const [spouseBirthdateValue, setSpouseBirthdateValue] = useState<string>(
         memberApplicationProfile?.spouse_birthdate ?? '',
     );
@@ -905,6 +918,12 @@ export default function Profile({
                                                     lengthOfStay={lengthOfStay}
                                                     setLengthOfStay={
                                                         setLengthOfStay
+                                                    }
+                                                    lengthOfStaySinceBirth={
+                                                        lengthOfStaySinceBirth
+                                                    }
+                                                    setLengthOfStaySinceBirth={
+                                                        setLengthOfStaySinceBirth
                                                     }
                                                     spouseBirthdateValue={
                                                         spouseBirthdateValue

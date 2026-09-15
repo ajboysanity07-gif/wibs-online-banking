@@ -3,6 +3,7 @@ import { BirthdateInput } from '@/components/loan-request/birthdate-input';
 import { YearsInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { LocationCombobox } from '@/components/location-combobox';
 import { SurfaceCard } from '@/components/surface-card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -70,6 +71,8 @@ type Props = {
     setHousingStatusValue: (value: string) => void;
     lengthOfStay: string;
     setLengthOfStay: (value: string) => void;
+    lengthOfStaySinceBirth: boolean;
+    setLengthOfStaySinceBirth: (value: boolean) => void;
     spouseBirthdateValue: string;
     setSpouseBirthdateValue: (value: string) => void;
     spouseAge: number | null;
@@ -118,6 +121,8 @@ export function PersonalTab({
     setHousingStatusValue,
     lengthOfStay,
     setLengthOfStay,
+    lengthOfStaySinceBirth,
+    setLengthOfStaySinceBirth,
     spouseBirthdateValue,
     setSpouseBirthdateValue,
     spouseAge,
@@ -560,9 +565,36 @@ export function PersonalTab({
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="length_of_stay">
-                                Length of stay
-                            </Label>
+                            <div className="flex items-center justify-between gap-2">
+                                <Label htmlFor="length_of_stay">
+                                    Length of stay
+                                </Label>
+                                <label
+                                    htmlFor="length_of_stay_since_birth"
+                                    className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                                >
+                                    <Checkbox
+                                        id="length_of_stay_since_birth"
+                                        checked={lengthOfStaySinceBirth}
+                                        disabled={memberAge === null}
+                                        onCheckedChange={(checked) => {
+                                            const isChecked = checked === true;
+                                            setLengthOfStaySinceBirth(
+                                                isChecked,
+                                            );
+
+                                            if (isChecked) {
+                                                setLengthOfStay(
+                                                    memberAge !== null
+                                                        ? String(memberAge)
+                                                        : '',
+                                                );
+                                            }
+                                        }}
+                                    />
+                                    Since birth
+                                </label>
+                            </div>
 
                             <YearsInput
                                 id="length_of_stay"
@@ -573,6 +605,7 @@ export function PersonalTab({
                                 )}
                                 value={lengthOfStay}
                                 onChange={setLengthOfStay}
+                                disabled={lengthOfStaySinceBirth}
                                 required
                                 placeholder="e.g. 2"
                             />
