@@ -88,6 +88,15 @@ export const useLocationSearch = ({
     // params key (with an empty query) and then filtered locally, so the list
     // shows all options on open instead of requiring typed characters.
     const allLoadedParamsKeyRef = useRef<string | null>(null);
+    // Tracks the last initialQuery we've reacted to, so an external value
+    // change (e.g. loading a saved co-maker or profile defaults, which
+    // calls form.setData well after this hook first mounted) can resync the
+    // combobox's displayed text. Skipped when the hook's own `query` is
+    // already caught up, which is the case while the user is typing --
+    // typing already flows into initialQuery via the same onChange the
+    // parent form uses, so re-syncing then would just clobber in-progress
+    // input and interrupt live suggestions.
+    const initialQueryRef = useRef<string>(initialQuery);
 
     const resetSearchState = () => {
         setSuggestions([]);
@@ -129,6 +138,24 @@ export const useLocationSearch = ({
     };
 
     const consumerParamsKey = stringifyParams(params);
+
+    useEffect(() => {
+        if (initialQuery === initialQueryRef.current) {
+            return;
+        }
+
+        initialQueryRef.current = initialQuery;
+
+        if (initialQuery === query) {
+            return;
+        }
+
+        committedValueRef.current = initialQuery;
+        setQueryState(initialQuery);
+        setSelectedValueState(initialQuery);
+        resetSearchState();
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- only reacts to initialQuery changing; query/resetSearchState are read, not depended on, to avoid re-running on every keystroke
+    }, [initialQuery]);
 
     useEffect(() => {
         if (!open) {

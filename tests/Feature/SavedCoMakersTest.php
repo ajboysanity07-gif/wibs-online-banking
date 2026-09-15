@@ -356,3 +356,27 @@ test('barangay flows through the saved co-maker store endpoint', function (): vo
     expect($saved->address_barangay)->toBe('Barangay Uno');
     expect($saved->employer_business_address_barangay)->toBe('Barangay Dos');
 });
+
+test('zip and birthplace flow through the saved co-maker store and show endpoints', function (): void {
+    $member = createSavedCoMakerTestMember('004411');
+
+    $storeResponse = $this->actingAs($member)
+        ->postJson('/client/co-makers', coMakerPersonPayload([
+            'first_name' => 'Juan',
+            'last_name' => 'DelaCruz',
+            'birthplace_city' => 'Quezon City',
+            'birthplace_province' => 'Metro Manila',
+            'address_zip' => '1000',
+            'employer_business_address_zip' => '2000',
+        ]))
+        ->assertOk();
+
+    $id = $storeResponse->json('data.id');
+
+    $showResponse = $this->actingAs($member)->getJson("/client/co-makers/{$id}")->assertOk();
+
+    expect($showResponse->json('data.address_zip'))->toBe('1000');
+    expect($showResponse->json('data.employer_business_address_zip'))->toBe('2000');
+    expect($showResponse->json('data.birthplace_city'))->toBe('Quezon City');
+    expect($showResponse->json('data.birthplace_province'))->toBe('Metro Manila');
+});
