@@ -1545,12 +1545,17 @@ export function ProcessingDetailsPanel({
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>
-                                                        Fixed institutional rate
-                                                        (2%), matching the
-                                                        reference workbook. Not
-                                                        editable per loan.
-                                                        Zeroed automatically for
-                                                        Due date loans.
+                                                        Suggested institutional
+                                                        rate, matching WIBS
+                                                        desktop&apos;s typecode
+                                                        rule (2% for &quot;Other
+                                                        Loan&quot;, 5% for every
+                                                        other loan type).
+                                                        Editable per loan when
+                                                        this request needs a
+                                                        different rate. Zeroed
+                                                        automatically for Due
+                                                        date loans.
                                                     </p>
                                                 </TooltipContent>
                                             </Tooltip>
@@ -1569,7 +1574,6 @@ export function ProcessingDetailsPanel({
                                         }
                                         onValueChange={updateLoanSecurityRate}
                                         onBlur={scheduleGnthpRecalculation}
-                                        disabled
                                     />
                                 </div>
                             )}
