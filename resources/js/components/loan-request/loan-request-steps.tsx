@@ -2274,7 +2274,19 @@ export function LoanRequestDependentsStep({
     onChange,
     hasExistingProfileData,
 }: DependentsStepProps) {
-    const [forceEditable, setForceEditable] = useState(false);
+    // Categories (and Spouse) that already have data on file render as a
+    // locked, read-only summary -- clicking "Edit" here unlocks just that
+    // one. Categories with nothing on file are never auto-added: they
+    // render straight into DependentCategorySection, which itself starts
+    // collapsed behind its own "+ Add" button. hasExistingProfileData=false
+    // (e.g. the staff correction dialog) skips locking entirely so every
+    // category is always editable.
+    const [unlockedKeys, setUnlockedKeys] = useState<Set<string>>(
+        () => new Set(),
+    );
+    const unlock = (key: string) =>
+        setUnlockedKeys((current) => new Set(current).add(key));
+
     const visibleCategories = DEPENDENT_CATEGORIES.filter((category) =>
         isDependentCategoryVisible(category, definition, crossSectionValues),
     );
@@ -2301,84 +2313,87 @@ export function LoanRequestDependentsStep({
               }
             : null;
 
-    if (hasExistingProfileData && !forceEditable) {
-        const summaries = summarizeDependents(visibleCategories, values);
-        const summaryCounts = summaries.map(({ category, count }) => {
-            const label =
-                count === 1
-                    ? category.label
-                    : dependentCategoryPluralLabel(category);
+    const summaries = summarizeDependents(visibleCategories, values);
 
-            return `${count} ${label.toLowerCase()}`;
+    // Cycle status is required on submit, but on-file profile data may
+    // predate that requirement -- a locked summary has no input to attach a
+    // validation error to, so surface it here instead of leaving the member
+    // stuck on a silent submit failure.
+    const missingCycleStatusNames: string[] = [];
+
+    if (spouseVisible && !spouseCycleStatus) {
+        missingCycleStatusNames.push('Spouse');
+    }
+
+    summaries.forEach(({ rows }) => {
+        rows.forEach((row) => {
+            if (!row.cycleStatus) {
+                missingCycleStatusNames.push(row.name);
+            }
         });
+    });
 
-        if (hasSpouseCycleData) {
-            summaryCounts.unshift(spouseSummaryLabel);
-        }
+    const spouseLocked =
+        hasExistingProfileData &&
+        hasSpouseCycleData &&
+        !unlockedKeys.has('spouse');
 
-        const totalLabel =
-            summaryCounts.length > 0
-                ? summaryCounts.join(', ') + ' on file'
-                : 'No dependents on file';
-
-        // Cycle status is now required on submit, but this on-file profile
-        // data may predate that requirement -- the read-only summary below
-        // has no inputs to attach a validation error to, so surface it here
-        // instead of leaving the member stuck on a silent submit failure.
-        const missingCycleStatusNames: string[] = [];
-
-        if (spouseVisible && !spouseCycleStatus) {
-            missingCycleStatusNames.push('Spouse');
-        }
-
-        summaries.forEach(({ rows }) => {
-            rows.forEach((row) => {
-                if (!row.cycleStatus) {
-                    missingCycleStatusNames.push(row.name);
-                }
-            });
-        });
-
-        return (
-            <LoanRequestSectionCard
-                title={title}
-                description={description}
-                contentClassName="space-y-6"
-                errors={errors}
-            >
-                {missingCycleStatusNames.length > 0 ? (
-                    <Alert variant="destructive">
-                        <AlertTitle>
-                            Missing required coverage status
-                        </AlertTitle>
-                        <AlertDescription>
-                            {missingCycleStatusNames.join(', ')}{' '}
-                            {missingCycleStatusNames.length === 1
-                                ? 'is'
-                                : 'are'}{' '}
-                            missing a group life coverage status (New/Old).{' '}
-                            <button
-                                type="button"
-                                onClick={() => setForceEditable(true)}
-                                className="font-medium underline underline-offset-2"
-                            >
-                                Edit here
-                            </button>{' '}
-                            to complete it before submitting.
-                        </AlertDescription>
-                    </Alert>
-                ) : null}
-                <div className="space-y-4">
-                    <p className="text-sm font-medium text-foreground">
-                        {totalLabel}
-                    </p>
+    return (
+        <LoanRequestSectionCard
+            title={title}
+            description={description}
+            contentClassName="space-y-6"
+            errors={errors}
+        >
+            {missingCycleStatusNames.length > 0 ? (
+                <Alert variant="destructive">
+                    <AlertTitle>Missing required coverage status</AlertTitle>
+                    <AlertDescription>
+                        {missingCycleStatusNames.join(', ')}{' '}
+                        {missingCycleStatusNames.length === 1 ? 'is' : 'are'}{' '}
+                        missing a group life coverage status (New/Old).{' '}
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setUnlockedKeys(
+                                    () =>
+                                        new Set([
+                                            'spouse',
+                                            ...DEPENDENT_CATEGORIES.map(
+                                                (category) => category.key,
+                                            ),
+                                        ]),
+                                )
+                            }
+                            className="font-medium underline underline-offset-2"
+                        >
+                            Edit here
+                        </button>{' '}
+                        to complete it before submitting.
+                    </AlertDescription>
+                </Alert>
+            ) : null}
+            {spouseVisible ? (
+                spouseLocked ? (
                     <div className="space-y-3">
-                        {hasSpouseCycleData ? (
-                            <Card className="gap-2 py-3">
-                                <CardContent className="flex items-center justify-between gap-2 px-4 text-sm">
+                        <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-foreground">
+                                Spouse
+                            </p>
+                        </div>
+                        <Card className="gap-2 py-3">
+                            <CardContent className="flex items-center justify-between gap-2 px-4 text-sm">
+                                <span className="flex flex-col">
                                     <span className="font-semibold text-foreground">
-                                        Spouse
+                                        {spouseSummaryLabel}
                                     </span>
+                                    {spouseBirthdateForSuggestion ? (
+                                        <span className="text-xs text-muted-foreground">
+                                            {spouseBirthdateForSuggestion}
+                                        </span>
+                                    ) : null}
+                                </span>
+                                <div className="flex items-center gap-2">
                                     <Badge
                                         variant="outline"
                                         className="font-normal"
@@ -2388,22 +2403,59 @@ export function LoanRequestDependentsStep({
                                             ? `Old · cycle ${spouseCycleNumber}`
                                             : `${spouseCycleStatus}`}
                                     </Badge>
-                                </CardContent>
-                            </Card>
-                        ) : null}
-                        {summaries.map(({ category, rows }) => (
-                            <Card key={category.key} className="gap-2 py-3">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => unlock('spouse')}
+                                    >
+                                        Edit
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                ) : (
+                    <DependentSpouseCycleSection
+                        values={values}
+                        errors={errors}
+                        errorKeyPrefix="dependents"
+                        onChange={onChange}
+                        identity={spouseSuggestion}
+                    />
+                )
+            ) : null}
+            {visibleCategories.map((category) => {
+                const summary = summaries.find(
+                    (entry) => entry.category.key === category.key,
+                );
+                const locked =
+                    hasExistingProfileData &&
+                    Boolean(summary) &&
+                    !unlockedKeys.has(category.key);
+
+                if (locked && summary) {
+                    return (
+                        <div key={category.key} className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-foreground">
+                                    {dependentCategoryPluralLabel(category)}
+                                </p>
+                            </div>
+                            <Card className="gap-2 py-3">
                                 <CardContent className="space-y-1.5 px-4">
-                                    <p className="text-sm font-semibold text-foreground">
-                                        {dependentCategoryPluralLabel(category)}
-                                    </p>
-                                    {rows.map((row, index) => (
+                                    {summary.rows.map((row, index) => (
                                         <div
                                             key={`${category.key}-${index}`}
                                             className="flex items-center justify-between gap-2 text-sm"
                                         >
-                                            <span className="text-muted-foreground">
-                                                {row.name}
+                                            <span className="flex flex-col text-muted-foreground">
+                                                <span>{row.name}</span>
+                                                {row.birthdate ? (
+                                                    <span className="text-xs">
+                                                        {row.birthdate}
+                                                    </span>
+                                                ) : null}
                                             </span>
                                             {row.cycleStatus ? (
                                                 <Badge
@@ -2415,51 +2467,31 @@ export function LoanRequestDependentsStep({
                                             ) : null}
                                         </div>
                                     ))}
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => unlock(category.key)}
+                                    >
+                                        Edit
+                                    </Button>
                                 </CardContent>
                             </Card>
-                        ))}
-                    </div>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setForceEditable(true)}
-                    >
-                        Edit here
-                    </Button>
-                </div>
-            </LoanRequestSectionCard>
-        );
-    }
+                        </div>
+                    );
+                }
 
-    return (
-        <LoanRequestSectionCard
-            title={title}
-            description={description}
-            contentClassName="space-y-6"
-            errors={errors}
-        >
-            {spouseVisible ? (
-                <DependentSpouseCycleSection
-                    values={values}
-                    errors={errors}
-                    errorKeyPrefix="dependents"
-                    onChange={onChange}
-                />
-            ) : null}
-            {visibleCategories.map((category) => (
-                <DependentCategorySection
-                    key={category.key}
-                    category={category}
-                    values={values}
-                    errors={errors}
-                    errorKeyPrefix="dependents"
-                    onChange={onChange}
-                    spouseSuggestion={
-                        category.key === 'extended' ? spouseSuggestion : null
-                    }
-                />
-            ))}
+                return (
+                    <DependentCategorySection
+                        key={category.key}
+                        category={category}
+                        values={values}
+                        errors={errors}
+                        errorKeyPrefix="dependents"
+                        onChange={onChange}
+                    />
+                );
+            })}
         </LoanRequestSectionCard>
     );
 }

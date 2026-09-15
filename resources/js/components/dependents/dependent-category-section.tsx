@@ -113,7 +113,6 @@ export function DependentCategorySection({
     withNameAttribute = false,
     showCycleFields = true,
     onChange,
-    spouseSuggestion = null,
 }: {
     category: DependentCategoryConfig;
     values: DependentValues;
@@ -122,15 +121,11 @@ export function DependentCategorySection({
     withNameAttribute?: boolean;
     showCycleFields?: boolean;
     onChange: (field: string, value: string | number | boolean | null) => void;
-    // Offers a "+ Add spouse" shortcut that fills one slot from the spouse
-    // name/birthdate already collected on the Personal tab, so the member
-    // isn't forced to retype them here. Only meaningful for the "extended
-    // family" category -- pass null everywhere else.
-    spouseSuggestion?: { name: string; birthdate: string } | null;
 }) {
     // Lazy initializer runs once on mount -- subsequent add/remove clicks own the count.
+    // Starts at 0 (no slots shown) unless the member already has data on file.
     const [visibleSlots, setVisibleSlots] = useState(() => {
-        let count = 1;
+        let count = 0;
 
         for (let slot = category.cap; slot >= 1; slot -= 1) {
             if (slotHasValue(values, category.key, slot)) {
@@ -142,11 +137,27 @@ export function DependentCategorySection({
         return count;
     });
 
-    const handleRemoveSlot = (slot: number) => {
+    // Removing a slot shifts every later slot's data down one so the
+    // remaining entries stay contiguous, then clears the now-vacated last
+    // slot -- letting a category go all the way down to empty (0 of cap)
+    // rather than always keeping one slot behind.
+    const handleRemoveSlot = (removedSlot: number) => {
+        for (let slot = removedSlot; slot < visibleSlots; slot += 1) {
+            DEPENDENT_SLOT_ATTRIBUTES.forEach((attribute) => {
+                const nextValue =
+                    values[slotFieldKey(category.key, slot + 1, attribute)];
+                onChange(
+                    slotFieldKey(category.key, slot, attribute),
+                    nextValue === undefined ? null : nextValue,
+                );
+            });
+        }
+
         DEPENDENT_SLOT_ATTRIBUTES.forEach((attribute) => {
-            onChange(slotFieldKey(category.key, slot, attribute), null);
+            onChange(slotFieldKey(category.key, visibleSlots, attribute), null);
         });
-        setVisibleSlots((current) => Math.max(1, current - 1));
+
+        setVisibleSlots((current) => Math.max(0, current - 1));
     };
 
     const renderTextField = (slot: number, attribute: 'name' | 'birthdate') => {
@@ -284,8 +295,6 @@ export function DependentCategorySection({
         );
     };
 
-    const canRemoveSlot = (slot: number) => slot > 1 || visibleSlots > 1;
-
     const renderSlot = (slot: number) => {
         return (
             <Card key={slot} className="gap-3 py-4">
@@ -294,18 +303,16 @@ export function DependentCategorySection({
                         <p className="text-sm font-semibold text-foreground">
                             {category.label} {slot}
                         </p>
-                        {canRemoveSlot(slot) ? (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7 text-muted-foreground hover:text-destructive"
-                                onClick={() => handleRemoveSlot(slot)}
-                                aria-label={`Remove ${category.label.toLowerCase()} ${slot}`}
-                            >
-                                <X className="size-4" />
-                            </Button>
-                        ) : null}
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleRemoveSlot(slot)}
+                            aria-label={`Remove ${category.label.toLowerCase()} ${slot}`}
+                        >
+                            <X className="size-4" />
+                        </Button>
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                         {renderTextField(slot, 'name')}
@@ -324,53 +331,6 @@ export function DependentCategorySection({
 
     const atCap = visibleSlots >= category.cap;
     const Icon = category.icon;
-
-    const hasSpouseSlot =
-        spouseSuggestion !== null &&
-        Array.from({ length: visibleSlots }, (_, index) => index + 1).some(
-            (slot) => {
-                const value = values[slotFieldKey(category.key, slot, 'name')];
-
-                return (
-                    typeof value === 'string' &&
-                    value.trim().toLowerCase() ===
-                        spouseSuggestion.name.toLowerCase()
-                );
-            },
-        );
-
-    const handleAddSpouse = () => {
-        if (spouseSuggestion === null) {
-            return;
-        }
-
-        let targetSlot: number | null = null;
-
-        for (let slot = 1; slot <= visibleSlots; slot += 1) {
-            if (!slotHasValue(values, category.key, slot)) {
-                targetSlot = slot;
-                break;
-            }
-        }
-
-        if (targetSlot === null) {
-            if (atCap) {
-                return;
-            }
-
-            targetSlot = visibleSlots + 1;
-            setVisibleSlots((current) => Math.min(category.cap, current + 1));
-        }
-
-        onChange(
-            slotFieldKey(category.key, targetSlot, 'name'),
-            spouseSuggestion.name,
-        );
-        onChange(
-            slotFieldKey(category.key, targetSlot, 'birthdate'),
-            spouseSuggestion.birthdate,
-        );
-    };
 
     return (
         <div className="space-y-3">
@@ -407,18 +367,10 @@ export function DependentCategorySection({
                             )
                         }
                     >
-                        + Add another {category.label.toLowerCase()}
+                        {visibleSlots === 0
+                            ? `+ Add ${category.label.toLowerCase()}`
+                            : `+ Add another ${category.label.toLowerCase()}`}
                     </Button>
-                    {spouseSuggestion !== null && !hasSpouseSlot ? (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleAddSpouse}
-                        >
-                            + Add spouse ({spouseSuggestion.name})
-                        </Button>
-                    ) : null}
                 </div>
             )}
         </div>
@@ -443,6 +395,7 @@ export function SingletonCycleSection({
     errorKeyPrefix = '',
     withNameAttribute = false,
     onChange,
+    identity = null,
 }: {
     label: string;
     statusKey: string;
@@ -452,6 +405,11 @@ export function SingletonCycleSection({
     errorKeyPrefix?: string;
     withNameAttribute?: boolean;
     onChange: (field: string, value: string | number | boolean | null) => void;
+    // Read-only name/birthdate to display above the cycle fields, sourced
+    // from the member's profile (e.g. spouse info on the Personal tab) --
+    // not editable here since this singleton has no name/birthdate of its
+    // own to persist.
+    identity?: { name: string; birthdate: string } | null;
 }) {
     const statusLabel = 'Group life coverage status';
     const numberLabel = 'Cycle number';
@@ -472,6 +430,22 @@ export function SingletonCycleSection({
             </div>
             <Card className="gap-3 py-4">
                 <CardContent className="grid gap-3 px-4">
+                    {identity !== null ? (
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-1.5">
+                                <Label>Name</Label>
+                                <p className="text-sm text-foreground">
+                                    {identity.name}
+                                </p>
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label>Birthdate</Label>
+                                <p className="text-sm text-foreground">
+                                    {identity.birthdate}
+                                </p>
+                            </div>
+                        </div>
+                    ) : null}
                     <div className="grid gap-1.5">
                         <Label htmlFor={statusKey}>{statusLabel}</Label>
                         <p className="text-xs text-muted-foreground">
@@ -553,6 +527,7 @@ export function DependentSpouseCycleSection(props: {
     errorKeyPrefix?: string;
     withNameAttribute?: boolean;
     onChange: (field: string, value: string | number | boolean | null) => void;
+    identity?: { name: string; birthdate: string } | null;
 }) {
     return (
         <SingletonCycleSection
@@ -567,7 +542,7 @@ export function DependentSpouseCycleSection(props: {
 export type DependentCategorySummary = {
     category: DependentCategoryConfig;
     count: number;
-    rows: Array<{ name: string; cycleStatus: string }>;
+    rows: Array<{ name: string; birthdate: string; cycleStatus: string }>;
 };
 
 /**
@@ -580,7 +555,11 @@ export function summarizeDependents(
 ): DependentCategorySummary[] {
     return categories
         .map((category) => {
-            const rows: Array<{ name: string; cycleStatus: string }> = [];
+            const rows: Array<{
+                name: string;
+                birthdate: string;
+                cycleStatus: string;
+            }> = [];
 
             for (let slot = 1; slot <= category.cap; slot += 1) {
                 if (!slotHasValue(values, category.key, slot)) {
@@ -588,6 +567,8 @@ export function summarizeDependents(
                 }
 
                 const name = values[slotFieldKey(category.key, slot, 'name')];
+                const birthdate =
+                    values[slotFieldKey(category.key, slot, 'birthdate')];
                 const cycleStatus =
                     values[slotFieldKey(category.key, slot, 'cycle_status')];
                 const cycleNumber =
@@ -602,6 +583,7 @@ export function summarizeDependents(
 
                 rows.push({
                     name: name ? `${name}` : `${category.label} ${slot}`,
+                    birthdate: birthdate ? `${birthdate}` : '',
                     cycleStatus: cycleStatusLabel,
                 });
             }

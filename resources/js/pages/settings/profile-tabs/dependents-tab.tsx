@@ -1,9 +1,11 @@
+import { UserRound } from 'lucide-react';
 import {
     DEPENDENT_CATEGORIES,
     DependentCategorySection,
     type DependentValues,
 } from '@/components/dependents/dependent-category-section';
 import { SurfaceCard } from '@/components/surface-card';
+import { Card, CardContent } from '@/components/ui/card';
 import { TabsContent } from '@/components/ui/tabs';
 
 type Props = {
@@ -26,12 +28,12 @@ export function DependentsTab({
     spouseName,
     spouseBirthdate,
 }: Props) {
-    const spouseSuggestion =
-        memberCivilStatus === 'Married' &&
-        spouseName.trim() !== '' &&
-        spouseBirthdate.trim() !== ''
-            ? { name: spouseName.trim(), birthdate: spouseBirthdate.trim() }
-            : null;
+    // Spouse isn't a slot-based category the member adds/removes -- it
+    // follows civil status automatically, same as the loan request wizard.
+    // Its name/birthdate live on the Personal tab, so this is a read-only
+    // display, not an editable dependent slot.
+    const showSpouse = memberCivilStatus === 'Married';
+
     return (
         <TabsContent value="dependents" forceMount className="mt-0">
             <SurfaceCard variant="muted" padding="md" className="space-y-6">
@@ -44,6 +46,38 @@ export function DependentsTab({
                             requests. Changes here save immediately.
                         </p>
                     </div>
+
+                    {showSpouse ? (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <UserRound className="size-4 text-muted-foreground" />
+                                <p className="text-sm font-semibold text-foreground">
+                                    Spouse
+                                </p>
+                            </div>
+                            <Card className="gap-2 py-3">
+                                <CardContent className="px-4 text-sm">
+                                    {spouseName.trim() !== '' ? (
+                                        <div className="flex flex-col">
+                                            <span className="font-medium text-foreground">
+                                                {spouseName}
+                                            </span>
+                                            {spouseBirthdate.trim() !== '' ? (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {spouseBirthdate}
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                    ) : (
+                                        <p className="text-muted-foreground">
+                                            Add your spouse's name and birthdate
+                                            on the Personal tab.
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    ) : null}
 
                     {DEPENDENT_CATEGORIES.filter((category) => {
                         if (category.key === 'child') {
@@ -67,11 +101,6 @@ export function DependentsTab({
                             withNameAttribute
                             showCycleFields={false}
                             onChange={handleDependentsChange}
-                            spouseSuggestion={
-                                category.key === 'extended'
-                                    ? spouseSuggestion
-                                    : null
-                            }
                         />
                     ))}
                 </div>
