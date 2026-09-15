@@ -22,7 +22,27 @@ class MemberApplicationProfile extends Model
 
     public const SELF_EMPLOYED_EMPLOYMENT_TYPE = 'Self Employed';
 
-    public const ID_TYPE_OPTIONS = ['SSS', 'GSIS', 'TIN', 'Phil ID', 'Others'];
+    /**
+     * Mirrors ID_TYPE_OPTIONS in profile-shared.tsx. Covers the government
+     * IDs Philippine lending apps typically accept for KYC, beyond the
+     * original SSS/GSIS/TIN/Phil ID set.
+     */
+    public const ID_TYPE_OPTIONS = [
+        'SSS',
+        'GSIS',
+        'TIN',
+        'Phil ID',
+        'UMID',
+        "Driver's License",
+        'Passport',
+        'PRC ID',
+        "Voter's ID",
+        'Postal ID',
+        'PhilHealth ID',
+        'Senior Citizen ID',
+        'OWWA/OFW ID',
+        'Others',
+    ];
 
     /**
      * Mirrors EMPLOYMENT_TYPE_OPTIONS in loan-request-fields.tsx /

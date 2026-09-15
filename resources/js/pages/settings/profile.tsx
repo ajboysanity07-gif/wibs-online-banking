@@ -47,6 +47,8 @@ import {
     PROFILE_PHOTO_OUTPUT_QUALITY,
     PROFILE_PHOTO_OUTPUT_SIZE,
     PROFILE_TAB_ORDER,
+    SOURCE_OF_FUND_OPTIONS,
+    SOURCE_OF_FUND_OTHER_VALUE,
     SPOUSE_NOT_APPLICABLE_STATUSES,
     tabForField,
     type ProfileTab,
@@ -124,6 +126,11 @@ export default function Profile({
     const isCurrentPositionFromWmaster =
         memberCurrentPosition === '' && hasWmasterValue(memberOccupation);
     const isSpouseNameLocked = hasWmasterValue(memberRecord?.spouse_name);
+    const [spouseNameValue, setSpouseNameValue] = useState<string>(
+        isSpouseNameLocked
+            ? (memberRecord?.spouse_name ?? '')
+            : (memberApplicationProfile?.spouse_name ?? ''),
+    );
     const isCivilStatusLocked = hasWmasterValue(memberCivilStatus);
     const isSexLocked = hasWmasterValue(memberSex);
     const isHousingStatusLocked = hasWmasterValue(memberRecord?.housing_status);
@@ -376,6 +383,30 @@ export default function Profile({
     const [idTypeOther, setIdTypeOther] = useState<string>(
         memberApplicationProfile?.id_type_other ?? '',
     );
+    const initialSourceOfFund =
+        memberApplicationProfile?.source_of_fund_wealth?.trim() ?? '';
+    const hasPresetSourceOfFund =
+        initialSourceOfFund !== '' &&
+        initialSourceOfFund !== SOURCE_OF_FUND_OTHER_VALUE &&
+        (SOURCE_OF_FUND_OPTIONS as readonly string[]).includes(
+            initialSourceOfFund,
+        );
+    const [sourceOfFundSelection, setSourceOfFundSelection] = useState<string>(
+        initialSourceOfFund === ''
+            ? ''
+            : hasPresetSourceOfFund
+              ? initialSourceOfFund
+              : SOURCE_OF_FUND_OTHER_VALUE,
+    );
+    const [sourceOfFundOther, setSourceOfFundOther] = useState<string>(
+        !hasPresetSourceOfFund && initialSourceOfFund !== ''
+            ? initialSourceOfFund
+            : '',
+    );
+    const resolvedSourceOfFund =
+        sourceOfFundSelection === SOURCE_OF_FUND_OTHER_VALUE
+            ? sourceOfFundOther.trim()
+            : sourceOfFundSelection;
     const [releaseMethod, setReleaseMethod] = useState<string>(
         memberApplicationProfile?.release_method ?? '',
     );
@@ -860,6 +891,12 @@ export default function Profile({
                                                     isSpouseNameLocked={
                                                         isSpouseNameLocked
                                                     }
+                                                    spouseNameValue={
+                                                        spouseNameValue
+                                                    }
+                                                    setSpouseNameValue={
+                                                        setSpouseNameValue
+                                                    }
                                                     spouseFieldsHidden={
                                                         spouseFieldsHidden
                                                     }
@@ -1084,6 +1121,21 @@ export default function Profile({
                                                     setPaymentAccountId={
                                                         setPaymentAccountId
                                                     }
+                                                    sourceOfFundSelection={
+                                                        sourceOfFundSelection
+                                                    }
+                                                    setSourceOfFundSelection={
+                                                        setSourceOfFundSelection
+                                                    }
+                                                    sourceOfFundOther={
+                                                        sourceOfFundOther
+                                                    }
+                                                    setSourceOfFundOther={
+                                                        setSourceOfFundOther
+                                                    }
+                                                    resolvedSourceOfFund={
+                                                        resolvedSourceOfFund
+                                                    }
                                                 />
                                             )}
 
@@ -1098,6 +1150,10 @@ export default function Profile({
                                                     }
                                                     handleDependentsChange={
                                                         handleDependentsChange
+                                                    }
+                                                    spouseName={spouseNameValue}
+                                                    spouseBirthdate={
+                                                        spouseBirthdateValue
                                                     }
                                                 />
                                             )}

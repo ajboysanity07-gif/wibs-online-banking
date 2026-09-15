@@ -14,6 +14,8 @@ type Props = {
         field: string,
         value: string | number | boolean | null,
     ) => void;
+    spouseName: string;
+    spouseBirthdate: string;
 };
 
 export function DependentsTab({
@@ -21,7 +23,15 @@ export function DependentsTab({
     memberCivilStatus,
     dependentsValues,
     handleDependentsChange,
+    spouseName,
+    spouseBirthdate,
 }: Props) {
+    const spouseSuggestion =
+        memberCivilStatus === 'Married' &&
+        spouseName.trim() !== '' &&
+        spouseBirthdate.trim() !== ''
+            ? { name: spouseName.trim(), birthdate: spouseBirthdate.trim() }
+            : null;
     return (
         <TabsContent value="dependents" forceMount className="mt-0">
             <SurfaceCard variant="muted" padding="md" className="space-y-6">
@@ -57,6 +67,11 @@ export function DependentsTab({
                             withNameAttribute
                             showCycleFields={false}
                             onChange={handleDependentsChange}
+                            spouseSuggestion={
+                                category.key === 'extended'
+                                    ? spouseSuggestion
+                                    : null
+                            }
                         />
                     ))}
                 </div>

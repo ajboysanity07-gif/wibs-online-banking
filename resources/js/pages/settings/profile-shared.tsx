@@ -188,7 +188,28 @@ export const ID_TYPE_OPTIONS = [
     'GSIS',
     'TIN',
     'Phil ID',
+    'UMID',
+    "Driver's License",
+    'Passport',
+    'PRC ID',
+    "Voter's ID",
+    'Postal ID',
+    'PhilHealth ID',
+    'Senior Citizen ID',
+    'OWWA/OFW ID',
     ID_TYPE_OTHER_VALUE,
+] as const;
+export const SOURCE_OF_FUND_OTHER_VALUE = 'Others';
+export const SOURCE_OF_FUND_OPTIONS = [
+    'Salary / Employment',
+    'Business Income',
+    'Remittance (OFW)',
+    'Pension / Retirement Benefits',
+    'Investments / Dividends',
+    'Rental Income',
+    'Inheritance',
+    'Savings',
+    SOURCE_OF_FUND_OTHER_VALUE,
 ] as const;
 export const RELEASE_METHOD_OPTIONS = [
     'ATM',

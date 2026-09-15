@@ -37,6 +37,8 @@ import {
     MISSING_FIELD_CLASS,
     PAYMENT_OPTION_OPTIONS,
     RELEASE_METHOD_OPTIONS,
+    SOURCE_OF_FUND_OPTIONS,
+    SOURCE_OF_FUND_OTHER_VALUE,
 } from '../profile-shared';
 
 /** Mirrors the id_type-keyed digit-count check in ProfileUpdateRequest::idNumberFormatRule(). */
@@ -45,6 +47,7 @@ const ID_NUMBER_PLACEHOLDERS: Record<string, string> = {
     GSIS: '11-digit GSIS number',
     TIN: '9 or 12-digit TIN',
     'Phil ID': '16-18 digit PhilID (PCN)',
+    UMID: '12-digit CRN',
 };
 
 type Props = {
@@ -63,6 +66,11 @@ type Props = {
     setPaymentOption: (value: string) => void;
     paymentAccountId: number | null;
     setPaymentAccountId: (value: number | null) => void;
+    sourceOfFundSelection: string;
+    setSourceOfFundSelection: (value: string) => void;
+    sourceOfFundOther: string;
+    setSourceOfFundOther: (value: string) => void;
+    resolvedSourceOfFund: string;
 };
 
 const RELEASE_METHOD_LABELS: Record<string, string> = {
@@ -125,6 +133,11 @@ export function BankTab({
     setPaymentOption,
     paymentAccountId,
     setPaymentAccountId,
+    sourceOfFundSelection,
+    setSourceOfFundSelection,
+    sourceOfFundOther,
+    setSourceOfFundOther,
+    resolvedSourceOfFund,
 }: Props) {
     const {
         accounts,
@@ -362,24 +375,45 @@ export function BankTab({
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
-                        <div className="grid gap-2 md:col-span-2">
+                        <div className="grid gap-2">
                             <Label htmlFor="source_of_fund_wealth">
                                 Source of fund / wealth
                             </Label>
 
-                            <Input
-                                id="source_of_fund_wealth"
-                                className={cn(
-                                    'mt-1 block w-full',
-                                    isFieldMissing('source_of_fund_wealth') &&
-                                        MISSING_FIELD_CLASS,
-                                )}
-                                defaultValue={
-                                    memberApplicationProfile?.source_of_fund_wealth ??
-                                    ''
-                                }
+                            <Select
+                                value={sourceOfFundSelection || undefined}
+                                onValueChange={(value) => {
+                                    setSourceOfFundSelection(value);
+
+                                    if (value !== SOURCE_OF_FUND_OTHER_VALUE) {
+                                        setSourceOfFundOther('');
+                                    }
+                                }}
+                            >
+                                <SelectTrigger
+                                    id="source_of_fund_wealth"
+                                    className={cn(
+                                        'mt-1 w-full',
+                                        isFieldMissing(
+                                            'source_of_fund_wealth',
+                                        ) && MISSING_FIELD_CLASS,
+                                    )}
+                                >
+                                    <SelectValue placeholder="Select source of fund" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {SOURCE_OF_FUND_OPTIONS.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <input
+                                type="hidden"
                                 name="source_of_fund_wealth"
-                                placeholder="e.g. Salary, business income"
+                                value={resolvedSourceOfFund}
                             />
 
                             <InputError
@@ -387,6 +421,28 @@ export function BankTab({
                                 message={formErrors.source_of_fund_wealth}
                             />
                         </div>
+
+                        {sourceOfFundSelection ===
+                            SOURCE_OF_FUND_OTHER_VALUE && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="source_of_fund_wealth_other">
+                                    Specify source of fund
+                                </Label>
+
+                                <Input
+                                    id="source_of_fund_wealth_other"
+                                    className="mt-1 block w-full"
+                                    value={sourceOfFundOther}
+                                    name="source_of_fund_wealth_other"
+                                    placeholder="Describe your source of fund"
+                                    onChange={(event) => {
+                                        setSourceOfFundOther(
+                                            event.target.value,
+                                        );
+                                    }}
+                                />
+                            </div>
+                        )}
 
                         <div className="grid gap-2">
                             <Label htmlFor="id_type">Government ID type</Label>

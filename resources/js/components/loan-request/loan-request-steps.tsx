@@ -2287,6 +2287,19 @@ export function LoanRequestDependentsStep({
     const hasSpouseCycleData = spouseVisible && Boolean(spouseCycleStatus);
     const spouseName = crossSectionValues['applicant.spouse_name'];
     const spouseSummaryLabel = spouseName ? `${spouseName}` : 'Spouse';
+    const spouseBirthdateForSuggestion =
+        crossSectionValues['applicant.spouse_birthdate'];
+    const spouseSuggestion =
+        spouseVisible &&
+        typeof spouseName === 'string' &&
+        spouseName.trim() !== '' &&
+        typeof spouseBirthdateForSuggestion === 'string' &&
+        spouseBirthdateForSuggestion.trim() !== ''
+            ? {
+                  name: spouseName.trim(),
+                  birthdate: spouseBirthdateForSuggestion.trim(),
+              }
+            : null;
 
     if (hasExistingProfileData && !forceEditable) {
         const summaries = summarizeDependents(visibleCategories, values);
@@ -2442,6 +2455,9 @@ export function LoanRequestDependentsStep({
                     errors={errors}
                     errorKeyPrefix="dependents"
                     onChange={onChange}
+                    spouseSuggestion={
+                        category.key === 'extended' ? spouseSuggestion : null
+                    }
                 />
             ))}
         </LoanRequestSectionCard>

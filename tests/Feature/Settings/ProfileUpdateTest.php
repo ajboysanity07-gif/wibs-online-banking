@@ -1986,6 +1986,68 @@ test('profile information can be updated with other nature of business', functio
     expect($memberProfile->nature_of_business)->toBe('Logistics');
 });
 
+test('profile information can be updated with other source of fund', function () {
+    $user = User::factory()->create([
+        'acctno' => '000905',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Cruz, Marco',
+        'fname' => 'Marco',
+        'lname' => 'Cruz',
+        'birthday' => '1990-05-10',
+        'address' => '12 Rizal Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'MarcoUser',
+            'email' => 'marco@example.com',
+            'phoneno' => '09123456701',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
+            'educational_attainment' => 'College',
+            'length_of_stay' => '3 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'housing_status' => 'OWNED',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '45000.00',
+            'payday' => 'Quincenal',
+            'release_method' => 'Cash',
+            'height_cm' => '165',
+            'weight_kg' => '68',
+            'source_of_fund_wealth' => 'Others',
+            'source_of_fund_wealth_other' => 'Freelance consulting income',
+            'id_type' => 'UMID',
+            'id_number' => '1234-5678901-2',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('client.dashboard'));
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile)->not->toBeNull();
+    expect($memberProfile->source_of_fund_wealth)->toBe('Freelance consulting income');
+    expect($memberProfile->id_type)->toBe('UMID');
+});
+
 test('admin profile information can be updated with a profile photo', function () {
     Storage::fake('public');
 

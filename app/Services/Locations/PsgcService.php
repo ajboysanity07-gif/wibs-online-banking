@@ -259,7 +259,42 @@ class PsgcService
             }
         }
 
+        // Some legacy wmaster rows cram a purok/zone/sitio/block prefix into
+        // the same field as the barangay itself (e.g. "P-2 Patin-Ay" instead
+        // of just "Patin-Ay"), which never exact-matches a canonical PSGC
+        // barangay name. Retry once with that prefix stripped before giving
+        // up and falling back to the raw (still-contaminated) value.
+        $stripped = $this->stripLeadingPurokPrefix($normalized);
+
+        if ($stripped !== '' && $stripped !== $normalized) {
+            $strippedNeedle = Str::lower($stripped);
+
+            foreach ($candidates as $barangay) {
+                if (Str::lower($barangay['name']) === $strippedNeedle) {
+                    return $barangay['name'];
+                }
+            }
+        }
+
         return $normalized;
+    }
+
+    /**
+     * Strips a leading "Purok 2", "P-2", "Zone 3", "Sitio X", or "Blk 2"
+     * style prefix some legacy wmaster barangay values are crammed with.
+     */
+    private function stripLeadingPurokPrefix(string $value): string
+    {
+        // The bare "p" alternative requires a digit to follow (optionally via
+        // "-"/"." ) so real barangay names starting with "P" (e.g.
+        // "Poblacion") are never mistaken for a "P-2"-style purok prefix.
+        $stripped = preg_replace(
+            '/^(?:(?:purok|zone|sitio|blk|block)\.?|p\.?-?)\s*-?\s*\d+[a-z]?\s*[-,]?\s*/i',
+            '',
+            $value,
+        ) ?? $value;
+
+        return trim($stripped);
     }
 
     private function isMunicipalityOrProvinceName(string $raw, string $normalized, string $municipality, ?string $province): bool

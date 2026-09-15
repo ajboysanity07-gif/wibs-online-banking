@@ -43,6 +43,15 @@ class ProfileUpdateRequest extends FormRequest
             ]);
         }
 
+        $sourceOfFundWealth = trim((string) $this->input('source_of_fund_wealth', ''));
+        $sourceOfFundWealthOther = trim((string) $this->input('source_of_fund_wealth_other', ''));
+
+        if (($sourceOfFundWealth === '' || $sourceOfFundWealth === 'Others') && $sourceOfFundWealthOther !== '') {
+            $this->merge([
+                'source_of_fund_wealth' => $sourceOfFundWealthOther,
+            ]);
+        }
+
         $birthplaceCity = $this->normalizeOptionalString(
             $this->input('birthplace_city'),
         );

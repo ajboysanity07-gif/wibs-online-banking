@@ -50,6 +50,8 @@ type Props = {
     setSexValue: (value: string) => void;
     isHousingStatusLocked: boolean;
     isSpouseNameLocked: boolean;
+    spouseNameValue: string;
+    setSpouseNameValue: (value: string) => void;
     spouseFieldsHidden: boolean;
     numberOfChildrenValue: string | number;
     birthplaceProvinceSearch: LocationSearchState;
@@ -100,6 +102,8 @@ export function PersonalTab({
     setSexValue,
     isHousingStatusLocked,
     isSpouseNameLocked,
+    spouseNameValue,
+    setSpouseNameValue,
     spouseFieldsHidden,
     numberOfChildrenValue,
     birthplaceProvinceSearch,
@@ -938,12 +942,14 @@ export function PersonalTab({
                                                         'spouse_name',
                                                     ) && MISSING_FIELD_CLASS,
                                                 )}
-                                                defaultValue={
-                                                    memberApplicationProfile?.spouse_name ??
-                                                    ''
-                                                }
+                                                value={spouseNameValue}
                                                 name="spouse_name"
                                                 placeholder="Spouse name"
+                                                onChange={(event) => {
+                                                    setSpouseNameValue(
+                                                        event.target.value,
+                                                    );
+                                                }}
                                             />
                                             <InputError
                                                 className="mt-2"

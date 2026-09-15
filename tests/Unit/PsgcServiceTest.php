@@ -272,3 +272,18 @@ test('psgc service discards a barangay value that is really the municipality or 
     expect($service->resolveBarangayName('Surigao Del Sur', 'Lianga', 'Surigao del Sur'))->toBe('');
     expect($service->resolveBarangayName('SDS', 'Lianga', 'Surigao del Sur'))->toBe('');
 });
+
+test('psgc service resolves a barangay value crammed with a purok/zone/sitio prefix', function () {
+    // Regression case: some legacy wmaster rows store the barangay as
+    // "P-2 Aglipay" (purok prefix baked into the same slot), which never
+    // exact-matches the canonical PSGC barangay name and previously fell
+    // back to the raw, still-prefixed text.
+    $service = app(PsgcService::class);
+
+    expect($service->resolveBarangayName('P-2 Aglipay', 'City of Batac'))->toBe('Aglipay');
+    expect($service->resolveBarangayName('Purok 2 Aglipay', 'City of Batac'))->toBe('Aglipay');
+    expect($service->resolveBarangayName('Zone 3, Aglipay', 'City of Batac'))->toBe('Aglipay');
+
+    // A real barangay that itself starts with "P" must never be stripped.
+    expect($service->resolveBarangayName('Poblacion', 'Davao City'))->toBe('Poblacion');
+});

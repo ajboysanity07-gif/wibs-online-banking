@@ -113,6 +113,7 @@ export function DependentCategorySection({
     withNameAttribute = false,
     showCycleFields = true,
     onChange,
+    spouseSuggestion = null,
 }: {
     category: DependentCategoryConfig;
     values: DependentValues;
@@ -121,6 +122,11 @@ export function DependentCategorySection({
     withNameAttribute?: boolean;
     showCycleFields?: boolean;
     onChange: (field: string, value: string | number | boolean | null) => void;
+    // Offers a "+ Add spouse" shortcut that fills one slot from the spouse
+    // name/birthdate already collected on the Personal tab, so the member
+    // isn't forced to retype them here. Only meaningful for the "extended
+    // family" category -- pass null everywhere else.
+    spouseSuggestion?: { name: string; birthdate: string } | null;
 }) {
     // Lazy initializer runs once on mount -- subsequent add/remove clicks own the count.
     const [visibleSlots, setVisibleSlots] = useState(() => {
@@ -319,6 +325,53 @@ export function DependentCategorySection({
     const atCap = visibleSlots >= category.cap;
     const Icon = category.icon;
 
+    const hasSpouseSlot =
+        spouseSuggestion !== null &&
+        Array.from({ length: visibleSlots }, (_, index) => index + 1).some(
+            (slot) => {
+                const value = values[slotFieldKey(category.key, slot, 'name')];
+
+                return (
+                    typeof value === 'string' &&
+                    value.trim().toLowerCase() ===
+                        spouseSuggestion.name.toLowerCase()
+                );
+            },
+        );
+
+    const handleAddSpouse = () => {
+        if (spouseSuggestion === null) {
+            return;
+        }
+
+        let targetSlot: number | null = null;
+
+        for (let slot = 1; slot <= visibleSlots; slot += 1) {
+            if (!slotHasValue(values, category.key, slot)) {
+                targetSlot = slot;
+                break;
+            }
+        }
+
+        if (targetSlot === null) {
+            if (atCap) {
+                return;
+            }
+
+            targetSlot = visibleSlots + 1;
+            setVisibleSlots((current) => Math.min(category.cap, current + 1));
+        }
+
+        onChange(
+            slotFieldKey(category.key, targetSlot, 'name'),
+            spouseSuggestion.name,
+        );
+        onChange(
+            slotFieldKey(category.key, targetSlot, 'birthdate'),
+            spouseSuggestion.birthdate,
+        );
+    };
+
     return (
         <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -343,18 +396,30 @@ export function DependentCategorySection({
                     reached.
                 </p>
             ) : (
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                        setVisibleSlots((current) =>
-                            Math.min(category.cap, current + 1),
-                        )
-                    }
-                >
-                    + Add another {category.label.toLowerCase()}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                            setVisibleSlots((current) =>
+                                Math.min(category.cap, current + 1),
+                            )
+                        }
+                    >
+                        + Add another {category.label.toLowerCase()}
+                    </Button>
+                    {spouseSuggestion !== null && !hasSpouseSlot ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAddSpouse}
+                        >
+                            + Add spouse ({spouseSuggestion.name})
+                        </Button>
+                    ) : null}
+                </div>
             )}
         </div>
     );
