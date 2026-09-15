@@ -719,6 +719,10 @@ type ReviewStepProps = {
     errors: Record<string, string | undefined>;
     sectionDefinitions: Record<string, LoanRequestDataSectionDefinition>;
     onUndertakingChange: (value: boolean) => void;
+    // Errors here can belong to any wizard step (this is the last step, and
+    // shows every unresolved error from the whole form), so clicking one
+    // needs to navigate to the right step rather than just focus in place.
+    onErrorClick?: (key: string) => void;
 };
 
 type SummaryItem = {
@@ -2503,6 +2507,7 @@ export function LoanRequestReviewStep({
     errors,
     sectionDefinitions,
     onUndertakingChange,
+    onErrorClick,
 }: ReviewStepProps) {
     const loanTypeLabel =
         loanTypes.find((type) => type.typecode === data.typecode)?.label ??
@@ -2903,6 +2908,7 @@ export function LoanRequestReviewStep({
             description="Review your application before submitting."
             contentClassName="space-y-5"
             errors={errors}
+            onErrorClick={onErrorClick}
         >
             <div className="rounded-lg border border-border/50 bg-muted/20 p-4 text-sm">
                 <p className="text-xs text-muted-foreground uppercase">

@@ -6,11 +6,18 @@ type FormErrorSummaryProps = {
     errors: Record<string, string | undefined>;
     idResolver?: (key: string) => string;
     className?: string;
+    // When provided, called instead of focusing the field directly -- used
+    // when the erroring field may live on a different wizard step, so the
+    // caller needs to navigate there first before focusing.
+    onEntryClick?: (key: string) => void;
 };
 
-const defaultIdResolver = (key: string) => key.replace(/\./g, '_');
+export const defaultIdResolver = (key: string) => key.replace(/\./g, '_');
 
-const focusField = (key: string, idResolver: (key: string) => string) => {
+export const focusField = (
+    key: string,
+    idResolver: (key: string) => string = defaultIdResolver,
+) => {
     const id = idResolver(key);
     const target =
         document.getElementById(id) ??
@@ -28,6 +35,7 @@ export function FormErrorSummary({
     errors,
     idResolver = defaultIdResolver,
     className,
+    onEntryClick,
 }: FormErrorSummaryProps) {
     const entries = Object.entries(errors).filter(
         (entry): entry is [string, string] => Boolean(entry[1]),
@@ -58,7 +66,11 @@ export function FormErrorSummary({
                             <button
                                 type="button"
                                 className="text-left underline-offset-2 hover:underline"
-                                onClick={() => focusField(key, idResolver)}
+                                onClick={() =>
+                                    onEntryClick
+                                        ? onEntryClick(key)
+                                        : focusField(key, idResolver)
+                                }
                             >
                                 {message}
                             </button>

@@ -19,6 +19,9 @@ type Props = {
     // renders them all as a single summary at the top of the step instead,
     // with each entry focusing/highlighting its field on click.
     errors?: Record<string, string | undefined>;
+    // See FormErrorSummary's onEntryClick -- needed when an error entry's
+    // field may live on a different wizard step than the one being viewed.
+    onErrorClick?: (key: string) => void;
 };
 
 export function LoanRequestSectionCard({
@@ -28,6 +31,7 @@ export function LoanRequestSectionCard({
     className,
     contentClassName,
     errors,
+    onErrorClick,
 }: Props) {
     return (
         <Card className={cn('border-border/50 bg-card/70', className)}>
@@ -38,7 +42,12 @@ export function LoanRequestSectionCard({
                 ) : null}
             </CardHeader>
             <CardContent className={cn('space-y-7', contentClassName)}>
-                {errors ? <FormErrorSummary errors={errors} /> : null}
+                {errors ? (
+                    <FormErrorSummary
+                        errors={errors}
+                        onEntryClick={onErrorClick}
+                    />
+                ) : null}
                 {children}
             </CardContent>
         </Card>

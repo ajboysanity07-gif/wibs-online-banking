@@ -30,6 +30,7 @@ import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { focusField } from '@/components/ui/form-error-summary';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import client from '@/lib/api/client';
@@ -275,126 +276,112 @@ const toPersonForm = (
 // immediately after it.
 const GLAPI_STEP_START = STEP_INDEX['health'];
 
+const resolveStepForErrorKey = (
+    key: string,
+    glapiItemNumberToStepOffset: Record<string, number>,
+): number | null => {
+    if (
+        key === 'typecode' ||
+        key === 'requested_amount' ||
+        key === 'requested_term' ||
+        key === 'loan_purpose' ||
+        key === 'other_loan_type_name' ||
+        key === 'availment_status'
+    ) {
+        return STEP_INDEX['loan-details'];
+    }
+
+    if (key.startsWith('applicant.')) {
+        const field = key.replace('applicant.', '');
+        return applicantBasicFields.has(field)
+            ? STEP_INDEX['personal-basic']
+            : applicantContactFields.has(field)
+              ? STEP_INDEX['personal-contact']
+              : applicantFamilyFields.has(field)
+                ? STEP_INDEX['personal-family']
+                : applicantEmploymentFields.has(field)
+                  ? STEP_INDEX['work-employment']
+                  : personWorkFields.has(field)
+                    ? STEP_INDEX['work-income']
+                    : STEP_INDEX['personal-basic'];
+    }
+
+    if (key.startsWith('co_maker_1.')) {
+        const field = key.replace('co_maker_1.', '');
+        return applicantBasicFields.has(field)
+            ? STEP_INDEX['co-maker-1-basic']
+            : applicantContactFields.has(field) ||
+                field === 'educational_attainment'
+              ? STEP_INDEX['co-maker-1-contact']
+              : applicantEmploymentFields.has(field)
+                ? STEP_INDEX['co-maker-1-employment']
+                : personWorkFields.has(field)
+                  ? STEP_INDEX['co-maker-1-income']
+                  : STEP_INDEX['co-maker-1-basic'];
+    }
+
+    if (key.startsWith('co_maker_2.')) {
+        const field = key.replace('co_maker_2.', '');
+        return applicantBasicFields.has(field)
+            ? STEP_INDEX['co-maker-2-basic']
+            : applicantContactFields.has(field) ||
+                field === 'educational_attainment'
+              ? STEP_INDEX['co-maker-2-contact']
+              : applicantEmploymentFields.has(field)
+                ? STEP_INDEX['co-maker-2-employment']
+                : personWorkFields.has(field)
+                  ? STEP_INDEX['co-maker-2-income']
+                  : STEP_INDEX['co-maker-2-basic'];
+    }
+
+    if (key.startsWith('insurance.') || key === 'document_data') {
+        return STEP_INDEX['insurance'];
+    }
+
+    if (key.startsWith('health.')) {
+        const field = key.replace('health.', '');
+        const chunkIndex = glapiItemNumberToStepOffset[field];
+
+        return chunkIndex !== undefined
+            ? GLAPI_STEP_START + chunkIndex
+            : STEP_INDEX['health'];
+    }
+
+    if (key.startsWith('health_glapi.')) {
+        const field = key.replace('health_glapi.', '');
+        const itemNumber = parseGlapiItem(field)?.number ?? field;
+        const chunkIndex = glapiItemNumberToStepOffset[itemNumber];
+
+        return GLAPI_STEP_START + (chunkIndex ?? 0);
+    }
+
+    if (key.startsWith('banking.')) {
+        return STEP_INDEX['banking'];
+    }
+
+    if (key.startsWith('declarations.')) {
+        return STEP_INDEX['declarations'];
+    }
+
+    if (key.startsWith('dependents.')) {
+        return STEP_INDEX['dependents'];
+    }
+
+    if (key === 'undertaking_accepted') {
+        return STEP_INDEX['review'];
+    }
+
+    return null;
+};
+
 const resolveStepFromErrors = (
     errors: Record<string, string | undefined>,
     glapiItemNumberToStepOffset: Record<string, number>,
 ): number | null => {
-    const stepMatches: number[] = [];
-
-    Object.keys(errors).forEach((key) => {
-        if (!errors[key]) {
-            return;
-        }
-
-        if (
-            key === 'typecode' ||
-            key === 'requested_amount' ||
-            key === 'requested_term' ||
-            key === 'loan_purpose' ||
-            key === 'other_loan_type_name' ||
-            key === 'availment_status'
-        ) {
-            stepMatches.push(STEP_INDEX['loan-details']);
-            return;
-        }
-
-        if (key.startsWith('applicant.')) {
-            const field = key.replace('applicant.', '');
-            stepMatches.push(
-                applicantBasicFields.has(field)
-                    ? STEP_INDEX['personal-basic']
-                    : applicantContactFields.has(field)
-                      ? STEP_INDEX['personal-contact']
-                      : applicantFamilyFields.has(field)
-                        ? STEP_INDEX['personal-family']
-                        : applicantEmploymentFields.has(field)
-                          ? STEP_INDEX['work-employment']
-                          : personWorkFields.has(field)
-                            ? STEP_INDEX['work-income']
-                            : STEP_INDEX['personal-basic'],
-            );
-            return;
-        }
-
-        if (key.startsWith('co_maker_1.')) {
-            const field = key.replace('co_maker_1.', '');
-            stepMatches.push(
-                applicantBasicFields.has(field)
-                    ? STEP_INDEX['co-maker-1-basic']
-                    : applicantContactFields.has(field) ||
-                        field === 'educational_attainment'
-                      ? STEP_INDEX['co-maker-1-contact']
-                      : applicantEmploymentFields.has(field)
-                        ? STEP_INDEX['co-maker-1-employment']
-                        : personWorkFields.has(field)
-                          ? STEP_INDEX['co-maker-1-income']
-                          : STEP_INDEX['co-maker-1-basic'],
-            );
-            return;
-        }
-
-        if (key.startsWith('co_maker_2.')) {
-            const field = key.replace('co_maker_2.', '');
-            stepMatches.push(
-                applicantBasicFields.has(field)
-                    ? STEP_INDEX['co-maker-2-basic']
-                    : applicantContactFields.has(field) ||
-                        field === 'educational_attainment'
-                      ? STEP_INDEX['co-maker-2-contact']
-                      : applicantEmploymentFields.has(field)
-                        ? STEP_INDEX['co-maker-2-employment']
-                        : personWorkFields.has(field)
-                          ? STEP_INDEX['co-maker-2-income']
-                          : STEP_INDEX['co-maker-2-basic'],
-            );
-            return;
-        }
-
-        if (key.startsWith('insurance.') || key === 'document_data') {
-            stepMatches.push(STEP_INDEX['insurance']);
-            return;
-        }
-
-        if (key.startsWith('health.')) {
-            const field = key.replace('health.', '');
-            const chunkIndex = glapiItemNumberToStepOffset[field];
-
-            stepMatches.push(
-                chunkIndex !== undefined
-                    ? GLAPI_STEP_START + chunkIndex
-                    : STEP_INDEX['health'],
-            );
-            return;
-        }
-
-        if (key.startsWith('health_glapi.')) {
-            const field = key.replace('health_glapi.', '');
-            const itemNumber = parseGlapiItem(field)?.number ?? field;
-            const chunkIndex = glapiItemNumberToStepOffset[itemNumber];
-
-            stepMatches.push(GLAPI_STEP_START + (chunkIndex ?? 0));
-            return;
-        }
-
-        if (key.startsWith('banking.')) {
-            stepMatches.push(STEP_INDEX['banking']);
-            return;
-        }
-
-        if (key.startsWith('declarations.')) {
-            stepMatches.push(STEP_INDEX['declarations']);
-            return;
-        }
-
-        if (key.startsWith('dependents.')) {
-            stepMatches.push(STEP_INDEX['dependents']);
-            return;
-        }
-
-        if (key === 'undertaking_accepted') {
-            stepMatches.push(STEP_INDEX['review']);
-        }
-    });
+    const stepMatches = Object.keys(errors)
+        .filter((key) => Boolean(errors[key]))
+        .map((key) => resolveStepForErrorKey(key, glapiItemNumberToStepOffset))
+        .filter((step): step is number => step !== null);
 
     return stepMatches.length > 0 ? Math.min(...stepMatches) : null;
 };
@@ -594,6 +581,23 @@ export default function LoanRequestPage({
 
         setStepDirection(step > currentStep ? 'forward' : 'backward');
         setCurrentStep(step);
+    };
+
+    // The review step lists errors from every step at once, so clicking one
+    // may need to jump to a different step before the erroring field exists
+    // in the DOM to focus. The animated step transition mounts the target
+    // step's content as soon as `currentStep` changes, so a short delay
+    // after navigating is enough for the field to be focusable.
+    const handleErrorClick = (key: string) => {
+        const step = resolveStepForErrorKey(key, glapiItemNumberToStepOffset);
+
+        if (step === null || step === currentStep) {
+            focusField(key);
+            return;
+        }
+
+        handleStepChange(step);
+        window.setTimeout(() => focusField(key), 250);
     };
 
     const handleNextStep = () => {
@@ -1584,6 +1588,7 @@ export default function LoanRequestPage({
                                                 value,
                                             )
                                         }
+                                        onErrorClick={handleErrorClick}
                                     />
                                 </LoanRequestAnimatedStep>
                             </div>
