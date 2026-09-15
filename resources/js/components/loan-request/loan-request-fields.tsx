@@ -1604,16 +1604,25 @@ export function LoanRequestWorkFields({
                                     )}
                                 </SelectContent>
                             </Select>
-                            {natureOfBusinessSelection ===
-                            NATURE_OF_BUSINESS_OTHER_VALUE ? (
+                        </div>
+
+                        {natureOfBusinessSelection ===
+                        NATURE_OF_BUSINESS_OTHER_VALUE ? (
+                            <div className="grid gap-2">
+                                <Label
+                                    htmlFor={`${prefix}_nature_of_business_other`}
+                                >
+                                    Specify industry
+                                </Label>
                                 <Input
-                                    className="mt-2 w-full"
+                                    id={`${prefix}_nature_of_business_other`}
+                                    className="mt-1 w-full"
                                     value={natureOfBusinessOther}
                                     placeholder="Specify industry"
                                     onChange={handleNatureOfBusinessOtherChange}
                                 />
-                            ) : null}
-                        </div>
+                            </div>
+                        ) : null}
 
                         {!isPensioner && prefix === 'applicant' ? (
                             <div className="grid gap-2">
