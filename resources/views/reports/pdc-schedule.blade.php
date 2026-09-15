@@ -23,6 +23,10 @@
     $totalInterest = $scheduleTotals['interest'] ?? null;
     $totalLoanSecurity = $scheduleTotals['loan_security'] ?? null;
     $totalOverall = $scheduleTotals['total'] ?? null;
+
+    $approvedDateUpper = strtoupper(trim((string) ($loan['approved_date'] ?? '')));
+    $witnessOneName = trim((string) ($reviewer['witness_one_name'] ?? ''));
+    $witnessTwoName = trim((string) ($reviewer['witness_two_name'] ?? ''));
 @endphp
 <!doctype html>
 <html lang="en">
@@ -127,12 +131,27 @@
             }
 
             .schedule-table td.amt { text-align: right; }
-            .schedule-table td.check-no { width: 12%; }
-            .schedule-table td.check-date { width: 20%; }
+            .schedule-table td.check-no { width: 10%; }
+            .schedule-table td.check-date { width: 16%; }
+            .schedule-table td.drawee-bank { width: 22%; text-align: left; }
 
             .schedule-table tfoot td {
                 font-weight: 700;
                 background: #f2f2f2;
+            }
+
+            .certification {
+                margin: 0 0 10pt;
+                text-align: justify;
+                font-size: 9.5pt;
+                line-height: 1.5;
+            }
+
+            .signed-presence {
+                margin: 0 0 4pt;
+                font-size: 9pt;
+                font-weight: 700;
+                text-transform: uppercase;
             }
 
             .sig-layout {
@@ -217,6 +236,7 @@
                 <tr>
                     <th>Check No.</th>
                     <th>Check Date</th>
+                    <th>Drawee Bank</th>
                     <th>Principal</th>
                     <th>Interest</th>
                     <th>Loan Security</th>
@@ -228,6 +248,7 @@
                     <tr>
                         <td class="check-no">&nbsp;</td>
                         <td class="check-date">&nbsp;</td>
+                        <td class="drawee-bank">{{ $draweeBank !== '' ? $draweeBank : ' ' }}</td>
                         <td class="amt">{{ $fmt($row['principal'] ?? null) }}</td>
                         <td class="amt">{{ $fmt($row['interest'] ?? null) }}</td>
                         <td class="amt">{{ $fmt($row['loan_security'] ?? null) }}</td>
@@ -237,7 +258,7 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="2">Total</td>
+                    <td colspan="3">Total</td>
                     <td class="amt">{{ $fmt($totalPrincipal) }}</td>
                     <td class="amt">{{ $fmt($totalInterest) }}</td>
                     <td class="amt">{{ $fmt($totalLoanSecurity) }}</td>
@@ -246,6 +267,20 @@
             </tfoot>
         </table>
 
+        <p class="certification">
+            I hereby certify that this attachment forms part of the Promissory Note I executed in favor of
+            {{ $companyName !== '' ? $companyName : ' ' }}
+            dated {{ $approvedDateUpper !== '' ? $approvedDateUpper : ' ' }}
+            covering the amount of Php. {{ $approvedAmount !== null ? $fmt($approvedAmount) : ' ' }}
+            and that I also give my consent, in relation to the checks that I issued in payment for this Loan,
+            and allow {{ $companyName !== '' ? $companyName : ' ' }}
+            through its authorized representative, without need of prior notification to me, to deface,
+            stamp/mark as cancelled, perforate or do any other means to make the relevant check/s herein listed
+            unusable in case my loan, as secured by said checks, is renewed or is paid in full.
+        </p>
+
+        <div class="signed-presence">SIGNED IN THE PRESENCE OF:</div>
+
         <table class="sig-layout">
             <tr>
                 <td class="sig-col">
@@ -253,9 +288,16 @@
                     <div class="sig-lbl">Borrower</div>
                 </td>
                 <td class="sig-col">
-                    <div class="sig-name">&nbsp;</div>
-                    <div class="sig-lbl">Received By</div>
+                    <div class="sig-name">{{ $witnessOneName !== '' ? $witnessOneName : ' ' }}</div>
+                    <div class="sig-lbl">Witness</div>
                 </td>
+            </tr>
+            <tr>
+                <td class="sig-col">
+                    <div class="sig-name">{{ $witnessTwoName !== '' ? $witnessTwoName : ' ' }}</div>
+                    <div class="sig-lbl">Witness</div>
+                </td>
+                <td class="sig-col"></td>
             </tr>
         </table>
     </body>
