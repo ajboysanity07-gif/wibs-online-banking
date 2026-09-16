@@ -249,7 +249,10 @@ class SettingsPageData
             'dependents' => $memberApplicationProfile
                 ? Arr::only(
                     app(DependentsProfileSyncService::class)->read($memberApplicationProfile),
-                    MemberDependentProfile::fieldKeys(),
+                    [
+                        ...MemberDependentProfile::fieldKeys(),
+                        'dependent_spouse_is_beneficiary',
+                    ],
                 )
                 : null,
             'initialTab' => $initialTab,
