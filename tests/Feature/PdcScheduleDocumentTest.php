@@ -20,6 +20,7 @@ function pdcScheduleCreateApprovedLoanRequest(): LoanRequest
         'approved_amount' => 24000,
         'approved_term' => 12,
         'approved_interest_rate' => 0.36,
+        'recommended_interest_rate' => 0.36,
         'recommended_payment_frequency' => '15th & 30th',
     ]);
 
@@ -111,7 +112,7 @@ test('pdc schedule generates a real pdf with per-check principal, interest, loan
 test('pdc schedule uses declining-balance amortization, not the flat add-on figures', function () {
     $loan = [
         'approved_amount_raw' => 24000.0,
-        'interest_rate_raw' => 0.36,
+        'interest_rate_recommended_raw' => 0.36,
         'amortization_count' => 24,
         'payment_mode_workbook' => 'QUINCENAL',
         'lumpsum_months' => null,
@@ -176,7 +177,7 @@ test('pdc schedule uses declining-balance amortization, not the flat add-on figu
 test('pdc schedule ignores a staff-overridden loan security rate and uses the standard typecode rate', function () {
     $loan = [
         'approved_amount_raw' => 24000.0,
-        'interest_rate_raw' => 0.36,
+        'interest_rate_recommended_raw' => 0.36,
         'amortization_count' => 24,
         'payment_mode_workbook' => 'QUINCENAL',
         'lumpsum_months' => null,
@@ -196,10 +197,36 @@ test('pdc schedule ignores a staff-overridden loan security rate and uses the st
     expect($schedule['totals']['loan_security'])->toBe(round(24000.0 * 0.05));
 });
 
+test('pdc schedule ignores the approved interest rate and uses the loan processor\'s recommended rate', function () {
+    $loan = [
+        'approved_amount_raw' => 24000.0,
+        // Simulates a manager-overridden approved rate at final approval --
+        // the Annex A schedule must not use this and must fall back to the
+        // loan processor's recommended rate instead.
+        'interest_rate_raw' => 0.60,
+        'interest_rate_recommended_raw' => 0.36,
+        'amortization_count' => 24,
+        'payment_mode_workbook' => 'QUINCENAL',
+        'lumpsum_months' => null,
+        'loan_security_rate_standard_raw' => 0.0,
+    ];
+
+    $service = app(PdcSchedulePdfService::class);
+    $method = (new ReflectionClass($service))->getMethod('buildAmortizationSchedule');
+    $method->setAccessible(true);
+
+    $rows = $method->invoke($service, $loan)['rows'];
+
+    $periodicRate = 0.36 / 24;
+    $expectedFirstInterest = round(24000.0 * $periodicRate);
+
+    expect($rows[0]['interest'])->toBe($expectedFirstInterest);
+});
+
 test('pdc schedule matches the official Annex A reference schedule for a 100,000 loan at 44% over 12 monthly checks', function () {
     $loan = [
         'approved_amount_raw' => 100000.0,
-        'interest_rate_raw' => 0.44,
+        'interest_rate_recommended_raw' => 0.44,
         'amortization_count' => 12,
         'payment_mode_workbook' => null,
         'lumpsum_months' => null,

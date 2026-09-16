@@ -105,7 +105,11 @@ class PdcSchedulePdfService
         $emptyTotals = ['principal' => null, 'interest' => null, 'loan_security' => null, 'total' => null];
 
         $principal = is_numeric($loan['approved_amount_raw'] ?? null) ? (float) $loan['approved_amount_raw'] : null;
-        $annualRate = is_numeric($loan['interest_rate_raw'] ?? null) ? (float) $loan['interest_rate_raw'] : null;
+        // Unlike the other approved-loan documents, the check schedule uses
+        // the loan processor's recommended rate rather than the (possibly
+        // manager-overridden) approved rate -- see interest_rate_recommended_raw
+        // in ApprovedLoanDocumentDataBuilder.
+        $annualRate = is_numeric($loan['interest_rate_recommended_raw'] ?? null) ? (float) $loan['interest_rate_recommended_raw'] : null;
         $count = is_numeric($loan['amortization_count'] ?? null) ? (int) $loan['amortization_count'] : null;
         $paymentMode = is_string($loan['payment_mode_workbook'] ?? null) ? $loan['payment_mode_workbook'] : null;
         $lumpsumMonths = is_numeric($loan['lumpsum_months'] ?? null) ? (int) $loan['lumpsum_months'] : null;

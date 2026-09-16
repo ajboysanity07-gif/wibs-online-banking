@@ -190,6 +190,12 @@ class ApprovedLoanDocumentDataBuilder
             $overrideLoan['interest_rate_raw'] ?? null,
             $this->normalizeNumericValue($loanRequest->approved_interest_rate),
         );
+        // Unlike interest_rate_raw above, this ignores approved_interest_rate
+        // (which a manager can override at approval) -- the PDC Schedule
+        // (Annex A) must compute check interest off the rate the loan
+        // processor recommended.
+        $interestRateRecommendedRaw = $this->normalizeNumericValue($loanRequest->recommended_interest_rate)
+            ?? $interestRateRaw;
         $serviceChargeRateRaw = $this->resolveNumericOverride(
             $overrideLoan['service_charge_rate_raw']
                 ?? $flatValues['service_charge_rate']
@@ -433,6 +439,7 @@ class ApprovedLoanDocumentDataBuilder
                 'recommended_by' => $processorDisplayName,
                 'insurance_term' => $insuranceTerm,
                 'interest_rate_raw' => $interestRateRaw,
+                'interest_rate_recommended_raw' => $interestRateRecommendedRaw,
                 'service_charge_rate_raw' => $serviceChargeRateRaw,
                 'insurance_rate_raw' => $insuranceRateRaw,
                 'loan_security_rate_raw' => $loanSecurityRateRaw,
