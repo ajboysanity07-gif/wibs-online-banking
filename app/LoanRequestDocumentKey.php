@@ -101,4 +101,25 @@ enum LoanRequestDocumentKey: string
     {
         return [];
     }
+
+    /**
+     * Documents temporarily pulled from generation/checklist visibility.
+     * Empty this array (or remove specific cases) to re-enable.
+     *
+     * @return list<self>
+     */
+    public static function temporarilyDisabled(): array
+    {
+        return [
+            self::LoanInformation,
+            self::PlanOfPayment,
+            self::DisclosureStatement,
+            self::PdcSchedule,
+        ];
+    }
+
+    public function isTemporarilyDisabled(): bool
+    {
+        return in_array($this, self::temporarilyDisabled(), true);
+    }
 }

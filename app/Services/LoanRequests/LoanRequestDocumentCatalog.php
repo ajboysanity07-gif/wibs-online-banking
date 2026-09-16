@@ -665,6 +665,10 @@ class LoanRequestDocumentCatalog
         LoanRequest $loanRequest,
         array $flatValues,
     ): bool {
+        if ($documentKey->isTemporarilyDisabled()) {
+            return false;
+        }
+
         if ($documentKey !== LoanRequestDocumentKey::ApplicationForm
             && $this->isBeforeLegacyDocumentCutoff($loanRequest)) {
             return false;
@@ -863,6 +867,10 @@ class LoanRequestDocumentCatalog
         LoanRequest $loanRequest,
         array $flatValues,
     ): ?string {
+        if ($documentKey->isTemporarilyDisabled()) {
+            return 'Temporarily disabled.';
+        }
+
         return match ($documentKey) {
             LoanRequestDocumentKey::AuthorityToDeduct => (function () use ($loanRequest, $flatValues): ?string {
                 $guidance = $this->authorityToDeductGuidance($loanRequest, $flatValues);

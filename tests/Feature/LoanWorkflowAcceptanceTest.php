@@ -469,24 +469,22 @@ test('single loan manager is auto-assigned as witness two at processing, and app
         ->get()
         ->keyBy('document_key');
 
+    // loan_information is temporarily disabled (see
+    // LoanRequestDocumentKey::temporarilyDisabled()) -- approval no longer
+    // regenerates it, so its version stays put alongside plan_of_payment's.
     expect($documentsAfter['loan_information']->generated_version)
-        ->toBe($preApprovalVersions['loan_information'] + 1)
+        ->toBe($preApprovalVersions['loan_information'])
         ->and($documentsAfter['promissory_note']->generated_version)
         ->toBe($preApprovalVersions['promissory_note'] + 1)
         ->and($documentsAfter['plan_of_payment']->generated_version)
         ->toBe($preApprovalVersions['plan_of_payment']);
 
-    $loanInformationText = acceptancePdfText(
-        Storage::disk($documentsAfter['loan_information']->generated_disk)
-            ->path($documentsAfter['loan_information']->generated_path),
-    );
     $promissoryNoteText = acceptancePdfText(
         Storage::disk($documentsAfter['promissory_note']->generated_disk)
             ->path($documentsAfter['promissory_note']->generated_path),
     );
 
-    expect(mb_strtoupper($loanInformationText))->toContain(mb_strtoupper($expectedManagerDisplayName))
-        ->and(mb_strtoupper($promissoryNoteText))->toContain(mb_strtoupper($expectedManagerDisplayName));
+    expect(mb_strtoupper($promissoryNoteText))->toContain(mb_strtoupper($expectedManagerDisplayName));
 });
 
 test('processing with several loan managers requires choosing a witness-two manager', function (): void {

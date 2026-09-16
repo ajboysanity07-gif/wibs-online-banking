@@ -150,7 +150,7 @@ test('an old record can generate the disclosure statement even when a required f
 
     expect($document->document_key)->toBe(LoanRequestDocumentKey::DisclosureStatement->value)
         ->and($document->readiness_status)->toBe(LoanRequestDocumentReadinessStatus::GeneratedCurrent);
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('a new record is still blocked from generating the disclosure statement when a required field is missing', function (): void {
     [$loanRequest, $processor] = oldRecordExemptionLoanRequest(now());
@@ -170,7 +170,7 @@ test('a new record is still blocked from generating the disclosure statement whe
         LoanRequestDocumentKey::DisclosureStatement,
         $processor,
     ))->toThrow(ValidationException::class);
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('document-readiness data blockers are lifted for old records but still enforced for new records', function (): void {
     [$oldRecord] = oldRecordExemptionLoanRequest('2026-08-03 00:00:00');

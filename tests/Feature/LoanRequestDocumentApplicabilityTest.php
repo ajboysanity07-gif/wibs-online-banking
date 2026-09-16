@@ -245,7 +245,7 @@ test('loan_security_rate stays required and generates blockers unconditionally, 
         'witness_two_name' => ['string', 'Witness Two'],
     ]);
 
-    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::LoanInformation);
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::PromissoryNote);
 
     expect($entry['blockers'])->toContain('Loan security rate must be numeric.');
 });
@@ -274,17 +274,13 @@ test('a legitimately-set loan_security_rate of exactly 0 is accepted as valid, n
         'witness_two_name' => ['string', 'Witness Two'],
     ]);
 
-    foreach ([
-        LoanRequestDocumentKey::LoanInformation,
-        LoanRequestDocumentKey::PlanOfPayment,
-        LoanRequestDocumentKey::DisclosureStatement,
-        LoanRequestDocumentKey::PromissoryNote,
-    ] as $documentKey) {
-        $entry = applicabilityChecklistEntry($loanRequest, $documentKey);
+    // loan_information/plan_of_payment/disclosure_statement are temporarily
+    // disabled (see LoanRequestDocumentKey::temporarilyDisabled()); only
+    // promissory_note remains generatable to exercise this shared field.
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::PromissoryNote);
 
-        expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
-            ->and($entry['blockers'])->not->toContain('Loan security rate must be numeric.');
-    }
+    expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
+        ->and($entry['blockers'])->not->toContain('Loan security rate must be numeric.');
 
     $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
 
@@ -645,18 +641,14 @@ test('insurance_required no longer strips insurance_rate/insurance_term from the
         'witness_two_name' => ['string', 'Witness Two'],
     ]);
 
-    foreach ([
-        LoanRequestDocumentKey::LoanInformation,
-        LoanRequestDocumentKey::PlanOfPayment,
-        LoanRequestDocumentKey::DisclosureStatement,
-        LoanRequestDocumentKey::PromissoryNote,
-    ] as $documentKey) {
-        $entry = applicabilityChecklistEntry($loanRequest, $documentKey);
+    // loan_information/plan_of_payment/disclosure_statement are temporarily
+    // disabled (see LoanRequestDocumentKey::temporarilyDisabled()); only
+    // promissory_note remains generatable to exercise this shared field.
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::PromissoryNote);
 
-        expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
-            ->and($entry['blockers'])->not->toContain('Insurance rate must be numeric.')
-            ->and($entry['blockers'])->not->toContain('Insurance term must be greater than zero.');
-    }
+    expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
+        ->and($entry['blockers'])->not->toContain('Insurance rate must be numeric.')
+        ->and($entry['blockers'])->not->toContain('Insurance term must be greater than zero.');
 });
 
 test('blank insurance_rate/insurance_term produce financial blockers unconditionally, with no flag able to suppress them', function (): void {
@@ -681,7 +673,7 @@ test('blank insurance_rate/insurance_term produce financial blockers uncondition
         'witness_two_name' => ['string', 'Witness Two'],
     ]);
 
-    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::LoanInformation);
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::PromissoryNote);
 
     expect($entry['blockers'])->toContain('Insurance rate must be numeric.')
         ->and($entry['blockers'])->toContain('Insurance term must be greater than zero.');
@@ -711,7 +703,7 @@ test('insurance_term requires a positive integer (isPositiveIntegerValue) while 
         'witness_two_name' => ['string', 'Witness Two'],
     ]);
 
-    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::LoanInformation);
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::PromissoryNote);
 
     expect($entry['blockers'])->toContain('Insurance term must be greater than zero.')
         ->and($entry['blockers'])->not->toContain('Loan security rate must be numeric.');
@@ -741,7 +733,7 @@ test('zeroed insurance_term does not block document generation for 1-month Due d
         'witness_two_name' => ['string', 'Witness Two'],
     ]);
 
-    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::LoanInformation);
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::PromissoryNote);
 
     expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
         ->and($entry['blockers'])->not->toContain('Insurance rate must be numeric.')
@@ -773,12 +765,12 @@ test('zeroed insurance_term blocks document generation for an Emergency loan wit
         'witness_two_name' => ['string', 'Witness Two'],
     ]);
 
-    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::LoanInformation);
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::PromissoryNote);
 
     expect($entry['blockers'])->toContain('Insurance term must be greater than zero.');
 });
 
-test('witness_two_name is no longer required for loan_information, plan_of_payment, or promissory_note', function (): void {
+test('witness_two_name is no longer required for promissory_note (loan_information/plan_of_payment temporarily disabled)', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 25000,
@@ -801,19 +793,13 @@ test('witness_two_name is no longer required for loan_information, plan_of_payme
         'witness_one_name' => ['string', 'Witness One'],
     ]);
 
-    foreach ([
-        LoanRequestDocumentKey::LoanInformation,
-        LoanRequestDocumentKey::PlanOfPayment,
-        LoanRequestDocumentKey::PromissoryNote,
-    ] as $documentKey) {
-        $entry = applicabilityChecklistEntry($loanRequest, $documentKey);
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::PromissoryNote);
 
-        expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
-            ->and($entry['blockers'])->not->toContain('Witness two name is required.');
-    }
+    expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
+        ->and($entry['blockers'])->not->toContain('Witness two name is required.');
 });
 
-test('witness_one_name stays required for loan_information, plan_of_payment, and promissory_note', function (): void {
+test('witness_one_name stays required for promissory_note (loan_information/plan_of_payment temporarily disabled)', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 25000,
@@ -835,15 +821,9 @@ test('witness_one_name stays required for loan_information, plan_of_payment, and
         'penalty_rate_per_month' => ['number', 3],
     ]);
 
-    foreach ([
-        LoanRequestDocumentKey::LoanInformation,
-        LoanRequestDocumentKey::PlanOfPayment,
-        LoanRequestDocumentKey::PromissoryNote,
-    ] as $documentKey) {
-        $entry = applicabilityChecklistEntry($loanRequest, $documentKey);
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::PromissoryNote);
 
-        expect($entry['blockers'])->toContain('Witness one name is required.');
-    }
+    expect($entry['blockers'])->toContain('Witness one name is required.');
 });
 
 /**
@@ -1835,4 +1815,33 @@ test('notarial fee accepts an arbitrary staff-entered value with no forced defau
     $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
 
     expect($documentData['loan']['notarial_fee_raw'])->toBe(250.0);
+});
+
+test('loan_information, plan_of_payment, disclosure_statement, and pdc_schedule are temporarily disabled regardless of loan state', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    $checkPaymentValues = ['payment_option' => \App\LoanPaymentOption::Check->value];
+
+    foreach ([
+        LoanRequestDocumentKey::LoanInformation,
+        LoanRequestDocumentKey::PlanOfPayment,
+        LoanRequestDocumentKey::DisclosureStatement,
+        LoanRequestDocumentKey::PdcSchedule,
+    ] as $documentKey) {
+        expect($documentKey->isTemporarilyDisabled())->toBeTrue()
+            ->and($catalog->isApplicable($documentKey, $loanRequest, $checkPaymentValues))->toBeFalse()
+            ->and($catalog->unavailabilityNote($documentKey, $loanRequest, $checkPaymentValues))->toBe('Temporarily disabled.');
+
+        $entry = applicabilityChecklistEntry($loanRequest, $documentKey);
+
+        expect($entry['is_applicable'])->toBeFalse()
+            ->and($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::NotApplicable->value);
+    }
+
+    // Documents outside the temporary-disable list are unaffected.
+    expect(LoanRequestDocumentKey::PromissoryNote->isTemporarilyDisabled())->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::PromissoryNote, $loanRequest, []))->toBeTrue();
 });

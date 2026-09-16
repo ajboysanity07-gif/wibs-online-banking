@@ -1038,12 +1038,18 @@ class LoanRequestProcessingService
                     $lockedLoanRequest->load('dataEntries');
                 }
 
-                $this->documentWorkflowService->generateDocument(
-                    $lockedLoanRequest,
-                    LoanRequestDocumentKey::LoanInformation,
-                    $actor,
-                    bypassFinalizedGuard: true,
-                );
+                // LoanInformation is temporarily disabled (see
+                // LoanRequestDocumentKey::temporarilyDisabled()); regenerating
+                // it here would throw "not applicable" and roll back the
+                // whole approval transaction.
+                if (! LoanRequestDocumentKey::LoanInformation->isTemporarilyDisabled()) {
+                    $this->documentWorkflowService->generateDocument(
+                        $lockedLoanRequest,
+                        LoanRequestDocumentKey::LoanInformation,
+                        $actor,
+                        bypassFinalizedGuard: true,
+                    );
+                }
                 $this->documentWorkflowService->generateDocument(
                     $lockedLoanRequest,
                     LoanRequestDocumentKey::PromissoryNote,

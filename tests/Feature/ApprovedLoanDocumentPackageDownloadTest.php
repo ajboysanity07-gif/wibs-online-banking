@@ -241,9 +241,16 @@ test('approved loan can access each approved loan document separately', function
     // employers, makes Affidavit of Undertaking inapplicable -- covered
     // separately by the dedicated "affidavit undertaking pdf ..." tests below,
     // which use the default non-institutional employer fixture instead.
+    // loan_information/plan_of_payment/disclosure_statement are temporarily
+    // disabled -- see LoanRequestDocumentKey::temporarilyDisabled().
     $routeDefinitions = array_filter(
         approvedLoanDocumentsRouteDefinitions($loanRequest),
-        fn (array $document): bool => $document['route'] !== 'admin.requests.documents.affidavit-undertaking',
+        fn (array $document): bool => ! in_array($document['route'], [
+            'admin.requests.documents.affidavit-undertaking',
+            'admin.requests.documents.loan-information',
+            'admin.requests.documents.plan-of-payment',
+            'admin.requests.documents.disclosure-statement',
+        ], true),
     );
 
     foreach ($routeDefinitions as $document) {
@@ -295,7 +302,12 @@ test('each approved loan document pdf route returns a pdf response', function ()
     // approved loan document separately" above.
     $routeDefinitions = array_filter(
         approvedLoanDocumentsPdfRouteDefinitions($loanRequest),
-        fn (array $document): bool => $document['route'] !== 'admin.requests.documents.affidavit-undertaking',
+        fn (array $document): bool => ! in_array($document['route'], [
+            'admin.requests.documents.affidavit-undertaking',
+            'admin.requests.documents.loan-information',
+            'admin.requests.documents.plan-of-payment',
+            'admin.requests.documents.disclosure-statement',
+        ], true),
     );
 
     foreach ($routeDefinitions as $document) {
@@ -329,7 +341,12 @@ test('approved template-backed pdf routes preserve page counts', function () {
     // approved loan document separately" above.
     $routeDefinitions = array_filter(
         approvedLoanDocumentsTemplateBackedPdfRouteDefinitions($loanRequest),
-        fn (array $document): bool => $document['route'] !== 'admin.requests.documents.affidavit-undertaking',
+        fn (array $document): bool => ! in_array($document['route'], [
+            'admin.requests.documents.affidavit-undertaking',
+            'admin.requests.documents.loan-information',
+            'admin.requests.documents.plan-of-payment',
+            'admin.requests.documents.disclosure-statement',
+        ], true),
     );
 
     foreach ($routeDefinitions as $document) {
@@ -520,7 +537,7 @@ test('plan of payment route returns a pdf not xlsx', function () {
     $response->assertHeaderContains('content-type', 'application/pdf');
     $response->assertDownload(DocumentFilename::build($loanRequest->reference, 'plan_of_payment', 'pdf'));
     expect($content)->toStartWith('%PDF')->not->toStartWith('PK');
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('plan of payment pdf includes borrower and amortization values', function () {
     $admin = User::factory()->create();
@@ -566,7 +583,7 @@ test('plan of payment pdf includes borrower and amortization values', function (
         ->toContain('HELARIOB.TEJERO')
         ->toContain('ANNABELLEM.AMORA')
         ->toContain('ACMECOOPERATIVE');
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('loan information route returns a pdf not xlsx', function () {
     $admin = User::factory()->create();
@@ -584,7 +601,7 @@ test('loan information route returns a pdf not xlsx', function () {
     $response->assertHeaderContains('content-type', 'application/pdf');
     $response->assertDownload(DocumentFilename::build($loanRequest->reference, 'loan_information', 'pdf'));
     expect($content)->toStartWith('%PDF')->not->toStartWith('PK');
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('loan information pdf includes borrower financial and approval values', function () {
     $admin = User::factory()->create();
@@ -647,7 +664,7 @@ test('loan information pdf includes borrower financial and approval values', fun
         ->toContain('25,000.00')
         ->toContain('VELINAP.GAMUTAN')
         ->toContain('BOOKKEEPER');
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('disclosure statement route returns a pdf not xlsx', function () {
     $admin = User::factory()->create();
@@ -665,7 +682,7 @@ test('disclosure statement route returns a pdf not xlsx', function () {
     $response->assertHeaderContains('content-type', 'application/pdf');
     $response->assertDownload(DocumentFilename::build($loanRequest->reference, 'disclosure_statement', 'pdf'));
     expect($content)->toStartWith('%PDF')->not->toStartWith('PK');
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('disclosure statement pdf includes statutory labels and computed totals', function () {
     $admin = User::factory()->create();
@@ -742,7 +759,7 @@ test('disclosure statement pdf includes statutory labels and computed totals', f
     // text "&nbsp;" inside empty cells (most visibly in the "e. Others:" row).
     // The rendered PDF must never contain that literal text again.
     expect($text)->not->toContain('nbsp');
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('disclosure statement pdf shows single payment due on, not total installment payment, for a lumpsum loan', function () {
     $admin = User::factory()->create();
@@ -773,7 +790,7 @@ test('disclosure statement pdf shows single payment due on, not total installmen
         // Service charge is a finance charge and must always be present/computed,
         // regardless of payment mode.
         ->toContain('SERVICECHARGEAT');
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('disclosure statement pdf includes the org report header image when configured', function () {
     Storage::fake('public');
@@ -797,7 +814,7 @@ test('disclosure statement pdf includes the org report header image when configu
     $response->assertOk();
 
     expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBeGreaterThan(0);
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('disclosure statement pdf omits the header image gracefully when unconfigured', function () {
     Storage::fake('public');
@@ -821,7 +838,7 @@ test('disclosure statement pdf omits the header image gracefully when unconfigur
     // embeds PNGs with an alpha channel as a gray + RGB pair, so the fallback
     // logo alone always yields exactly 2 image objects.
     expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBe(2);
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('grepalife pdf includes structured applicant fields when available', function () {
     $admin = User::factory()->create();
@@ -2338,7 +2355,7 @@ test('loan information pdf includes the org report header image when configured'
     $response->assertOk();
 
     expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBeGreaterThan(0);
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('loan information pdf omits the header image gracefully when unconfigured', function () {
     Storage::fake('public');
@@ -2359,7 +2376,7 @@ test('loan information pdf omits the header image gracefully when unconfigured',
     $response->assertOk();
 
     expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBe(0);
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('undertaking barangay pdf prints applicant employment details, not staff barangay overrides', function () {
     $admin = User::factory()->create();
@@ -2764,7 +2781,7 @@ test('member can download loan information and disclosure statement while awaiti
 
     $this->get(route('client.loan-requests.documents.promissory-note', $loanRequest))
         ->assertNotFound();
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('admin can download loan information and disclosure statement while awaiting acceptance, but not promissory note yet', function () {
     $admin = User::factory()->create();
@@ -2787,7 +2804,7 @@ test('admin can download loan information and disclosure statement while awaitin
     $this->get(route('admin.requests.documents.loan-information', $loanRequest))->assertOk();
     $this->get(route('admin.requests.documents.disclosure-statement', $loanRequest))->assertOk();
     $this->get(route('admin.requests.documents.promissory-note', $loanRequest))->assertNotFound();
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('missing optional fields do not break approved document generation', function () {
     $admin = User::factory()->create();
@@ -2852,9 +2869,16 @@ test('missing optional fields do not break approved document generation', functi
     // excludes institutional-category employers -- covered separately by the
     // dedicated "affidavit undertaking pdf ..." tests, which use a
     // non-institutional employer fixture instead.
+    // loan_information/plan_of_payment/disclosure_statement are temporarily
+    // disabled -- see LoanRequestDocumentKey::temporarilyDisabled().
     $routeDefinitions = array_filter(
         approvedLoanDocumentsPdfRouteDefinitions($loanRequest),
-        fn (array $document): bool => $document['route'] !== 'admin.requests.documents.affidavit-undertaking',
+        fn (array $document): bool => ! in_array($document['route'], [
+            'admin.requests.documents.affidavit-undertaking',
+            'admin.requests.documents.loan-information',
+            'admin.requests.documents.plan-of-payment',
+            'admin.requests.documents.disclosure-statement',
+        ], true),
     );
 
     foreach ($routeDefinitions as $document) {
@@ -3292,7 +3316,7 @@ test('loan manager on document reflects the actual approver name', function () {
     $searchable = strtoupper(str_replace(' ', '', $text));
 
     expect($searchable)->toContain('RODRIGOR.REYES');
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('loan manager falls back to resolver constant when no approver is set', function () {
     $admin = User::factory()->create();
@@ -3347,7 +3371,7 @@ test('witnesses on document use stored data entries rather than manager name', f
         ->toContain('MARIAAPPROVINGMANAGER')
         ->toContain('WITNESSALPHA')
         ->not->toContain('WITNESSBETA');
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 /**
  * @return array<int, array{route: string, filename: string, disposition: string}>

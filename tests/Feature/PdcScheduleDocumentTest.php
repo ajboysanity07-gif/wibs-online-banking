@@ -77,7 +77,7 @@ test('pdc schedule is applicable only when payment option is check', function ()
         $loanRequest->fresh(),
         ['payment_option' => LoanPaymentOption::AtmDeduction->value],
     ))->toBeFalse();
-});
+})->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
 test('pdc schedule has no missing official template blockers', function () {
     $catalog = app(LoanRequestDocumentCatalog::class);
