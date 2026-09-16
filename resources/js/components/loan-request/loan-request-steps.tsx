@@ -456,6 +456,7 @@ type PersonStepProps = {
 
 type ApplicantPersonalStepProps = PersonStepProps & {
     section: 'basic' | 'contact' | 'family';
+    contactNumberOnFile?: string | null;
 };
 
 const PERSONAL_STEP_TITLES: Record<
@@ -482,6 +483,7 @@ export function LoanRequestApplicantPersonalStep({
     readOnly,
     onChange,
     section,
+    contactNumberOnFile = null,
 }: ApplicantPersonalStepProps) {
     return (
         <LoanRequestSectionCard
@@ -499,6 +501,7 @@ export function LoanRequestApplicantPersonalStep({
                 includeCivilHousing
                 section={section}
                 onChange={onChange}
+                contactNumberOnFile={contactNumberOnFile}
             />
         </LoanRequestSectionCard>
     );
@@ -531,6 +534,7 @@ export function LoanRequestApplicantWorkStep({
                 errors={errors}
                 section={section}
                 onChange={onChange}
+                showInstitutionalEmployerCategory={false}
             />
             {section === 'income' ? (
                 <>
@@ -676,6 +680,7 @@ export function LoanRequestCoMakerStep({
                         errors={errors}
                         section={section}
                         onChange={onChange}
+                        showInstitutionalEmployerCategory={false}
                     />
                     {section === 'income' ? (
                         <>

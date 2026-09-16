@@ -69,6 +69,18 @@ export const INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS: Record<string, string> = {
 };
 
 /**
+ * Select-option form of INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS, shared by the
+ * staff correction wizard and the Processing Details panel so the option list
+ * only needs to be maintained in one place.
+ */
+export const INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS: Array<{
+    value: string;
+    label: string;
+}> = Object.entries(INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS).map(
+    ([value, label]) => ({ value, label }),
+);
+
+/**
  * Flags a stale/incorrect explicit institutional_employer_category -- e.g.
  * the member declared it once, then changed employers without updating it.
  * Only fires when the resolver confidently detects a *different* category

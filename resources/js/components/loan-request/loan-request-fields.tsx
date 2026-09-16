@@ -27,6 +27,7 @@ import {
     SELF_EMPLOYED_EMPLOYMENT_TYPE,
 } from '@/lib/employment-type';
 import { calculateAge } from '@/lib/formatters';
+import { INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS } from '@/lib/institutional-employer-category';
 import { normalizeMobileNumberInput } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { barangays, cities, provinces, zip } from '@/routes/api/locations';
@@ -86,23 +87,6 @@ const NATURE_OF_BUSINESS_OPTIONS = [
     NATURE_OF_BUSINESS_OTHER_VALUE,
 ];
 const INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE = 'not_applicable';
-const INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS: Array<{
-    value: string;
-    label: string;
-}> = [
-    { value: 'blgu', label: 'Barangay / BLGU' },
-    {
-        value: 'lgu',
-        label: 'City, Municipal, or Provincial Government (LGU)',
-    },
-    { value: 'mrdinc', label: 'MRDINC' },
-    {
-        value: 'healthcare',
-        label: 'Healthcare institution (hospital, clinic, etc.)',
-    },
-    { value: 'deped', label: 'DepEd (Basic Education)' },
-    { value: 'ched', label: 'CHED-covered institution (college/university)' },
-];
 const readOnlyInputClass =
     'bg-muted/30 text-muted-foreground/80 border-border/40';
 
@@ -179,6 +163,10 @@ type PersonalFieldsProps = {
     portal?: boolean;
     section?: 'all' | 'basic' | 'contact' | 'family';
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
+    // Applicant-only: the member's contact number on file (wmaster.telephone)
+    // -- shown as a hint under Cell no. since that's what actually prints on
+    // the Generali/Grepalife insurance documents, not this wizard field.
+    contactNumberOnFile?: string | null;
 };
 
 export function LoanRequestPersonalFields({
@@ -192,6 +180,7 @@ export function LoanRequestPersonalFields({
     portal = true,
     section = 'all',
     onChange,
+    contactNumberOnFile = null,
 }: PersonalFieldsProps) {
     const educationalAttainment = values.educational_attainment;
 
@@ -838,6 +827,13 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'cell_no'),
                             )}
                         />
+                        {contactNumberOnFile ? (
+                            <p className="text-xs text-muted-foreground">
+                                On file: {contactNumberOnFile} -- this is what
+                                prints on the insurance documents (Generali,
+                                Grepalife), not this field.
+                            </p>
+                        ) : null}
                     </div>
 
                     {!hasFamilySection ? (
@@ -1111,6 +1107,7 @@ type WorkFieldsProps = {
     portal?: boolean;
     section?: 'all' | 'employment' | 'income';
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
+    showInstitutionalEmployerCategory?: boolean;
 };
 
 export function LoanRequestWorkFields({
@@ -1120,6 +1117,7 @@ export function LoanRequestWorkFields({
     portal = true,
     section = 'all',
     onChange,
+    showInstitutionalEmployerCategory = true,
 }: WorkFieldsProps) {
     const employmentType = values.employment_type;
     const isPensioner = isPensionerType(employmentType);
@@ -1624,7 +1622,9 @@ export function LoanRequestWorkFields({
                             </div>
                         ) : null}
 
-                        {!isPensioner && prefix === 'applicant' ? (
+                        {showInstitutionalEmployerCategory &&
+                        !isPensioner &&
+                        prefix === 'applicant' ? (
                             <div className="grid gap-2">
                                 <Label
                                     htmlFor={`${prefix}_institutional_employer_category`}

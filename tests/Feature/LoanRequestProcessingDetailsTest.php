@@ -82,6 +82,64 @@ test('processing update with loan_request passthrough preserves loan details whi
         ->and($loanRequest->recommended_amount)->toBe('24000.00');
 });
 
+/**
+ * Members no longer self-classify institutional_employer_category in the
+ * wizard or Settings > Work tab (the labels are payroll-deduction jargon they
+ * don't reliably understand). Staff now set/confirm it during processing via
+ * this same endpoint -- this locks in that the applicant sub-payload is
+ * actually applied and persisted.
+ */
+test('processing update can set the applicant institutional_employer_category', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950006');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'requested_amount' => '25000.00',
+        'requested_term' => 12,
+        'loan_purpose' => 'Home improvement',
+        'availment_status' => 'New',
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employer_business_name' => 'Barangay Sample',
+            'employment_type' => 'Government',
+            'nature_of_business' => 'Government',
+            'institutional_employer_category' => null,
+        ]);
+
+    $payload = [
+        'reason' => 'Confirmed institutional employer category during review.',
+        'loan_request' => [
+            'requested_amount' => '25000.00',
+            'requested_term' => 12,
+            'loan_purpose' => 'Home improvement',
+            'availment_status' => 'New',
+        ],
+        'applicant' => [
+            'institutional_employer_category' => \App\LoanInstitutionalEmployerCategory::Blgu->value,
+        ],
+    ];
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $payload)
+        ->assertOk();
+
+    $applicant = $loanRequest->fresh()->people
+        ->firstWhere('role', LoanRequestPersonRole::Applicant);
+
+    expect($applicant->institutional_employer_category)
+        ->toBe(\App\LoanInstitutionalEmployerCategory::Blgu);
+});
+
 test('processing update rejects a non-canonical recommended_payment_frequency value', function (): void {
     $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
     $member = createProcessingActor([Role::MEMBER], '950002');

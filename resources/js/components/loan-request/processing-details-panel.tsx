@@ -44,6 +44,11 @@ import {
 import type { LoanRequestProcessingDetailsPayload } from '@/hooks/admin/use-loan-request-workflow';
 import { adminApi } from '@/lib/api/admin';
 import { formatCurrency } from '@/lib/formatters';
+import {
+    INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS,
+    INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS,
+    resolveInstitutionalEmployerCategory,
+} from '@/lib/institutional-employer-category';
 import { cn } from '@/lib/utils';
 import type {
     LoanManagerOption,
@@ -67,6 +72,8 @@ export const textareaClassName =
 // no other consumer, so hide it alongside the document. Flip to false to
 // restore both.
 const PDC_SCHEDULE_TEMPORARILY_DISABLED = true;
+
+const INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE = 'unset';
 
 const actionCardClassName =
     'border-primary/25 bg-card/80 shadow-sm ring-1 ring-primary/10';
@@ -457,6 +464,7 @@ type InlineProcessingFormState = {
     recommended_term: string;
     recommended_interest_rate: string;
     recommended_payment_frequency: string;
+    institutional_employer_category: string;
     reason: string;
 };
 
@@ -567,6 +575,8 @@ export function ProcessingDetailsPanel({
             ),
             recommended_payment_frequency:
                 loanRequest.recommended_payment_frequency ?? '',
+            institutional_employer_category:
+                applicant?.institutional_employer_category ?? '',
             reason: '',
         });
     const [recommendationPreview, setRecommendationPreview] =
@@ -581,6 +591,18 @@ export function ProcessingDetailsPanel({
         loanRequest.authority_to_deduct_guidance?.recommended_officers !== 1 ||
             hasSecondOfficerValue(dataSections.processing),
     );
+    const resolvedInstitutionalEmployerCategory =
+        resolveInstitutionalEmployerCategory(
+            applicant?.employer_business_name,
+            applicant?.employment_type,
+            applicant?.nature_of_business,
+        );
+    const institutionalEmployerCategoryHint =
+        resolvedInstitutionalEmployerCategory
+            ? INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS[
+                  resolvedInstitutionalEmployerCategory
+              ]
+            : null;
     const gnthpRecalculationTimeoutRef = useRef<ReturnType<
         typeof setTimeout
     > | null>(null);
@@ -651,6 +673,8 @@ export function ProcessingDetailsPanel({
             ),
             recommended_payment_frequency:
                 loanRequest.recommended_payment_frequency ?? '',
+            institutional_employer_category:
+                applicant?.institutional_employer_category ?? '',
             reason: '',
         });
         setShowSecondOfficer(
@@ -659,6 +683,7 @@ export function ProcessingDetailsPanel({
         );
     }, [
         applicant?.birthdate,
+        applicant?.institutional_employer_category,
         cycleState,
         dataSections.dependents,
         dataSections.processing,
@@ -682,6 +707,13 @@ export function ProcessingDetailsPanel({
                 ...current.processing,
                 [field]: value,
             },
+        }));
+    };
+
+    const updateInstitutionalEmployerCategory = (value: string) => {
+        setProcessingForm((current) => ({
+            ...current,
+            institutional_employer_category: value,
         }));
     };
 
@@ -908,6 +940,10 @@ export function ProcessingDetailsPanel({
         const result = await updateProcessingDetails(loanRequest.id, {
             reason: processingForm.reason,
             loan_request: buildLoanRequestPassthrough(),
+            applicant: {
+                institutional_employer_category:
+                    processingForm.institutional_employer_category || null,
+            },
             processing: buildInlineProcessingPayload(processingForm.processing),
             recommended_amount: processingForm.recommended_amount || null,
             recommended_term: processingForm.recommended_term || null,
@@ -1996,6 +2032,59 @@ export function ProcessingDetailsPanel({
                                     </p>
                                 )}
                                 <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="grid gap-2 sm:col-span-2">
+                                        <Label htmlFor="inline_institutional_employer_category">
+                                            Institutional employer category
+                                        </Label>
+                                        <Select
+                                            value={
+                                                processingForm.institutional_employer_category ||
+                                                INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
+                                            }
+                                            onValueChange={(value) =>
+                                                updateInstitutionalEmployerCategory(
+                                                    value ===
+                                                        INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
+                                                        ? ''
+                                                        : value,
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                id="inline_institutional_employer_category"
+                                                className="w-full"
+                                            >
+                                                <SelectValue placeholder="Not set" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem
+                                                    value={
+                                                        INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
+                                                    }
+                                                >
+                                                    Not set
+                                                </SelectItem>
+                                                {INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS.map(
+                                                    (option) => (
+                                                        <SelectItem
+                                                            key={option.value}
+                                                            value={option.value}
+                                                        >
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        {institutionalEmployerCategoryHint && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Detected from employer info:{' '}
+                                                {
+                                                    institutionalEmployerCategoryHint
+                                                }
+                                            </p>
+                                        )}
+                                    </div>
                                     {renderProcessingField(
                                         'authority_to_deduct_institution_name',
                                         { fullWidth: true },

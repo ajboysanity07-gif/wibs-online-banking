@@ -38,6 +38,7 @@ export type MemberRecord = {
     birthplace_city: string | null;
     birthplace_province: string | null;
     birthday: string | null;
+    telephone: string | null;
     address: string | null;
     address1: string | null;
     barangay: string | null;
@@ -240,25 +241,6 @@ export const NATURE_OF_BUSINESS_OPTIONS = [
     'Technology',
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
-];
-export const INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE =
-    'not_applicable';
-export const INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS: Array<{
-    value: string;
-    label: string;
-}> = [
-    { value: 'blgu', label: 'Barangay / BLGU' },
-    {
-        value: 'lgu',
-        label: 'City, Municipal, or Provincial Government (LGU)',
-    },
-    { value: 'mrdinc', label: 'MRDINC' },
-    {
-        value: 'healthcare',
-        label: 'Healthcare institution (hospital, clinic, etc.)',
-    },
-    { value: 'deped', label: 'DepEd (Basic Education)' },
-    { value: 'ched', label: 'CHED-covered institution (college/university)' },
 ];
 export const PROFILE_TAB_ORDER = [
     'account',

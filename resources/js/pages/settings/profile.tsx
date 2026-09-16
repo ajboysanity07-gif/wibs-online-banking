@@ -364,10 +364,6 @@ export default function Profile({
             ? initialNatureOfBusiness
             : '',
     );
-    const [institutionalEmployerCategory, setInstitutionalEmployerCategory] =
-        useState<string>(
-            memberApplicationProfile?.institutional_employer_category ?? '',
-        );
     const [yearsInWorkBusiness, setYearsInWorkBusiness] = useState<string>(
         memberApplicationProfile?.years_in_work_business ?? '',
     );
@@ -847,6 +843,11 @@ export default function Profile({
                                                     mustVerifyEmail
                                                 }
                                                 status={status}
+                                                memberRecord={
+                                                    hasMemberAccess
+                                                        ? memberRecord
+                                                        : null
+                                                }
                                             />
 
                                             {hasMemberAccess && (
@@ -1050,12 +1051,6 @@ export default function Profile({
                                                     }
                                                     resolvedNatureOfBusiness={
                                                         resolvedNatureOfBusiness
-                                                    }
-                                                    institutionalEmployerCategory={
-                                                        institutionalEmployerCategory
-                                                    }
-                                                    setInstitutionalEmployerCategory={
-                                                        setInstitutionalEmployerCategory
                                                     }
                                                     yearsInWorkBusiness={
                                                         yearsInWorkBusiness
