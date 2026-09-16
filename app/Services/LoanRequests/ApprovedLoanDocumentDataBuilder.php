@@ -590,7 +590,7 @@ class ApprovedLoanDocumentDataBuilder
             'applicant' => $this->personDocumentData($applicant, $loanRequest, $memberRecord),
             'co_maker_one' => $this->personDocumentData($coMakerOne, $loanRequest),
             'co_maker_two' => $this->personDocumentData($coMakerTwo, $loanRequest),
-            'beneficiaries' => $this->beneficiaryDocumentData($flatValues, $memberRecord),
+            'beneficiaries' => $this->beneficiaryDocumentData($flatValues, $memberRecord, $applicant),
             'health_glapi' => $this->healthGlapiDocumentData($flatValues),
             'existing_loans' => $existingLoans,
             'application_form' => $this->generaliApplicationFormDocumentData(
@@ -723,11 +723,23 @@ class ApprovedLoanDocumentDataBuilder
     }
 
     /**
+     * The printed Generali beneficiary table has room for exactly 2 rows, so
+     * that's the hard cap on however many sources below end up contributing.
+     */
+    private const BENEFICIARY_ROW_LIMIT = 2;
+
+    /**
      * @param  array<string, mixed>  $flatValues
      * @return array<int, array{name: string, birthdate: string|null, relationship: string|null}>
      */
-    private function beneficiaryDocumentData(array $flatValues, ?Wmaster $memberRecord): array
+    private function beneficiaryDocumentData(array $flatValues, ?Wmaster $memberRecord, ?LoanRequestPerson $applicant = null): array
     {
+        $flaggedDependents = $this->flaggedBeneficiaryDependents($flatValues, $applicant);
+
+        if ($flaggedDependents !== []) {
+            return array_slice($flaggedDependents, 0, self::BENEFICIARY_ROW_LIMIT);
+        }
+
         $beneficiariesFromEntries = array_values(array_filter([
             ! $this->isBlankString($flatValues['beneficiary_primary_name'] ?? null)
                 ? [
@@ -813,6 +825,72 @@ class ApprovedLoanDocumentDataBuilder
         }
 
         return array_slice($beneficiaries, 0, 3);
+    }
+
+    /**
+     * Dependents (spouse included) the member flagged as an insurance
+     * beneficiary via Settings > Dependents or the wizard's Dependents step
+     * -- spouse first, then children/siblings/parents/extended in the same
+     * category order used elsewhere (dependentsDocumentData()). Takes
+     * priority over the legacy beneficiary_primary_ and beneficiary_secondary_
+     * free-text fields and the Wmaster beneficiary1/2/3 slots, which now
+     * only serve as a fallback for loan requests created before this flag
+     * existed.
+     *
+     * @param  array<string, mixed>  $flatValues
+     * @return list<array{name: string, birthdate: string|null, relationship: string|null}>
+     */
+    private function flaggedBeneficiaryDependents(array $flatValues, ?LoanRequestPerson $applicant): array
+    {
+        $beneficiaries = [];
+
+        if ($this->isTruthy($flatValues['dependent_spouse_is_beneficiary'] ?? null)) {
+            $spouseName = $this->normalizeText($applicant?->spouse_name);
+
+            if ($spouseName !== null) {
+                $beneficiaries[] = [
+                    'name' => $spouseName,
+                    'birthdate' => $this->formatShortDateValue($applicant?->spouse_birthdate),
+                    'relationship' => 'Spouse',
+                ];
+            }
+        }
+
+        $categorySlots = [
+            'child' => ['slots' => 3, 'label' => 'Child'],
+            'sibling' => ['slots' => 3, 'label' => 'Sibling'],
+            'parent' => ['slots' => 2, 'label' => 'Parent'],
+            'extended' => ['slots' => 3, 'label' => 'Extended Family Member'],
+        ];
+
+        foreach ($categorySlots as $category => $categoryConfig) {
+            for ($slot = 1; $slot <= $categoryConfig['slots']; $slot++) {
+                $prefix = "dependent_{$category}_{$slot}_";
+
+                if (! $this->isTruthy($flatValues[$prefix.'is_beneficiary'] ?? null)) {
+                    continue;
+                }
+
+                $name = $this->normalizeText($flatValues[$prefix.'name'] ?? null);
+
+                if ($name === null) {
+                    continue;
+                }
+
+                $beneficiaries[] = [
+                    'name' => $name,
+                    'birthdate' => $this->formatShortDateValue($flatValues[$prefix.'birthdate'] ?? null),
+                    'relationship' => $categoryConfig['label'],
+                ];
+            }
+        }
+
+        return $beneficiaries;
+    }
+
+    private function isTruthy(mixed $value): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

@@ -391,6 +391,7 @@ class LoanRequestService
                 'birthdate' => $dependent->birthdate?->toDateString(),
                 'cycle_status' => $dependent->cycle_status,
                 'cycle_number' => $dependent->cycle_number,
+                'is_beneficiary' => $dependent->is_beneficiary ? '1' : null,
             ] as $attribute => $rawValue) {
                 $applyValue($prefix.$attribute, $rawValue);
             }
@@ -398,6 +399,7 @@ class LoanRequestService
 
         $applyValue('dependent_spouse_cycle_status', $dependentProfile->spouse_cycle_status);
         $applyValue('dependent_spouse_cycle_number', $dependentProfile->spouse_cycle_number);
+        $applyValue('dependent_spouse_is_beneficiary', $dependentProfile->spouse_is_beneficiary ? '1' : null);
 
         return [$dependentsValues, $prefilled];
     }

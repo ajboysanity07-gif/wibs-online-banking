@@ -82,9 +82,10 @@ test('getFormData prefills dependents from the member profile and flags it', fun
         'birthdate' => '1995-03-04',
         'cycle_status' => 'Old',
         'cycle_number' => 2,
+        'is_beneficiary' => true,
     ]);
 
-    $dependentProfile->update(['spouse_cycle_status' => 'New']);
+    $dependentProfile->update(['spouse_cycle_status' => 'New', 'spouse_is_beneficiary' => true]);
 
     $formData = app(LoanRequestService::class)->getFormData($member);
 
@@ -93,7 +94,9 @@ test('getFormData prefills dependents from the member profile and flags it', fun
     expect($formData['dataSections']['dependents']['dependent_sibling_1_birthdate'])->toBe('1995-03-04');
     expect($formData['dataSections']['dependents']['dependent_sibling_1_cycle_status'])->toBe('Old');
     expect($formData['dataSections']['dependents']['dependent_sibling_1_cycle_number'])->toBe('2');
+    expect($formData['dataSections']['dependents']['dependent_sibling_1_is_beneficiary'])->toBe('1');
     expect($formData['dataSections']['dependents']['dependent_spouse_cycle_status'])->toBe('New');
+    expect($formData['dataSections']['dependents']['dependent_spouse_is_beneficiary'])->toBe('1');
 });
 
 test('getFormData does not flag dependents prefill when the profile has no dependent rows', function (): void {
@@ -211,8 +214,10 @@ test('submit writes back validated dependent fields to normalized profile tables
             'dependent_child_1_birthdate' => '2015-06-07',
             'dependent_child_1_cycle_status' => 'Old',
             'dependent_child_1_cycle_number' => 1,
+            'dependent_child_1_is_beneficiary' => true,
             'dependent_parent_1_name' => 'Submitted Parent',
             'dependent_spouse_cycle_status' => 'New',
+            'dependent_spouse_is_beneficiary' => true,
             'applicant_cycle_status' => 'New',
         ],
         'applicant' => $person(['sex' => 'Male']),
@@ -241,8 +246,10 @@ test('submit writes back validated dependent fields to normalized profile tables
     expect($child->birthdate->toDateString())->toBe('2015-06-07');
     expect($child->cycle_status)->toBe('Old');
     expect($child->cycle_number)->toBe(1);
+    expect($child->is_beneficiary)->toBeTrue();
 
     expect($dependentProfile->spouse_cycle_status)->toBe('New');
+    expect($dependentProfile->spouse_is_beneficiary)->toBeTrue();
 
     $parent = MemberDependent::query()
         ->where('member_dependent_profile_id', $dependentProfile->id)

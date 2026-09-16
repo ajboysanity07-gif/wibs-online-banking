@@ -32,8 +32,8 @@ class DependentsProfileSyncService
 
         foreach (MemberDependentProfile::CATEGORY_CAPS as $category => $cap) {
             for ($slot = 1; $slot <= $cap; $slot++) {
-                foreach (['name', 'birthdate', 'cycle_status', 'cycle_number'] as $attribute) {
-                    $values["dependent_{$category}_{$slot}_{$attribute}"] = null;
+                foreach (['name', 'birthdate', 'cycle_status', 'cycle_number', 'is_beneficiary'] as $attribute) {
+                    $values["dependent_{$category}_{$slot}_{$attribute}"] = $attribute === 'is_beneficiary' ? false : null;
                 }
             }
         }
@@ -45,10 +45,12 @@ class DependentsProfileSyncService
             $values[$prefix.'birthdate'] = $dependent->birthdate?->toDateString();
             $values[$prefix.'cycle_status'] = $dependent->cycle_status;
             $values[$prefix.'cycle_number'] = $dependent->cycle_number;
+            $values[$prefix.'is_beneficiary'] = $dependent->is_beneficiary;
         }
 
         $values['dependent_spouse_cycle_status'] = $dependentProfile?->spouse_cycle_status;
         $values['dependent_spouse_cycle_number'] = $dependentProfile?->spouse_cycle_number;
+        $values['dependent_spouse_is_beneficiary'] = $dependentProfile?->spouse_is_beneficiary ?? false;
 
         return $values;
     }
@@ -83,6 +85,12 @@ class DependentsProfileSyncService
             $dependentProfile->update([
                 'spouse_cycle_status' => $this->normalizeOptionalString($dependentsPayload['dependent_spouse_cycle_status'] ?? null),
                 'spouse_cycle_number' => $this->normalizeOptionalInt($dependentsPayload['dependent_spouse_cycle_number'] ?? null),
+            ]);
+        }
+
+        if (array_key_exists('dependent_spouse_is_beneficiary', $dependentsPayload)) {
+            $dependentProfile->update([
+                'spouse_is_beneficiary' => $this->normalizeBoolean($dependentsPayload['dependent_spouse_is_beneficiary'] ?? null),
             ]);
         }
 
@@ -122,6 +130,9 @@ class DependentsProfileSyncService
                     'cycle_number' => array_key_exists($prefix.'cycle_number', $dependentsPayload)
                         ? $this->normalizeOptionalInt($dependentsPayload[$prefix.'cycle_number'])
                         : $existingRow?->cycle_number,
+                    'is_beneficiary' => array_key_exists($prefix.'is_beneficiary', $dependentsPayload)
+                        ? $this->normalizeBoolean($dependentsPayload[$prefix.'is_beneficiary'])
+                        : (bool) $existingRow?->is_beneficiary,
                 ];
 
                 MemberDependent::query()->updateOrCreate(
@@ -154,5 +165,10 @@ class DependentsProfileSyncService
         }
 
         return (int) $value;
+    }
+
+    private function normalizeBoolean(mixed $value): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 }

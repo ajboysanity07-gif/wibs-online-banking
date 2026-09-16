@@ -2,10 +2,12 @@
 
 namespace App\Services\LoanRequests\PdfFieldMaps;
 
+use App\Services\LoanRequests\PdfFieldMaps\Concerns\FormatsDmyDates;
 use App\Services\LoanRequests\PdfFieldMaps\Concerns\UppercasesFieldValues;
 
 class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
 {
+    use FormatsDmyDates;
     use UppercasesFieldValues;
 
     /**
@@ -61,7 +63,7 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             // ['page' => 1, 'x' => 42.6, 'y' => 102.0, 'size' => 9, 'width' => 30, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.mobile'],
             ['page' => 1, 'x' => 117.4, 'y' => 99.0, 'size' => 9, 'width' => 33, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.mobile'],
 
-            ['page' => 1, 'x' => 27.3, 'y' => 112.0, 'size' => 9, 'value' => 'applicant.birthdate'],
+            ['page' => 1, 'x' => 27.3, 'y' => 112.0, 'size' => 9, 'value' => static fn (array $d) => self::toDmy(data_get($d, 'applicant.birthdate'), 'F d, Y')],
             ['page' => 1, 'x' => 76.5, 'y' => 112.0, 'size' => 9, 'width' => 55, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.place_of_birth'],
             ['page' => 1, 'x' => 135.4, 'y' => 112.0, 'size' => 9, 'value' => 'applicant.age'],
             ['page' => 1, 'type' => 'check', 'x' => 146.59, 'y' => 111.48, 'size' => 7, 'value' => static fn (array $d): bool => strtoupper((string) (data_get($d, 'applicant.sex') ?? '')) === 'MALE'],
@@ -115,7 +117,7 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
     {
         $row = static fn (int $index, float $y): array => [
             ['page' => 1, 'x' => 25.3, 'y' => $y, 'size' => 8, 'width' => 46, 'shrink_to_fit' => true, 'min_size' => 6.0, 'align' => 'C', 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.name")],
-            ['page' => 1, 'x' => 76.0, 'y' => $y, 'size' => 8, 'width' => 35, 'shrink_to_fit' => true, 'min_size' => 6.0, 'align' => 'C', 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.birthdate")],
+            ['page' => 1, 'x' => 76.0, 'y' => $y, 'size' => 8, 'width' => 35, 'shrink_to_fit' => true, 'min_size' => 6.0, 'align' => 'C', 'value' => static fn (array $d) => self::toDmy(data_get($d, "beneficiaries.{$index}.birthdate"), 'm/d/Y')],
             ['page' => 1, 'x' => 116.1, 'y' => $y, 'size' => 8, 'width' => 30, 'shrink_to_fit' => true, 'min_size' => 6.0, 'align' => 'C', 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.name") !== null ? data_get($d, 'applicant.nationality') : null],
             ['page' => 1, 'x' => 152, 'y' => $y, 'size' => 8, 'width' => 35, 'shrink_to_fit' => true, 'min_size' => 6.0, 'align' => 'C', 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.relationship")],
         ];

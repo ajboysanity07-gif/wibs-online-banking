@@ -150,48 +150,60 @@ class LoanRequestDraftRequest extends FormRequest
         'dependent_child_1_birthdate',
         'dependent_child_1_cycle_status',
         'dependent_child_1_cycle_number',
+        'dependent_child_1_is_beneficiary',
         'dependent_child_2_name',
         'dependent_child_2_birthdate',
         'dependent_child_2_cycle_status',
         'dependent_child_2_cycle_number',
+        'dependent_child_2_is_beneficiary',
         'dependent_child_3_name',
         'dependent_child_3_birthdate',
         'dependent_child_3_cycle_status',
         'dependent_child_3_cycle_number',
+        'dependent_child_3_is_beneficiary',
         'dependent_sibling_1_name',
         'dependent_sibling_1_birthdate',
         'dependent_sibling_1_cycle_status',
         'dependent_sibling_1_cycle_number',
+        'dependent_sibling_1_is_beneficiary',
         'dependent_sibling_2_name',
         'dependent_sibling_2_birthdate',
         'dependent_sibling_2_cycle_status',
         'dependent_sibling_2_cycle_number',
+        'dependent_sibling_2_is_beneficiary',
         'dependent_sibling_3_name',
         'dependent_sibling_3_birthdate',
         'dependent_sibling_3_cycle_status',
         'dependent_sibling_3_cycle_number',
+        'dependent_sibling_3_is_beneficiary',
         'dependent_parent_1_name',
         'dependent_parent_1_birthdate',
         'dependent_parent_1_cycle_status',
         'dependent_parent_1_cycle_number',
+        'dependent_parent_1_is_beneficiary',
         'dependent_parent_2_name',
         'dependent_parent_2_birthdate',
         'dependent_parent_2_cycle_status',
         'dependent_parent_2_cycle_number',
+        'dependent_parent_2_is_beneficiary',
         'dependent_extended_1_name',
         'dependent_extended_1_birthdate',
         'dependent_extended_1_cycle_status',
         'dependent_extended_1_cycle_number',
+        'dependent_extended_1_is_beneficiary',
         'dependent_extended_2_name',
         'dependent_extended_2_birthdate',
         'dependent_extended_2_cycle_status',
         'dependent_extended_2_cycle_number',
+        'dependent_extended_2_is_beneficiary',
         'dependent_extended_3_name',
         'dependent_extended_3_birthdate',
         'dependent_extended_3_cycle_status',
         'dependent_extended_3_cycle_number',
+        'dependent_extended_3_is_beneficiary',
         'dependent_spouse_cycle_status',
         'dependent_spouse_cycle_number',
+        'dependent_spouse_is_beneficiary',
         'applicant_cycle_status',
         'applicant_cycle_number',
     ];
@@ -254,6 +266,12 @@ class LoanRequestDraftRequest extends FormRequest
         foreach (self::DEPENDENT_KEYS as $key) {
             if (in_array($key, self::DEPENDENT_DATE_KEYS, true)) {
                 $rules["dependents.{$key}"] = ['sometimes', 'nullable', 'date'];
+
+                continue;
+            }
+
+            if (str_ends_with($key, '_is_beneficiary')) {
+                $rules["dependents.{$key}"] = ['sometimes', 'nullable', 'boolean'];
 
                 continue;
             }

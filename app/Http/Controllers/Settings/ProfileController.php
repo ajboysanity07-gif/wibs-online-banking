@@ -118,7 +118,10 @@ class ProfileController extends Controller
 
             $dependentsSync->sync(
                 $memberProfile,
-                Arr::only($validated, MemberDependentProfile::fieldKeys()),
+                Arr::only($validated, [
+                    ...MemberDependentProfile::fieldKeys(),
+                    'dependent_spouse_is_beneficiary',
+                ]),
             );
 
             $user->setRelation('memberApplicationProfile', $memberProfile);

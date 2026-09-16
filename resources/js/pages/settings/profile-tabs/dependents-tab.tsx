@@ -1,11 +1,17 @@
 import { UserRound } from 'lucide-react';
 import {
+    BeneficiaryCheckbox,
+    countSelectedBeneficiaries,
     DEPENDENT_CATEGORIES,
     DependentCategorySection,
+    INSURANCE_BENEFICIARY_LIMIT,
+    isBeneficiaryFlag,
+    SPOUSE_BENEFICIARY_KEY,
     type DependentValues,
 } from '@/components/dependents/dependent-category-section';
 import { SurfaceCard } from '@/components/surface-card';
 import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { TabsContent } from '@/components/ui/tabs';
 
 type Props = {
@@ -56,18 +62,50 @@ export function DependentsTab({
                                 </p>
                             </div>
                             <Card className="gap-2 py-3">
-                                <CardContent className="px-4 text-sm">
+                                <CardContent className="space-y-3 px-4 text-sm">
                                     {spouseName.trim() !== '' ? (
-                                        <div className="flex flex-col">
-                                            <span className="font-medium text-foreground">
-                                                {spouseName}
-                                            </span>
-                                            {spouseBirthdate.trim() !== '' ? (
-                                                <span className="text-xs text-muted-foreground">
-                                                    {spouseBirthdate}
+                                        <>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium text-foreground">
+                                                    {spouseName}
                                                 </span>
-                                            ) : null}
-                                        </div>
+                                                {spouseBirthdate.trim() !==
+                                                '' ? (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {spouseBirthdate}
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                            <Separator />
+                                            <BeneficiaryCheckbox
+                                                fieldKey={
+                                                    SPOUSE_BENEFICIARY_KEY
+                                                }
+                                                checked={isBeneficiaryFlag(
+                                                    dependentsValues[
+                                                        SPOUSE_BENEFICIARY_KEY
+                                                    ],
+                                                )}
+                                                disabled={
+                                                    !isBeneficiaryFlag(
+                                                        dependentsValues[
+                                                            SPOUSE_BENEFICIARY_KEY
+                                                        ],
+                                                    ) &&
+                                                    countSelectedBeneficiaries(
+                                                        dependentsValues,
+                                                    ) >=
+                                                        INSURANCE_BENEFICIARY_LIMIT
+                                                }
+                                                withNameAttribute
+                                                onChange={(next) =>
+                                                    handleDependentsChange(
+                                                        SPOUSE_BENEFICIARY_KEY,
+                                                        next,
+                                                    )
+                                                }
+                                            />
+                                        </>
                                     ) : (
                                         <p className="text-muted-foreground">
                                             Add your spouse's name and birthdate

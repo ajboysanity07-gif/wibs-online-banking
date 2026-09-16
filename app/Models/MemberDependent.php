@@ -18,6 +18,7 @@ class MemberDependent extends Model
         'birthdate',
         'cycle_status',
         'cycle_number',
+        'is_beneficiary',
     ];
 
     public function memberDependentProfile(): BelongsTo
@@ -33,6 +34,7 @@ class MemberDependent extends Model
         return [
             'birthdate' => 'date',
             'cycle_number' => 'integer',
+            'is_beneficiary' => 'boolean',
         ];
     }
 }

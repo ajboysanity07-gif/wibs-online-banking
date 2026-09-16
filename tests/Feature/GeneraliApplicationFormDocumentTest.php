@@ -189,7 +189,6 @@ test('generali application form field map declares identity and static-path fiel
         'applicant.last_name',
         'applicant.first_name',
         'applicant.middle_name',
-        'applicant.birthdate',
         'applicant.employer_or_business',
         'application_form.pep_status_details',
         'application_form.source_of_fund_wealth',
@@ -204,6 +203,42 @@ test('generali application form field map declares identity and static-path fiel
     // cycle checkboxes) accounts for a large share of the map's "check" fields.
     $checkFields = $fields->filter(fn (array $field): bool => ($field['type'] ?? null) === 'check');
     expect($checkFields->count())->toBeGreaterThan(20);
+});
+
+/**
+ * The applicant's DOB is labeled "Date of Birth (DD/MM/YYYY)" on the printed
+ * form, so it's re-formatted via a closure rather than the raw applicant.birthdate
+ * path (which upstream renders as "March 02, 1955" for other documents).
+ */
+test('generali application form renders applicant, beneficiary, and dependent DOBs as DD/MM/YYYY', function () {
+    $fields = collect((new GeneraliApplicationFormPdfFieldMap)->fields());
+
+    $documentData = [
+        'applicant' => ['birthdate' => 'March 02, 1955'],
+        'beneficiaries' => [
+            ['name' => 'Rodelo Y. Cadeliña', 'birthdate' => '09/11/1945'],
+        ],
+        'dependents' => [
+            'spouse' => ['name' => 'Rodelo Y. Cadeliña', 'birthdate' => '09/11/1945'],
+            'children' => [],
+            'siblings' => [],
+            'parents' => [],
+            'extended' => [],
+        ],
+    ];
+
+    $resolve = fn (mixed $value) => is_callable($value) ? $value($documentData) : data_get($documentData, (string) $value);
+
+    $applicantBirthdateField = $fields->first(fn (array $field): bool => is_callable($field['value'] ?? null)
+        && $field['x'] === 27.3 && $field['y'] === 125.0);
+    expect($resolve($applicantBirthdateField['value']))->toBe('02/03/1955');
+
+    $beneficiaryBirthdateField = $fields->first(fn (array $field): bool => is_callable($field['value'] ?? null)
+        && $field['x'] === 75.5 && $field['y'] === 222.0);
+    expect($resolve($beneficiaryBirthdateField['value']))->toBe('11/09/1945');
+
+    $spouseBirthdateField = $fields->first(fn (array $field): bool => ($field['label'] ?? null) === 'dependents.spouse.birthdate');
+    expect($resolve($spouseBirthdateField['value']))->toBe('11/09/1945');
 });
 
 test('generali application form field map resolves dependent rows via closures', function () {
@@ -356,6 +391,40 @@ test('dependents data block resolves spouse and category rows with computed age'
         ->and($documentData['dependents']['siblings'])->toBe([])
         ->and($documentData['dependents']['parents'])->toBe([])
         ->and($documentData['dependents']['extended'])->toBe([]);
+});
+
+test('beneficiaries block sources flagged dependents ahead of legacy free-text fields, spouse first, capped at 2', function () {
+    $loanRequest = generaliApplicationFormCreateApprovedLoanRequestWithApplicant();
+
+    // Legacy free-text beneficiary fields are still present, but should be
+    // ignored once any dependent is flagged.
+    generaliApplicationFormPersistDataEntry($loanRequest, 'insurance', 'beneficiary_primary_name', 'string', 'Legacy Beneficiary');
+
+    generaliApplicationFormPersistDataEntry($loanRequest, 'dependents', 'dependent_spouse_is_beneficiary', 'boolean', true);
+    generaliApplicationFormPersistDataEntry($loanRequest, 'dependents', 'dependent_child_1_name', 'string', 'Junior Member');
+    generaliApplicationFormPersistDataEntry($loanRequest, 'dependents', 'dependent_child_1_birthdate', 'string', now()->subYears(10)->toDateString());
+    generaliApplicationFormPersistDataEntry($loanRequest, 'dependents', 'dependent_child_1_is_beneficiary', 'boolean', true);
+    generaliApplicationFormPersistDataEntry($loanRequest, 'dependents', 'dependent_child_2_name', 'string', 'Second Child');
+    generaliApplicationFormPersistDataEntry($loanRequest, 'dependents', 'dependent_child_2_is_beneficiary', 'boolean', true);
+
+    $documentData = generaliApplicationFormBuildDocumentData($loanRequest->fresh());
+
+    expect($documentData['beneficiaries'])->toHaveCount(2)
+        ->and($documentData['beneficiaries'][0]['name'])->toBe('Spouse Member')
+        ->and($documentData['beneficiaries'][0]['relationship'])->toBe('Spouse')
+        ->and($documentData['beneficiaries'][1]['name'])->toBe('Junior Member')
+        ->and($documentData['beneficiaries'][1]['relationship'])->toBe('Child');
+});
+
+test('beneficiaries block falls back to legacy free-text fields when no dependent is flagged', function () {
+    $loanRequest = generaliApplicationFormCreateApprovedLoanRequestWithApplicant();
+    generaliApplicationFormPersistDataEntry($loanRequest, 'insurance', 'beneficiary_primary_name', 'string', 'Legacy Beneficiary');
+    generaliApplicationFormPersistDataEntry($loanRequest, 'insurance', 'beneficiary_primary_relationship', 'string', 'Friend');
+
+    $documentData = generaliApplicationFormBuildDocumentData($loanRequest->fresh());
+
+    expect($documentData['beneficiaries'])->toHaveCount(1)
+        ->and($documentData['beneficiaries'][0]['name'])->toBe('Legacy Beneficiary');
 });
 
 test('generali application form downloads as a real pdf', function () {

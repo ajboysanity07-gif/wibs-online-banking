@@ -2,6 +2,7 @@
 
 namespace App\Services\LoanRequests\PdfFieldMaps;
 
+use App\Services\LoanRequests\PdfFieldMaps\Concerns\FormatsDmyDates;
 use App\Services\LoanRequests\PdfFieldMaps\Concerns\UppercasesFieldValues;
 
 /**
@@ -19,6 +20,7 @@ use App\Services\LoanRequests\PdfFieldMaps\Concerns\UppercasesFieldValues;
  */
 class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
 {
+    use FormatsDmyDates;
     use UppercasesFieldValues;
 
     public function fields(): array
@@ -65,7 +67,7 @@ class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
             ['page' => 1, 'x' => 76.5, 'y' => 112.5, 'size' => 9, 'width' => 45, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.work_phone'],
             ['page' => 1, 'x' => 135.6, 'y' => 112.5, 'size' => 9, 'width' => 35, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.mobile'],
 
-            ['page' => 1, 'x' => 27.3, 'y' => 125.0, 'size' => 9, 'value' => 'applicant.birthdate'],
+            ['page' => 1, 'x' => 27.3, 'y' => 125.0, 'size' => 9, 'value' => static fn (array $d) => self::toDmy(data_get($d, 'applicant.birthdate'), 'F d, Y')],
             ['page' => 1, 'x' => 76.5, 'y' => 125.0, 'size' => 9, 'width' => 55, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.place_of_birth'],
             ['page' => 1, 'x' => 135.4, 'y' => 125.0, 'size' => 9, 'value' => 'applicant.age'],
             ['page' => 1, 'type' => 'check', 'x' => 158.4, 'y' => 121.9, 'size' => 9, 'value' => static fn (array $d): bool => strtoupper((string) (data_get($d, 'applicant.sex') ?? '')) === 'MALE'],
@@ -166,7 +168,7 @@ class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
     {
         $row = static fn (int $index, float $y): array => [
             ['page' => 1, 'x' => 25, 'y' => $y, 'size' => 9, 'width' => 47, 'shrink_to_fit' => true, 'min_size' => 6.0, 'alignment' => 'C', 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.name")],
-            ['page' => 1, 'x' => 75.5, 'y' => $y, 'size' => 9, 'width' => 35.5, 'shrink_to_fit' => true, 'min_size' => 6.0, 'alignment' => 'C', 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.birthdate")],
+            ['page' => 1, 'x' => 75.5, 'y' => $y, 'size' => 9, 'width' => 35.5, 'shrink_to_fit' => true, 'min_size' => 6.0, 'alignment' => 'C', 'value' => static fn (array $d) => self::toDmy(data_get($d, "beneficiaries.{$index}.birthdate"), 'm/d/Y')],
             ['page' => 1, 'x' => 115.5, 'y' => $y, 'size' => 9, 'width' => 30, 'shrink_to_fit' => true, 'min_size' => 6.0, 'alignment' => 'C', 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.name") !== null ? data_get($d, 'applicant.nationality') : null],
             ['page' => 1, 'x' => 152.5, 'y' => $y, 'size' => 9, 'width' => 35, 'shrink_to_fit' => true, 'min_size' => 6.0, 'alignment' => 'C', 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.relationship")],
         ];
@@ -210,7 +212,7 @@ class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
 
         return [
             ['page' => $page, 'label' => "{$path}.name", 'x' => 28.5, 'y' => $y, 'size' => 9, 'width' => $nameWidth, 'shrink_to_fit' => true, 'min_size' => 5.5, 'value' => static fn (array $d) => data_get($d, "{$path}.name")],
-            ['page' => $page, 'label' => "{$path}.birthdate", 'x' => 156.9, 'y' => $y, 'size' => 9, 'width' => 15, 'shrink_to_fit' => true, 'min_size' => 5.5, 'value' => static fn (array $d) => data_get($d, "{$path}.birthdate")],
+            ['page' => $page, 'label' => "{$path}.birthdate", 'x' => 156.9, 'y' => $y, 'size' => 9, 'width' => 15, 'shrink_to_fit' => true, 'min_size' => 5.5, 'value' => static fn (array $d) => self::toDmy(data_get($d, "{$path}.birthdate"), 'm/d/Y')],
             ['page' => $page, 'label' => "{$path}.age", 'x' => 181.6, 'y' => $y, 'size' => 9, 'width' => 10, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (array $d) => data_get($d, "{$path}.age")],
             ['page' => $page, 'type' => 'check', 'label' => "{$path}.cycle_status=New", 'x' => 98.8, 'y' => $checkY, 'size' => 9, 'value' => static fn (array $d) => data_get($d, "{$path}.cycle_status") === 'New'],
             ['page' => $page, 'type' => 'check', 'label' => "{$path}.cycle_status=Old", 'x' => 122.6, 'y' => $checkY, 'size' => 9, 'value' => static fn (array $d) => data_get($d, "{$path}.cycle_status") === 'Old'],

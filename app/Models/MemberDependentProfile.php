@@ -40,6 +40,7 @@ class MemberDependentProfile extends Model
         'member_application_profile_id',
         'spouse_cycle_status',
         'spouse_cycle_number',
+        'spouse_is_beneficiary',
     ];
 
     public function memberApplicationProfile(): BelongsTo
@@ -59,6 +60,7 @@ class MemberDependentProfile extends Model
     {
         return [
             'spouse_cycle_number' => 'integer',
+            'spouse_is_beneficiary' => 'boolean',
         ];
     }
 
@@ -77,7 +79,7 @@ class MemberDependentProfile extends Model
 
         foreach (self::CATEGORY_CAPS as $category => $cap) {
             for ($slot = 1; $slot <= $cap; $slot++) {
-                foreach (['name', 'birthdate'] as $attribute) {
+                foreach (['name', 'birthdate', 'is_beneficiary'] as $attribute) {
                     $keys[] = "dependent_{$category}_{$slot}_{$attribute}";
                 }
             }

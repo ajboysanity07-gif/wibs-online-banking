@@ -577,8 +577,11 @@ class ProfileUpdateRequest extends FormRequest
 
                 $rules[$prefix.'name'] = ['nullable', 'string', 'max:255'];
                 $rules[$prefix.'birthdate'] = ['nullable', 'date'];
+                $rules[$prefix.'is_beneficiary'] = ['nullable', 'boolean'];
             }
         }
+
+        $rules['dependent_spouse_is_beneficiary'] = ['nullable', 'boolean'];
 
         return $rules;
     }

@@ -6,6 +6,7 @@ import { DateInputWithPicker } from '@/components/loan-request/date-input-with-p
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -54,6 +55,7 @@ export const DEPENDENT_SLOT_ATTRIBUTES = [
     'birthdate',
     'cycle_status',
     'cycle_number',
+    'is_beneficiary',
 ] as const;
 
 export type DependentSlotAttribute = (typeof DEPENDENT_SLOT_ATTRIBUTES)[number];
@@ -63,10 +65,79 @@ const DEPENDENT_ATTRIBUTE_LABELS: Record<DependentSlotAttribute, string> = {
     birthdate: 'Birthdate',
     cycle_status: 'Group life coverage status',
     cycle_number: 'Cycle number',
+    is_beneficiary: 'Insurance beneficiary',
 };
 
 const CYCLE_STATUS_HELP_TEXT =
     'New if this is their first time covered under the group life plan. Old if they were already enrolled before -- enter which cycle.';
+
+// The Generali beneficiary table printed on the insurance documents only has
+// 2 physical rows, so at most 2 dependents (spouse included) can be flagged.
+export const INSURANCE_BENEFICIARY_LIMIT = 2;
+
+// Prefill from the wizard's flat EAV values can arrive as the string "1"
+// rather than a real boolean, so treat any truthy scalar as checked.
+export function isBeneficiaryFlag(
+    value: string | number | boolean | null | undefined,
+): boolean {
+    return value === true || value === '1' || value === 1;
+}
+
+export function countSelectedBeneficiaries(values: DependentValues): number {
+    return Object.entries(values).filter(
+        ([key, value]) =>
+            key.endsWith('_is_beneficiary') && isBeneficiaryFlag(value),
+    ).length;
+}
+
+/**
+ * Shared checkbox for flagging a dependent (or the spouse) as an insurance
+ * beneficiary -- the printed Generali beneficiary table has room for at most
+ * INSURANCE_BENEFICIARY_LIMIT names, so it disables once that many are
+ * already checked elsewhere.
+ */
+export function BeneficiaryCheckbox({
+    fieldKey,
+    checked,
+    disabled,
+    withNameAttribute = false,
+    onChange,
+}: {
+    fieldKey: string;
+    checked: boolean;
+    disabled: boolean;
+    withNameAttribute?: boolean;
+    onChange: (value: boolean) => void;
+}) {
+    return (
+        <div className="flex items-start gap-2">
+            <Checkbox
+                id={fieldKey}
+                checked={checked}
+                disabled={disabled}
+                onCheckedChange={(next) => onChange(next === true)}
+            />
+            {withNameAttribute ? (
+                <input
+                    type="hidden"
+                    name={fieldKey}
+                    value={checked ? '1' : '0'}
+                />
+            ) : null}
+            <div className="grid gap-0.5">
+                <Label htmlFor={fieldKey} className="font-normal">
+                    Add as insurance beneficiary
+                </Label>
+                {disabled ? (
+                    <p className="text-xs text-muted-foreground">
+                        Maximum of {INSURANCE_BENEFICIARY_LIMIT} beneficiaries
+                        reached -- uncheck another to select this one.
+                    </p>
+                ) : null}
+            </div>
+        </div>
+    );
+}
 
 export type DependentValues = Record<
     string,
@@ -296,6 +367,16 @@ export function DependentCategorySection({
     };
 
     const renderSlot = (slot: number) => {
+        const beneficiaryKey = slotFieldKey(
+            category.key,
+            slot,
+            'is_beneficiary',
+        );
+        const isBeneficiary = isBeneficiaryFlag(values[beneficiaryKey]);
+        const beneficiaryLimitReached =
+            !isBeneficiary &&
+            countSelectedBeneficiaries(values) >= INSURANCE_BENEFICIARY_LIMIT;
+
         return (
             <Card key={slot} className="gap-3 py-4">
                 <CardContent className="space-y-3 px-4">
@@ -318,6 +399,14 @@ export function DependentCategorySection({
                         {renderTextField(slot, 'name')}
                         {renderTextField(slot, 'birthdate')}
                     </div>
+                    <Separator />
+                    <BeneficiaryCheckbox
+                        fieldKey={beneficiaryKey}
+                        checked={isBeneficiary}
+                        disabled={beneficiaryLimitReached}
+                        withNameAttribute={withNameAttribute}
+                        onChange={(next) => onChange(beneficiaryKey, next)}
+                    />
                     {showCycleFields ? (
                         <>
                             <Separator />
@@ -379,6 +468,7 @@ export function DependentCategorySection({
 
 export const SPOUSE_CYCLE_STATUS_KEY = 'dependent_spouse_cycle_status';
 export const SPOUSE_CYCLE_NUMBER_KEY = 'dependent_spouse_cycle_number';
+export const SPOUSE_BENEFICIARY_KEY = 'dependent_spouse_is_beneficiary';
 
 /**
  * New/Old + cycle number for a singleton (not a repeatable-category slot,
@@ -390,6 +480,7 @@ export function SingletonCycleSection({
     label,
     statusKey,
     numberKey,
+    beneficiaryKey = null,
     values,
     errors,
     errorKeyPrefix = '',
@@ -400,6 +491,9 @@ export function SingletonCycleSection({
     label: string;
     statusKey: string;
     numberKey: string;
+    // Omitted for singletons that don't support insurance beneficiary
+    // designation at all -- currently only the spouse does.
+    beneficiaryKey?: string | null;
     values: DependentValues;
     errors: Record<string, string | undefined>;
     errorKeyPrefix?: string;
@@ -445,6 +539,28 @@ export function SingletonCycleSection({
                                 </p>
                             </div>
                         </div>
+                    ) : null}
+                    {beneficiaryKey !== null ? (
+                        <>
+                            <BeneficiaryCheckbox
+                                fieldKey={beneficiaryKey}
+                                checked={isBeneficiaryFlag(
+                                    values[beneficiaryKey],
+                                )}
+                                disabled={
+                                    !isBeneficiaryFlag(
+                                        values[beneficiaryKey],
+                                    ) &&
+                                    countSelectedBeneficiaries(values) >=
+                                        INSURANCE_BENEFICIARY_LIMIT
+                                }
+                                withNameAttribute={withNameAttribute}
+                                onChange={(next) =>
+                                    onChange(beneficiaryKey, next)
+                                }
+                            />
+                            <Separator />
+                        </>
                     ) : null}
                     <div className="grid gap-1.5">
                         <Label htmlFor={statusKey}>{statusLabel}</Label>
@@ -535,6 +651,7 @@ export function DependentSpouseCycleSection(props: {
             label="Spouse"
             statusKey={SPOUSE_CYCLE_STATUS_KEY}
             numberKey={SPOUSE_CYCLE_NUMBER_KEY}
+            beneficiaryKey={SPOUSE_BENEFICIARY_KEY}
         />
     );
 }
