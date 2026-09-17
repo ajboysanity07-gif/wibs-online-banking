@@ -106,6 +106,30 @@ test('users can not authenticate with invalid password', function () {
     $this->assertGuest();
 });
 
+test('spa login trims whitespace from the email or username', function () {
+    $user = User::factory()->create();
+
+    $response = $this->postJson('/spa/auth/login', [
+        'email' => "  {$user->email}  ",
+        'password' => 'password',
+    ]);
+
+    $response->assertOk()->assertJson(['ok' => true]);
+    $this->assertAuthenticatedAs($user);
+});
+
+test('spa login trims whitespace when logging in with a username', function () {
+    $user = User::factory()->create();
+
+    $response = $this->postJson('/spa/auth/login', [
+        'email' => "  {$user->username}  ",
+        'password' => 'password',
+    ]);
+
+    $response->assertOk()->assertJson(['ok' => true]);
+    $this->assertAuthenticatedAs($user);
+});
+
 test('spa login fails with invalid password', function () {
     $user = User::factory()->create();
 

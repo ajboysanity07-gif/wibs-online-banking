@@ -51,7 +51,10 @@ export default function Login({
         setErrors({});
 
         try {
-            const response = await api.post('/spa/auth/login', formData);
+            const response = await api.post('/spa/auth/login', {
+                ...formData,
+                email: formData.email.trim(),
+            });
             const redirectTo = response.data?.redirect_to;
             const requiresTwoFactor =
                 response.data?.requires_two_factor === true;

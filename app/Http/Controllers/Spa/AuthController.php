@@ -77,6 +77,8 @@ class AuthController extends Controller
             ]);
         }
 
+        $login = trim($login);
+
         $user = AppUser::query()
             ->where('email', $login)
             ->orWhere('username', $login)
