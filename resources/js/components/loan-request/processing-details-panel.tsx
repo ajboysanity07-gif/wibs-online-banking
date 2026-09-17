@@ -2015,6 +2015,63 @@ export function ProcessingDetailsPanel({
                             </>
                         )}
 
+                        {renderProcessingSectionLabel(
+                            'Employer Classification',
+                        )}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="grid gap-2 sm:col-span-2">
+                                <Label htmlFor="inline_institutional_employer_category">
+                                    Institutional employer category
+                                </Label>
+                                <Select
+                                    value={
+                                        processingForm.institutional_employer_category ||
+                                        INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
+                                    }
+                                    onValueChange={(value) =>
+                                        updateInstitutionalEmployerCategory(
+                                            value ===
+                                                INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
+                                                ? ''
+                                                : value,
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id="inline_institutional_employer_category"
+                                        className="w-full"
+                                    >
+                                        <SelectValue placeholder="Not set" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            value={
+                                                INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
+                                            }
+                                        >
+                                            Not set
+                                        </SelectItem>
+                                        {INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS.map(
+                                            (option) => (
+                                                <SelectItem
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
+                                                    {option.label}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                                {institutionalEmployerCategoryHint && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Detected from employer info:{' '}
+                                        {institutionalEmployerCategoryHint}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
                         {loanRequest.authority_to_deduct_guidance
                             ?.applicable !== false && (
                             <>
@@ -2032,59 +2089,6 @@ export function ProcessingDetailsPanel({
                                     </p>
                                 )}
                                 <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="grid gap-2 sm:col-span-2">
-                                        <Label htmlFor="inline_institutional_employer_category">
-                                            Institutional employer category
-                                        </Label>
-                                        <Select
-                                            value={
-                                                processingForm.institutional_employer_category ||
-                                                INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
-                                            }
-                                            onValueChange={(value) =>
-                                                updateInstitutionalEmployerCategory(
-                                                    value ===
-                                                        INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
-                                                        ? ''
-                                                        : value,
-                                                )
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="inline_institutional_employer_category"
-                                                className="w-full"
-                                            >
-                                                <SelectValue placeholder="Not set" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem
-                                                    value={
-                                                        INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
-                                                    }
-                                                >
-                                                    Not set
-                                                </SelectItem>
-                                                {INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS.map(
-                                                    (option) => (
-                                                        <SelectItem
-                                                            key={option.value}
-                                                            value={option.value}
-                                                        >
-                                                            {option.label}
-                                                        </SelectItem>
-                                                    ),
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                        {institutionalEmployerCategoryHint && (
-                                            <p className="text-xs text-muted-foreground">
-                                                Detected from employer info:{' '}
-                                                {
-                                                    institutionalEmployerCategoryHint
-                                                }
-                                            </p>
-                                        )}
-                                    </div>
                                     {renderProcessingField(
                                         'authority_to_deduct_institution_name',
                                         { fullWidth: true },
