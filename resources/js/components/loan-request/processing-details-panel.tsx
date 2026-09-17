@@ -2428,8 +2428,10 @@ export function ProcessingDetailsPanel({
                                 dataSections.banking?.release_method ===
                                     'Bank Transfer') &&
                                 renderAccountDetailRows(releaseAccountDetail)}
-                            {dataSections.banking?.payment_option ===
-                                'ATM Deduction' &&
+                            {(dataSections.banking?.payment_option ===
+                                'ATM Deduction' ||
+                                dataSections.banking?.payment_option ===
+                                    'Bank Transfer') &&
                                 renderAccountDetailRows(paymentAccountDetail)}
                         </div>
 

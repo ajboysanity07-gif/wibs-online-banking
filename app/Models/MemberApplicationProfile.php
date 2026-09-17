@@ -655,7 +655,7 @@ class MemberApplicationProfile extends Model
             $required[] = 'release_saved_account_id';
         }
 
-        if ($paymentOption === LoanPaymentOption::AtmDeduction->value) {
+        if (in_array($paymentOption, [LoanPaymentOption::AtmDeduction->value, LoanPaymentOption::BankTransfer->value], true)) {
             $required[] = 'payment_saved_account_id';
         }
 

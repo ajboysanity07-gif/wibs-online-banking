@@ -173,7 +173,11 @@ class SavedPaymentAccountsService
         );
 
         $paymentOption = $flatValues['payment_option'] ?? $profile->payment_option;
-        $needsPaymentAccount = $paymentOption === LoanPaymentOption::AtmDeduction->value;
+        $needsPaymentAccount = in_array(
+            $paymentOption,
+            [LoanPaymentOption::AtmDeduction->value, LoanPaymentOption::BankTransfer->value],
+            true,
+        );
 
         return $this->resolveApprovalSnapshot($profile, [
             'release' => $needsReleaseAccount

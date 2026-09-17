@@ -502,7 +502,7 @@ class ProfileUpdateRequest extends FormRequest
             ...$this->savedPaymentAccountRules(
                 null,
                 fn () => in_array($this->input('release_method'), [LoanReleaseMethod::Atm->value, LoanReleaseMethod::BankTransfer->value], true),
-                fn () => $this->input('payment_option') === LoanPaymentOption::AtmDeduction->value,
+                fn () => in_array($this->input('payment_option'), [LoanPaymentOption::AtmDeduction->value, LoanPaymentOption::BankTransfer->value], true),
             ),
             'release_method' => [
                 $memberRequirement('release_method'),

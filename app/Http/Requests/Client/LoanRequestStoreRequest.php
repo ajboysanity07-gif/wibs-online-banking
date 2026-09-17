@@ -539,7 +539,7 @@ class LoanRequestStoreRequest extends FormRequest
                 ),
             ],
             'banking.payment_saved_account_id' => [
-                Rule::requiredIf(fn () => $this->input('banking.payment_option') === LoanPaymentOption::AtmDeduction->value),
+                Rule::requiredIf(fn () => in_array($this->input('banking.payment_option'), [LoanPaymentOption::AtmDeduction->value, LoanPaymentOption::BankTransfer->value], true)),
                 'nullable',
                 'integer',
                 Rule::exists('member_payment_accounts', 'id')->where(

@@ -90,6 +90,7 @@ const RELEASE_METHOD_ICONS: Record<string, LucideIcon> = {
 const PAYMENT_OPTION_LABELS: Record<string, string> = {
     'Salary Deduction': 'Salary Deduction',
     'ATM Deduction': 'Auto-Debit / Bank Account (ADA)',
+    'Bank Transfer': 'Bank Transfer',
     Check: 'Post-Dated Check (PDC)',
     Cash: 'Over-the-Counter Cash',
 };
@@ -97,6 +98,7 @@ const PAYMENT_OPTION_LABELS: Record<string, string> = {
 const PAYMENT_OPTION_ICONS: Record<string, LucideIcon> = {
     'Salary Deduction': Briefcase,
     'ATM Deduction': CreditCard,
+    'Bank Transfer': Landmark,
     Check: PenTool,
     Cash: DollarSign,
 };
@@ -114,7 +116,7 @@ const PAYMENT_OPTION_OPTIONS_LIST: PaymentMethodOption[] =
         value,
         label: PAYMENT_OPTION_LABELS[value] ?? value,
         icon: PAYMENT_OPTION_ICONS[value],
-        needsAccount: value === 'ATM Deduction',
+        needsAccount: value === 'ATM Deduction' || value === 'Bank Transfer',
     }));
 
 export function BankTab({
@@ -157,7 +159,8 @@ export function BankTab({
 
     const releaseNeedsAccount =
         releaseMethod === 'ATM' || releaseMethod === 'Bank Transfer';
-    const paymentNeedsAccount = paymentOption === 'ATM Deduction';
+    const paymentNeedsAccount =
+        paymentOption === 'ATM Deduction' || paymentOption === 'Bank Transfer';
 
     const releaseAccountLabel = useMemo(
         () =>

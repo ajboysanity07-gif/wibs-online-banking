@@ -222,6 +222,7 @@ export const ACCOUNT_TYPE_OPTIONS = ['Savings', 'Checking'] as const;
 export const PAYMENT_OPTION_OPTIONS = [
     'Salary Deduction',
     'ATM Deduction',
+    'Bank Transfer',
     'Check',
     'Cash',
 ] as const;

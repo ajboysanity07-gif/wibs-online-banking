@@ -316,6 +316,44 @@ test('ATM Deduction repayment method requires a saved account to be selected', f
         ->assertJsonValidationErrors(['payment_saved_account_id']);
 });
 
+test('Bank Transfer repayment method requires a saved account to be selected', function (): void {
+    $member = createPaymentMethodTestMember('005610');
+    $loanRequest = submitPaymentMethodTestLoan($member);
+
+    $this->actingAs($member)
+        ->patchJson("/client/loans/requests/{$loanRequest->id}/payment-method", [
+            'payment_option' => 'Bank Transfer',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['payment_saved_account_id']);
+});
+
+test('a member can select Bank Transfer as their repayment method with a saved account', function (): void {
+    $member = createPaymentMethodTestMember('005611');
+    $loanRequest = submitPaymentMethodTestLoan($member);
+
+    $account = MemberPaymentAccount::factory()->forProfile($member->memberApplicationProfile)->create([
+        'bank_name' => 'BPI',
+        'account_name' => 'Payment Member',
+        'account_number' => '9988776655',
+        'account_type' => 'Savings',
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson("/client/loans/requests/{$loanRequest->id}/payment-method", [
+            'payment_option' => 'Bank Transfer',
+            'payment_saved_account_id' => $account->id,
+        ])
+        ->assertOk();
+
+    $loanRequest->unsetRelation('dataEntries');
+    $sections = app(\App\Services\LoanRequests\LoanRequestDataService::class)
+        ->serializeSections($loanRequest->refresh());
+
+    expect($sections['banking']['payment_option'])->toBe('Bank Transfer')
+        ->and($sections['banking']['payment_saved_account_id'])->toBe($account->id);
+});
+
 test('a member cannot use another members saved payment account', function (): void {
     $member = createPaymentMethodTestMember('005606');
     $other = createPaymentMethodTestMember('005607');

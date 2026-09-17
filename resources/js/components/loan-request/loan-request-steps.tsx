@@ -107,6 +107,7 @@ const RELEASE_METHOD_OPTIONS = [
 const PAYMENT_OPTION_OPTIONS = [
     'Salary Deduction',
     'ATM Deduction',
+    'Bank Transfer',
     'Check',
     'Cash',
 ] as const;
@@ -117,6 +118,7 @@ const PAYMENT_OPTION_LABELS: Record<
 > = {
     'Salary Deduction': 'Salary Deduction',
     'ATM Deduction': 'Auto-Debit / Bank Account (ADA)',
+    'Bank Transfer': 'Bank Transfer',
     Check: 'Post-Dated Check (PDC)',
     Cash: 'Over-the-Counter Cash',
 };
@@ -127,6 +129,7 @@ const PAYMENT_OPTION_ICONS: Record<
 > = {
     'Salary Deduction': Briefcase,
     'ATM Deduction': CreditCard,
+    'Bank Transfer': Landmark,
     Check: PenTool,
     Cash: DollarSign,
 };
@@ -1060,7 +1063,8 @@ function BankingSectionFields({
             value,
             label: PAYMENT_OPTION_LABELS[value],
             icon: PAYMENT_OPTION_ICONS[value],
-            needsAccount: value === 'ATM Deduction',
+            needsAccount:
+                value === 'ATM Deduction' || value === 'Bank Transfer',
         }));
     const selectedPaymentOption = paymentOptionPickerOptions.find(
         (option) => option.value === paymentOption,
@@ -1070,7 +1074,8 @@ function BankingSectionFields({
     );
     const releaseNeedsAccount =
         releaseMethod === 'ATM' || releaseMethod === 'Bank Transfer';
-    const paymentNeedsAccount = paymentOption === 'ATM Deduction';
+    const paymentNeedsAccount =
+        paymentOption === 'ATM Deduction' || paymentOption === 'Bank Transfer';
     const releaseAccountLabel = accounts.find(
         (account) => account.id === releaseAccountId,
     )?.label;
@@ -2760,7 +2765,10 @@ export function LoanRequestReviewStep({
             fieldKey === 'payment_atm_number' ||
             fieldKey === 'payment_atm_holder_name'
         ) {
-            return paymentOption === 'ATM Deduction';
+            return (
+                paymentOption === 'ATM Deduction' ||
+                paymentOption === 'Bank Transfer'
+            );
         }
 
         return true;

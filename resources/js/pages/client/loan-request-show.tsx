@@ -480,6 +480,11 @@ export default function LoanRequestShow({
             needsAccount: false,
         },
         { value: 'ATM Deduction', label: 'ATM Deduction', needsAccount: true },
+        {
+            value: 'Bank Transfer',
+            label: 'Bank Transfer',
+            needsAccount: true,
+        },
         { value: 'Check', label: 'Check', needsAccount: false },
         { value: 'Cash', label: 'Cash', needsAccount: false },
     ];
@@ -959,8 +964,10 @@ export default function LoanRequestShow({
                                             {bankingPaymentOption || 'Not set'}
                                         </p>
                                     </div>
-                                    {bankingPaymentOption ===
-                                        'ATM Deduction' && (
+                                    {(bankingPaymentOption ===
+                                        'ATM Deduction' ||
+                                        bankingPaymentOption ===
+                                            'Bank Transfer') && (
                                         <p className="text-sm text-muted-foreground">
                                             {bankingPaymentAccountLabel ??
                                                 'No account selected'}

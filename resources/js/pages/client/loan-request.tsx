@@ -517,7 +517,8 @@ export default function LoanRequestPage({
         }
 
         if (
-            paymentOption === 'ATM Deduction' &&
+            (paymentOption === 'ATM Deduction' ||
+                paymentOption === 'Bank Transfer') &&
             !banking.payment_saved_account_id
         ) {
             return false;

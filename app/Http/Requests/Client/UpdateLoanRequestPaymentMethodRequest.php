@@ -36,7 +36,10 @@ class UpdateLoanRequestPaymentMethodRequest extends FormRequest
             LoanReleaseMethod::BankTransfer->value,
         ], true);
 
-        $paymentNeedsAccount = fn (): bool => $this->input('payment_option') === LoanPaymentOption::AtmDeduction->value;
+        $paymentNeedsAccount = fn (): bool => in_array($this->input('payment_option'), [
+            LoanPaymentOption::AtmDeduction->value,
+            LoanPaymentOption::BankTransfer->value,
+        ], true);
 
         return [
             'release_method' => ['nullable', 'string', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))],

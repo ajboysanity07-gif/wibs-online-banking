@@ -87,7 +87,7 @@ test('a saved release account is required for atm and bank transfer', function (
     }
 });
 
-test('a saved payment account is only required when payment option is atm deduction', function () use ($baseAttributes) {
+test('a saved payment account is only required when payment option is atm deduction or bank transfer', function () use ($baseAttributes) {
     $salaryDeduction = new MemberApplicationProfile([
         ...$baseAttributes,
         'payment_option' => 'Salary Deduction',
@@ -95,16 +95,18 @@ test('a saved payment account is only required when payment option is atm deduct
 
     expect($salaryDeduction->missingRequiredFields())->not->toContain('payment_saved_account_id');
 
-    $atmDeduction = new MemberApplicationProfile([
-        ...$baseAttributes,
-        'payment_option' => 'ATM Deduction',
-    ]);
+    foreach (['ATM Deduction', 'Bank Transfer'] as $paymentOption) {
+        $profile = new MemberApplicationProfile([
+            ...$baseAttributes,
+            'payment_option' => $paymentOption,
+        ]);
 
-    expect($atmDeduction->missingRequiredFields())->toContain('payment_saved_account_id');
+        expect($profile->missingRequiredFields())->toContain('payment_saved_account_id');
 
-    $atmDeduction->payment_saved_account_id = 1;
+        $profile->payment_saved_account_id = 1;
 
-    expect($atmDeduction->missingRequiredFields())->not->toContain('payment_saved_account_id');
+        expect($profile->missingRequiredFields())->not->toContain('payment_saved_account_id');
+    }
 });
 
 test('loan prerequisite fields mirror the same release-method conditionality', function () use ($baseAttributes) {
