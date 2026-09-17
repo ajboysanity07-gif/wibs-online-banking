@@ -12,7 +12,13 @@ class LoanRequestBulkCancelRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->adminProfile !== null;
+        $user = $this->user();
+
+        if ($user === null) {
+            return false;
+        }
+
+        return $user->adminProfile !== null || $user->hasActiveStaffAccess();
     }
 
     /**

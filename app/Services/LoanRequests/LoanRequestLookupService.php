@@ -87,6 +87,7 @@ class LoanRequestLookupService
 
         return LoanRequest::query()
             ->where('user_id', $user->user_id)
+            ->where('status', '!=', LoanRequestStatus::Cancelled->value)
             ->with('assignedOfficer.adminProfile')
             ->orderByDesc('updated_at')
             ->orderByDesc('created_at')

@@ -237,10 +237,16 @@ Route::prefix('spa')->middleware('web')->group(function () {
             'admin/requests/{loanRequest}/correction-reports/{report}/dismiss',
             [SpaLoanRequestCorrectionReportController::class, 'dismiss'],
         );
-        Route::patch('admin/requests/bulk-cancel', [SpaLoanRequestDecisionController::class, 'bulkCancel']);
-        Route::patch('admin/requests/{loanRequest}/cancel', [SpaLoanRequestDecisionController::class, 'cancel']);
         Route::post('admin/requests/{loanRequest}/admin-corrected-copy', [SpaLoanRequestDecisionController::class, 'createAdminCorrectedCopy']);
         Route::get('admin/watchlist', SpaWatchlistController::class);
+    });
+
+    // Cancellation is shared with staff (loan processors/managers), so it lives
+    // outside the admin-only "admin" middleware group; LoanRequestCancelRequest
+    // / LoanRequestBulkCancelRequest enforce admin-or-active-staff access.
+    Route::middleware(['auth', 'verified'])->group(function () {
+        Route::patch('admin/requests/bulk-cancel', [SpaLoanRequestDecisionController::class, 'bulkCancel']);
+        Route::patch('admin/requests/{loanRequest}/cancel', [SpaLoanRequestDecisionController::class, 'cancel']);
     });
 });
 

@@ -132,6 +132,33 @@ test('bulk cancel validation requires a reason and non-empty ids', function (): 
     expect(LoanRequestChange::query()->count())->toBe(0);
 });
 
+test('loan processor without an admin profile can bulk cancel eligible requests', function (): void {
+    $processor = User::factory()->create(['acctno' => '500151']);
+    Role::attachNamedRole($processor, Role::LOAN_PROCESSOR);
+
+    $member = User::factory()->create(['acctno' => '500152']);
+
+    $requests = LoanRequest::factory()->forUser($member)->count(2)->create([
+        'status' => LoanRequestStatus::PendingReview,
+    ]);
+
+    $response = $this
+        ->actingAs($processor)
+        ->patchJson('/spa/admin/requests/bulk-cancel', [
+            'loan_request_ids' => $requests->pluck('id')->all(),
+            'cancellation_reason' => 'Duplicate applications.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.succeeded_count', 2)
+        ->assertJsonPath('data.failed_count', 0);
+
+    foreach ($requests as $loanRequest) {
+        expect($loanRequest->refresh()->status)->toBe(LoanRequestStatus::Cancelled);
+    }
+});
+
 test('non-admin users cannot bulk cancel loan requests', function (): void {
     $member = User::factory()->create(['acctno' => '500141']);
 

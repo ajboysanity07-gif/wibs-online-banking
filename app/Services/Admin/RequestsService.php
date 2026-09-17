@@ -251,6 +251,10 @@ class RequestsService
             } else {
                 $query->where('status', $status);
             }
+        } else {
+            // Cancelled requests clutter the default, unfiltered queue view.
+            // Staff can still see them by explicitly filtering for "Cancelled".
+            $query->where('status', '!=', LoanRequestStatus::Cancelled->value);
         }
 
         if ($minAmount !== null) {

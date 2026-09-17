@@ -4469,9 +4469,6 @@ test('loan manager cannot cancel a request no loan processor has picked up yet',
     $manager = User::factory()->create([
         'acctno' => '000622',
     ]);
-    AdminProfile::factory()->create([
-        'user_id' => $manager->user_id,
-    ]);
     Role::attachNamedRole($manager, Role::LOAN_MANAGER);
 
     $member = User::factory()->create([
@@ -4501,9 +4498,6 @@ test('loan manager can cancel a request once a loan processor has started it', f
     $manager = User::factory()->create([
         'acctno' => '000624',
     ]);
-    AdminProfile::factory()->create([
-        'user_id' => $manager->user_id,
-    ]);
     Role::attachNamedRole($manager, Role::LOAN_MANAGER);
 
     $member = User::factory()->create([
@@ -4532,9 +4526,6 @@ test('loan manager can cancel a request once a loan processor has started it', f
 test('loan processor can cancel a request even before another processor picks it up', function () {
     $processor = User::factory()->create([
         'acctno' => '000626',
-    ]);
-    AdminProfile::factory()->create([
-        'user_id' => $processor->user_id,
     ]);
     Role::attachNamedRole($processor, Role::LOAN_PROCESSOR);
 

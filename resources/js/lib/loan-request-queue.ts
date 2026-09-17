@@ -62,7 +62,7 @@ export const adminLoanRequestQueueStatusOptions: Array<
 ];
 
 const workflowStatusOrder: Array<
-    Exclude<LoanRequestQueueStatusFilter, 'all' | 'reported' | 'cancelled'>
+    Exclude<LoanRequestQueueStatusFilter, 'all' | 'reported'>
 > = [
     'pending_review',
     'under_review',
@@ -75,9 +75,13 @@ const workflowStatusOrder: Array<
     'approved',
     'declined',
     'converted_to_loan',
+    'cancelled',
 ];
 
 const statusesForRole: Record<string, typeof workflowStatusOrder> = {
+    // Cancelled requests are excluded from the default (unfiltered) queue view
+    // server-side; listing it here just lets staff opt in via the status
+    // filter instead of never being able to see them.
     loan_processor: [
         'pending_review',
         'under_review',
@@ -87,6 +91,7 @@ const statusesForRole: Record<string, typeof workflowStatusOrder> = {
         'awaiting_member_acceptance',
         'rejected',
         'member_declined_terms',
+        'cancelled',
     ],
     loan_manager: [
         'recommended_for_approval',
@@ -95,6 +100,7 @@ const statusesForRole: Record<string, typeof workflowStatusOrder> = {
         'declined',
         'member_declined_terms',
         'converted_to_loan',
+        'cancelled',
     ],
 };
 
@@ -112,7 +118,7 @@ export const buildStaffLoanRequestQueueStatusOptions = (
     roles: string[],
 ): Array<LoanRequestStatusFilterOption<LoanRequestQueueStatusFilter>> => {
     const resolvedStatuses = new Set<
-        Exclude<LoanRequestQueueStatusFilter, 'all' | 'reported' | 'cancelled'>
+        Exclude<LoanRequestQueueStatusFilter, 'all' | 'reported'>
     >();
 
     if (roles.includes('superadmin')) {
