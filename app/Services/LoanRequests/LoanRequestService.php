@@ -184,6 +184,7 @@ class LoanRequestService
             'member' => [
                 'name' => $memberName,
                 'acctno' => $user->acctno,
+                'telephone' => $user->wmaster?->telephone,
             ],
             'dataSections' => $dataSections,
             'dataSectionDefinitions' => $this->dataService->sectionDefinitions(),
@@ -1291,68 +1292,81 @@ class LoanRequestService
             $data['employer_business_address_zip'] ?? null,
         ) ?? $person->employer_business_address_zip;
 
+        // Several callers (processing panel, correction dialog, wizard
+        // autosave) each submit only the subset of applicant/co-maker fields
+        // they actually edit -- e.g. the processing panel's payload carries
+        // nothing but institutional_employer_category. Every field below
+        // therefore falls back to the value already on the row when the
+        // caller's payload doesn't carry that key, the same protection
+        // address_barangay and employer_business_address already had --
+        // otherwise a partial save here would blank out the rest of the
+        // person record.
         $attributes = [
             'role' => $role,
-            'first_name' => (string) ($data['first_name'] ?? ''),
-            'last_name' => (string) ($data['last_name'] ?? ''),
-            'middle_name' => $this->normalizeOptionalString($data['middle_name'] ?? null),
-            'nickname' => $this->normalizeOptionalString($data['nickname'] ?? null),
-            'birthdate' => $this->normalizeOptionalString($data['birthdate'] ?? null),
-            'birthplace' => $birthplaceValues['legacy'],
-            'birthplace_city' => $birthplaceValues['city'],
-            'birthplace_province' => $birthplaceValues['province'],
-            'address' => $addressValues['legacy'],
-            'address1' => $addressValues['address1'],
+            'first_name' => array_key_exists('first_name', $data)
+                ? (string) $data['first_name']
+                : ($person->first_name ?? ''),
+            'last_name' => array_key_exists('last_name', $data)
+                ? (string) $data['last_name']
+                : ($person->last_name ?? ''),
+            'middle_name' => $this->normalizeOptionalString($data['middle_name'] ?? null) ?? $person->middle_name,
+            'nickname' => $this->normalizeOptionalString($data['nickname'] ?? null) ?? $person->nickname,
+            'birthdate' => $this->normalizeOptionalString($data['birthdate'] ?? null) ?? $person->birthdate,
+            'birthplace' => $birthplaceValues['legacy'] ?? $person->birthplace,
+            'birthplace_city' => $birthplaceValues['city'] ?? $person->birthplace_city,
+            'birthplace_province' => $birthplaceValues['province'] ?? $person->birthplace_province,
+            'address' => $addressValues['legacy'] ?? $person->address,
+            'address1' => $addressValues['address1'] ?? $person->address1,
             'address_barangay' => $addressBarangay,
-            'address2' => $addressValues['address2'],
-            'address3' => $addressValues['address3'],
-            'address_zip' => $this->normalizeOptionalString($data['address_zip'] ?? null),
-            'length_of_stay' => $this->normalizeOptionalString($data['length_of_stay'] ?? null),
-            'housing_status' => $this->normalizeOptionalString($data['housing_status'] ?? null),
-            'cell_no' => $this->normalizeOptionalString($data['cell_no'] ?? null),
-            'civil_status' => $this->normalizeOptionalString($data['civil_status'] ?? null),
-            'sex' => $this->normalizeOptionalString($data['sex'] ?? null),
+            'address2' => $addressValues['address2'] ?? $person->address2,
+            'address3' => $addressValues['address3'] ?? $person->address3,
+            'address_zip' => $this->normalizeOptionalString($data['address_zip'] ?? null) ?? $person->address_zip,
+            'length_of_stay' => $this->normalizeOptionalString($data['length_of_stay'] ?? null) ?? $person->length_of_stay,
+            'housing_status' => $this->normalizeOptionalString($data['housing_status'] ?? null) ?? $person->housing_status,
+            'cell_no' => $this->normalizeOptionalString($data['cell_no'] ?? null) ?? $person->cell_no,
+            'civil_status' => $this->normalizeOptionalString($data['civil_status'] ?? null) ?? $person->civil_status,
+            'sex' => $this->normalizeOptionalString($data['sex'] ?? null) ?? $person->sex,
             'educational_attainment' => $this->normalizeOptionalString(
                 $data['educational_attainment'] ?? null,
-            ),
+            ) ?? $person->educational_attainment,
             'number_of_children' => $this->normalizeOptionalInt(
                 $data['number_of_children'] ?? null,
-            ),
-            'spouse_name' => $this->normalizeOptionalString($data['spouse_name'] ?? null),
-            'spouse_birthdate' => $this->normalizeOptionalString($data['spouse_birthdate'] ?? null),
+            ) ?? $person->number_of_children,
+            'spouse_name' => $this->normalizeOptionalString($data['spouse_name'] ?? null) ?? $person->spouse_name,
+            'spouse_birthdate' => $this->normalizeOptionalString($data['spouse_birthdate'] ?? null) ?? $person->spouse_birthdate,
             'spouse_cell_no' => $this->normalizeOptionalString(
                 $data['spouse_cell_no'] ?? null,
-            ),
-            'employment_type' => $this->normalizeOptionalString($data['employment_type'] ?? null),
+            ) ?? $person->spouse_cell_no,
+            'employment_type' => $this->normalizeOptionalString($data['employment_type'] ?? null) ?? $person->employment_type,
             'employer_business_name' => $this->normalizeOptionalString(
                 $data['employer_business_name'] ?? null,
-            ),
+            ) ?? $person->employer_business_name,
             'employer_business_address' => $employerBusinessAddress,
             'employer_business_address1' => $employerBusinessAddress1,
             'employer_business_address_barangay' => $employerBusinessAddressBarangay,
             'employer_business_address2' => $employerBusinessAddress2,
             'employer_business_address3' => $employerBusinessAddress3,
             'employer_business_address_zip' => $employerBusinessAddressZip,
-            'telephone_no' => $this->normalizeOptionalString($data['telephone_no'] ?? null),
+            'telephone_no' => $this->normalizeOptionalString($data['telephone_no'] ?? null) ?? $person->telephone_no,
             'current_position' => $this->normalizeOptionalString(
                 $data['current_position'] ?? null,
-            ),
+            ) ?? $person->current_position,
             'nature_of_business' => $this->normalizeOptionalString(
                 $data['nature_of_business'] ?? null,
-            ),
-            'institutional_employer_category' => $this->normalizeOptionalString(
-                $data['institutional_employer_category'] ?? null,
-            ),
+            ) ?? $person->nature_of_business,
+            'institutional_employer_category' => array_key_exists('institutional_employer_category', $data)
+                ? $this->normalizeOptionalString($data['institutional_employer_category'])
+                : $person->institutional_employer_category,
             'years_in_work_business' => $this->normalizeOptionalString(
                 $data['years_in_work_business'] ?? null,
-            ),
+            ) ?? $person->years_in_work_business,
             'employer_date_employed' => $this->normalizeOptionalString(
                 $data['employer_date_employed'] ?? null,
-            ),
+            ) ?? $person->employer_date_employed,
             'gross_monthly_income' => $this->normalizeDecimal(
                 $data['gross_monthly_income'] ?? null,
-            ),
-            'payday' => $this->normalizeOptionalString($data['payday'] ?? null),
+            ) ?? $person->gross_monthly_income,
+            'payday' => $this->normalizeOptionalString($data['payday'] ?? null) ?? $person->payday,
         ];
 
         $person->fill($attributes);

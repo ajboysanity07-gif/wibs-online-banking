@@ -140,6 +140,82 @@ test('processing update can set the applicant institutional_employer_category', 
         ->toBe(\App\LoanInstitutionalEmployerCategory::Blgu);
 });
 
+/**
+ * Regression test for a data-loss bug: the inline processing panel's
+ * `applicant` sub-payload only ever carries institutional_employer_category
+ * (see submitProcessingDetails() in processing-details-panel.tsx). Before the
+ * fix, upsertPersonSnapshot() unconditionally rebuilt every applicant column
+ * from that payload, so every field it didn't carry -- name, birthdate,
+ * gross monthly income, etc. -- was blanked out on every single processing
+ * save.
+ */
+test('a processing update that only sends institutional_employer_category does not wipe the rest of the applicant record', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950007');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'requested_amount' => '25000.00',
+        'requested_term' => 12,
+        'loan_purpose' => 'Home improvement',
+        'availment_status' => 'New',
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
+            'middle_name' => 'Dela Cruz',
+            'nickname' => 'Mari',
+            'birthdate' => '1990-05-15',
+            'telephone_no' => '0912-345-6789',
+            'current_position' => 'Teacher I',
+            'nature_of_business' => 'Education',
+            'gross_monthly_income' => 25000,
+            'payday' => '15th_and_30th',
+            'institutional_employer_category' => null,
+        ]);
+
+    $payload = [
+        'reason' => 'Confirmed institutional employer category during review.',
+        'loan_request' => [
+            'requested_amount' => '25000.00',
+            'requested_term' => 12,
+            'loan_purpose' => 'Home improvement',
+            'availment_status' => 'New',
+        ],
+        'applicant' => [
+            'institutional_employer_category' => \App\LoanInstitutionalEmployerCategory::Deped->value,
+        ],
+    ];
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $payload)
+        ->assertOk();
+
+    $applicant = $loanRequest->fresh()->people
+        ->firstWhere('role', LoanRequestPersonRole::Applicant);
+
+    expect($applicant->institutional_employer_category)->toBe(\App\LoanInstitutionalEmployerCategory::Deped)
+        ->and($applicant->first_name)->toBe('Maria')
+        ->and($applicant->last_name)->toBe('Santos')
+        ->and($applicant->middle_name)->toBe('Dela Cruz')
+        ->and($applicant->nickname)->toBe('Mari')
+        ->and($applicant->birthdate->format('Y-m-d'))->toBe('1990-05-15')
+        ->and($applicant->telephone_no)->toBe('0912-345-6789')
+        ->and($applicant->current_position)->toBe('Teacher I')
+        ->and($applicant->nature_of_business)->toBe('Education')
+        ->and((float) $applicant->gross_monthly_income)->toBe(25000.0)
+        ->and($applicant->payday)->toBe('15th_and_30th');
+});
+
 test('processing update rejects a non-canonical recommended_payment_frequency value', function (): void {
     $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
     $member = createProcessingActor([Role::MEMBER], '950002');
