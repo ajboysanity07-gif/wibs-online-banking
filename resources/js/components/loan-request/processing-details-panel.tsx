@@ -745,11 +745,13 @@ export function ProcessingDetailsPanel({
             );
 
             onDocumentChecklistPreview(updates);
-        } catch {
+        } catch (error) {
             // Best-effort live preview -- the saved checklist (recomputed on
             // the next successful save) remains the source of truth, so a
-            // failed preview call is silently ignored rather than surfaced
-            // as an error toast.
+            // failed preview call doesn't surface as an error toast. Still
+            // logged so a broken preview is diagnosable instead of silently
+            // looking like a no-op to whoever's watching the dropdown.
+            console.error('Failed to preview document checklist', error);
         }
     };
 
