@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Spa;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Workflow\LoanRequestAssignmentUpdateRequest;
 use App\Http\Requests\Workflow\LoanRequestBulkClaimRequest;
+use App\Http\Requests\Workflow\LoanRequestChecklistPreviewRequest;
 use App\Http\Requests\Workflow\LoanRequestClaimRequest;
 use App\Http\Requests\Workflow\LoanRequestGenerateDocumentsRequest;
 use App\Http\Requests\Workflow\LoanRequestProcessingUpdateRequest;
@@ -359,6 +360,21 @@ class LoanRequestWorkflowController extends Controller
 
         return response()->json([
             'data' => $documentWorkflowService->previewRecommendationFigures(
+                $loanRequest,
+                $request->validated(),
+            ),
+        ]);
+    }
+
+    public function previewDocumentChecklist(
+        LoanRequestChecklistPreviewRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+    ): JsonResponse {
+        abort_unless($request->user() instanceof AppUser, 403);
+
+        return response()->json([
+            'data' => $documentWorkflowService->previewChecklistApplicability(
                 $loanRequest,
                 $request->validated(),
             ),

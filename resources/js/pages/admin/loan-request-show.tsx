@@ -173,6 +173,32 @@ export default function LoanRequestShow({
         useState<LoanRequestCycleState>(cycleState);
     const [currentDocumentChecklist, setCurrentDocumentChecklist] =
         useState<LoanRequestDocumentChecklistItem[]>(documentChecklist);
+    // Live-previews applicability as the Employer Classification dropdown
+    // changes, ahead of an actual processing-details save (which still
+    // replaces the whole checklist via onUpdated below).
+    const applyDocumentChecklistPreview = (
+        updates: {
+            key: string;
+            is_applicable: boolean;
+            unavailable_reason: string | null;
+        }[],
+    ) => {
+        setCurrentDocumentChecklist((current) =>
+            current.map((document) => {
+                const update = updates.find(
+                    (item) => item.key === document.key,
+                );
+
+                return update
+                    ? {
+                          ...document,
+                          is_applicable: update.is_applicable,
+                          unavailable_reason: update.unavailable_reason,
+                      }
+                    : document;
+            }),
+        );
+    };
     const shouldAutoOpenCorrection =
         openCorrectionOnLoad &&
         loanRequest.requires_correction_before_approval &&
@@ -849,6 +875,9 @@ export default function LoanRequestShow({
                                 }
                                 onDismissSaveError={() =>
                                     clearWorkflowLastError(currentRequest.id)
+                                }
+                                onDocumentChecklistPreview={
+                                    applyDocumentChecklistPreview
                                 }
                             />
                             <LoanRequestDocumentChecklistCard

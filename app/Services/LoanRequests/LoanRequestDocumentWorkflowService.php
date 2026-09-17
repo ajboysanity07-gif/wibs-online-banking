@@ -913,6 +913,60 @@ class LoanRequestDocumentWorkflowService
     }
 
     /**
+     * Recomputes each document's applicability against an unsaved
+     * institutional_employer_category override, without touching the
+     * persisted LoanRequestDocument rows -- lets the staff-side checklist
+     * update live as the processor changes the Employer Classification
+     * dropdown, ahead of actually saving processing details.
+     *
+     * @param  array<string, mixed>  $overrideInput
+     * @return list<array{key: string, is_applicable: bool, unavailable_reason: ?string}>
+     */
+    public function previewChecklistApplicability(
+        LoanRequest $loanRequest,
+        array $overrideInput,
+    ): array {
+        $loanRequest->loadMissing('applicant', 'people');
+
+        $flatValues = $this->dataService->loadFlatValues($loanRequest);
+
+        $workingLoanRequest = $loanRequest->replicate();
+        $workingLoanRequest->id = $loanRequest->id;
+        $workingLoanRequest->reference = $loanRequest->reference;
+        $workingLoanRequest->setRelation('people', $loanRequest->people);
+
+        $applicant = $loanRequest->applicant;
+
+        if ($applicant !== null && array_key_exists('institutional_employer_category', $overrideInput)) {
+            $overriddenApplicant = $applicant->replicate();
+            $overriddenApplicant->id = $applicant->id;
+            $overriddenApplicant->institutional_employer_category = $overrideInput['institutional_employer_category'];
+            $applicant = $overriddenApplicant;
+        }
+
+        $workingLoanRequest->setRelation('applicant', $applicant);
+
+        return collect(LoanRequestDocumentKey::cases())
+            ->map(function (LoanRequestDocumentKey $documentKey) use ($workingLoanRequest, $flatValues): array {
+                $isApplicable = $this->documentCatalog->isApplicable(
+                    $documentKey,
+                    $workingLoanRequest,
+                    $flatValues,
+                );
+
+                return [
+                    'key' => $documentKey->value,
+                    'is_applicable' => $isApplicable,
+                    'unavailable_reason' => $isApplicable
+                        ? null
+                        : $this->documentCatalog->unavailabilityNote($documentKey, $workingLoanRequest, $flatValues),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
      * @param  array<string, mixed>  $flatValues
      * @return array<string, mixed>
      */

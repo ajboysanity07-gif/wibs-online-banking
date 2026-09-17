@@ -327,6 +327,32 @@ export default function StaffLoanRequestShow({
         useState<LoanRequestCycleState>(cycleState);
     const [currentDocumentChecklist, setCurrentDocumentChecklist] =
         useState<LoanRequestDocumentChecklistItem[]>(documentChecklist);
+    // Live-previews applicability as the Employer Classification dropdown
+    // changes, ahead of an actual processing-details save (which still
+    // replaces the whole checklist via onUpdated below).
+    const applyDocumentChecklistPreview = (
+        updates: {
+            key: string;
+            is_applicable: boolean;
+            unavailable_reason: string | null;
+        }[],
+    ) => {
+        setCurrentDocumentChecklist((current) =>
+            current.map((document) => {
+                const update = updates.find(
+                    (item) => item.key === document.key,
+                );
+
+                return update
+                    ? {
+                          ...document,
+                          is_applicable: update.is_applicable,
+                          unavailable_reason: update.unavailable_reason,
+                      }
+                    : document;
+            }),
+        );
+    };
     const [currentNotificationHistory, setCurrentNotificationHistory] =
         useState<LoanRequestNotificationHistoryItem[]>(notificationHistory);
     const [currentWorkflowHealth, setCurrentWorkflowHealth] =
@@ -1326,6 +1352,9 @@ export default function StaffLoanRequestShow({
                                 }
                                 onDismissSaveError={() =>
                                     clearWorkflowLastError(currentRequest.id)
+                                }
+                                onDocumentChecklistPreview={
+                                    applyDocumentChecklistPreview
                                 }
                             />
                         ) : null}

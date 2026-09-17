@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/tooltip';
 import type { LoanRequestProcessingDetailsPayload } from '@/hooks/admin/use-loan-request-workflow';
 import { adminApi } from '@/lib/api/admin';
+import type { LoanRequestChecklistPreviewItem } from '@/lib/api/admin';
 import { formatCurrency } from '@/lib/formatters';
 import {
     INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS,
@@ -516,6 +517,12 @@ type ProcessingDetailsPanelProps = {
     // toast (see use-loan-request-workflow's lastErrors).
     saveError?: { fieldErrors: Record<string, string> } | null;
     onDismissSaveError?: () => void;
+    // Lets the document checklist card update live as the Employer
+    // Classification dropdown changes, ahead of actually saving processing
+    // details -- see previewChecklistForCategory below.
+    onDocumentChecklistPreview?: (
+        updates: LoanRequestChecklistPreviewItem[],
+    ) => void;
 };
 
 function ChargeLineItem({
@@ -549,6 +556,7 @@ export function ProcessingDetailsPanel({
     loanManagers = [],
     saveError = null,
     onDismissSaveError,
+    onDocumentChecklistPreview,
 }: ProcessingDetailsPanelProps) {
     const [processingForm, setProcessingForm] =
         useState<InlineProcessingFormState>({
@@ -715,6 +723,34 @@ export function ProcessingDetailsPanel({
             ...current,
             institutional_employer_category: value,
         }));
+
+        void previewChecklistForCategory(value);
+    };
+
+    // A single Select choice, unlike free-text fields, needs no debounce --
+    // fires straight after the dropdown change so the checklist card
+    // (rendered by the parent page) reflects the new category immediately,
+    // ahead of actually saving processing details. Guarded the same way as
+    // recalculateGnthp: the preview endpoint authorizes against the same
+    // policy as saving, so calling it before review has started would 403.
+    const previewChecklistForCategory = async (value: string) => {
+        if (!canUpdateProcessing || !onDocumentChecklistPreview) {
+            return;
+        }
+
+        try {
+            const updates = await adminApi.previewLoanRequestDocumentChecklist(
+                loanRequest.id,
+                { institutional_employer_category: value || null },
+            );
+
+            onDocumentChecklistPreview(updates);
+        } catch {
+            // Best-effort live preview -- the saved checklist (recomputed on
+            // the next successful save) remains the source of truth, so a
+            // failed preview call is silently ignored rather than surfaced
+            // as an error toast.
+        }
     };
 
     // "Loan security" and "savings" are the same rate to staff, but the

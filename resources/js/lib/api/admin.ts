@@ -261,6 +261,16 @@ type LoanRequestRecommendationPreviewResponse = {
 type LoanRequestRecommendationPreviewResult =
     LoanRequestRecommendationPreviewResponse;
 
+type LoanRequestChecklistPreviewPayload = {
+    institutional_employer_category?: string | null;
+};
+
+export type LoanRequestChecklistPreviewItem = {
+    key: string;
+    is_applicable: boolean;
+    unavailable_reason: string | null;
+};
+
 type LoanRequestWorkflowMemberActionPayload = {
     action_type: 'needs_revision' | 'awaiting_member_information';
     message: string;
@@ -612,6 +622,19 @@ export const adminApi = {
             ApiResponse<LoanRequestRecommendationPreviewResponse>
         >(
             `/spa/workflow/loan-requests/${loanRequestId}/processing-details/preview`,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async previewLoanRequestDocumentChecklist(
+        loanRequestId: number,
+        payload: LoanRequestChecklistPreviewPayload,
+    ): Promise<LoanRequestChecklistPreviewItem[]> {
+        const response = await client.post<
+            ApiResponse<LoanRequestChecklistPreviewItem[]>
+        >(
+            `/spa/workflow/loan-requests/${loanRequestId}/processing-details/checklist-preview`,
             payload,
         );
 
