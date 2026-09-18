@@ -95,6 +95,7 @@ class WibsTrackingService
 
         $this->documentWorkflowService->markAffectedDocumentsStale(
             $loanRequest,
+            $actor,
             ['wibs_release_date'],
         );
 

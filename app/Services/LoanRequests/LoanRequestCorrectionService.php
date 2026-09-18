@@ -112,6 +112,7 @@ class LoanRequestCorrectionService
 
             $this->documentWorkflowService->markAffectedDocumentsStale(
                 $lockedLoanRequest,
+                $actor,
                 array_values(array_unique([...$changedFields, ...$changedDataFields])),
             );
 

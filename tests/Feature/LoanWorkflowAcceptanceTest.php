@@ -175,12 +175,14 @@ test('v2 workflow happy path reaches final approval after revised terms are acce
         ->assertOk()
         ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::AwaitingMemberAcceptance->value);
 
+    // Term revision auto-regenerates the affected documents immediately, so
+    // no applicable document is ever left sitting in GeneratedStale.
     expect(
         collect($revisedTermsResponse->json('data.documentChecklist'))
             ->where('is_applicable', true)
             ->pluck('status')
             ->contains(LoanRequestDocumentReadinessStatus::GeneratedStale->value),
-    )->toBeTrue();
+    )->toBeFalse();
 
     $this
         ->actingAs($member)

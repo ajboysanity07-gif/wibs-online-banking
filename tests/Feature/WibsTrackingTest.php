@@ -117,7 +117,7 @@ test('scheduleRelease transitions WibsLoanCreated to ReleaseScheduled and stores
         )->toBeTrue();
 });
 
-test('scheduleRelease marks the authority-to-deduct document stale since its start date just became computable', function (): void {
+test('scheduleRelease attempts to auto-regenerate the authority-to-deduct document and falls back to stale when required data is still incomplete', function (): void {
     Notification::fake();
 
     $member = createWibsMember();
@@ -154,7 +154,7 @@ test('scheduleRelease marks the authority-to-deduct document stale since its sta
     // Seed a real source_hash/readiness row via the normal checklist evaluation first, so
     // that scheduling release below is the only thing that changes -- otherwise an
     // incidental hash mismatch (not the wibs_release_date registration) could produce the
-    // same GeneratedStale outcome and the test wouldn't prove what it claims to.
+    // same stale-fallback outcome and the test wouldn't prove what it claims to.
     app(LoanRequestDocumentWorkflowService::class)->refreshChecklist($loanRequest);
 
     $document = LoanRequestDocument::query()
@@ -189,8 +189,15 @@ test('scheduleRelease marks the authority-to-deduct document stale since its sta
         Carbon::parse('2026-07-01'),
     );
 
+    // This fixture doesn't carry the full processing data Authority to Deduct
+    // needs to render (e.g. recommended terms), so the auto-regenerate attempt
+    // is blocked and falls back to GeneratedStale rather than silently losing
+    // the change -- staff can retry manually via "Generate All" once the
+    // request has the data it needs.
     expect($document->refresh()->readiness_status)
-        ->toBe(LoanRequestDocumentReadinessStatus::GeneratedStale);
+        ->toBe(LoanRequestDocumentReadinessStatus::GeneratedStale)
+        ->and($document->generated_version)->toBe(1)
+        ->and($document->generated_path)->toBe($relativePath);
 });
 
 test('confirmRelease transitions ReleaseScheduled to Released and sets wibs_released_at', function (): void {

@@ -354,6 +354,7 @@ class LoanRequestProcessingService
 
             $this->documentWorkflowService->markAffectedDocumentsStale(
                 $lockedLoanRequest,
+                $actor,
                 $allChangedFields,
             );
 
@@ -604,6 +605,7 @@ class LoanRequestProcessingService
 
             $this->documentWorkflowService->markAffectedDocumentsStale(
                 $lockedLoanRequest,
+                $member,
                 $requestedFieldKeys,
             );
 
@@ -931,6 +933,7 @@ class LoanRequestProcessingService
 
                 $this->documentWorkflowService->markAffectedDocumentsStale(
                     $lockedLoanRequest,
+                    $actor,
                     [
                         'recommended_amount',
                         'recommended_term',

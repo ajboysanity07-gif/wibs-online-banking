@@ -513,10 +513,15 @@ class LoanRequestDocumentWorkflowService
     }
 
     /**
+     * Marks documents affected by a data change and immediately regenerates
+     * them, so a document is never left sitting in GeneratedStale for staff
+     * to notice and manually fix later.
+     *
      * @param  list<string>  $changedFields
      */
     public function markAffectedDocumentsStale(
         LoanRequest $loanRequest,
+        AppUser $actor,
         array $changedFields = [],
     ): void {
         if ($changedFields === []) {
@@ -525,6 +530,20 @@ class LoanRequestDocumentWorkflowService
             return;
         }
 
+        // refreshChecklist() below already detects some staleness on its own:
+        // it recomputes each document's source hash and flips GeneratedCurrent
+        // to GeneratedStale the moment that hash no longer matches (covers
+        // fields like recommended_amount/term that feed the hash but aren't
+        // declared via documentCatalog's source-field lists). Other fields
+        // (e.g. wibs_release_date) are declared dependencies via
+        // usesChangedFields() without being part of that hash payload, so
+        // that document never flips on its own -- both signals are needed to
+        // catch every document actually affected by this change.
+        $priorReadinessByKey = LoanRequestDocument::query()
+            ->where('loan_request_id', $loanRequest->id)
+            ->get()
+            ->keyBy('document_key');
+
         $documents = $this->refreshChecklist($loanRequest);
 
         foreach ($documents as $document) {
@@ -532,17 +551,43 @@ class LoanRequestDocumentWorkflowService
                 continue;
             }
 
-            if (! $this->documentCatalog->usesChangedFields(
-                LoanRequestDocumentKey::from($document->document_key),
-                $changedFields,
-            )) {
+            $priorReadinessStatus = $priorReadinessByKey->get($document->document_key)?->readiness_status;
+
+            if ($priorReadinessStatus !== LoanRequestDocumentReadinessStatus::GeneratedCurrent) {
                 continue;
             }
 
-            if ($document->readiness_status === LoanRequestDocumentReadinessStatus::GeneratedCurrent) {
+            $documentKey = LoanRequestDocumentKey::from($document->document_key);
+            $becameStaleFromHashChange = $document->readiness_status === LoanRequestDocumentReadinessStatus::GeneratedStale;
+            $isDeclaredDependency = $this->documentCatalog->usesChangedFields($documentKey, $changedFields);
+
+            if (! $becameStaleFromHashChange && ! $isDeclaredDependency) {
+                continue;
+            }
+
+            if (! $becameStaleFromHashChange) {
+                // Declared as a dependency of this document, but its source
+                // hash didn't change -- flag it stale ourselves so the
+                // regeneration below (and any fallback if it's blocked)
+                // both start from a consistent state.
                 $document->fill([
                     'readiness_status' => LoanRequestDocumentReadinessStatus::GeneratedStale,
                 ])->save();
+            }
+
+            try {
+                $this->generateDocument($loanRequest, $documentKey, $actor);
+            } catch (ValidationException) {
+                // Blocked -- missing required data, a concurrent regenerate
+                // already running, or the finalized-document guard on an
+                // approved/converted request. The document is already left
+                // Stale above, so there's nothing further to do: staff can
+                // retry manually via "Generate All", and the workflow-health
+                // view surfaces the anomaly.
+            } catch (\Throwable) {
+                // generateDocumentInternal() already recorded GenerationFailed
+                // with the real error before rethrowing. This is a best-effort
+                // auto-regenerate and must not fail the caller's save.
             }
         }
     }
