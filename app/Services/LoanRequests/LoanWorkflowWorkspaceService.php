@@ -4,7 +4,6 @@ namespace App\Services\LoanRequests;
 
 use App\LoanRequestStatus;
 use App\Models\AppUser;
-use App\Models\LoanRequest;
 use App\Models\LoanRequestDataEntry;
 use App\Models\Permission;
 use App\Models\Role;
@@ -430,21 +429,22 @@ class LoanWorkflowWorkspaceService
     }
 
     /**
+     * Joins loan_requests directly instead of pluck()-ing recommended ids
+     * first and querying loan_request_data_entries separately - one round
+     * trip instead of two over the Tailscale-tunneled DB connection.
+     *
      * @return list<int>
      */
     private function loadRecommendedRequestIdsAssignedToOtherManagers(AppUser $user): array
     {
-        $recommendedIds = LoanRequest::query()
-            ->where('status', LoanRequestStatus::RecommendedForApproval->value)
-            ->pluck('id');
-
-        if ($recommendedIds->isEmpty()) {
-            return [];
-        }
-
         return LoanRequestDataEntry::query()
-            ->where('field_key', 'witness_two_id')
-            ->whereIn('loan_request_id', $recommendedIds)
+            ->join('loan_requests', 'loan_requests.id', '=', 'loan_request_data_entries.loan_request_id')
+            ->where('loan_request_data_entries.field_key', 'witness_two_id')
+            ->where('loan_requests.status', LoanRequestStatus::RecommendedForApproval->value)
+            ->select([
+                'loan_request_data_entries.loan_request_id',
+                'loan_request_data_entries.value_json',
+            ])
             ->get()
             ->filter(function (LoanRequestDataEntry $entry) use ($user): bool {
                 $value = $entry->value_json['value'] ?? null;
@@ -452,6 +452,7 @@ class LoanWorkflowWorkspaceService
                 return $value !== null && $value !== '' && (int) $value !== (int) $user->user_id;
             })
             ->pluck('loan_request_id')
+            ->map(static fn (mixed $id): int => (int) $id)
             ->all();
     }
 

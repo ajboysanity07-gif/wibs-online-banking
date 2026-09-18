@@ -440,6 +440,12 @@ class RequestsService
     }
 
     /**
+     * Cached per role combination rather than per user: the option list is a
+     * filter dropdown, not the row-level visibility check itself, so sharing
+     * it across everyone with the same role(s) trades a little staleness
+     * (e.g. a loan manager's per-officer exclusions) for cutting a DB round
+     * trip on every staff request-list load over the Tailscale tunnel.
+     *
      * @return array<int, string>
      */
     private function getLoanTypeOptionsForWorkflowUser(AppUser $user): array
@@ -448,20 +454,25 @@ class RequestsService
             return [];
         }
 
-        $query = LoanRequest::query()
-            ->where('status', '!=', LoanRequestStatus::Draft->value)
-            ->whereNotNull('loan_type_label_snapshot')
-            ->where('loan_type_label_snapshot', '!=', '');
+        $cacheKey = 'requests-service.loan-type-options.'
+            .md5(implode('|', $this->workspaceService->workflowRoles($user)));
 
-        $this->workspaceService->applyVisibleScope($query, $user);
+        return Cache::remember($cacheKey, 60, function () use ($user): array {
+            $query = LoanRequest::query()
+                ->where('status', '!=', LoanRequestStatus::Draft->value)
+                ->whereNotNull('loan_type_label_snapshot')
+                ->where('loan_type_label_snapshot', '!=', '');
 
-        return $query
-            ->select('loan_type_label_snapshot')
-            ->distinct()
-            ->orderBy('loan_type_label_snapshot')
-            ->pluck('loan_type_label_snapshot')
-            ->values()
-            ->all();
+            $this->workspaceService->applyVisibleScope($query, $user);
+
+            return $query
+                ->select('loan_type_label_snapshot')
+                ->distinct()
+                ->orderBy('loan_type_label_snapshot')
+                ->pluck('loan_type_label_snapshot')
+                ->values()
+                ->all();
+        });
     }
 
     /**
