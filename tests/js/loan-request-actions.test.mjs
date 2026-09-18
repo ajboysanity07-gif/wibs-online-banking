@@ -57,8 +57,19 @@ test('loan request actions group document buttons and separate navigation', asyn
     assert.match(workflowActionsFile, /Return for Processing/);
     assert.match(workflowActionsFile, /Reopen Rejected Request/);
     assert.match(workflowActionsFile, /Upgrade to Document Workflow v2/);
-    assert.match(workflowActionsFile, /Generate All Required Documents/);
     assert.match(workflowActionsFile, /hasProcessingActions/);
+    // The approval modal verifies the recommended terms read-only and only
+    // surfaces differences from the member's request -- it must not re-key them.
+    assert.match(workflowActionsFile, /Terms to approve/);
+    assert.match(workflowActionsFile, /Requested:/);
+    assert.match(workflowActionsFile, /workflow_approval_remarks/);
+    assert.doesNotMatch(workflowActionsFile, /workflow_approved_amount/);
+    assert.doesNotMatch(workflowActionsFile, /workflow_approved_term/);
+    assert.doesNotMatch(workflowActionsFile, /workflow_approved_interest_rate/);
+    assert.doesNotMatch(
+        workflowActionsFile,
+        /workflow_approved_payment_frequency/,
+    );
     assert.match(adminPageFile, /Cancel Approved Request/);
     assert.match(adminPageFile, /Cancel Application/);
     assert.match(adminPageFile, /workflowPermissions/);

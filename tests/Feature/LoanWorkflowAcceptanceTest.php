@@ -1,5 +1,6 @@
 <?php
 
+use App\LoanRequestDocumentKey;
 use App\LoanRequestDocumentReadinessStatus;
 use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
@@ -213,6 +214,12 @@ test('v2 workflow happy path reaches final approval after revised terms are acce
         ->assertOk()
         ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::RecommendedForApproval->value);
 
+    $applicationFormVersionBeforeApproval = (int) LoanRequestDocument::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('document_key', LoanRequestDocumentKey::ApplicationForm->value)
+        ->sole()
+        ->generated_version;
+
     $finalApprovalResponse = $this
         ->actingAs($manager)
         ->patchJson(route('spa.workflow.loan-requests.approve', $loanRequest), [
@@ -231,6 +238,20 @@ test('v2 workflow happy path reaches final approval after revised terms are acce
         ->and($loanRequest->approved_amount)->toBe('26000.00')
         ->and($loanRequest->approved_term)->toBe(14)
         ->and($loanRequest->approved_interest_rate)->toBe('1.7500');
+
+    // Approval writes approved_* which the application_form source hash
+    // tracks, so the pre-approval copy must be refreshed in the same
+    // transaction -- otherwise it is left GeneratedStale without the
+    // Approved check mark / "Approved By" block on the served form.
+    $applicationFormAfterApproval = LoanRequestDocument::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('document_key', LoanRequestDocumentKey::ApplicationForm->value)
+        ->sole();
+
+    expect((int) $applicationFormAfterApproval->generated_version)
+        ->toBe($applicationFormVersionBeforeApproval + 1)
+        ->and($applicationFormAfterApproval->readiness_status)
+        ->toBe(LoanRequestDocumentReadinessStatus::GeneratedCurrent);
 
     $this
         ->actingAs($processor)

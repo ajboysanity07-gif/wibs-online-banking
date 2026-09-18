@@ -1056,6 +1056,19 @@ class LoanRequestProcessingService
                     $actor,
                     bypassFinalizedGuard: true,
                 );
+
+                // Approval writes approved_* which the application_form source
+                // hash tracks, so the pre-approval copy is now stale. Refresh it
+                // here (inside the transaction, past the finalized guard) so the
+                // served form carries the Approved check mark and "Approved By".
+                // This block only runs on the final Approved path -- the revised
+                // terms branch returns early to AwaitingMemberAcceptance.
+                $this->documentWorkflowService->generateDocument(
+                    $lockedLoanRequest,
+                    LoanRequestDocumentKey::ApplicationForm,
+                    $actor,
+                    bypassFinalizedGuard: true,
+                );
             }
 
             return $lockedLoanRequest->refresh();

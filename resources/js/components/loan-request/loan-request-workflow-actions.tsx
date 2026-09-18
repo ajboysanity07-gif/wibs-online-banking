@@ -1,11 +1,5 @@
 import { useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
-import { PAYDAY_OPTIONS } from '@/components/loan-request/loan-request-fields';
-import {
-    CurrencyInput,
-    MonthsInput,
-    PercentInput,
-} from '@/components/loan-request/numeric-adorned-inputs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -27,6 +21,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { formatCurrency } from '@/lib/formatters';
 import type {
     LoanRequestAssignmentOfficerOption,
     LoanRequestDetail,
@@ -186,6 +181,18 @@ const OfficerSummary = ({
         ) : null}
     </div>
 );
+
+const toComparableNumber = (
+    value: number | string | null | undefined,
+): number | null => {
+    if (value === null || value === undefined || `${value}`.trim() === '') {
+        return null;
+    }
+
+    const parsed = Number(value);
+
+    return Number.isNaN(parsed) ? null : parsed;
+};
 
 export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
     const [isAssignOpen, setIsAssignOpen] = useState(false);
@@ -398,6 +405,69 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
     if (effectiveReassignOfficerId !== reassignOfficerUserId) {
         setReassignOfficerUserId(effectiveReassignOfficerId);
     }
+
+    // The manager sets the recommended terms in the processing panel, so the
+    // approval modal shows them read-only and only flags where they differ from
+    // the member's original request -- the manager's job here is to verify and
+    // confirm the decision, not to re-key the terms.
+    const approvedAmountValue = toComparableNumber(approvedAmount);
+    const approvedTermValue = toComparableNumber(approvedTerm);
+    const requestedAmountValue = toComparableNumber(
+        loanRequest.requested_amount,
+    );
+    const requestedTermValue = toComparableNumber(loanRequest.requested_term);
+    const approvedFrequency = approvedPaymentFrequency.trim();
+    const requestedFrequency = (
+        loanRequest.requested_payment_frequency ?? ''
+    ).trim();
+
+    const approvalTermRows: Array<{
+        label: string;
+        value: string;
+        requested: string | null;
+    }> = [
+        {
+            label: 'Loan amount',
+            value:
+                approvedAmountValue === null
+                    ? '--'
+                    : formatCurrency(approvedAmountValue),
+            requested:
+                requestedAmountValue !== null &&
+                requestedAmountValue !== approvedAmountValue
+                    ? formatCurrency(requestedAmountValue)
+                    : null,
+        },
+        {
+            label: 'Loan term',
+            value:
+                approvedTermValue === null
+                    ? '--'
+                    : `${approvedTermValue} months`,
+            requested:
+                requestedTermValue !== null &&
+                requestedTermValue !== approvedTermValue
+                    ? `${requestedTermValue} months`
+                    : null,
+        },
+        {
+            label: 'Interest rate',
+            value:
+                `${approvedInterestRate}`.trim() === ''
+                    ? '--'
+                    : `${approvedInterestRate}%`,
+            requested: null,
+        },
+        {
+            label: 'Payment frequency',
+            value: approvedFrequency === '' ? '--' : approvedFrequency,
+            requested:
+                requestedFrequency !== '' &&
+                requestedFrequency !== approvedFrequency
+                    ? requestedFrequency
+                    : null,
+        },
+    ];
 
     if (
         !hasAssignmentActions &&
@@ -1374,74 +1444,40 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                     <DialogHeader>
                         <DialogTitle>Approve Request</DialogTitle>
                         <DialogDescription>
-                            Confirm the approved amount and terms before moving
-                            this request to Approved.
+                            Review the recommended terms, then confirm to move
+                            this request to Approved. To change the terms, edit
+                            them in the processing details panel first.
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={submitApprove}>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label htmlFor="workflow_approved_amount">
-                                    Approved amount
-                                </Label>
-                                <CurrencyInput
-                                    id="workflow_approved_amount"
-                                    required
-                                    value={approvedAmount}
-                                    className={inputClassName}
-                                    disabled={workflow?.approve?.isProcessing}
-                                    onValueChange={setApprovedAmount}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="workflow_approved_term">
-                                    Approved term
-                                </Label>
-                                <MonthsInput
-                                    id="workflow_approved_term"
-                                    required
-                                    value={approvedTerm}
-                                    className={inputClassName}
-                                    disabled={workflow?.approve?.isProcessing}
-                                    onChange={(value) => setApprovedTerm(value)}
-                                />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="workflow_approved_interest_rate">
-                                Approved interest rate
-                            </Label>
-                            <PercentInput
-                                id="workflow_approved_interest_rate"
-                                value={approvedInterestRate}
-                                className={inputClassName}
-                                disabled={workflow?.approve?.isProcessing}
-                                onValueChange={setApprovedInterestRate}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="workflow_approved_payment_frequency">
-                                Payment frequency
-                            </Label>
-                            <Select
-                                value={approvedPaymentFrequency || undefined}
-                                onValueChange={setApprovedPaymentFrequency}
-                                disabled={workflow?.approve?.isProcessing}
-                            >
-                                <SelectTrigger
-                                    id="workflow_approved_payment_frequency"
-                                    className="w-full"
-                                >
-                                    <SelectValue placeholder="Select payment frequency" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {PAYDAY_OPTIONS.map((option) => (
-                                        <SelectItem key={option} value={option}>
-                                            {option}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                        <div className="space-y-3 rounded-xl border border-border/30 bg-muted/10 p-4">
+                            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                Terms to approve
+                            </p>
+                            <dl className="grid gap-3 sm:grid-cols-2">
+                                {approvalTermRows.map((row) => (
+                                    <div
+                                        key={row.label}
+                                        className="space-y-0.5"
+                                    >
+                                        <dt className="text-xs text-muted-foreground">
+                                            {row.label}
+                                        </dt>
+                                        <dd className="text-sm font-medium text-foreground">
+                                            {row.value}
+                                        </dd>
+                                        {row.requested !== null ? (
+                                            <p className="text-xs text-amber-600">
+                                                Requested: {row.requested}
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                ))}
+                            </dl>
+                            <p className="text-xs text-muted-foreground">
+                                Adjust these in the processing details panel
+                                before approving.
+                            </p>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="workflow_approval_remarks">
