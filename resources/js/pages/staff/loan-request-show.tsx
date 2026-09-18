@@ -19,7 +19,10 @@ import {
 } from '@/components/loan-request/loan-request-fields';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LoanStatusWarning } from '@/components/loan-request/loan-status-warning';
-import { MonthsInput } from '@/components/loan-request/numeric-adorned-inputs';
+import {
+    CurrencyInput,
+    MonthsInput,
+} from '@/components/loan-request/numeric-adorned-inputs';
 import {
     ProcessingDetailsPanel,
     textareaClassName,
@@ -1786,17 +1789,16 @@ export default function StaffLoanRequestShow({
                                         <Label htmlFor="correction_requested_amount">
                                             Requested amount
                                         </Label>
-                                        <Input
+                                        <CurrencyInput
                                             id="correction_requested_amount"
-                                            type="number"
                                             value={
                                                 correctionForm.loan_request
                                                     .requested_amount
                                             }
-                                            onChange={(event) =>
+                                            onValueChange={(value) =>
                                                 updateCorrectionDetailField(
                                                     'requested_amount',
-                                                    event.target.value,
+                                                    value,
                                                 )
                                             }
                                         />

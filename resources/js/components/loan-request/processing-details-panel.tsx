@@ -1,5 +1,11 @@
 import { FileText, Info } from 'lucide-react';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+    type FormEvent,
+} from 'react';
 import { DEPENDENT_CATEGORIES } from '@/components/dependents/dependent-category-section';
 import { PAYDAY_OPTIONS } from '@/components/loan-request/loan-request-fields';
 import {
@@ -558,8 +564,8 @@ export function ProcessingDetailsPanel({
     onDismissSaveError,
     onDocumentChecklistPreview,
 }: ProcessingDetailsPanelProps) {
-    const [processingForm, setProcessingForm] =
-        useState<InlineProcessingFormState>({
+    const buildInitialProcessingForm = useCallback(
+        (): InlineProcessingFormState => ({
             processing: withCycleStateDefaults(
                 withProcessingChargeDefaults(
                     withWitnessOneAutoFill(
@@ -586,7 +592,29 @@ export function ProcessingDetailsPanel({
             institutional_employer_category:
                 applicant?.institutional_employer_category ?? '',
             reason: '',
-        });
+        }),
+        [
+            applicant?.birthdate,
+            applicant?.institutional_employer_category,
+            cycleState,
+            dataSections.dependents,
+            dataSections.processing,
+            loanManagers,
+            loanRequest.assigned_processor,
+            loanRequest.recommended_amount,
+            loanRequest.recommended_interest_rate,
+            loanRequest.recommended_payment_frequency,
+            loanRequest.recommended_term,
+            loanRequest.typecode,
+        ],
+    );
+    const [processingForm, setProcessingForm] =
+        useState<InlineProcessingFormState>(buildInitialProcessingForm());
+    // Processing details start read-only (summary card), even for viewers who
+    // are allowed to edit -- they must explicitly click "Edit" to reveal the
+    // inline form, so the recommendation/charges aren't accidentally changed
+    // while just reviewing a request.
+    const [isEditing, setIsEditing] = useState(false);
     const [recommendationPreview, setRecommendationPreview] =
         useState<RecommendationPreviewState | null>(null);
     const [reasonError, setReasonError] = useState<string | null>(null);
@@ -657,52 +685,16 @@ export function ProcessingDetailsPanel({
     }, [isInsuranceSkipped, applicant?.birthdate]);
 
     useEffect(() => {
-        setProcessingForm({
-            processing: withCycleStateDefaults(
-                withProcessingChargeDefaults(
-                    withWitnessOneAutoFill(
-                        withWitnessTwoAutoFill(
-                            { ...dataSections.processing },
-                            loanManagers,
-                        ),
-                        loanRequest.assigned_processor,
-                    ),
-                    applicant?.birthdate ?? null,
-                    Number(loanRequest.recommended_term ?? '') < 2,
-                    loanRequest.typecode,
-                ),
-                dataSections.dependents,
-                cycleState,
-            ),
-            recommended_amount: toStringValue(loanRequest.recommended_amount),
-            recommended_term: toStringValue(loanRequest.recommended_term),
-            recommended_interest_rate: toStringValue(
-                loanRequest.recommended_interest_rate,
-            ),
-            recommended_payment_frequency:
-                loanRequest.recommended_payment_frequency ?? '',
-            institutional_employer_category:
-                applicant?.institutional_employer_category ?? '',
-            reason: '',
-        });
+        setProcessingForm(buildInitialProcessingForm());
         setShowSecondOfficer(
             loanRequest.authority_to_deduct_guidance?.recommended_officers !==
                 1 || hasSecondOfficerValue(dataSections.processing),
         );
     }, [
-        applicant?.birthdate,
-        applicant?.institutional_employer_category,
-        cycleState,
-        dataSections.dependents,
+        buildInitialProcessingForm,
         dataSections.processing,
-        loanManagers,
-        loanRequest.assigned_processor,
         loanRequest.authority_to_deduct_guidance,
         loanRequest.kind_of_loan,
-        loanRequest.recommended_amount,
-        loanRequest.recommended_interest_rate,
-        loanRequest.recommended_payment_frequency,
-        loanRequest.recommended_term,
     ]);
 
     const updateProcessingSectionField = (
@@ -996,7 +988,15 @@ export function ProcessingDetailsPanel({
                 ...current,
                 reason: '',
             }));
+            setIsEditing(false);
         }
+    };
+
+    const cancelEditingProcessingDetails = () => {
+        setProcessingForm(buildInitialProcessingForm());
+        setReasonError(null);
+        onDismissSaveError?.();
+        setIsEditing(false);
     };
 
     const recommendedTermLabel =
@@ -1410,25 +1410,37 @@ export function ProcessingDetailsPanel({
                     : 'border-border/30 bg-card/70 shadow-sm'
             }
         >
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <FileText
-                        className={cn(
-                            'size-4',
-                            canUpdateProcessing
-                                ? 'text-primary'
-                                : 'text-muted-foreground',
-                        )}
-                    />
-                    Processing details
-                </CardTitle>
-                <CardDescription>
-                    Recommendation and financial terms used across the document
-                    package.
-                </CardDescription>
+            <CardHeader className="flex flex-row items-start justify-between gap-4">
+                <div>
+                    <CardTitle className="flex items-center gap-2">
+                        <FileText
+                            className={cn(
+                                'size-4',
+                                canUpdateProcessing
+                                    ? 'text-primary'
+                                    : 'text-muted-foreground',
+                            )}
+                        />
+                        Processing details
+                    </CardTitle>
+                    <CardDescription>
+                        Recommendation and financial terms used across the
+                        document package.
+                    </CardDescription>
+                </div>
+                {canUpdateProcessing && !isEditing && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                    >
+                        Edit
+                    </Button>
+                )}
             </CardHeader>
             <CardContent>
-                {canUpdateProcessing ? (
+                {canUpdateProcessing && isEditing ? (
                     <form
                         className="space-y-4"
                         onSubmit={submitProcessingDetails}
@@ -2369,13 +2381,24 @@ export function ProcessingDetailsPanel({
                                 )}
                             </div>
                         )}
-                        <Button
-                            type="submit"
-                            className="w-full"
-                            disabled={isProcessing}
-                        >
-                            Save processing details
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="flex-1"
+                                disabled={isProcessing}
+                                onClick={cancelEditingProcessingDetails}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="flex-1"
+                                disabled={isProcessing}
+                            >
+                                Save processing details
+                            </Button>
+                        </div>
                     </form>
                 ) : (
                     <div className="space-y-4">
@@ -2502,9 +2525,9 @@ export function ProcessingDetailsPanel({
                             )}
 
                         <p className="text-xs text-muted-foreground">
-                            Only the assigned loan processor can edit processing
-                            terms before approval, or the designated manager
-                            afterward.
+                            {canUpdateProcessing
+                                ? 'Click "Edit" above to update the recommendation and charges.'
+                                : 'Only the assigned loan processor can edit processing terms before approval, or the designated manager afterward.'}
                         </p>
                     </div>
                 )}
