@@ -1312,8 +1312,9 @@ class LoanRequestProcessingService
 
     private function ensureProcessorEditableStatus(LoanRequest $loanRequest): void
     {
-        // Approved/ConvertedToLoan are only reachable here for a designated
-        // manager's post-approval correction -- LoanRequestPolicy::
+        // RecommendedForApproval is reachable here for the designated
+        // manager's final-say edits before approving; Approved/ConvertedToLoan
+        // for their post-approval correction -- LoanRequestPolicy::
         // updateProcessingDetails() already restricts who can act on those
         // statuses.
         if (! in_array($this->statusValue($loanRequest), [
@@ -1321,6 +1322,7 @@ class LoanRequestProcessingService
             LoanRequestStatus::UnderReview->value,
             LoanRequestStatus::NeedsRevision->value,
             LoanRequestStatus::AwaitingMemberInformation->value,
+            LoanRequestStatus::RecommendedForApproval->value,
             LoanRequestStatus::Approved->value,
             LoanRequestStatus::ConvertedToLoan->value,
         ], true)) {

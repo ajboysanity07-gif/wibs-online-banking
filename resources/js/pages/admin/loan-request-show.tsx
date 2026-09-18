@@ -867,7 +867,8 @@ export default function LoanRequestShow({
                                 cycleState={currentCycleState}
                                 canUpdateProcessing={
                                     canUpdateProcessing ||
-                                    canCorrectProcessingPostApproval
+                                    canCorrectProcessingPostApproval ||
+                                    canWorkflowApprove
                                 }
                                 isProcessing={isWorkflowProcessing}
                                 updateProcessingDetails={

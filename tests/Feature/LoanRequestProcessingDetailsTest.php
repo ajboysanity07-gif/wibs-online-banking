@@ -953,6 +953,90 @@ test('the designated manager can correct processing details after approval, with
         ->and($change->reason)->toStartWith('Reason: Corrected notarial fee typo spotted after approval.');
 });
 
+test('the designated manager can update processing details while it awaits their approval decision', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $manager = createProcessingActor([Role::LOAN_MANAGER]);
+    $member = createProcessingActor([Role::MEMBER], '950013a');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    // A realistic first processing save while the processor still owns the
+    // request -- establishes the prior-save history a genuinely-recommended
+    // request would already have.
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => '',
+            'loan_request' => [],
+            'processing' => ['notarial_fee' => 250],
+        ])
+        ->assertOk();
+
+    $loanRequest->update(['status' => LoanRequestStatus::RecommendedForApproval]);
+
+    LoanRequestDataEntry::updateOrCreate(
+        [
+            'loan_request_id' => $loanRequest->id,
+            'section_key' => 'processing',
+            'field_key' => 'witness_two_id',
+        ],
+        [
+            'owner_type' => 'staff',
+            'value_json' => ['value' => $manager->user_id],
+        ],
+    );
+
+    $this
+        ->actingAs($manager)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Adjusted the recommended amount before approving.',
+            'loan_request' => [],
+            'recommended_amount' => '18000.00',
+            'processing' => ['notarial_fee' => 300],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.recommended_amount', '18000.00')
+        ->assertJsonPath('data.dataSections.processing.notarial_fee', '300');
+});
+
+test('a non-designated manager cannot update processing details while it awaits another manager\'s decision', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $designatedManager = createProcessingActor([Role::LOAN_MANAGER]);
+    $otherManager = createProcessingActor([Role::LOAN_MANAGER]);
+    $member = createProcessingActor([Role::MEMBER], '950013b');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::RecommendedForApproval,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestDataEntry::create([
+        'loan_request_id' => $loanRequest->id,
+        'section_key' => 'processing',
+        'field_key' => 'witness_two_id',
+        'owner_type' => 'staff',
+        'value_json' => ['value' => $designatedManager->user_id],
+    ]);
+
+    $this
+        ->actingAs($otherManager)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Attempted edit by an uninvolved manager.',
+            'loan_request' => [],
+            'processing' => ['notarial_fee' => 300],
+        ])
+        ->assertForbidden();
+});
+
 test('a non-designated manager cannot correct processing details after approval', function (): void {
     $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
     $designatedManager = createProcessingActor([Role::LOAN_MANAGER]);

@@ -1345,7 +1345,8 @@ export default function StaffLoanRequestShow({
                                 cycleState={currentCycleState}
                                 canUpdateProcessing={
                                     canUpdateProcessing ||
-                                    canCorrectProcessingPostApproval
+                                    canCorrectProcessingPostApproval ||
+                                    canWorkflowApprove
                                 }
                                 isProcessing={isWorkflowProcessing}
                                 updateProcessingDetails={

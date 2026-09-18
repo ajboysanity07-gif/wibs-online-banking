@@ -131,6 +131,19 @@ class LoanRequestPolicy
             return true;
         }
 
+        // The designated manager has final say on the recommended
+        // amount/term/interest/charges while a request sits in their review
+        // queue -- same actor/status gate as approve(), so it grants no more
+        // than what they can already reach via the correction dialog at this
+        // stage.
+        if ($this->canActOnDesignatedManagerRequest(
+            $user,
+            $loanRequest,
+            Permission::LOAN_APPROVE,
+        ) && $this->statusValue($loanRequest) === LoanRequestStatus::RecommendedForApproval->value) {
+            return true;
+        }
+
         return $this->canCorrectProcessingPostApproval($user, $loanRequest);
     }
 
