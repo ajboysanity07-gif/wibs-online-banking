@@ -1312,11 +1312,17 @@ class LoanRequestProcessingService
 
     private function ensureProcessorEditableStatus(LoanRequest $loanRequest): void
     {
+        // Approved/ConvertedToLoan are only reachable here for a designated
+        // manager's post-approval correction -- LoanRequestPolicy::
+        // updateProcessingDetails() already restricts who can act on those
+        // statuses.
         if (! in_array($this->statusValue($loanRequest), [
             LoanRequestStatus::PendingReview->value,
             LoanRequestStatus::UnderReview->value,
             LoanRequestStatus::NeedsRevision->value,
             LoanRequestStatus::AwaitingMemberInformation->value,
+            LoanRequestStatus::Approved->value,
+            LoanRequestStatus::ConvertedToLoan->value,
         ], true)) {
             throw ValidationException::withMessages([
                 'status' => 'This request is not currently editable for processing.',

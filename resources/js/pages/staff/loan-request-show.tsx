@@ -689,6 +689,11 @@ export default function StaffLoanRequestShow({
         hasWorkflowPermission('loan.correct') &&
         currentRequest.status === 'recommended_for_approval' &&
         isDesignatedManager;
+    const canCorrectProcessingPostApproval =
+        !isOwnRequest &&
+        hasWorkflowPermission('loan.correct') &&
+        isDesignatedManager &&
+        ['approved', 'converted_to_loan'].includes(currentRequest.status ?? '');
     const canGenerateDocuments =
         canUpdateProcessing ||
         (!isOwnRequest &&
@@ -1338,7 +1343,10 @@ export default function StaffLoanRequestShow({
                                 dataSections={currentDataSections}
                                 dataSectionDefinitions={dataSectionDefinitions}
                                 cycleState={currentCycleState}
-                                canUpdateProcessing={canUpdateProcessing}
+                                canUpdateProcessing={
+                                    canUpdateProcessing ||
+                                    canCorrectProcessingPostApproval
+                                }
                                 isProcessing={isWorkflowProcessing}
                                 updateProcessingDetails={
                                     updateProcessingDetails

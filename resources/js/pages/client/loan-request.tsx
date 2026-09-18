@@ -1011,6 +1011,7 @@ export default function LoanRequestPage({
                                         onChange={updatePersonField(
                                             'applicant',
                                         )}
+                                        contactNumberOnFile={member.telephone}
                                     />
                                 </LoanRequestAnimatedStep>
 

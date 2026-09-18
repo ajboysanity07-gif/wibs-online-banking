@@ -69,6 +69,7 @@ class SettingsPageData
                     'birthplace_city' => $parts['birthplace_city'],
                     'birthplace_province' => $parts['birthplace_province'],
                     'birthday' => $user->wmaster->birthday?->toDateString(),
+                    'telephone' => $user->wmaster->telephone,
                     'address' => $user->wmaster->address,
                     'address1' => $parts['address1'],
                     'barangay' => $parts['barangay'],

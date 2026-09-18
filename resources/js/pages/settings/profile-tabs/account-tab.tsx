@@ -9,11 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { TabsContent } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import { send } from '@/routes/verification';
 import type { Auth } from '@/types/auth';
 import {
     handleMobileNumberInput,
+    hasWmasterValue,
+    WMASTER_VALUE_CLASS,
     type AdminProfileSummary,
+    type MemberRecord,
 } from '../profile-shared';
 
 type Props = {
@@ -27,6 +31,7 @@ type Props = {
     handleProfilePhotoChange: (event: ChangeEvent<HTMLInputElement>) => void;
     mustVerifyEmail: boolean;
     status?: string;
+    memberRecord: MemberRecord | null;
 };
 
 export function AccountTab({
@@ -40,6 +45,7 @@ export function AccountTab({
     handleProfilePhotoChange,
     mustVerifyEmail,
     status,
+    memberRecord,
 }: Props) {
     return (
         <TabsContent value="account" forceMount className="mt-0">
@@ -209,6 +215,32 @@ export function AccountTab({
                                 message={formErrors.phoneno}
                             />
                         </div>
+
+                        {memberRecord && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="member_telephone">
+                                    Contact number on file
+                                </Label>
+
+                                <Input
+                                    id="member_telephone"
+                                    type="tel"
+                                    className={cn(
+                                        'mt-1 block w-full',
+                                        hasWmasterValue(
+                                            memberRecord.telephone,
+                                        ) && WMASTER_VALUE_CLASS,
+                                    )}
+                                    defaultValue={memberRecord.telephone ?? ''}
+                                    disabled
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    From your membership record -- this is the
+                                    number printed on insurance documents
+                                    (Generali, Grepalife).
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {mustVerifyEmail &&

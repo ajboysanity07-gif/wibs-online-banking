@@ -883,6 +883,161 @@ test('a second processing update with a reason succeeds and combines it with the
         ->and($change->reason)->toStartWith("Reason: There was a typo on the form.\nUpdated:\n- ");
 });
 
+test('the designated manager can correct processing details after approval, with a mandatory reason', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $manager = createProcessingActor([Role::LOAN_MANAGER]);
+    $member = createProcessingActor([Role::MEMBER], '950013');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    // A realistic first processing save while the processor still owns the
+    // request -- establishes the prior-save history a genuinely-approved
+    // request would already have.
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => '',
+            'loan_request' => [],
+            'processing' => ['notarial_fee' => 250],
+        ])
+        ->assertOk();
+
+    $loanRequest->update(['status' => LoanRequestStatus::Approved]);
+
+    LoanRequestDataEntry::updateOrCreate(
+        [
+            'loan_request_id' => $loanRequest->id,
+            'section_key' => 'processing',
+            'field_key' => 'witness_two_id',
+        ],
+        [
+            'owner_type' => 'staff',
+            'value_json' => ['value' => $manager->user_id],
+        ],
+    );
+
+    // No reason: this isn't the first save, so it must be rejected.
+    $this
+        ->actingAs($manager)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => '',
+            'loan_request' => [],
+            'processing' => ['notarial_fee' => 300],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['reason']);
+
+    $this
+        ->actingAs($manager)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Corrected notarial fee typo spotted after approval.',
+            'loan_request' => [],
+            'processing' => ['notarial_fee' => 300],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.dataSections.processing.notarial_fee', '300');
+
+    $change = App\Models\LoanRequestChange::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('action', App\Models\LoanRequestChange::ACTION_PROCESSING_DETAILS_UPDATED)
+        ->latest('id')
+        ->first();
+
+    expect($change)->not->toBeNull()
+        ->and($change->reason)->toStartWith('Reason: Corrected notarial fee typo spotted after approval.');
+});
+
+test('a non-designated manager cannot correct processing details after approval', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $designatedManager = createProcessingActor([Role::LOAN_MANAGER]);
+    $otherManager = createProcessingActor([Role::LOAN_MANAGER]);
+    $member = createProcessingActor([Role::MEMBER], '950014');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Approved,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestDataEntry::create([
+        'loan_request_id' => $loanRequest->id,
+        'section_key' => 'processing',
+        'field_key' => 'witness_two_id',
+        'owner_type' => 'staff',
+        'value_json' => ['value' => $designatedManager->user_id],
+    ]);
+
+    $this
+        ->actingAs($otherManager)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Attempted correction by an uninvolved manager.',
+            'loan_request' => [],
+            'processing' => ['notarial_fee' => 300],
+        ])
+        ->assertForbidden();
+});
+
+test('the assigned processor cannot edit processing details once the request is approved', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950015');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Approved,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Attempted processor edit after approval.',
+            'loan_request' => [],
+            'processing' => ['notarial_fee' => 300],
+        ])
+        ->assertForbidden();
+});
+
+test('the designated manager cannot correct processing details once WIBS encoding has started', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $manager = createProcessingActor([Role::LOAN_MANAGER]);
+    $member = createProcessingActor([Role::MEMBER], '950016');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::ForWibsEncoding,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestDataEntry::create([
+        'loan_request_id' => $loanRequest->id,
+        'section_key' => 'processing',
+        'field_key' => 'witness_two_id',
+        'owner_type' => 'staff',
+        'value_json' => ['value' => $manager->user_id],
+    ]);
+
+    $this
+        ->actingAs($manager)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Attempted correction after WIBS encoding started.',
+            'loan_request' => [],
+            'processing' => ['notarial_fee' => 300],
+        ])
+        ->assertForbidden();
+});
+
 /**
  * @param  list<string>  $roles
  */

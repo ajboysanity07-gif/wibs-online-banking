@@ -668,7 +668,13 @@ class ApprovedLoanDocumentDataBuilder
                 $person?->address_zip ?? $memberRecord?->zone_number,
             ),
             'contact_number' => $this->normalizeText($person?->cell_no),
-            'mobile' => $this->normalizeText($person?->cell_no),
+            // Generali Health, Generali Application, and Grepalife all print
+            // this as the applicant's own cell/mobile number -- wmaster.telephone
+            // (the core banking record) is the authoritative source; cell_no
+            // (wizard-entered, per loan request) is the fallback for persons
+            // with no wmaster record (co-makers never get one -- see the
+            // $memberRecord argument only being passed for $applicant above).
+            'mobile' => $this->normalizeText($memberRecord?->telephone ?? $person?->cell_no),
             'home_phone' => null,
             'work_phone' => $this->normalizeText($person?->telephone_no),
             'email' => $this->normalizeText($loanRequest->user?->email),

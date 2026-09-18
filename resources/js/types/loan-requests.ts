@@ -6,6 +6,7 @@ export type LoanTypeOption = {
 export type LoanRequestMemberSummary = {
     name: string;
     acctno: string | null;
+    telephone: string | null;
 };
 
 export type LoanRequestPersonData = {

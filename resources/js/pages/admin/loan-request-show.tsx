@@ -418,6 +418,10 @@ export default function LoanRequestShow({
         'pending_co_maker_signatures',
         'submitted',
     ].includes(currentRequest.status ?? '');
+    const canCorrectProcessingPostApproval =
+        !decision.isOwnRequest &&
+        hasWorkflowPermission('loan.correct') &&
+        ['approved', 'converted_to_loan'].includes(currentRequest.status ?? '');
     const canGenerateDocuments =
         canUpdateProcessing ||
         (!decision.isOwnRequest &&
@@ -861,7 +865,10 @@ export default function LoanRequestShow({
                                 dataSections={currentDataSections}
                                 dataSectionDefinitions={dataSectionDefinitions}
                                 cycleState={currentCycleState}
-                                canUpdateProcessing={canUpdateProcessing}
+                                canUpdateProcessing={
+                                    canUpdateProcessing ||
+                                    canCorrectProcessingPostApproval
+                                }
                                 isProcessing={isWorkflowProcessing}
                                 updateProcessingDetails={
                                     updateProcessingDetails

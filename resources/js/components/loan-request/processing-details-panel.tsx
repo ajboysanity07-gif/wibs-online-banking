@@ -2503,7 +2503,8 @@ export function ProcessingDetailsPanel({
 
                         <p className="text-xs text-muted-foreground">
                             Only the assigned loan processor can edit processing
-                            terms.
+                            terms before approval, or the designated manager
+                            afterward.
                         </p>
                     </div>
                 )}

@@ -118,7 +118,7 @@ class LoanRequestPolicy
         AppUser $user,
         LoanRequest $loanRequest,
     ): bool {
-        return $this->canActOnAssignedRequest(
+        if ($this->canActOnAssignedRequest(
             $user,
             $loanRequest,
             Permission::LOAN_REVIEW,
@@ -127,7 +127,53 @@ class LoanRequestPolicy
             LoanRequestStatus::UnderReview->value,
             LoanRequestStatus::NeedsRevision->value,
             LoanRequestStatus::AwaitingMemberInformation->value,
-        ], true);
+        ], true)) {
+            return true;
+        }
+
+        return $this->canCorrectProcessingPostApproval($user, $loanRequest);
+    }
+
+    /**
+     * The designated manager may fix a processing-detail error discovered
+     * after approval, before WIBS encoding begins. Unlike
+     * canActOnDesignatedManagerRequest(), a null designated_manager_id does
+     * NOT fall back to "any permission holder" here -- by the time a request
+     * is Approved/ConvertedToLoan the designated manager should already be
+     * on record, and a loan_processor also holds LOAN_CORRECT (for the
+     * separate application-data correction flow), so this must not
+     * accidentally open post-approval processing edits to the processor.
+     */
+    private function canCorrectProcessingPostApproval(
+        AppUser $user,
+        LoanRequest $loanRequest,
+    ): bool {
+        if ($this->ownsLoanRequest($user, $loanRequest) || ! $user->hasActiveStaffAccess()) {
+            return false;
+        }
+
+        if (! in_array($this->statusValue($loanRequest), [
+            LoanRequestStatus::Approved->value,
+            LoanRequestStatus::ConvertedToLoan->value,
+        ], true)) {
+            return false;
+        }
+
+        if (! $user->hasPermission(Permission::LOAN_CORRECT)) {
+            return false;
+        }
+
+        if ($user->hasRole(Role::SUPERADMIN) || $user->isLegacySuperadmin()) {
+            return true;
+        }
+
+        if (! $user->hasRole(Role::LOAN_MANAGER)) {
+            return false;
+        }
+
+        $designatedManagerId = $loanRequest->designatedManagerId();
+
+        return $designatedManagerId !== null && $designatedManagerId === (int) $user->user_id;
     }
 
     public function requestMemberAction(
