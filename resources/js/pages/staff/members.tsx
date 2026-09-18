@@ -8,13 +8,11 @@ import { SectionHeader } from '@/components/section-header';
 import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import {
     DataTablePagination,
     DataTablePaginationSkeleton,
 } from '@/components/ui/data-table-pagination';
-import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
@@ -22,6 +20,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    TableFilterField,
+    TableFilterPopover,
+    TableSearchBox,
+} from '@/components/ui/table-filter-bar';
 import {
     TableSkeleton,
     type TableSkeletonColumn,
@@ -173,7 +176,6 @@ export default function StaffMembersPage() {
     const filterCount = [hasSearch, hasRegistration, hasSort].filter(
         Boolean,
     ).length;
-    const hasFilters = filterCount > 0;
     const totalResults = meta.total;
     const pageStart = totalResults > 0 ? (meta.page - 1) * meta.perPage + 1 : 0;
     const pageEnd =
@@ -215,106 +217,75 @@ export default function StaffMembersPage() {
                 />
 
                 <SurfaceCard variant="default" padding="md">
-                    <div className="flex flex-col gap-4">
-                        <SectionHeader
-                            title="Filters"
-                            description="Search and segment members by registration."
-                            actions={
-                                <>
-                                    {filterCount > 0 ? (
-                                        <span className="text-xs text-muted-foreground">
-                                            {filterCount} filter
-                                            {filterCount === 1 ? '' : 's'}{' '}
-                                            active
-                                        </span>
-                                    ) : null}
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        disabled={!hasFilters}
-                                        onClick={() => {
-                                            setSearch('');
-                                            setRegistration('all');
-                                            setSort('newest');
+                    <TableSearchBox
+                        value={search}
+                        onChange={(nextSearch) => {
+                            setSearch(nextSearch);
+                            setPage(1);
+                        }}
+                        placeholder="Search by account no, name, username, or email"
+                        resultsText={resultsLabel}
+                        actions={
+                            <TableFilterPopover
+                                filterCount={filterCount}
+                                onClearFilters={() => {
+                                    setSearch('');
+                                    setRegistration('all');
+                                    setSort('newest');
+                                    setPage(1);
+                                }}
+                            >
+                                <TableFilterField label="Registration">
+                                    <Select
+                                        value={registration}
+                                        onValueChange={(value) => {
+                                            setRegistration(
+                                                value as MemberRegistrationFilter,
+                                            );
                                             setPage(1);
                                         }}
                                     >
-                                        Clear filters
-                                    </Button>
-                                </>
-                            }
-                        />
-                        <div className="grid gap-3 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]">
-                            <div className="space-y-1">
-                                <label
-                                    className="text-xs font-medium text-muted-foreground"
-                                    htmlFor="members-search"
-                                >
-                                    Search
-                                </label>
-                                <Input
-                                    id="members-search"
-                                    value={search}
-                                    placeholder="Search by account no, name, username, or email"
-                                    onChange={(event) => {
-                                        setSearch(event.target.value);
-                                        setPage(1);
-                                    }}
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground">
-                                    Registration
-                                </span>
-                                <Select
-                                    value={registration}
-                                    onValueChange={(value) => {
-                                        setRegistration(
-                                            value as MemberRegistrationFilter,
-                                        );
-                                        setPage(1);
-                                    }}
-                                >
-                                    <SelectTrigger aria-label="Registration">
-                                        <SelectValue placeholder="Registration" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All</SelectItem>
-                                        <SelectItem value="registered">
-                                            Registered
-                                        </SelectItem>
-                                        <SelectItem value="unregistered">
-                                            Unregistered
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground">
-                                    Sort
-                                </span>
-                                <Select
-                                    value={sort}
-                                    onValueChange={(value) => {
-                                        setSort(value as MemberSort);
-                                        setPage(1);
-                                    }}
-                                >
-                                    <SelectTrigger aria-label="Sort members">
-                                        <SelectValue placeholder="Sort" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="newest">
-                                            Newest first
-                                        </SelectItem>
-                                        <SelectItem value="oldest">
-                                            Oldest first
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                    </div>
+                                        <SelectTrigger aria-label="Registration">
+                                            <SelectValue placeholder="Registration" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All
+                                            </SelectItem>
+                                            <SelectItem value="registered">
+                                                Registered
+                                            </SelectItem>
+                                            <SelectItem value="unregistered">
+                                                Unregistered
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </TableFilterField>
+
+                                <TableFilterField label="Sort">
+                                    <Select
+                                        value={sort}
+                                        onValueChange={(value) => {
+                                            setSort(value as MemberSort);
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <SelectTrigger aria-label="Sort members">
+                                            <SelectValue placeholder="Sort" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="newest">
+                                                Newest first
+                                            </SelectItem>
+                                            <SelectItem value="oldest">
+                                                Oldest first
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </TableFilterField>
+                            </TableFilterPopover>
+                        }
+                    />
                 </SurfaceCard>
 
                 {error ? (

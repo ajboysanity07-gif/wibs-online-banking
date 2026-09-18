@@ -6,7 +6,6 @@ import {
     ArrowUpDown,
     Eye,
     MoreHorizontal,
-    SlidersHorizontal,
     UserCheck,
     UserCog,
     UserPlus,
@@ -41,11 +40,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
-import {
     Select,
     SelectContent,
     SelectItem,
@@ -53,6 +47,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+    TableFilterField,
+    TableFilterPopover,
+} from '@/components/ui/table-filter-bar';
 import {
     TableSkeleton,
     type TableSkeletonColumn,
@@ -702,7 +700,6 @@ export function LoanRequestQueuePage({
         minAmountValue,
         maxAmountValue,
     ].filter((value) => value !== null && value !== undefined).length;
-    const hasFilters = filterCount > 0;
     const summaryCountsByStatus = meta.statusCounts ?? {};
     const summaryCountFor = (...statuses: string[]) =>
         statuses.reduce(
@@ -822,274 +819,203 @@ export function LoanRequestQueuePage({
                             placeholder="Search by account, member, loan type, or status"
                             resultsText={resultsLabel}
                             actions={
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-10"
+                                <TableFilterPopover
+                                    filterCount={filterCount}
+                                    onClearFilters={() => {
+                                        setSearch('');
+                                        setLoanType(null);
+                                        setStatusFilter('all');
+                                        setAssignmentFilter(null);
+                                        setOfficerId(null);
+                                        setMinAmount('');
+                                        setMaxAmount('');
+                                        setSortBy(null);
+                                        setSortDirection('desc');
+                                        setPage(1);
+                                    }}
+                                >
+                                    <LoanRequestStatusFilters
+                                        options={statusOptions}
+                                        activeValue={statusFilter}
+                                        onChange={(nextStatus) => {
+                                            setStatusFilter(nextStatus);
+                                            setPage(1);
+                                        }}
+                                    />
+
+                                    {workspace === 'staff' &&
+                                    (meta.assignmentFilters?.length ?? 0) >
+                                        0 ? (
+                                        <TableFilterField label="Assignment">
+                                            <Select
+                                                value={
+                                                    assignmentFilter ??
+                                                    'default'
+                                                }
+                                                onValueChange={(value) => {
+                                                    const nextAssignment =
+                                                        value === 'default'
+                                                            ? null
+                                                            : (value as
+                                                                  | 'unassigned'
+                                                                  | 'mine'
+                                                                  | 'all');
+
+                                                    setAssignmentFilter(
+                                                        nextAssignment,
+                                                    );
+
+                                                    if (
+                                                        nextAssignment !==
+                                                            null &&
+                                                        nextAssignment !== 'all'
+                                                    ) {
+                                                        setOfficerId(null);
+                                                    }
+
+                                                    setPage(1);
+                                                }}
+                                            >
+                                                <SelectTrigger aria-label="Assignment">
+                                                    <SelectValue placeholder="Default view" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="default">
+                                                        Default view
+                                                    </SelectItem>
+                                                    {meta.assignmentFilters?.map(
+                                                        (option) => (
+                                                            <SelectItem
+                                                                key={
+                                                                    option.value
+                                                                }
+                                                                value={
+                                                                    option.value
+                                                                }
+                                                            >
+                                                                {option.label}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </TableFilterField>
+                                    ) : null}
+
+                                    {workspace === 'staff' &&
+                                    (meta.assignmentOfficers?.length ?? 0) >
+                                        0 &&
+                                    (assignmentFilter === null ||
+                                        assignmentFilter === 'all') ? (
+                                        <TableFilterField label="Loan officer">
+                                            <Select
+                                                value={
+                                                    officerId !== null
+                                                        ? `${officerId}`
+                                                        : 'all'
+                                                }
+                                                onValueChange={(value) => {
+                                                    setOfficerId(
+                                                        value === 'all'
+                                                            ? null
+                                                            : Number(value),
+                                                    );
+                                                    setPage(1);
+                                                }}
+                                            >
+                                                <SelectTrigger aria-label="Loan officer">
+                                                    <SelectValue placeholder="All loan processors" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">
+                                                        All loan processors
+                                                    </SelectItem>
+                                                    {meta.assignmentOfficers?.map(
+                                                        (officer) => (
+                                                            <SelectItem
+                                                                key={
+                                                                    officer.user_id
+                                                                }
+                                                                value={`${officer.user_id}`}
+                                                            >
+                                                                {`${officer.name} - ${officer.active_assignment_count} active application${officer.active_assignment_count === 1 ? '' : 's'}${officer.has_workload_warning ? ' - High workload' : ''}`}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </TableFilterField>
+                                    ) : null}
+
+                                    <TableFilterField label="Loan type">
+                                        <Select
+                                            value={loanType ?? 'all'}
+                                            onValueChange={(value) => {
+                                                setLoanType(
+                                                    value === 'all'
+                                                        ? null
+                                                        : value,
+                                                );
+                                                setPage(1);
+                                            }}
                                         >
-                                            <SlidersHorizontal className="h-4 w-4" />
-                                            Filters
-                                            {filterCount > 0 ? (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="ml-1 px-1.5"
-                                                >
-                                                    {filterCount}
-                                                </Badge>
-                                            ) : null}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                        align="end"
-                                        className="w-80 sm:w-96"
-                                    >
-                                        <div className="space-y-4">
-                                            <LoanRequestStatusFilters
-                                                options={statusOptions}
-                                                activeValue={statusFilter}
-                                                onChange={(nextStatus) => {
-                                                    setStatusFilter(nextStatus);
+                                            <SelectTrigger aria-label="Loan type">
+                                                <SelectValue placeholder="All loan types" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">
+                                                    All loan types
+                                                </SelectItem>
+                                                {loanTypeOptions.map(
+                                                    (option) => (
+                                                        <SelectItem
+                                                            key={option}
+                                                            value={option}
+                                                        >
+                                                            {option}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </TableFilterField>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label
+                                                className="text-xs font-medium text-muted-foreground"
+                                                htmlFor={`${workspace}-requests-min-amount`}
+                                            >
+                                                Min amount
+                                            </label>
+                                            <CurrencyInput
+                                                id={`${workspace}-requests-min-amount`}
+                                                value={minAmount}
+                                                onValueChange={(nextValue) => {
+                                                    setMinAmount(nextValue);
                                                     setPage(1);
                                                 }}
                                             />
-
-                                            {workspace === 'staff' &&
-                                            (meta.assignmentFilters?.length ??
-                                                0) > 0 ? (
-                                                <div className="space-y-1">
-                                                    <span className="text-xs font-medium text-muted-foreground">
-                                                        Assignment
-                                                    </span>
-                                                    <Select
-                                                        value={
-                                                            assignmentFilter ??
-                                                            'default'
-                                                        }
-                                                        onValueChange={(
-                                                            value,
-                                                        ) => {
-                                                            const nextAssignment =
-                                                                value ===
-                                                                'default'
-                                                                    ? null
-                                                                    : (value as
-                                                                          | 'unassigned'
-                                                                          | 'mine'
-                                                                          | 'all');
-
-                                                            setAssignmentFilter(
-                                                                nextAssignment,
-                                                            );
-
-                                                            if (
-                                                                nextAssignment !==
-                                                                    null &&
-                                                                nextAssignment !==
-                                                                    'all'
-                                                            ) {
-                                                                setOfficerId(
-                                                                    null,
-                                                                );
-                                                            }
-
-                                                            setPage(1);
-                                                        }}
-                                                    >
-                                                        <SelectTrigger aria-label="Assignment">
-                                                            <SelectValue placeholder="Default view" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="default">
-                                                                Default view
-                                                            </SelectItem>
-                                                            {meta.assignmentFilters?.map(
-                                                                (option) => (
-                                                                    <SelectItem
-                                                                        key={
-                                                                            option.value
-                                                                        }
-                                                                        value={
-                                                                            option.value
-                                                                        }
-                                                                    >
-                                                                        {
-                                                                            option.label
-                                                                        }
-                                                                    </SelectItem>
-                                                                ),
-                                                            )}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            ) : null}
-
-                                            {workspace === 'staff' &&
-                                            (meta.assignmentOfficers?.length ??
-                                                0) > 0 &&
-                                            (assignmentFilter === null ||
-                                                assignmentFilter === 'all') ? (
-                                                <div className="space-y-1">
-                                                    <span className="text-xs font-medium text-muted-foreground">
-                                                        Loan officer
-                                                    </span>
-                                                    <Select
-                                                        value={
-                                                            officerId !== null
-                                                                ? `${officerId}`
-                                                                : 'all'
-                                                        }
-                                                        onValueChange={(
-                                                            value,
-                                                        ) => {
-                                                            setOfficerId(
-                                                                value === 'all'
-                                                                    ? null
-                                                                    : Number(
-                                                                          value,
-                                                                      ),
-                                                            );
-                                                            setPage(1);
-                                                        }}
-                                                    >
-                                                        <SelectTrigger aria-label="Loan officer">
-                                                            <SelectValue placeholder="All loan processors" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="all">
-                                                                All loan
-                                                                processors
-                                                            </SelectItem>
-                                                            {meta.assignmentOfficers?.map(
-                                                                (officer) => (
-                                                                    <SelectItem
-                                                                        key={
-                                                                            officer.user_id
-                                                                        }
-                                                                        value={`${officer.user_id}`}
-                                                                    >
-                                                                        {`${officer.name} - ${officer.active_assignment_count} active application${officer.active_assignment_count === 1 ? '' : 's'}${officer.has_workload_warning ? ' - High workload' : ''}`}
-                                                                    </SelectItem>
-                                                                ),
-                                                            )}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            ) : null}
-
-                                            <div className="space-y-1">
-                                                <span className="text-xs font-medium text-muted-foreground">
-                                                    Loan type
-                                                </span>
-                                                <Select
-                                                    value={loanType ?? 'all'}
-                                                    onValueChange={(value) => {
-                                                        setLoanType(
-                                                            value === 'all'
-                                                                ? null
-                                                                : value,
-                                                        );
-                                                        setPage(1);
-                                                    }}
-                                                >
-                                                    <SelectTrigger aria-label="Loan type">
-                                                        <SelectValue placeholder="All loan types" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="all">
-                                                            All loan types
-                                                        </SelectItem>
-                                                        {loanTypeOptions.map(
-                                                            (option) => (
-                                                                <SelectItem
-                                                                    key={option}
-                                                                    value={
-                                                                        option
-                                                                    }
-                                                                >
-                                                                    {option}
-                                                                </SelectItem>
-                                                            ),
-                                                        )}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="space-y-1">
-                                                    <label
-                                                        className="text-xs font-medium text-muted-foreground"
-                                                        htmlFor={`${workspace}-requests-min-amount`}
-                                                    >
-                                                        Min amount
-                                                    </label>
-                                                    <CurrencyInput
-                                                        id={`${workspace}-requests-min-amount`}
-                                                        value={minAmount}
-                                                        onValueChange={(
-                                                            nextValue,
-                                                        ) => {
-                                                            setMinAmount(
-                                                                nextValue,
-                                                            );
-                                                            setPage(1);
-                                                        }}
-                                                    />
-                                                </div>
-
-                                                <div className="space-y-1">
-                                                    <label
-                                                        className="text-xs font-medium text-muted-foreground"
-                                                        htmlFor={`${workspace}-requests-max-amount`}
-                                                    >
-                                                        Max amount
-                                                    </label>
-                                                    <CurrencyInput
-                                                        id={`${workspace}-requests-max-amount`}
-                                                        value={maxAmount}
-                                                        onValueChange={(
-                                                            nextValue,
-                                                        ) => {
-                                                            setMaxAmount(
-                                                                nextValue,
-                                                            );
-                                                            setPage(1);
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="flex justify-end border-t border-border/40 pt-3">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    disabled={!hasFilters}
-                                                    onClick={() => {
-                                                        setSearch('');
-                                                        setLoanType(null);
-                                                        setStatusFilter('all');
-                                                        setAssignmentFilter(
-                                                            null,
-                                                        );
-                                                        setOfficerId(null);
-                                                        setMinAmount('');
-                                                        setMaxAmount('');
-                                                        setSortBy(null);
-                                                        setSortDirection(
-                                                            'desc',
-                                                        );
-                                                        setPage(1);
-                                                    }}
-                                                >
-                                                    Clear filters
-                                                </Button>
-                                            </div>
                                         </div>
-                                    </PopoverContent>
-                                </Popover>
+
+                                        <div className="space-y-1">
+                                            <label
+                                                className="text-xs font-medium text-muted-foreground"
+                                                htmlFor={`${workspace}-requests-max-amount`}
+                                            >
+                                                Max amount
+                                            </label>
+                                            <CurrencyInput
+                                                id={`${workspace}-requests-max-amount`}
+                                                value={maxAmount}
+                                                onValueChange={(nextValue) => {
+                                                    setMaxAmount(nextValue);
+                                                    setPage(1);
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </TableFilterPopover>
                             }
                         />
                     </div>
