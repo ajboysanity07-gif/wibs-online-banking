@@ -55,7 +55,7 @@ export function CurrencyInput({
 // Rates are stored as decimal fractions everywhere outside this component (see LoanRequestDataService); conversion happens only here.
 const PERCENT_DECIMAL_SCALE = 2;
 
-const fractionToPercentDisplay = (fraction: string): string => {
+export const fractionToPercentDisplay = (fraction: string): string => {
     if (fraction.trim() === '') {
         return '';
     }

@@ -10,6 +10,7 @@ import { DEPENDENT_CATEGORIES } from '@/components/dependents/dependent-category
 import { PAYDAY_OPTIONS } from '@/components/loan-request/loan-request-fields';
 import {
     CurrencyInput,
+    fractionToPercentDisplay,
     MonthsInput,
     PercentInput,
 } from '@/components/loan-request/numeric-adorned-inputs';
@@ -125,6 +126,19 @@ export const snapshotCurrency = (value?: string | number | null): string => {
     return Number.isNaN(numericValue)
         ? `${value}`
         : formatCurrency(numericValue);
+};
+
+// Rates are stored as decimal fractions (see numeric-adorned-inputs.tsx); the
+// snapshot view converts to a real percentage, trimming trailing zeros so
+// 0.25 reads "25%" and 0.0075 reads "0.75%" rather than "25.00%".
+export const snapshotPercent = (value?: string | number | null): string => {
+    if (value === null || value === undefined || `${value}`.trim() === '') {
+        return '—';
+    }
+
+    const display = fractionToPercentDisplay(`${value}`);
+
+    return display !== '' ? `${display}%` : '—';
 };
 
 export const SnapshotRow = ({
@@ -1013,6 +1027,7 @@ export function ProcessingDetailsPanel({
         }
 
         const value = processingForm.processing[fieldKey];
+        const fieldKind = PROCESSING_FIELD_KIND[fieldKey];
         const display =
             field.type === 'boolean'
                 ? value === true
@@ -1020,7 +1035,11 @@ export function ProcessingDetailsPanel({
                     : value === false
                       ? 'No'
                       : '—'
-                : snapshotDisplay(value as string | number | null);
+                : fieldKind === 'percent'
+                  ? snapshotPercent(value as string | number | null)
+                  : fieldKind === 'currency'
+                    ? snapshotCurrency(value as string | number | null)
+                    : snapshotDisplay(value as string | number | null);
 
         return (
             <SnapshotRow key={fieldKey} label={field.label} value={display} />
@@ -2415,7 +2434,7 @@ export function ProcessingDetailsPanel({
                             />
                             <SnapshotRow
                                 label="Recommended interest rate"
-                                value={snapshotDisplay(
+                                value={snapshotPercent(
                                     loanRequest.recommended_interest_rate,
                                 )}
                             />
