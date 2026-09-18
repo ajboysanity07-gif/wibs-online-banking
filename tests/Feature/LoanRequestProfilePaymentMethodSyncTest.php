@@ -46,9 +46,14 @@ beforeEach(function (): void {
 
 test('profile payment method sync updates in-flight loan requests but skips terminal ones', function (): void {
     $member = paymentSyncMember('660200');
-    $activeRequest = paymentSyncLoanRequest($member);
+
+    // submit() reuses the member's existing active-editable request rather
+    // than creating a new one, so the approved request must be moved out of
+    // that editable window *before* the second submit() call -- otherwise
+    // both variables end up pointing at the same underlying row.
     $approvedRequest = paymentSyncLoanRequest($member);
     $approvedRequest->forceFill(['status' => LoanRequestStatus::Approved])->save();
+    $activeRequest = paymentSyncLoanRequest($member);
 
     $updated = app(LoanRequestProcessingService::class)->syncPaymentMethodFromProfile($member, [
         'payment_option' => 'Cash',

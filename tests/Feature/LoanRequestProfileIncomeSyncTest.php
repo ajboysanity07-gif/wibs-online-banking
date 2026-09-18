@@ -159,6 +159,15 @@ test('processing details update recomputes GNTHP from the newly submitted applic
 
     expect($staleGnthp)->not->toBeNull();
 
+    $chargesPayload = incomeSyncChargesPayload();
+    $recommendationFields = array_intersect_key($chargesPayload, array_flip([
+        'recommended_amount',
+        'recommended_term',
+        'recommended_interest_rate',
+        'recommended_payment_frequency',
+    ]));
+    $processingFields = array_diff_key($chargesPayload, $recommendationFields);
+
     $this
         ->actingAs($processor)
         ->patchJson(
@@ -171,7 +180,8 @@ test('processing details update recomputes GNTHP from the newly submitted applic
                     'loan_purpose' => $activeRequest->loan_purpose,
                     'availment_status' => $activeRequest->availment_status,
                 ],
-                ...incomeSyncChargesPayload(),
+                ...$recommendationFields,
+                'processing' => $processingFields,
             ],
         )
         ->assertOk();
