@@ -278,6 +278,28 @@ test('dashboardMetrics date range filters to correct window', function (): void 
     expect($metrics['approved_count'])->toBe(1);
 });
 
+// ── Caching ──────────────────────────────────────────────────────────────────
+
+test('dashboardMetrics caches results per actor and date range', function (): void {
+    $manager = makeLoanManager();
+    $service = app(ReportMetricsService::class);
+
+    LoanRequest::factory()->count(2)->create(['status' => LoanRequestStatus::PendingReview]);
+
+    $first = $service->dashboardMetrics($manager, null, null);
+    expect($first['pending_count'])->toBe(2);
+
+    LoanRequest::factory()->count(3)->create(['status' => LoanRequestStatus::PendingReview]);
+
+    $second = $service->dashboardMetrics($manager, null, null);
+    expect($second['pending_count'])->toBe(2);
+
+    \Illuminate\Support\Facades\Cache::flush();
+
+    $third = $service->dashboardMetrics($manager, null, null);
+    expect($third['pending_count'])->toBe(5);
+});
+
 // ── processorQueue ────────────────────────────────────────────────────────────
 
 test('processorQueue returns only assigned active items for that processor', function (): void {

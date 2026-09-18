@@ -8,9 +8,18 @@ use App\Models\LoanRequest;
 use App\Models\Role;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class ReportMetricsService
 {
+    /**
+     * Reporting dashboards are read by multiple people through the day and don't
+     * need real-time freshness; ReportingController::index() and ::dashboard()
+     * both call dashboardMetrics() for the same actor/range, so caching also
+     * collapses that duplicate call into one query set.
+     */
+    private const METRICS_TTL_SECONDS = 300;
+
     /**
      * @return array{
      *     pending_count:int,
@@ -25,55 +34,56 @@ class ReportMetricsService
      */
     public function dashboardMetrics(AppUser $actor, ?Carbon $from, ?Carbon $to): array
     {
-        $base = $this->baseQuery($actor);
+        return Cache::remember(
+            $this->metricsCacheKey('dashboard_metrics', $actor, $from, $to),
+            self::METRICS_TTL_SECONDS,
+            function () use ($actor, $from, $to) {
+                $base = $this->baseQuery($actor);
 
-        $inRange = (clone $base)
-            ->when($from, fn ($q) => $q->where('created_at', '>=', $from))
-            ->when($to, fn ($q) => $q->where('created_at', '<=', $to));
+                $inRange = (clone $base)
+                    ->when($from, fn ($q) => $q->where('created_at', '>=', $from))
+                    ->when($to, fn ($q) => $q->where('created_at', '<=', $to));
 
-        $pendingCount = (clone $inRange)
-            ->whereIn('status', $this->pendingStatuses())
-            ->count();
+                // One grouped query yields per-status counts; derive pending/approved/
+                // rejected from it instead of running three more COUNT round trips.
+                $statusBreakdown = (clone $inRange)
+                    ->selectRaw('status, count(*) as aggregate')
+                    ->groupBy('status')
+                    ->pluck('aggregate', 'status')
+                    ->mapWithKeys(fn ($count, $status) => [$this->statusValue($status) => (int) $count])
+                    ->all();
 
-        $approvedCount = (clone $inRange)
-            ->where('status', LoanRequestStatus::Approved->value)
-            ->count();
+                $pendingCount = collect($this->pendingStatuses())
+                    ->sum(fn ($status) => $statusBreakdown[$status] ?? 0);
+                $approvedCount = $statusBreakdown[LoanRequestStatus::Approved->value] ?? 0;
+                $rejectedCount = $statusBreakdown[LoanRequestStatus::Rejected->value] ?? 0;
 
-        $rejectedCount = (clone $inRange)
-            ->where('status', LoanRequestStatus::Rejected->value)
-            ->count();
+                $decidedCount = $approvedCount + $rejectedCount;
+                $approvalRate = $decidedCount > 0
+                    ? round($approvedCount / $decidedCount * 100, 1)
+                    : 0.0;
 
-        $decidedCount = $approvedCount + $rejectedCount;
-        $approvalRate = $decidedCount > 0
-            ? round($approvedCount / $decidedCount * 100, 1)
-            : 0.0;
+                $averageProcessingDays = $this->averageProcessingDays(clone $inRange);
 
-        $averageProcessingDays = $this->averageProcessingDays(clone $inRange);
+                $portfolioTotal = (float) (clone $inRange)
+                    ->where('status', LoanRequestStatus::Approved->value)
+                    ->whereNotNull('approved_amount')
+                    ->sum('approved_amount');
 
-        $portfolioTotal = (float) (clone $inRange)
-            ->where('status', LoanRequestStatus::Approved->value)
-            ->whereNotNull('approved_amount')
-            ->sum('approved_amount');
+                $dailyTrend = $this->dailyTrend($actor, $from, $to);
 
-        $statusBreakdown = (clone $inRange)
-            ->selectRaw('status, count(*) as aggregate')
-            ->groupBy('status')
-            ->pluck('aggregate', 'status')
-            ->mapWithKeys(fn ($count, $status) => [$this->statusValue($status) => (int) $count])
-            ->all();
-
-        $dailyTrend = $this->dailyTrend($actor, $from, $to);
-
-        return [
-            'pending_count' => $pendingCount,
-            'approved_count' => $approvedCount,
-            'rejected_count' => $rejectedCount,
-            'approval_rate' => $approvalRate,
-            'average_processing_days' => $averageProcessingDays,
-            'portfolio_total' => $portfolioTotal,
-            'status_breakdown' => $statusBreakdown,
-            'daily_trend' => $dailyTrend,
-        ];
+                return [
+                    'pending_count' => $pendingCount,
+                    'approved_count' => $approvedCount,
+                    'rejected_count' => $rejectedCount,
+                    'approval_rate' => $approvalRate,
+                    'average_processing_days' => $averageProcessingDays,
+                    'portfolio_total' => $portfolioTotal,
+                    'status_breakdown' => $statusBreakdown,
+                    'daily_trend' => $dailyTrend,
+                ];
+            },
+        );
     }
 
     /**
@@ -81,14 +91,18 @@ class ReportMetricsService
      */
     public function applicationVolume(?Carbon $from, ?Carbon $to): array
     {
-        return LoanRequest::query()
-            ->when($from, fn ($q) => $q->where('created_at', '>=', $from))
-            ->when($to, fn ($q) => $q->where('created_at', '<=', $to))
-            ->orderBy('created_at')
-            ->get(['created_at'])
-            ->groupBy(fn ($r) => Carbon::parse($r->created_at)->format('Y-m-d'))
-            ->map->count()
-            ->all();
+        return Cache::remember(
+            $this->metricsCacheKey('application_volume', null, $from, $to),
+            self::METRICS_TTL_SECONDS,
+            fn () => LoanRequest::query()
+                ->when($from, fn ($q) => $q->where('created_at', '>=', $from))
+                ->when($to, fn ($q) => $q->where('created_at', '<=', $to))
+                ->orderBy('created_at')
+                ->get(['created_at'])
+                ->groupBy(fn ($r) => Carbon::parse($r->created_at)->format('Y-m-d'))
+                ->map->count()
+                ->all(),
+        );
     }
 
     /**
@@ -96,55 +110,61 @@ class ReportMetricsService
      */
     public function staffPerformance(?Carbon $from, ?Carbon $to): array
     {
-        $baseQuery = fn () => LoanRequest::query()
-            ->whereNotNull('assigned_officer_id')
-            ->when($from, fn ($q) => $q->where('created_at', '>=', $from))
-            ->when($to, fn ($q) => $q->where('created_at', '<=', $to));
+        return Cache::remember(
+            $this->metricsCacheKey('staff_performance', null, $from, $to),
+            self::METRICS_TTL_SECONDS,
+            function () use ($from, $to) {
+                $baseQuery = fn () => LoanRequest::query()
+                    ->whereNotNull('assigned_officer_id')
+                    ->when($from, fn ($q) => $q->where('created_at', '>=', $from))
+                    ->when($to, fn ($q) => $q->where('created_at', '<=', $to));
 
-        $assignedCounts = $baseQuery()
-            ->selectRaw('assigned_officer_id, count(*) as aggregate')
-            ->groupBy('assigned_officer_id')
-            ->pluck('aggregate', 'assigned_officer_id');
+                $assignedCounts = $baseQuery()
+                    ->selectRaw('assigned_officer_id, count(*) as aggregate')
+                    ->groupBy('assigned_officer_id')
+                    ->pluck('aggregate', 'assigned_officer_id');
 
-        $statusCounts = $baseQuery()
-            ->selectRaw('assigned_officer_id, status, count(*) as aggregate')
-            ->groupBy('assigned_officer_id', 'status')
-            ->get()
-            ->groupBy('assigned_officer_id');
+                $statusCounts = $baseQuery()
+                    ->selectRaw('assigned_officer_id, status, count(*) as aggregate')
+                    ->groupBy('assigned_officer_id', 'status')
+                    ->get()
+                    ->groupBy('assigned_officer_id');
 
-        $officers = AppUser::query()
-            ->whereIn('user_id', $assignedCounts->keys())
-            ->get(['user_id', 'username', 'email'])
-            ->keyBy('user_id');
+                $officers = AppUser::query()
+                    ->whereIn('user_id', $assignedCounts->keys())
+                    ->get(['user_id', 'username', 'email'])
+                    ->keyBy('user_id');
 
-        $decidedRows = $baseQuery()
-            ->where(function ($q): void {
-                $q->whereNotNull('approved_at')
-                    ->orWhereNotNull('rejected_at')
-                    ->orWhereNotNull('declined_at');
-            })
-            ->get(['assigned_officer_id', 'created_at', 'approved_at', 'rejected_at', 'declined_at'])
-            ->groupBy('assigned_officer_id');
+                $decidedRows = $baseQuery()
+                    ->where(function ($q): void {
+                        $q->whereNotNull('approved_at')
+                            ->orWhereNotNull('rejected_at')
+                            ->orWhereNotNull('declined_at');
+                    })
+                    ->get(['assigned_officer_id', 'created_at', 'approved_at', 'rejected_at', 'declined_at'])
+                    ->groupBy('assigned_officer_id');
 
-        return $assignedCounts
-            ->map(function ($assigned, $officerId) use ($statusCounts, $officers, $decidedRows) {
-                $officerId = (int) $officerId;
-                $statuses = $statusCounts->get($officerId, collect())
-                    ->mapWithKeys(fn ($row) => [$this->statusValue($row->status) => (int) $row->aggregate]);
+                return $assignedCounts
+                    ->map(function ($assigned, $officerId) use ($statusCounts, $officers, $decidedRows) {
+                        $officerId = (int) $officerId;
+                        $statuses = $statusCounts->get($officerId, collect())
+                            ->mapWithKeys(fn ($row) => [$this->statusValue($row->status) => (int) $row->aggregate]);
 
-                return [
-                    'processor_id' => $officerId,
-                    'name' => $officers->get($officerId)?->name ?? 'Unknown',
-                    'assigned' => (int) $assigned,
-                    'approved' => (int) ($statuses[LoanRequestStatus::Approved->value] ?? 0),
-                    'rejected' => (int) ($statuses[LoanRequestStatus::Rejected->value] ?? 0),
-                    'avg_days' => $this->averageProcessingDaysFromCollection(
-                        $decidedRows->get($officerId, collect()),
-                    ),
-                ];
-            })
-            ->values()
-            ->all();
+                        return [
+                            'processor_id' => $officerId,
+                            'name' => $officers->get($officerId)?->name ?? 'Unknown',
+                            'assigned' => (int) $assigned,
+                            'approved' => (int) ($statuses[LoanRequestStatus::Approved->value] ?? 0),
+                            'rejected' => (int) ($statuses[LoanRequestStatus::Rejected->value] ?? 0),
+                            'avg_days' => $this->averageProcessingDaysFromCollection(
+                                $decidedRows->get($officerId, collect()),
+                            ),
+                        ];
+                    })
+                    ->values()
+                    ->all();
+            },
+        );
     }
 
     /**
@@ -229,6 +249,17 @@ class ReportMetricsService
             'aging_threshold_days' => $threshold,
             'items' => array_values($items),
         ];
+    }
+
+    private function metricsCacheKey(string $metric, ?AppUser $actor, ?Carbon $from, ?Carbon $to): string
+    {
+        return implode(':', [
+            'report_metrics',
+            $metric,
+            $actor?->user_id ?? 'all',
+            $from?->toDateString() ?? 'none',
+            $to?->toDateString() ?? 'none',
+        ]);
     }
 
     /**

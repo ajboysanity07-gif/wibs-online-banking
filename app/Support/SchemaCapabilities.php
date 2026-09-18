@@ -2,12 +2,18 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
 class SchemaCapabilities
 {
     /**
-     * Memoize schema lookups per request to avoid repeated metadata checks.
+     * Schema metadata (table/column existence) changes only on deploy, but this
+     * class is queried on nearly every request. The remote SQL Server sits behind
+     * a Tailscale tunnel, so every uncached hasTable()/hasColumn() call is a slow
+     * round-trip. Results are cached process-wide (not just per-request) via the
+     * default cache store; run `php artisan cache:clear` after a migration that
+     * adds/removes a table or column this class checks.
      *
      * @var array<string, bool>
      */
@@ -18,6 +24,8 @@ class SchemaCapabilities
      */
     private array $columns = [];
 
+    private const TTL_SECONDS = 21600; // 6 hours; schema is effectively static between deploys.
+
     public function hasTable(string $table, ?string $connection = null): bool
     {
         $key = $this->tableKey($table, $connection);
@@ -26,9 +34,13 @@ class SchemaCapabilities
             return $this->tables[$key];
         }
 
-        $exists = $connection !== null
-            ? Schema::connection($connection)->hasTable($table)
-            : Schema::hasTable($table);
+        $exists = Cache::remember(
+            "schema_capabilities:table:{$key}",
+            self::TTL_SECONDS,
+            fn () => $connection !== null
+                ? Schema::connection($connection)->hasTable($table)
+                : Schema::hasTable($table),
+        );
 
         $this->tables[$key] = $exists;
 
@@ -46,9 +58,13 @@ class SchemaCapabilities
             return $this->columns[$key];
         }
 
-        $exists = $connection !== null
-            ? Schema::connection($connection)->hasColumn($table, $column)
-            : Schema::hasColumn($table, $column);
+        $exists = Cache::remember(
+            "schema_capabilities:column:{$key}",
+            self::TTL_SECONDS,
+            fn () => $connection !== null
+                ? Schema::connection($connection)->hasColumn($table, $column)
+                : Schema::hasColumn($table, $column),
+        );
 
         $this->columns[$key] = $exists;
 

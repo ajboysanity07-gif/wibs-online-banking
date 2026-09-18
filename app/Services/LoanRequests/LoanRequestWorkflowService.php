@@ -17,7 +17,6 @@ class LoanRequestWorkflowService
 {
     public function __construct(
         private SchemaCapabilities $schemaCapabilities,
-        private LoanRequestDecisionService $decisionService,
         private LoanRequestAssignmentService $assignmentService,
         private LoanRequestDocumentWorkflowService $documentWorkflowService,
         private LoanRequestNotificationService $notificationService,
@@ -311,90 +310,6 @@ class LoanRequestWorkflowService
 
             return $updated;
         });
-    }
-
-    /**
-     * @param  array{
-     *     approved_amount: float|int|string,
-     *     approved_term: int|string,
-     *     approved_interest_rate?: float|int|string|null,
-     *     approval_remarks?: string|null
-     * }  $payload
-     */
-    public function approve(
-        LoanRequest $loanRequest,
-        AppUser $actor,
-        array $payload,
-    ): LoanRequest {
-        $updated = DB::transaction(function () use (
-            $loanRequest,
-            $actor,
-            $payload,
-        ): LoanRequest {
-            $lockedLoanRequest = $this->lockLoanRequest($loanRequest);
-
-            Gate::forUser($actor)->authorize('approve', $lockedLoanRequest);
-            $this->ensureStatus(
-                $lockedLoanRequest,
-                [LoanRequestStatus::RecommendedForApproval],
-                'Only recommended requests can be approved through the workflow endpoint.',
-            );
-            $this->decisionService->ensureCorrectedRequestReadyForApproval(
-                $lockedLoanRequest,
-            );
-
-            $before = $this->snapshotForAudit($lockedLoanRequest);
-            $fromStatus = $this->statusValue($lockedLoanRequest);
-            $approvalRemarks = $this->normalizeOptionalText(
-                $payload['approval_remarks'] ?? null,
-            );
-
-            $lockedLoanRequest->fill([
-                'status' => LoanRequestStatus::Approved,
-                'approved_by' => $actor->user_id,
-                'approved_at' => now(),
-                'approved_amount' => $payload['approved_amount'],
-                'approved_term' => $payload['approved_term'],
-                'approved_interest_rate' => $payload['approved_interest_rate'] ?? null,
-                'approval_remarks' => $approvalRemarks,
-                'decision_notes' => $approvalRemarks,
-            ]);
-            $lockedLoanRequest->save();
-
-            $updatedLoanRequest = $this->refreshLoanRequest($lockedLoanRequest);
-
-            $this->recordWorkflowAudit(
-                $updatedLoanRequest,
-                $actor,
-                LoanRequestChange::ACTION_APPROVE,
-                $approvalRemarks,
-                $fromStatus,
-                $this->statusValue($updatedLoanRequest),
-                [
-                    'status',
-                    'approved_by',
-                    'approved_at',
-                    'approved_amount',
-                    'approved_term',
-                    'approved_interest_rate',
-                    'approval_remarks',
-                    'decision_notes',
-                ],
-                [
-                    'approved_amount' => $updatedLoanRequest->approved_amount,
-                    'approved_term' => $updatedLoanRequest->approved_term,
-                    'approved_interest_rate' => $updatedLoanRequest->approved_interest_rate,
-                ],
-                $before,
-                $this->snapshotForAudit($updatedLoanRequest),
-            );
-
-            return $updatedLoanRequest;
-        });
-
-        $this->notifyMemberOfDecision($updated, $actor);
-
-        return $updated;
     }
 
     public function decline(

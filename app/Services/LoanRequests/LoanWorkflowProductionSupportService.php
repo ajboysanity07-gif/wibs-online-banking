@@ -899,11 +899,8 @@ class LoanWorkflowProductionSupportService
         }
 
         $duplicateDocumentKeys = DB::table('loan_request_documents')
-            ->select([
-                'loan_request_id',
-                'document_key',
-                DB::raw('COUNT(*) as duplicate_count'),
-            ])
+            ->select(['loan_request_id', 'document_key'])
+            ->selectRaw('COUNT(*) as duplicate_count')
             ->whereNotNull('document_key')
             ->groupBy(['loan_request_id', 'document_key'])
             ->havingRaw('COUNT(*) > 1')
@@ -1116,8 +1113,8 @@ class LoanWorkflowProductionSupportService
                 'event_type',
                 'channel',
                 'recipient',
-                DB::raw('COUNT(*) as duplicate_count'),
             ])
+            ->selectRaw('COUNT(*) as duplicate_count')
             ->groupBy([
                 'loan_request_id',
                 'event_type',

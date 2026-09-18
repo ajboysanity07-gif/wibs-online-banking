@@ -496,16 +496,45 @@ class StaffManagementService
             });
 
         if ($isDefault) {
-            $q->whereNotNull('acctno')->where('acctno', '!=', '');
+            // Sorting needs up to 200 candidate rows, but only 25 are ever
+            // returned. Rank with a lightweight query (no heavy eager loads)
+            // first, then eager-load the 5 relations only for the final 25
+            // instead of for all 200.
+            $rankingQuery = AppUser::query()
+                ->select(['user_id', 'username', 'email', 'acctno'])
+                ->whereHas('roles', function (Builder $roleQuery): void {
+                    $roleQuery->where('name', Role::MEMBER);
+                })
+                ->whereNotNull('acctno')
+                ->where('acctno', '!=', '')
+                ->with('adminProfile:user_id,fullname');
 
-            if (Schema::hasTable('wmaster')) {
+            $hasWmaster = Schema::hasTable('wmaster');
+
+            if ($hasWmaster) {
+                $rankingQuery->with('wmaster:acctno,lname,fname');
+            }
+
+            $orderedIds = $rankingQuery->limit(200)->get()
+                ->sortBy(fn (AppUser $user): string => $this->memberSortKey($user))
+                ->values()
+                ->take(25)
+                ->pluck('user_id')
+                ->all();
+
+            if ($orderedIds === []) {
+                return new Collection;
+            }
+
+            if ($hasWmaster) {
                 $q->with('wmaster');
             }
 
-            return $q->limit(200)->get()
-                ->sortBy(fn (AppUser $user): string => $this->memberSortKey($user))
-                ->values()
-                ->take(25);
+            $byId = $q->whereIn('user_id', $orderedIds)->get()->keyBy('user_id');
+
+            return new Collection(
+                collect($orderedIds)->map(fn ($id) => $byId->get($id))->filter()->values(),
+            );
         }
 
         $searchLike = '%'.addcslashes($trimmed, '%_\\').'%';

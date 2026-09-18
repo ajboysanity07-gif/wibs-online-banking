@@ -111,6 +111,12 @@ return [
             'prefix_indexes' => true,
             'encrypt' => env('DB_ENCRYPT', 'yes'),
             'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
+            // NOTE: pdo_sqlsrv does not support PDO::ATTR_PERSISTENT — setting it
+            // throws "SQLSTATE[IMSSP]: An unsupported attribute was designated on
+            // the PDO object" (confirmed against production over the Tailscale
+            // tunnel). Connection reuse for this driver is instead handled by the
+            // Microsoft ODBC Driver's own connection pooling, which is enabled by
+            // default at the driver/unixODBC level — no PHP-side option needed.
         ],
 
     ],

@@ -126,3 +126,37 @@ test('dashboard summary favors the latest loan security ledger balance', functio
     expect($summary['currentLoanSecurityTotal'])->toBe(250.0);
     expect($summary['lastLoanSecurityTransactionDate'])->toBe('2024-02-02 10:00:00');
 });
+
+test('dashboard summary is cached per account and reused on the next call', function () {
+    $member = User::factory()->create([
+        'acctno' => '000446',
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => 'LN-11',
+        'lntype' => 'Regular',
+        'principal' => 1000,
+        'balance' => 400,
+        'lastmove' => Carbon::parse('2024-03-01 10:00:00')->toDateTimeString(),
+    ]);
+
+    $service = app(MemberAccountsService::class);
+    $first = $service->getDashboardSummary($member);
+
+    expect($first['loanBalanceLeft'])->toBe(400.0);
+
+    // Change the underlying balance directly without going through the service —
+    // a cached call should still return the stale (cached) value.
+    DB::table('wlnmaster')->where('acctno', $member->acctno)->update(['balance' => 999]);
+
+    $second = $service->getDashboardSummary($member);
+
+    expect($second['loanBalanceLeft'])->toBe(400.0);
+
+    Cache::forget("member_dashboard_summary:{$member->acctno}");
+
+    $third = $service->getDashboardSummary($member);
+
+    expect($third['loanBalanceLeft'])->toBe(999.0);
+});

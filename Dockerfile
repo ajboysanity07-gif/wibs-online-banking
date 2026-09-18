@@ -50,11 +50,13 @@ RUN apt-get update && apt-get install -y \
  && apt-get update \
  && ACCEPT_EULA=Y apt-get install -y msodbcsql18 nodejs \
  && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
- && docker-php-ext-install bcmath gd intl mbstring pdo zip \
+ && docker-php-ext-install bcmath gd intl mbstring opcache pdo zip \
  && pecl install sqlsrv pdo_sqlsrv \
  && docker-php-ext-enable sqlsrv pdo_sqlsrv \
  && a2enmod rewrite headers \
  && rm -rf /var/lib/apt/lists/*
+
+COPY docker/opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 

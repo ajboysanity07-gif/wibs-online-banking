@@ -71,7 +71,12 @@ class LoanRequestAssignmentService
 
         foreach (array_unique($loanRequestIds) as $loanRequestId) {
             try {
-                $loanRequest = LoanRequest::query()->findOrFail($loanRequestId);
+                // claim() immediately re-fetches with a row lock via
+                // lockLoanRequest(), which only reads ->id off this instance —
+                // a full findOrFail() here would be a wasted round trip. A
+                // missing id still surfaces as ModelNotFoundException from the
+                // lock query's firstOrFail(), caught below same as before.
+                $loanRequest = (new LoanRequest)->forceFill(['id' => $loanRequestId]);
                 $this->claim($loanRequest, $actor);
                 $succeeded[] = (int) $loanRequestId;
             } catch (Throwable $e) {
@@ -299,7 +304,12 @@ class LoanRequestAssignmentService
                     'assigned_officer_id' => null,
                 ])->save();
 
-                $updatedLoanRequest = $this->refreshLoanRequest($loanRequest);
+                // assignmentSnapshot() only reads assignedOfficer.adminProfile;
+                // we already know the officer is unset, so update the in-memory
+                // relation instead of refresh()-ing (re-SELECT + 6 eager loads)
+                // per row in this loop.
+                $loanRequest->setRelation('assignedOfficer', null);
+                $updatedLoanRequest = $loanRequest;
 
                 $this->recordAssignmentAudit(
                     $updatedLoanRequest,

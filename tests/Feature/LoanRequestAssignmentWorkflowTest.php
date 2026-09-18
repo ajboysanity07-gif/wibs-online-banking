@@ -93,6 +93,49 @@ test('loan processor can claim an unassigned operational request and another off
         ->toBe(LoanRequestChange::ACTION_ASSIGNMENT_CLAIMED);
 });
 
+test('bulkClaim claims eligible requests, reports failures, and skips the redundant pre-fetch query', function (): void {
+    $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
+    $secondOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
+    $member = createAssignmentActor([Role::MEMBER], acctno: '425001');
+
+    $claimable = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::PendingReview,
+        'assigned_officer_id' => null,
+    ]);
+    $alreadyTaken = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'assigned_officer_id' => $secondOfficer->user_id,
+    ]);
+    $missingId = 999999;
+
+    $service = app(LoanRequestAssignmentService::class);
+
+    \Illuminate\Support\Facades\DB::enableQueryLog();
+    $result = $service->bulkClaim(
+        [$claimable->id, $alreadyTaken->id, $missingId],
+        $loanOfficer,
+    );
+    $queries = collect(\Illuminate\Support\Facades\DB::getQueryLog())->pluck('query');
+    \Illuminate\Support\Facades\DB::disableQueryLog();
+
+    expect($result['succeeded'])->toBe([$claimable->id])
+        ->and($result['failed'])->toHaveCount(2)
+        ->and(collect($result['failed'])->pluck('id')->all())
+        ->toEqualCanonicalizing([$alreadyTaken->id, $missingId]);
+
+    $claimable->refresh();
+    expect($claimable->assigned_officer_id)->toBe($loanOfficer->user_id);
+
+    // Each of the 3 ids should hit exactly one row lookup (lockLoanRequest()'s
+    // locking SELECT) — previously bulkClaim() also ran an unlocked
+    // findOrFail() SELECT first, doubling this to 6.
+    $loanRequestRowLookups = $queries->filter(
+        fn (string $sql) => str_contains($sql, 'from "loan_requests" where "loan_requests"."id" = ?'),
+    );
+
+    expect($loanRequestRowLookups)->toHaveCount(3);
+});
+
 test('start review auto claims pending review requests and blocks other officers', function (): void {
     $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
     $secondOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
