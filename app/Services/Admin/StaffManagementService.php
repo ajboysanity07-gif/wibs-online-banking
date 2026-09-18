@@ -32,8 +32,6 @@ class StaffManagementService
         int $perPage,
         int $page,
     ): LengthAwarePaginator {
-        Role::ensureWorkflowDefaults();
-
         $perPage = max(1, min($perPage, 50));
         $page = max(1, $page);
         $trimmedSearch = trim($search);

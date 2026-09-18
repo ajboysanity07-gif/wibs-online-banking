@@ -68,6 +68,28 @@ test('superadmin staff management routes allow explicit and legacy superadmins a
         ->assertForbidden();
 });
 
+test('listing staff accounts does not reseed role and permission defaults on every request', function (): void {
+    $superadmin = createManagedSuperadmin();
+    createManagedStaffUser([Role::LOAN_MANAGER]);
+
+    $writeQueries = [];
+    DB::listen(function ($query) use (&$writeQueries): void {
+        if (
+            preg_match('/^\s*(insert|update)\s/i', $query->sql)
+            && preg_match('/[`"]?(roles|permissions|role_permissions)[`"]?/i', $query->sql)
+        ) {
+            $writeQueries[] = $query->sql;
+        }
+    });
+
+    $this
+        ->actingAs($superadmin)
+        ->getJson(route('spa.superadmin.staff.index'))
+        ->assertOk();
+
+    expect($writeQueries)->toBe([]);
+});
+
 test('suspended staff cannot access superadmin or workflow routes while hybrid member access remains available', function (): void {
     $suspendedSuperadmin = createManagedSuperadmin();
     $actingSuperadmin = createManagedSuperadmin();

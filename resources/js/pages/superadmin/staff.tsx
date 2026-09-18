@@ -61,6 +61,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import {
+    TableFilterField,
+    TableFilterPopover,
+    TableSearchBox,
+} from '@/components/ui/table-filter-bar';
+import {
     TableSkeleton,
     type TableSkeletonColumn,
 } from '@/components/ui/table-skeleton';
@@ -1218,111 +1223,99 @@ export default function SuperadminStaffPage() {
                 />
 
                 <SurfaceCard variant="default" padding="md">
-                    <div className="flex flex-col gap-4">
-                        <SectionHeader
-                            title="Filters"
-                            description="Search by username, name, email, phone, or account number, then narrow the results by role and staff access."
-                            actions={
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    disabled={filterCount === 0}
-                                    onClick={() => {
-                                        setSearch('');
-                                        setRoleFilter('all');
-                                        setAccessFilter('all');
-                                        setPage(1);
-                                    }}
+                    <TableSearchBox
+                        value={search}
+                        onChange={(nextSearch) => {
+                            setSearch(nextSearch);
+                            setPage(1);
+                        }}
+                        placeholder="Search by username, name, email, phone, or account no"
+                        resultsText={resultsLabel}
+                        actions={
+                            <TableFilterPopover
+                                filterCount={filterCount}
+                                onClearFilters={() => {
+                                    setSearch('');
+                                    setRoleFilter('all');
+                                    setAccessFilter('all');
+                                    setPage(1);
+                                }}
+                            >
+                                <TableFilterField
+                                    label="Role"
+                                    htmlFor="staff-role-filter"
                                 >
-                                    Clear filters
-                                </Button>
-                            }
-                        />
-                        <div className="grid gap-3 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]">
-                            <div className="space-y-1">
-                                <Label htmlFor="staff-search">Search</Label>
-                                <Input
-                                    id="staff-search"
-                                    value={search}
-                                    placeholder="Search by username, name, email, phone, or account no"
-                                    onChange={(event) => {
-                                        setSearch(event.target.value);
-                                        setPage(1);
-                                    }}
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="staff-role-filter">Role</Label>
-                                <Select
-                                    value={roleFilter}
-                                    onValueChange={(value) => {
-                                        setRoleFilter(
-                                            value as
-                                                | EditableStaffRoleName
-                                                | 'all',
-                                        );
-                                        setPage(1);
-                                    }}
-                                >
-                                    <SelectTrigger
-                                        id="staff-role-filter"
-                                        aria-label="Filter by role"
+                                    <Select
+                                        value={roleFilter}
+                                        onValueChange={(value) => {
+                                            setRoleFilter(
+                                                value as
+                                                    | EditableStaffRoleName
+                                                    | 'all',
+                                            );
+                                            setPage(1);
+                                        }}
                                     >
-                                        <SelectValue placeholder="All roles" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">
-                                            All staff roles
-                                        </SelectItem>
-                                        {editableRoleOptions.map((role) => (
-                                            <SelectItem
-                                                key={role.value}
-                                                value={role.value}
-                                            >
-                                                {role.label}
+                                        <SelectTrigger
+                                            id="staff-role-filter"
+                                            aria-label="Filter by role"
+                                        >
+                                            <SelectValue placeholder="All roles" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All staff roles
                                             </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="staff-access-filter">
-                                    Staff access
-                                </Label>
-                                <Select
-                                    value={accessFilter}
-                                    onValueChange={(value) => {
-                                        setAccessFilter(
-                                            value as
-                                                | 'all'
-                                                | 'active'
-                                                | 'suspended',
-                                        );
-                                        setPage(1);
-                                    }}
+                                            {editableRoleOptions.map((role) => (
+                                                <SelectItem
+                                                    key={role.value}
+                                                    value={role.value}
+                                                >
+                                                    {role.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </TableFilterField>
+
+                                <TableFilterField
+                                    label="Staff access"
+                                    htmlFor="staff-access-filter"
                                 >
-                                    <SelectTrigger
-                                        id="staff-access-filter"
-                                        aria-label="Filter by staff access"
+                                    <Select
+                                        value={accessFilter}
+                                        onValueChange={(value) => {
+                                            setAccessFilter(
+                                                value as
+                                                    | 'all'
+                                                    | 'active'
+                                                    | 'suspended',
+                                            );
+                                            setPage(1);
+                                        }}
                                     >
-                                        <SelectValue placeholder="All access states" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">
-                                            All access states
-                                        </SelectItem>
-                                        <SelectItem value="active">
-                                            Active
-                                        </SelectItem>
-                                        <SelectItem value="suspended">
-                                            Suspended
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                    </div>
+                                        <SelectTrigger
+                                            id="staff-access-filter"
+                                            aria-label="Filter by staff access"
+                                        >
+                                            <SelectValue placeholder="All access states" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All access states
+                                            </SelectItem>
+                                            <SelectItem value="active">
+                                                Active
+                                            </SelectItem>
+                                            <SelectItem value="suspended">
+                                                Suspended
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </TableFilterField>
+                            </TableFilterPopover>
+                        }
+                    />
                 </SurfaceCard>
 
                 {error ? (

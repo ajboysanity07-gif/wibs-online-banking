@@ -1,4 +1,4 @@
-import { Check, ChevronsUpDown, Search } from 'lucide-react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,7 +9,6 @@ import {
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
-import { Input } from '@/components/ui/input';
 import {
     Popover,
     PopoverContent,
@@ -45,15 +44,6 @@ type LoanRequestStatusFiltersProps<TValue extends string> = {
     options: Array<LoanRequestStatusFilterOption<TValue>>;
     activeValue: TValue;
     onChange: (value: TValue) => void;
-};
-
-type LoanRequestSearchBoxProps = {
-    value: string;
-    onChange: (value: string) => void;
-    placeholder: string;
-    label?: string;
-    resultsText?: string;
-    actions?: ReactNode;
 };
 
 export function LoanRequestPageHero({
@@ -182,43 +172,6 @@ export function LoanRequestStatusFilters<TValue extends string>({
     );
 }
 
-export function LoanRequestSearchBox({
-    value,
-    onChange,
-    placeholder,
-    label = 'Search',
-    resultsText,
-    actions,
-}: LoanRequestSearchBoxProps) {
-    return (
-        <div className="space-y-2">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                <div className="w-full">
-                    <label className="text-xs font-medium text-muted-foreground">
-                        {label}
-                    </label>
-                    <div className="relative mt-1">
-                        <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            value={value}
-                            onChange={(event) => onChange(event.target.value)}
-                            className="h-10 pl-9"
-                            placeholder={placeholder}
-                            aria-label={label}
-                        />
-                    </div>
-                </div>
-                {actions ? (
-                    <div className="flex shrink-0 items-center gap-2">
-                        {actions}
-                    </div>
-                ) : null}
-            </div>
-            {resultsText ? (
-                <p className="text-xs text-muted-foreground">{resultsText}</p>
-            ) : null}
-        </div>
-    );
-}
+export { TableSearchBox as LoanRequestSearchBox } from '@/components/ui/table-filter-bar';
 
 export type { LoanRequestStatusFilterOption };
