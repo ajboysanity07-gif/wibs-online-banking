@@ -7,8 +7,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     volumes:
       - laravel_storage:/var/www/html/storage
     healthcheck:
@@ -19,6 +19,21 @@ services:
       start_period: 40s
     depends_on:
       - redis
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wibs.rule=Host(`www.mrdinc.net`)"
+      - "traefik.http.routers.wibs.entrypoints=websecure"
+      - "traefik.http.routers.wibs.tls.certresolver=letsencrypt"
+      - "traefik.http.services.wibs.loadbalancer.server.port=80"
+      - "traefik.http.routers.wibs-apex.rule=Host(`mrdinc.net`)"
+      - "traefik.http.routers.wibs-apex.entrypoints=websecure"
+      - "traefik.http.routers.wibs-apex.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.wibs-apex.middlewares=wibs-apex-redirect"
+      - "traefik.http.middlewares.wibs-apex-redirect.redirectregex.regex=^https://mrdinc.net/(.*)"
+      - "traefik.http.middlewares.wibs-apex-redirect.redirectregex.replacement=https://www.mrdinc.net/$${1}"
+      - "traefik.http.middlewares.wibs-apex-redirect.redirectregex.permanent=true"
 
   queue:
     build:
@@ -41,6 +56,8 @@ services:
     depends_on:
       - app
       - redis
+    networks:
+      - web
 
   scheduler:
     build:
@@ -56,13 +73,15 @@ services:
     depends_on:
       - app
       - redis
+    networks:
+      - web
 
   redis:
     image: redis:7-alpine
     container_name: wibs-redis
     restart: unless-stopped
     # Not published to the host: only the app/queue/scheduler containers on
-    # this compose network need it, reached at hostname "redis" (see .env's
+    # the "web" network need it, reached at hostname "redis" (see .env's
     # REDIS_HOST). No password by default since it's unreachable from
     # outside this Docker network; set REDIS_PASSWORD + --requirepass here
     # if that assumption ever changes.
@@ -74,7 +93,13 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    networks:
+      - web
 
 volumes:
   laravel_storage:
   redis_data:
+
+networks:
+  web:
+    external: true
