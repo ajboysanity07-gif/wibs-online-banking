@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
+import { fractionToPercentDisplay } from '@/components/loan-request/numeric-adorned-inputs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -455,7 +456,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
             value:
                 `${approvedInterestRate}`.trim() === ''
                     ? '--'
-                    : `${approvedInterestRate}%`,
+                    : `${fractionToPercentDisplay(`${approvedInterestRate}`)}%`,
             requested: null,
         },
         {

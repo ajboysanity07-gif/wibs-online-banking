@@ -70,6 +70,13 @@ test('loan request actions group document buttons and separate navigation', asyn
         workflowActionsFile,
         /workflow_approved_payment_frequency/,
     );
+    // The stored interest rate is a decimal fraction (0.25 = 25%), so the
+    // read-only row must be converted before the % sign is appended.
+    assert.match(
+        workflowActionsFile,
+        /fractionToPercentDisplay\(`\$\{approvedInterestRate\}`\)}%/,
+    );
+    assert.doesNotMatch(workflowActionsFile, /approvedInterestRate}%/);
     assert.match(adminPageFile, /Cancel Approved Request/);
     assert.match(adminPageFile, /Cancel Application/);
     assert.match(adminPageFile, /workflowPermissions/);
