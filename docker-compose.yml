@@ -30,7 +30,7 @@ services:
       - .env
     command: >-
       php artisan queue:work
-      --queue=loan-workflow,loan-workflow-notifications
+      --queue=loan-workflow,loan-workflow-notifications,default
       --tries=5
       --timeout=120
       --backoff=60,300,900
