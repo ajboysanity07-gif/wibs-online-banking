@@ -17,6 +17,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
+    depends_on:
+      - redis
 
   queue:
     build:
@@ -38,6 +40,7 @@ services:
       - laravel_storage:/var/www/html/storage
     depends_on:
       - app
+      - redis
 
   scheduler:
     build:
@@ -52,6 +55,26 @@ services:
       - laravel_storage:/var/www/html/storage
     depends_on:
       - app
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: wibs-redis
+    restart: unless-stopped
+    # Not published to the host: only the app/queue/scheduler containers on
+    # this compose network need it, reached at hostname "redis" (see .env's
+    # REDIS_HOST). No password by default since it's unreachable from
+    # outside this Docker network; set REDIS_PASSWORD + --requirepass here
+    # if that assumption ever changes.
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
 volumes:
   laravel_storage:
+  redis_data:
