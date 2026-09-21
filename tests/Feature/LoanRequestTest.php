@@ -892,7 +892,7 @@ test('clients without completed profiles are redirected away from loan request f
     $response->assertRedirect(route('profile.edit', ['onboarding' => 1]));
 });
 
-test('a Government/Private member without an institutional employer category is redirected to settings', function () {
+test('a Government/Private member without an institutional employer category can still access the loan request form', function () {
     $user = User::factory()->create(['acctno' => '000714']);
     UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
     DB::table('wmaster')->insert([
@@ -915,7 +915,7 @@ test('a Government/Private member without an institutional employer category is 
         ->actingAs($user)
         ->get(route('client.loan-requests.create'));
 
-    $response->assertRedirect(route('profile.edit', ['tab' => 'work']));
+    $response->assertOk();
 });
 
 test('a pensioner without an institutional employer category can still access the loan request form', function () {

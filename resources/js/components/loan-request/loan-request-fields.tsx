@@ -27,7 +27,6 @@ import {
     SELF_EMPLOYED_EMPLOYMENT_TYPE,
 } from '@/lib/employment-type';
 import { calculateAge } from '@/lib/formatters';
-import { INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS } from '@/lib/institutional-employer-category';
 import { normalizeMobileNumberInput } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { barangays, cities, provinces, zip } from '@/routes/api/locations';
@@ -86,7 +85,6 @@ const NATURE_OF_BUSINESS_OPTIONS = [
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
 ];
-const INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE = 'not_applicable';
 const readOnlyInputClass =
     'bg-muted/30 text-muted-foreground/80 border-border/40';
 
@@ -1107,7 +1105,6 @@ type WorkFieldsProps = {
     portal?: boolean;
     section?: 'all' | 'employment' | 'income';
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
-    showInstitutionalEmployerCategory?: boolean;
 };
 
 export function LoanRequestWorkFields({
@@ -1117,7 +1114,6 @@ export function LoanRequestWorkFields({
     portal = true,
     section = 'all',
     onChange,
-    showInstitutionalEmployerCategory = true,
 }: WorkFieldsProps) {
     const employmentType = values.employment_type;
     const isPensioner = isPensionerType(employmentType);
@@ -1619,66 +1615,6 @@ export function LoanRequestWorkFields({
                                     placeholder="Specify industry"
                                     onChange={handleNatureOfBusinessOtherChange}
                                 />
-                            </div>
-                        ) : null}
-
-                        {showInstitutionalEmployerCategory &&
-                        !isPensioner &&
-                        prefix === 'applicant' ? (
-                            <div className="grid gap-2">
-                                <Label
-                                    htmlFor={`${prefix}_institutional_employer_category`}
-                                >
-                                    Institutional employer category
-                                </Label>
-                                <Select
-                                    value={
-                                        values.institutional_employer_category ||
-                                        INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE
-                                    }
-                                    onValueChange={(value) =>
-                                        onChange(
-                                            'institutional_employer_category',
-                                            value ===
-                                                INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE
-                                                ? ''
-                                                : value,
-                                        )
-                                    }
-                                >
-                                    <SelectTrigger
-                                        id={`${prefix}_institutional_employer_category`}
-                                        className="mt-1 w-full"
-                                        aria-invalid={Boolean(
-                                            fieldError(
-                                                errors,
-                                                prefix,
-                                                'institutional_employer_category',
-                                            ),
-                                        )}
-                                    >
-                                        <SelectValue placeholder="Not applicable" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem
-                                            value={
-                                                INSTITUTIONAL_EMPLOYER_CATEGORY_NOT_APPLICABLE_VALUE
-                                            }
-                                        >
-                                            Not applicable
-                                        </SelectItem>
-                                        {INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS.map(
-                                            (option) => (
-                                                <SelectItem
-                                                    key={option.value}
-                                                    value={option.value}
-                                                >
-                                                    {option.label}
-                                                </SelectItem>
-                                            ),
-                                        )}
-                                    </SelectContent>
-                                </Select>
                             </div>
                         ) : null}
 

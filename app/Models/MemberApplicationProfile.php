@@ -576,13 +576,6 @@ class MemberApplicationProfile extends Model
             $missing[] = 'id_type_other';
         }
 
-        if (
-            $this->institutionalEmployerCategoryApplies()
-            && self::isBlankOrPlaceholder($this->institutional_employer_category)
-        ) {
-            $missing[] = 'institutional_employer_category';
-        }
-
         return $missing;
     }
 

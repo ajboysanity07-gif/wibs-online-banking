@@ -537,7 +537,6 @@ export function LoanRequestApplicantWorkStep({
                 errors={errors}
                 section={section}
                 onChange={onChange}
-                showInstitutionalEmployerCategory={false}
             />
             {section === 'income' ? (
                 <>
@@ -683,7 +682,6 @@ export function LoanRequestCoMakerStep({
                         errors={errors}
                         section={section}
                         onChange={onChange}
-                        showInstitutionalEmployerCategory={false}
                     />
                     {section === 'income' ? (
                         <>
