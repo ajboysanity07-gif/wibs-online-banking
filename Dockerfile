@@ -3,7 +3,10 @@
 FROM php:8.3-cli-bookworm AS vendor
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+ && apt-get update && apt-get install -y \
     git unzip zip curl gnupg2 ca-certificates apt-transport-https \
     libzip-dev libicu-dev libpng-dev libonig-dev libxml2-dev \
     libjpeg62-turbo-dev libfreetype6-dev libwebp-dev \
@@ -12,20 +15,22 @@ RUN apt-get update && apt-get install -y \
  && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
  && apt-get update && apt-get install -y nodejs \
  && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
- && docker-php-ext-install bcmath gd intl mbstring zip \
- && rm -rf /var/lib/apt/lists/*
+ && docker-php-ext-install bcmath gd intl mbstring zip
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts --optimize-autoloader
+RUN --mount=type=cache,target=/root/.composer/cache \
+    composer install --no-dev --prefer-dist --no-interaction --no-scripts --optimize-autoloader
 
 COPY package*.json ./
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm \
+    npm install
 
 COPY . .
 RUN composer dump-autoload --optimize --no-dev
-RUN npm run build
+RUN --mount=type=cache,target=/root/.npm \
+    npm run build
 
 FROM php:8.3-apache-bookworm
 
@@ -36,7 +41,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /var/www/html
 
-RUN apt-get update && apt-get install -y \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+ && apt-get update && apt-get install -y \
     ca-certificates curl gnupg2 apt-transport-https \
     git unzip zip \
     libzip-dev libicu-dev libpng-dev libonig-dev libxml2-dev \
@@ -53,8 +61,7 @@ RUN apt-get update && apt-get install -y \
  && docker-php-ext-install bcmath gd intl mbstring opcache pdo zip \
  && pecl install sqlsrv pdo_sqlsrv \
  && docker-php-ext-enable sqlsrv pdo_sqlsrv \
- && a2enmod rewrite headers \
- && rm -rf /var/lib/apt/lists/*
+ && a2enmod rewrite headers
 
 COPY docker/opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
 

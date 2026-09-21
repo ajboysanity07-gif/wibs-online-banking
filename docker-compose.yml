@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: wibs-app:latest
     container_name: wibs-app
     restart: unless-stopped
     env_file:
@@ -36,9 +37,7 @@ services:
       - "traefik.http.middlewares.wibs-apex-redirect.redirectregex.permanent=true"
 
   queue:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: wibs-app:latest
     container_name: wibs-queue
     restart: unless-stopped
     env_file:
@@ -60,9 +59,7 @@ services:
       - web
 
   scheduler:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: wibs-app:latest
     container_name: wibs-scheduler
     restart: unless-stopped
     env_file:
