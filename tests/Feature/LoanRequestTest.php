@@ -1855,7 +1855,6 @@ test('an Emergency (Micro Business Loan) submission with a 1-month term still re
         ->post(route('client.loan-requests.store'), $payload);
 
     $response->assertSessionHasErrors([
-        'insurance.beneficiary_primary_name',
         'health.health_smoking_status',
     ]);
     expect(LoanRequest::query()->count())->toBe(0);

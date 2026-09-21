@@ -17,7 +17,6 @@ import {
     LoanRequestDependentsStep,
     LoanRequestHealthQuestionnaireStep,
     LoanRequestHealthStep,
-    LoanRequestInsuranceBeneficiariesStep,
     LoanRequestLoanDetailsStep,
     LoanRequestReviewStep,
     parseGlapiItem,
@@ -83,7 +82,6 @@ type Props = {
     initialStep: number;
     autoFilledDeclarations: AutoFilledDeclarations;
     bankingPrefilledFromProfile: boolean;
-    insurancePrefilledFromProfile: boolean;
     dependentsPrefilledFromProfile: boolean;
     healthPrefilledFromProfile: boolean;
 };
@@ -335,7 +333,7 @@ const resolveStepForErrorKey = (
     }
 
     if (key.startsWith('insurance.') || key === 'document_data') {
-        return STEP_INDEX['insurance'];
+        return STEP_INDEX['dependents'];
     }
 
     if (key.startsWith('health.')) {
@@ -400,7 +398,6 @@ export default function LoanRequestPage({
     initialStep,
     autoFilledDeclarations,
     bankingPrefilledFromProfile,
-    insurancePrefilledFromProfile,
     dependentsPrefilledFromProfile,
     healthPrefilledFromProfile,
 }: Props) {
@@ -411,9 +408,6 @@ export default function LoanRequestPage({
     );
     const [bankAccountConfirmed, setBankAccountConfirmed] = useState(
         !bankingPrefilledFromProfile,
-    );
-    const [beneficiariesConfirmed, setBeneficiariesConfirmed] = useState(
-        !insurancePrefilledFromProfile,
     );
     const [dependentsConfirmed, setDependentsConfirmed] = useState(
         !dependentsPrefilledFromProfile,
@@ -526,11 +520,6 @@ export default function LoanRequestPage({
 
         return true;
     }, [form.data.banking]);
-
-    const isInsuranceComplete = useMemo(() => {
-        if (!insurancePrefilledFromProfile) return true;
-        return beneficiariesConfirmed;
-    }, [insurancePrefilledFromProfile, beneficiariesConfirmed]);
 
     const isDependentsComplete = useMemo(() => {
         if (!dependentsPrefilledFromProfile) return true;
@@ -912,10 +901,6 @@ export default function LoanRequestPage({
                                     disablePrimary={
                                         !hasLoanTypes ||
                                         (currentStep ===
-                                            STEP_INDEX['insurance'] &&
-                                            insurancePrefilledFromProfile &&
-                                            !beneficiariesConfirmed) ||
-                                        (currentStep ===
                                             STEP_INDEX['banking'] &&
                                             bankingPrefilledFromProfile &&
                                             (form.data.banking
@@ -942,7 +927,6 @@ export default function LoanRequestPage({
                                                     true)) ||
                                         (isLastStep &&
                                             (!isBankingComplete ||
-                                                !isInsuranceComplete ||
                                                 !isDependentsComplete ||
                                                 !isHealthComplete ||
                                                 !isDeclarationsComplete))
@@ -1323,58 +1307,6 @@ export default function LoanRequestPage({
                                             savingCoMakerSlot === 'co_maker_2'
                                         }
                                     />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep === STEP_INDEX['insurance']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <div className="space-y-5">
-                                        <LoanRequestInsuranceBeneficiariesStep
-                                            sectionKey="insurance"
-                                            title="Insurance and beneficiaries"
-                                            description="Provide beneficiary details that will be reused across the required documents."
-                                            values={form.data.insurance}
-                                            definition={
-                                                dataSectionDefinitions.insurance
-                                            }
-                                            errors={form.errors}
-                                            onChange={updateDataSection(
-                                                'insurance',
-                                            )}
-                                        />
-
-                                        {insurancePrefilledFromProfile ? (
-                                            <LoanRequestSectionCard
-                                                title="Confirm beneficiaries"
-                                                description="These details were pre-filled from your member profile. A wrong beneficiary can delay or invalidate a claim, so please confirm they are still accurate."
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <Checkbox
-                                                        id="beneficiaries_confirmed"
-                                                        checked={
-                                                            beneficiariesConfirmed
-                                                        }
-                                                        onCheckedChange={(
-                                                            checked,
-                                                        ) =>
-                                                            setBeneficiariesConfirmed(
-                                                                checked ===
-                                                                    true,
-                                                            )
-                                                        }
-                                                    />
-                                                    <Label htmlFor="beneficiaries_confirmed">
-                                                        Confirm these
-                                                        beneficiaries are still
-                                                        correct
-                                                    </Label>
-                                                </div>
-                                            </LoanRequestSectionCard>
-                                        ) : null}
-                                    </div>
                                 </LoanRequestAnimatedStep>
 
                                 <LoanRequestAnimatedStep

@@ -113,17 +113,10 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
         group: 'co-makers',
     },
     {
-        id: 'insurance',
-        title: 'Insurance & beneficiaries',
-        description:
-            'Provide beneficiary details -- who receives the insurance payout -- required for document generation.',
-        group: 'insurance-health',
-    },
-    {
         id: 'dependents',
         title: 'Dependents',
         description:
-            'Add dependents covered under your group life insurance plan (optional) -- separate from your beneficiaries above.',
+            'Add dependents covered under your group life insurance plan (optional). Check a dependent, or your spouse, to designate them as an insurance beneficiary.',
         group: 'insurance-health',
     },
     {
