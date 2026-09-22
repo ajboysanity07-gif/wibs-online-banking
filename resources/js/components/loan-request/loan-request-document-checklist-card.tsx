@@ -296,6 +296,10 @@ export const LoanRequestDocumentChecklistCard = ({
             document.manual_fill_fields.length > 0,
     );
 
+    const blockedEntries = sortedChecklist.filter(
+        (document) => document.is_applicable && document.blockers.length > 0,
+    );
+
     const applicableDocuments = documentChecklist.filter(
         (document) => document.is_applicable,
     );
@@ -386,6 +390,30 @@ export const LoanRequestDocumentChecklistCard = ({
                                                 <li key={field}>{field}</li>
                                             ),
                                         )}
+                                    </ul>
+                                </div>
+                            ))}
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
+                {blockedEntries.length > 0 ? (
+                    <Alert variant="destructive" className="mb-3">
+                        <AlertCircle className="size-4" />
+                        <AlertTitle>
+                            {blockedEntries.length === 1
+                                ? '1 document has missing fields'
+                                : `${blockedEntries.length} documents have missing fields`}
+                        </AlertTitle>
+                        <AlertDescription>
+                            {blockedEntries.map((document) => (
+                                <div key={document.key} className="mt-1">
+                                    <p className="font-medium">
+                                        {document.label}
+                                    </p>
+                                    <ul className="list-disc pl-5">
+                                        {document.blockers.map((blocker) => (
+                                            <li key={blocker}>{blocker}</li>
+                                        ))}
                                     </ul>
                                 </div>
                             ))}
@@ -525,50 +553,15 @@ export const LoanRequestDocumentChecklistCard = ({
                                                 </div>
                                                 <div className="flex shrink-0 items-center gap-2">
                                                     {missingFieldCount > 0 ? (
-                                                        <TooltipProvider
-                                                            delayDuration={0}
-                                                        >
-                                                            <Tooltip>
-                                                                <TooltipTrigger
-                                                                    type="button"
-                                                                    className="cursor-default"
-                                                                >
-                                                                    <span className="text-xs text-muted-foreground underline decoration-dotted underline-offset-2">
-                                                                        {
-                                                                            missingFieldCount
-                                                                        }{' '}
-                                                                        field
-                                                                        {missingFieldCount ===
-                                                                        1
-                                                                            ? ''
-                                                                            : 's'}{' '}
-                                                                        missing
-                                                                    </span>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent
-                                                                    align="end"
-                                                                    className="max-w-64"
-                                                                >
-                                                                    <ul className="list-disc pl-4 text-left">
-                                                                        {document.blockers.map(
-                                                                            (
-                                                                                blocker,
-                                                                            ) => (
-                                                                                <li
-                                                                                    key={
-                                                                                        blocker
-                                                                                    }
-                                                                                >
-                                                                                    {
-                                                                                        blocker
-                                                                                    }
-                                                                                </li>
-                                                                            ),
-                                                                        )}
-                                                                    </ul>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
+                                                        <span className="text-xs text-destructive">
+                                                            {missingFieldCount}{' '}
+                                                            field
+                                                            {missingFieldCount ===
+                                                            1
+                                                                ? ''
+                                                                : 's'}{' '}
+                                                            missing
+                                                        </span>
                                                     ) : null}
                                                     {hasMetadata ? (
                                                         <Popover>
