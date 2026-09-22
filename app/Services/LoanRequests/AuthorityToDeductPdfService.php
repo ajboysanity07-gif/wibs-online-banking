@@ -67,6 +67,12 @@ class AuthorityToDeductPdfService
         $applicant = is_array($applicant) ? $applicant : [];
         $applicant['signature_data'] = null;
 
+        $coMakerOne = $documentData['co_maker_one'] ?? [];
+        $coMakerOne = is_array($coMakerOne) ? $coMakerOne : [];
+
+        $coMakerTwo = $documentData['co_maker_two'] ?? [];
+        $coMakerTwo = is_array($coMakerTwo) ? $coMakerTwo : [];
+
         $notarial = $documentData['notarial'] ?? [];
         $notarial = is_array($notarial) ? $notarial : [];
 
@@ -77,6 +83,8 @@ class AuthorityToDeductPdfService
             ...$documentData,
             'organization' => $organization,
             'applicant' => $applicant,
+            'coMakerOne' => $coMakerOne,
+            'coMakerTwo' => $coMakerTwo,
             'loan' => $loan,
             'reportHeader' => $reportHeader,
             'reportTypography' => is_array(

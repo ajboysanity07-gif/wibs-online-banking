@@ -13,6 +13,12 @@ namespace App\Services\LoanRequests;
 class InstitutionalEmployerCategoryResolver
 {
     /**
+     * 'healthcare' specifically means Lianga District Hospital (LDH) --
+     * Authority to Deduct doesn't apply to other hospitals/clinics, so this
+     * only matches employer names mentioning "LDH" or "Lianga District
+     * Hospital" outright (not bare "Lianga", which is also the town name
+     * shared by unrelated BLGU/LGU employers in the same locality).
+     *
      * @return 'blgu'|'lgu'|'mrdinc'|'healthcare'|null
      */
     public static function resolve(
@@ -31,13 +37,10 @@ class InstitutionalEmployerCategoryResolver
         }
 
         if (
-            $natureOfBusiness === 'Healthcare'
-            || ($needle !== '' && (
+            $needle !== '' && (
                 str_contains($needle, 'ldh')
-                || str_contains($needle, 'hospital')
-                || str_contains($needle, 'medical')
-                || str_contains($needle, 'clinic')
-            ))
+                || str_contains($needle, 'lianga district hospital')
+            )
         ) {
             return 'healthcare';
         }

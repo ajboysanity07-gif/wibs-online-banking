@@ -446,6 +446,7 @@ export type AuthorityToDeductGuidance = {
     applicable: boolean;
     category: 'blgu' | 'lgu' | 'mrdinc' | 'healthcare' | null;
     recommended_officers: number;
+    officer_titles: string[];
     note: string;
     saved_contact: AuthorityToDeductSavedContact | null;
 };

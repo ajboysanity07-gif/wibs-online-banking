@@ -63,9 +63,23 @@ export const INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS: Record<string, string> = {
     blgu: 'Barangay / BLGU',
     lgu: 'City, Municipal, or Provincial Government (LGU)',
     mrdinc: 'MRDINC',
-    healthcare: 'Healthcare institution (hospital, clinic, etc.)',
+    healthcare: 'Lianga District Hospital (LDH)',
     deped: 'DepEd (Basic Education)',
     ched: 'CHED-covered institution (college/university)',
+};
+
+/**
+ * Fixed, ordered Authority to Deduct signing-officer titles per category --
+ * mirrors LoanInstitutionalEmployerCategory::authorityToDeductOfficerTitles().
+ * Used to lock the officer title field(s) and slot count in the Processing
+ * Details panel as soon as staff pick a category, before any save
+ * round-trip returns fresh guidance from the server.
+ */
+export const AUTHORITY_TO_DEDUCT_OFFICER_TITLES: Record<string, string[]> = {
+    blgu: ['Barangay Treasurer', 'Barangay Captain'],
+    lgu: ['Municipal Accountant'],
+    mrdinc: ['MRDINC Payroll Maker'],
+    healthcare: ['Administrative 1/Cashier'],
 };
 
 /**
@@ -136,12 +150,8 @@ export function resolveInstitutionalEmployerCategory(
     }
 
     if (
-        natureOfBusiness === 'Healthcare' ||
-        (needle !== '' &&
-            (needle.includes('ldh') ||
-                needle.includes('hospital') ||
-                needle.includes('medical') ||
-                needle.includes('clinic')))
+        needle !== '' &&
+        (needle.includes('ldh') || needle.includes('lianga district hospital'))
     ) {
         return 'healthcare';
     }

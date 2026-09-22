@@ -4167,7 +4167,7 @@ function approvedLoanDocumentsCreateLoanRequestPeopleSnapshots(
             // Pinned to a non-institutional profile so Affidavit of Undertaking
             // applicability is deterministic: a randomized employment_type /
             // nature_of_business could randomly resolve to an institutional
-            // category (Government+Government -> LGU, hospital/clinic name -> Healthcare) and
+            // category (Government+Government -> LGU, "lianga"/"ldh" name -> LDH) and
             // flip the AU document in/out of the document set between runs.
             'employment_type' => 'Private',
             'nature_of_business' => 'General Services',

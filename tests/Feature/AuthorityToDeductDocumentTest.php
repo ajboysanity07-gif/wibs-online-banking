@@ -18,6 +18,12 @@ function authorityToDeductDocumentData(array $authorityToDeduct = []): array
         'applicant' => [
             'full_name' => 'Juan Dela Cruz',
         ],
+        'co_maker_one' => [
+            'full_name' => 'Maria Dela Cruz',
+        ],
+        'co_maker_two' => [
+            'full_name' => 'Pedro Santos',
+        ],
         'loan' => [
             'amortization_total' => '2,500.00',
             'amortization_total_words' => 'TWO THOUSAND FIVE HUNDRED PESOS ONLY.',
@@ -184,6 +190,23 @@ it('always renders signature-line names in capital letters', function () {
 
     expect($matches)->not->toBeEmpty();
     expect($matches[1])->toContain('text-transform: uppercase');
+});
+
+it('renders one page per borrower and co-maker with matching signature labels', function () {
+    $viewData = authorityToDeductBuildViewData([
+        'institution_name' => 'Lianga District Hospital',
+        'officer_1_name' => 'Cristy S. Samarah',
+        'officer_1_title' => 'Administrative 1/Cashier',
+    ]);
+
+    $html = view('reports.authority-to-deduct', $viewData)->render();
+
+    expect(substr_count($html, 'class="page"'))->toBe(3);
+    expect(substr_count($html, 'Signature over Printed Name of Borrower'))->toBe(1);
+    expect(substr_count($html, 'Signature over Printed Name of Co Borrower'))->toBe(2);
+    expect($html)->toContain('Juan Dela Cruz');
+    expect($html)->toContain('Maria Dela Cruz');
+    expect($html)->toContain('Pedro Santos');
 });
 
 it('generates a real PDF file end to end', function () {

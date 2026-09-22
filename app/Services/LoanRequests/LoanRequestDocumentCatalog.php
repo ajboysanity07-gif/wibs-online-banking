@@ -751,6 +751,7 @@ class LoanRequestDocumentCatalog
      *     applicable: bool,
      *     category: ?string,
      *     recommended_officers: int,
+     *     officer_titles: list<string>,
      *     note: string,
      *     saved_contact: ?array{officer_1_name: ?string, officer_1_title: ?string, officer_2_name: ?string, officer_2_title: ?string}
      * }
@@ -764,7 +765,8 @@ class LoanRequestDocumentCatalog
                 'applicable' => false,
                 'category' => null,
                 'recommended_officers' => 0,
-                'note' => 'Not applicable — Authority to Deduct only applies to BLGU, LGU, MRDINC, or Healthcare institutional payroll employees. Other applicants use a Waiver document instead.',
+                'officer_titles' => [],
+                'note' => 'Not applicable — Authority to Deduct only applies to BLGU, LGU, MRDINC, or LDH institutional payroll employees. Other applicants use a Waiver document instead.',
                 'saved_contact' => null,
             ];
         }
@@ -774,6 +776,7 @@ class LoanRequestDocumentCatalog
                 'applicable' => false,
                 'category' => $category->value,
                 'recommended_officers' => 0,
+                'officer_titles' => [],
                 'note' => 'Not applicable — this applicant belongs to an institutional payroll category, but their payment option isn\'t Salary Deduction, so no payroll office needs to be authorized.',
                 'saved_contact' => null,
             ];
@@ -786,34 +789,39 @@ class LoanRequestDocumentCatalog
                 'applicable' => true,
                 'category' => 'blgu',
                 'recommended_officers' => 2,
-                'note' => 'BLGU (Barangay Local Government Unit) institutions typically sign with 2 officers (e.g. treasurer and captain).',
+                'officer_titles' => $category->authorityToDeductOfficerTitles(),
+                'note' => 'BLGU (Barangay Local Government Unit) institutions sign with 2 officers: the Barangay Treasurer and Barangay Captain.',
                 'saved_contact' => $savedContact,
             ],
             LoanInstitutionalEmployerCategory::Lgu => [
                 'applicable' => true,
                 'category' => 'lgu',
-                'recommended_officers' => 2,
-                'note' => 'LGU (Local Government Unit) offices typically use 2 signing officers.',
+                'recommended_officers' => 1,
+                'officer_titles' => $category->authorityToDeductOfficerTitles(),
+                'note' => 'LGU (Local Government Unit) offices sign with 1 authorized officer: the Municipal Accountant.',
                 'saved_contact' => $savedContact,
             ],
             LoanInstitutionalEmployerCategory::Mrdinc => [
                 'applicable' => true,
                 'category' => 'mrdinc',
                 'recommended_officers' => 1,
-                'note' => 'MRDINC in-house payroll typically requires only 1 authorized officer.',
+                'officer_titles' => $category->authorityToDeductOfficerTitles(),
+                'note' => 'MRDINC in-house payroll requires 1 authorized officer: the MRDINC Payroll Maker.',
                 'saved_contact' => $savedContact,
             ],
-            LoanInstitutionalEmployerCategory::Healthcare => [
+            LoanInstitutionalEmployerCategory::Ldh => [
                 'applicable' => true,
                 'category' => 'healthcare',
                 'recommended_officers' => 1,
-                'note' => 'Healthcare institutions typically require only 1 authorized officer.',
+                'officer_titles' => $category->authorityToDeductOfficerTitles(),
+                'note' => 'Lianga District Hospital (LDH) signs with 1 authorized officer: the Administrative 1/Cashier.',
                 'saved_contact' => $savedContact,
             ],
             default => [
                 'applicable' => false,
                 'category' => $category->value,
                 'recommended_officers' => 0,
+                'officer_titles' => [],
                 'note' => 'Not applicable — this category uses its own Waiver document instead of Authority to Deduct.',
                 'saved_contact' => null,
             ],
@@ -1071,7 +1079,7 @@ class LoanRequestDocumentCatalog
             'blgu' => LoanInstitutionalEmployerCategory::Blgu,
             'lgu' => LoanInstitutionalEmployerCategory::Lgu,
             'mrdinc' => LoanInstitutionalEmployerCategory::Mrdinc,
-            'healthcare' => LoanInstitutionalEmployerCategory::Healthcare,
+            'healthcare' => LoanInstitutionalEmployerCategory::Ldh,
             default => null,
         };
     }

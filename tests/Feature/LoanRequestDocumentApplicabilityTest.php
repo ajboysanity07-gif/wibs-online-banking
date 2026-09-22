@@ -991,10 +991,11 @@ test('authority to deduct is applicable with 2 recommended officers for a BLGU e
 
     $guidance = $catalog->authorityToDeductGuidance($loanRequest, $flatValues);
     expect($guidance['category'])->toBe('blgu')
-        ->and($guidance['recommended_officers'])->toBe(2);
+        ->and($guidance['recommended_officers'])->toBe(2)
+        ->and($guidance['officer_titles'])->toBe(['Barangay Treasurer', 'Barangay Captain']);
 });
 
-test('authority to deduct is applicable with 2 recommended officers for an LGU employer', function (): void {
+test('authority to deduct is applicable with 1 recommended officer for an LGU employer', function (): void {
     $loanRequest = LoanRequest::factory()->create();
 
     LoanRequestPerson::factory()
@@ -1014,7 +1015,8 @@ test('authority to deduct is applicable with 2 recommended officers for an LGU e
 
     $guidance = $catalog->authorityToDeductGuidance($loanRequest, $flatValues);
     expect($guidance['category'])->toBe('lgu')
-        ->and($guidance['recommended_officers'])->toBe(2);
+        ->and($guidance['recommended_officers'])->toBe(1)
+        ->and($guidance['officer_titles'])->toBe(['Municipal Accountant']);
 });
 
 test('authority to deduct is applicable with 1 recommended officer for an MRDINC employer', function (): void {
@@ -1033,17 +1035,17 @@ test('authority to deduct is applicable with 1 recommended officer for an MRDINC
 
     $guidance = $catalog->authorityToDeductGuidance($loanRequest, $flatValues);
     expect($guidance['category'])->toBe('mrdinc')
-        ->and($guidance['recommended_officers'])->toBe(1);
+        ->and($guidance['recommended_officers'])->toBe(1)
+        ->and($guidance['officer_titles'])->toBe(['MRDINC Payroll Maker']);
 });
 
-test('authority to deduct is applicable with 1 recommended officer for a healthcare employer', function (): void {
+test('authority to deduct is applicable with 1 recommended officer for a Lianga District Hospital (LDH) employer', function (): void {
     $loanRequest = LoanRequest::factory()->create();
 
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::Applicant)
         ->create([
-            'nature_of_business' => 'Healthcare',
             'employer_business_name' => 'Lianga District Hospital',
         ]);
 
@@ -1055,7 +1057,29 @@ test('authority to deduct is applicable with 1 recommended officer for a healthc
 
     $guidance = $catalog->authorityToDeductGuidance($loanRequest, $flatValues);
     expect($guidance['category'])->toBe('healthcare')
-        ->and($guidance['recommended_officers'])->toBe(1);
+        ->and($guidance['recommended_officers'])->toBe(1)
+        ->and($guidance['officer_titles'])->toBe(['Administrative 1/Cashier']);
+});
+
+test('a generic hospital/clinic employer no longer resolves to the LDH category', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'nature_of_business' => 'Healthcare',
+            'employer_business_name' => 'Some Other Hospital',
+        ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value];
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeFalse();
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest, $flatValues);
+    expect($guidance['category'])->toBeNull();
 });
 
 test('an explicit institutional_employer_category overrides the employer-name heuristic', function (): void {

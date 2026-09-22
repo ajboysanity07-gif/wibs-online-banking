@@ -5,6 +5,15 @@
     $headerDesign = $reportHeader['designData'] ?? null;
     $headerLogo = $organizationLogoDataUri ?? null;
     $borrowerName = trim((string) ($applicant['full_name'] ?? ''));
+    $coMakerOneName = trim((string) ($coMakerOne['full_name'] ?? ''));
+    $coMakerTwoName = trim((string) ($coMakerTwo['full_name'] ?? ''));
+
+    $signatories = [
+        ['name' => $borrowerName, 'label' => 'Borrower'],
+        ['name' => $coMakerOneName, 'label' => 'Co Borrower'],
+        ['name' => $coMakerTwoName, 'label' => 'Co Borrower'],
+    ];
+
     $deductionAmount = trim((string) ($loan['amortization_total'] ?? ''));
     $deductionAmountWords = trim((string) ($loan['amortization_total_words'] ?? ''));
     $deductionStartDate = trim((string) ($loan['deduction_start_date'] ?? ''));
@@ -75,6 +84,10 @@
 
             .page {
                 width: 100%;
+            }
+
+            .page + .page {
+                page-break-before: always;
             }
 
             .report-header {
@@ -193,6 +206,7 @@
         </style>
     </head>
     <body>
+        @foreach ($signatories as $signatory)
         <div class="page">
             <div class="report-header">
                 @if ($headerDesign)
@@ -238,10 +252,10 @@
                     <td style="width: 60%;">
                         <div class="signature-signing-area">
                             <div class="signature-name">
-                                {{ $borrowerName !== '' ? $borrowerName : ' ' }}
+                                {{ $signatory['name'] !== '' ? $signatory['name'] : ' ' }}
                             </div>
                             <div class="signature-line"></div>
-                            <div class="signature-label">Signature over Printed Name of Borrower</div>
+                            <div class="signature-label">Signature over Printed Name of {{ $signatory['label'] }}</div>
                         </div>
                     </td>
                     <td style="width: 40%; text-align: center;">
@@ -272,5 +286,6 @@
                 @endif
             </div>
         </div>
+        @endforeach
     </body>
 </html>

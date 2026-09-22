@@ -53,6 +53,7 @@ import { adminApi } from '@/lib/api/admin';
 import type { LoanRequestChecklistPreviewItem } from '@/lib/api/admin';
 import { formatCurrency } from '@/lib/formatters';
 import {
+    AUTHORITY_TO_DEDUCT_OFFICER_TITLES,
     INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS,
     INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS,
     resolveInstitutionalEmployerCategory,
@@ -637,9 +638,19 @@ export function ProcessingDetailsPanel({
         useState(false);
     const [recommendationPreviewError, setRecommendationPreviewError] =
         useState<string | null>(null);
+    // Derived from the live, locally-edited category (not the server's
+    // last-saved authority_to_deduct_guidance) so the UI reacts immediately
+    // when staff change the Employer Classification Select, before any save
+    // round-trip.
+    const fixedOfficerTitles =
+        AUTHORITY_TO_DEDUCT_OFFICER_TITLES[
+            processingForm.institutional_employer_category
+        ] ?? [];
     const [showSecondOfficer, setShowSecondOfficer] = useState(
-        loanRequest.authority_to_deduct_guidance?.recommended_officers !== 1 ||
-            hasSecondOfficerValue(dataSections.processing),
+        fixedOfficerTitles.length > 0
+            ? fixedOfficerTitles.length > 1
+            : loanRequest.authority_to_deduct_guidance?.recommended_officers !==
+                  1 || hasSecondOfficerValue(dataSections.processing),
     );
     const resolvedInstitutionalEmployerCategory =
         resolveInstitutionalEmployerCategory(
@@ -700,16 +711,60 @@ export function ProcessingDetailsPanel({
 
     useEffect(() => {
         setProcessingForm(buildInitialProcessingForm());
+        const initialFixedTitles =
+            AUTHORITY_TO_DEDUCT_OFFICER_TITLES[
+                applicant?.institutional_employer_category ?? ''
+            ] ?? [];
         setShowSecondOfficer(
-            loanRequest.authority_to_deduct_guidance?.recommended_officers !==
-                1 || hasSecondOfficerValue(dataSections.processing),
+            initialFixedTitles.length > 0
+                ? initialFixedTitles.length > 1
+                : loanRequest.authority_to_deduct_guidance
+                      ?.recommended_officers !== 1 ||
+                      hasSecondOfficerValue(dataSections.processing),
         );
     }, [
+        applicant?.institutional_employer_category,
         buildInitialProcessingForm,
         dataSections.processing,
         loanRequest.authority_to_deduct_guidance,
         loanRequest.kind_of_loan,
     ]);
+
+    // Once a category maps to fixed officer titles, keep the submitted
+    // title(s) canonical -- staff only type the officer's name, the title
+    // field is rendered read-only below. Also keeps the officer-2 slot's
+    // visibility in sync when staff switch categories live (e.g. BLGU's 2
+    // officers vs. LGU/MRDINC/LDH's 1), without waiting for a save.
+    useEffect(() => {
+        if (fixedOfficerTitles.length === 0) {
+            return;
+        }
+
+        setShowSecondOfficer(fixedOfficerTitles.length > 1);
+
+        setProcessingForm((current) => {
+            const nextTitle1 = fixedOfficerTitles[0] ?? null;
+            const nextTitle2 = fixedOfficerTitles[1] ?? null;
+
+            if (
+                current.processing.authority_to_deduct_officer_1_title ===
+                    nextTitle1 &&
+                current.processing.authority_to_deduct_officer_2_title ===
+                    nextTitle2
+            ) {
+                return current;
+            }
+
+            return {
+                ...current,
+                processing: {
+                    ...current.processing,
+                    authority_to_deduct_officer_1_title: nextTitle1,
+                    authority_to_deduct_officer_2_title: nextTitle2,
+                },
+            };
+        });
+    }, [fixedOfficerTitles]);
 
     const updateProcessingSectionField = (
         field: string,
@@ -2186,19 +2241,35 @@ export function ProcessingDetailsPanel({
                                                                 ...current.processing,
                                                                 authority_to_deduct_officer_1_name:
                                                                     savedContact.officer_1_name,
-                                                                authority_to_deduct_officer_1_title:
-                                                                    savedContact.officer_1_title,
+                                                                // Title is derived from the employer
+                                                                // category, not the saved contact --
+                                                                // only copy it here when no category
+                                                                // has locked it already.
+                                                                ...(fixedOfficerTitles.length ===
+                                                                0
+                                                                    ? {
+                                                                          authority_to_deduct_officer_1_title:
+                                                                              savedContact.officer_1_title,
+                                                                      }
+                                                                    : {}),
                                                                 authority_to_deduct_officer_2_name:
                                                                     savedContact.officer_2_name,
-                                                                authority_to_deduct_officer_2_title:
-                                                                    savedContact.officer_2_title,
+                                                                ...(fixedOfficerTitles.length <
+                                                                2
+                                                                    ? {
+                                                                          authority_to_deduct_officer_2_title:
+                                                                              savedContact.officer_2_title,
+                                                                      }
+                                                                    : {}),
                                                             },
                                                         }),
                                                     );
 
                                                     if (
-                                                        savedContact.officer_2_name ||
-                                                        savedContact.officer_2_title
+                                                        fixedOfficerTitles.length ===
+                                                            0 &&
+                                                        (savedContact.officer_2_name ||
+                                                            savedContact.officer_2_title)
                                                     ) {
                                                         setShowSecondOfficer(
                                                             true,
@@ -2259,11 +2330,21 @@ export function ProcessingDetailsPanel({
                                     {renderProcessingField(
                                         'authority_to_deduct_officer_1_title',
                                         {
-                                            disabled: officersUnknown,
-                                            className: officersUnknown
-                                                ? readOnlyProcessingFieldClassName
-                                                : undefined,
+                                            disabled:
+                                                officersUnknown ||
+                                                fixedOfficerTitles.length > 0,
+                                            className:
+                                                officersUnknown ||
+                                                fixedOfficerTitles.length > 0
+                                                    ? readOnlyProcessingFieldClassName
+                                                    : undefined,
                                         },
+                                    )}
+                                    {fixedOfficerTitles.length > 0 && (
+                                        <p className="-mt-2 text-xs text-muted-foreground sm:col-span-2">
+                                            Title is fixed for this employer
+                                            category.
+                                        </p>
                                     )}
                                     {showSecondOfficer ? (
                                         <>
@@ -2279,15 +2360,22 @@ export function ProcessingDetailsPanel({
                                             {renderProcessingField(
                                                 'authority_to_deduct_officer_2_title',
                                                 {
-                                                    disabled: officersUnknown,
-                                                    className: officersUnknown
-                                                        ? readOnlyProcessingFieldClassName
-                                                        : undefined,
+                                                    disabled:
+                                                        officersUnknown ||
+                                                        fixedOfficerTitles.length >
+                                                            0,
+                                                    className:
+                                                        officersUnknown ||
+                                                        fixedOfficerTitles.length >
+                                                            0
+                                                            ? readOnlyProcessingFieldClassName
+                                                            : undefined,
                                                 },
                                             )}
                                         </>
                                     ) : (
-                                        !officersUnknown && (
+                                        !officersUnknown &&
+                                        fixedOfficerTitles.length === 0 && (
                                             <button
                                                 type="button"
                                                 className="text-left text-sm text-primary hover:underline sm:col-span-2"

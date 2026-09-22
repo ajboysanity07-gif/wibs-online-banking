@@ -129,7 +129,7 @@ test('scheduleRelease attempts to auto-regenerate the authority-to-deduct docume
         'submitted_at' => now(),
     ]);
 
-    // Authority to Deduct is only applicable to BLGU/LGU/MRDINC/Healthcare institutional
+    // Authority to Deduct is only applicable to BLGU/LGU/MRDINC/LDH institutional
     // payroll employees -- give this applicant an MRDINC employer so the document
     // stays applicable and this test still exercises staleness, not NotApplicable.
     \App\Models\LoanRequestPerson::factory()
