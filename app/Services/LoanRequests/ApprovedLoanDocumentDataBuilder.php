@@ -413,8 +413,7 @@ class ApprovedLoanDocumentDataBuilder
             ],
             'loan' => [
                 'reference' => $loanRequest->reference,
-                'type' => $this->normalizeText($loanRequest->loan_type_label_snapshot)
-                    ?? $this->normalizeText($loanRequest->typecode),
+                'type' => $this->resolveLoanTypeDisplay($loanRequest),
                 'requested_amount' => $this->formatCurrencyValue($loanRequest->requested_amount),
                 'requested_amount_raw' => $this->normalizeNumericValue($loanRequest->requested_amount),
                 'approved_amount' => $this->formatCurrencyValue($loanRequest->approved_amount),
@@ -1284,6 +1283,32 @@ class ApprovedLoanDocumentDataBuilder
      * rate field behind it on the WIBS side, just this IIF branch on
      * typecode. This mirrors that rule as the default here.
      */
+    /**
+     * "Other Loan" (typecode '01') has no fixed WIBS label -- the member names
+     * it themselves via other_loan_type_name (e.g. "Year-End Bonus 2026"). Show
+     * that name on documents instead of the bare "Other Loan" snapshot label,
+     * which by itself tells reviewers nothing about the actual loan.
+     */
+    private function resolveLoanTypeDisplay(LoanRequest $loanRequest): ?string
+    {
+        $label = $this->normalizeText($loanRequest->loan_type_label_snapshot)
+            ?? $this->normalizeText($loanRequest->typecode);
+
+        if ((string) $loanRequest->typecode !== self::OTHER_LOAN_TYPECODE) {
+            return $label;
+        }
+
+        $otherLoanName = $this->normalizeText($loanRequest->other_loan_type_name);
+
+        if ($otherLoanName === null) {
+            return $label;
+        }
+
+        return $label !== null
+            ? "{$label} - {$otherLoanName}"
+            : $otherLoanName;
+    }
+
     private function defaultLoanSecurityRate(LoanRequest $loanRequest): float
     {
         return (string) $loanRequest->typecode === self::OTHER_LOAN_TYPECODE
