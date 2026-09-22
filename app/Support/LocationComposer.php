@@ -20,7 +20,7 @@ class LocationComposer
         ];
 
         $parts = array_map(
-            static fn (?string $value): string => trim((string) $value),
+            static fn (?string $value): string => self::sanitizePart((string) $value),
             $parts,
         );
         $parts = array_values(array_filter($parts, static fn (string $value): bool => $value !== ''));
@@ -51,10 +51,10 @@ class LocationComposer
         ?string $barangay = null,
     ): string {
         $parts = [
-            trim((string) $address1),
-            trim((string) $barangay),
-            trim((string) $address2),
-            trim((string) $address3),
+            self::sanitizePart((string) $address1),
+            self::sanitizePart((string) $barangay),
+            self::sanitizePart((string) $address2),
+            self::sanitizePart((string) $address3),
         ];
         $parts = array_values(array_filter(
             $parts,
@@ -81,6 +81,74 @@ class LocationComposer
     public static function composeBirthplace(?string $city, ?string $province): string
     {
         return self::compose($city, $province, null);
+    }
+
+    /**
+     * Cleans up a single address component before it's joined with the
+     * others: trims stray leading/trailing commas left over from free-text
+     * data entry (e.g. "Purok 4," stored in address1, which would otherwise
+     * double up with the ", " separator into "Purok 4,, Barangay, ..."),
+     * collapses internal whitespace, and fixes SHOUTING CAPS components
+     * (e.g. "PUROK-4") to Title Case so they match the casing of properly
+     * entered sibling fields.
+     */
+    private static function sanitizePart(string $value): string
+    {
+        $trimmed = trim($value);
+        $trimmed = trim($trimmed, ", \t\n\r\0\x0B");
+        $trimmed = preg_replace('/\s+/', ' ', $trimmed) ?? $trimmed;
+
+        return self::normalizeShoutingCase($trimmed);
+    }
+
+    /**
+     * Leaves already mixed/lower-cased text alone (assumed intentional) and
+     * only re-cases text that is entirely uppercase, so a legitimate
+     * all-caps acronym siting inside otherwise-normal text isn't touched.
+     */
+    private static function normalizeShoutingCase(string $value): string
+    {
+        if ($value === '' || preg_match('/[a-z]/u', $value) === 1) {
+            return $value;
+        }
+
+        if (preg_match('/[A-Z]/u', $value) !== 1) {
+            return $value;
+        }
+
+        $lowerConnectors = ['of', 'del', 'de', 'la', 'sa', 'y', 'and', 'the'];
+
+        $tokens = preg_split('/(\s+)/u', mb_strtolower($value), -1, PREG_SPLIT_DELIM_CAPTURE) ?: [];
+
+        $result = '';
+        $wordIndex = 0;
+
+        foreach ($tokens as $token) {
+            if (trim($token) === '') {
+                $result .= $token;
+
+                continue;
+            }
+
+            $isConnector = $wordIndex > 0 && in_array($token, $lowerConnectors, true);
+            $result .= $isConnector ? $token : self::ucfirstMultibyte($token);
+            $wordIndex++;
+        }
+
+        return $result;
+    }
+
+    private static function ucfirstMultibyte(string $word): string
+    {
+        $segments = explode('-', $word);
+        $segments = array_map(
+            static fn (string $segment): string => $segment === ''
+                ? $segment
+                : mb_strtoupper(mb_substr($segment, 0, 1)).mb_substr($segment, 1),
+            $segments,
+        );
+
+        return implode('-', $segments);
     }
 
     private static function normalizeForMatch(string $value): string

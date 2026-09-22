@@ -21,6 +21,16 @@ test('compose omits barangay when blank', function (): void {
         ->toBe('123 Main St, Manila, Metro Manila');
 });
 
+test('compose strips a stray trailing comma from a part and normalizes shouting case', function (): void {
+    expect(LocationComposer::compose('PUROK-4,', 'City of Butuan', 'Agusan del Norte', 'San Vicente'))
+        ->toBe('Purok-4, San Vicente, City of Butuan, Agusan del Norte');
+});
+
+test('composeUnique strips a stray trailing comma from a part and normalizes shouting case', function (): void {
+    expect(LocationComposer::composeUnique('PUROK-4,', 'City of Butuan', 'Agusan del Norte', 'San Vicente'))
+        ->toBe('Purok-4, San Vicente, City of Butuan, Agusan del Norte');
+});
+
 test('composeBirthplace is unaffected by the barangay parameter', function (): void {
     expect(LocationComposer::composeBirthplace('Cebu City', 'Cebu'))
         ->toBe('Cebu City, Cebu');
