@@ -31,6 +31,38 @@ class LoanRequestDocumentWorkflowService
     ];
 
     /**
+     * Legacy free-text insurance beneficiary fields. Satisfied instead by any
+     * dependent/spouse flagged via the is_beneficiary checkbox -- see
+     * ApprovedLoanDocumentDataBuilder::flaggedBeneficiaryDependents(), which
+     * takes priority over these fields when building the actual document.
+     *
+     * @var list<string>
+     */
+    private const PRIMARY_BENEFICIARY_FIELDS = [
+        'beneficiary_primary_name',
+        'beneficiary_primary_relationship',
+        'beneficiary_primary_birthdate',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    private const FLAGGED_BENEFICIARY_DEPENDENT_FIELDS = [
+        'dependent_spouse_is_beneficiary',
+        'dependent_child_1_is_beneficiary',
+        'dependent_child_2_is_beneficiary',
+        'dependent_child_3_is_beneficiary',
+        'dependent_sibling_1_is_beneficiary',
+        'dependent_sibling_2_is_beneficiary',
+        'dependent_sibling_3_is_beneficiary',
+        'dependent_parent_1_is_beneficiary',
+        'dependent_parent_2_is_beneficiary',
+        'dependent_extended_1_is_beneficiary',
+        'dependent_extended_2_is_beneficiary',
+        'dependent_extended_3_is_beneficiary',
+    ];
+
+    /**
      * @var list<string>
      */
     private const VALID_PAYMENT_FREQUENCIES = [
@@ -1074,9 +1106,17 @@ class LoanRequestDocumentWorkflowService
     ): array {
         $missingFields = [];
         $bankFieldValues = $this->authorizationBankFieldValues($loanRequest, $flatValues);
+        $hasFlaggedBeneficiaryDependent = $this->hasFlaggedBeneficiaryDependent($flatValues);
 
         foreach ($requiredFields as $fieldKey) {
             if (in_array($fieldKey, self::REQUIRED_RECOMMENDATION_FIELDS, true)) {
+                continue;
+            }
+
+            if (
+                $hasFlaggedBeneficiaryDependent
+                && in_array($fieldKey, self::PRIMARY_BENEFICIARY_FIELDS, true)
+            ) {
                 continue;
             }
 
@@ -1405,6 +1445,20 @@ class LoanRequestDocumentWorkflowService
         }
 
         return $value === null || trim((string) $value) === '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $flatValues
+     */
+    private function hasFlaggedBeneficiaryDependent(array $flatValues): bool
+    {
+        foreach (self::FLAGGED_BENEFICIARY_DEPENDENT_FIELDS as $fieldKey) {
+            if (filter_var($flatValues[$fieldKey] ?? null, FILTER_VALIDATE_BOOLEAN)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isNumericValue(mixed $value): bool
