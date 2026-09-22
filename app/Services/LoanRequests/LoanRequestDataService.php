@@ -1739,6 +1739,9 @@ class LoanRequestDataService
         LoanRequest $loanRequest,
         array $payload,
     ): void {
+        $now = now();
+        $rows = [];
+
         foreach ($this->sectionDefinitions() as $sectionKey => $definition) {
             if ($this->sectionOwner($sectionKey) !== self::OWNER_MEMBER) {
                 continue;
@@ -1755,15 +1758,55 @@ class LoanRequestDataService
                     continue;
                 }
 
-                $this->persistField(
-                    $loanRequest,
-                    $fieldKey,
-                    $sectionPayload[$fieldKey],
-                    confirmedByMember: true,
-                    confirmedAt: now(),
-                );
+                $fieldDefinition = self::FIELD_DEFINITIONS[$fieldKey] ?? null;
+
+                if ($fieldDefinition === null) {
+                    continue;
+                }
+
+                $rows[$fieldKey] = [
+                    'loan_request_id' => $loanRequest->id,
+                    'field_key' => $fieldKey,
+                    'section_key' => $fieldDefinition['section'],
+                    'owner_type' => $fieldDefinition['owner'],
+                    'is_sensitive' => $fieldDefinition['sensitive'],
+                    'confirmed_by_member' => true,
+                    'confirmed_by_member_at' => $now,
+                    'value_json' => json_encode([
+                        'value' => $this->normalizeFieldValue($fieldKey, $sectionPayload[$fieldKey]),
+                    ]),
+                    'metadata_json' => json_encode([
+                        'label' => $fieldDefinition['label'],
+                        'type' => $fieldDefinition['type'],
+                    ]),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
             }
         }
+
+        if ($rows === []) {
+            return;
+        }
+
+        // Batched as a single upsert instead of one SELECT+INSERT/UPDATE per
+        // field -- the wizard payload can carry 30-80 member-owned fields per
+        // save, and each round trip is expensive over the Tailscale link to
+        // the production DB.
+        LoanRequestDataEntry::query()->upsert(
+            array_values($rows),
+            ['loan_request_id', 'field_key'],
+            [
+                'section_key',
+                'owner_type',
+                'is_sensitive',
+                'confirmed_by_member',
+                'confirmed_by_member_at',
+                'value_json',
+                'metadata_json',
+                'updated_at',
+            ],
+        );
     }
 
     /**
@@ -2070,11 +2113,24 @@ class LoanRequestDataService
             ]);
         }
 
-        /** @var LoanRequestDataEntry $entry */
-        $entry = LoanRequestDataEntry::query()->firstOrNew([
-            'loan_request_id' => $loanRequest->id,
-            'field_key' => $fieldKey,
-        ]);
+        // Reuse the already-loaded dataEntries relation instead of issuing a
+        // fresh SELECT per field -- callers that update several fields in one
+        // request (staff corrections, processing panel) would otherwise pay
+        // one extra round trip per field over the Tailscale link to the
+        // production DB.
+        $loanRequest->loadMissing('dataEntries');
+
+        $entry = $loanRequest->dataEntries->first(
+            static fn (LoanRequestDataEntry $entry): bool => $entry->field_key === $fieldKey,
+        );
+
+        if ($entry === null) {
+            $entry = new LoanRequestDataEntry([
+                'loan_request_id' => $loanRequest->id,
+                'field_key' => $fieldKey,
+            ]);
+            $loanRequest->dataEntries->push($entry);
+        }
 
         $entry->section_key = $definition['section'];
         $entry->owner_type = $ownerType ?? $definition['owner'];
