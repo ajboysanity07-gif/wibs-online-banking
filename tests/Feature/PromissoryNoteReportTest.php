@@ -34,7 +34,7 @@ test('promissory note leaves the amortization amount hand-fill but prints the pa
         ->toContain('note-fill">quincenal</span>');
 });
 
-test('promissory note prints the computed single-payment value for lumpsum loans', function () {
+test('promissory note prints the total loan amount as the single-payment value for lumpsum loans', function () {
     $branding = app(OrganizationSettingsService::class)->branding();
 
     $html = view('reports.promissory-note', [
@@ -55,7 +55,8 @@ test('promissory note prints the computed single-payment value for lumpsum loans
     ])->render();
 
     expect($html)
-        ->toContain('note-fill">51,500.00</span>')
+        ->toContain('note-fill">50,000.00</span>')
+        ->not->toContain('note-fill">51,500.00</span>')
         ->toContain('note-fill">due date</span>');
 });
 

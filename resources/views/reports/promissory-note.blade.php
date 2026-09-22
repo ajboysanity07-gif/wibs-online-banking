@@ -134,11 +134,13 @@
 
     // The per-installment amount is hand-filled on installment loans (same
     // convention as the Disclosure Statement's blanked "Total Installment
-    // Payment" figure). Only lumpsum loans print the computed single-payment
-    // value. The payment-frequency label always prints, regardless of lumpsum.
+    // Payment" figure). Lumpsum/due-date loans have a single payment at
+    // maturity, so that blank prints the full approved loan amount rather
+    // than the amortization total. The payment-frequency label always
+    // prints, regardless of lumpsum.
     $isLumpsum = $paymentMode === 'DUE-DATE';
-    $installmentAmountValue = $isLumpsum && $amortizationTotal !== null
-        ? $formatAmount($amortizationTotal)
+    $installmentAmountValue = $isLumpsum && $approvedAmountRaw !== null
+        ? $formatAmount($approvedAmountRaw)
         : null;
 @endphp
 <!doctype html>
