@@ -192,7 +192,26 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'loan_request' => ['sometimes', 'array:typecode,kind_of_loan,requested_amount,requested_term,loan_purpose,other_loan_type_name,availment_status'],
             'loan_request.typecode' => ['sometimes', 'string', 'max:255'],
             'loan_request.kind_of_loan' => [
-                Rule::requiredIf(fn (): bool => $this->isMicroBusinessLoanType()),
+                // Only enforced when the submitted typecode is actually
+                // changing the loan type to Micro Business. The correction
+                // form always sends the current typecode as a passthrough
+                // (whether or not the staff member touched the Loan type
+                // select), and the inline processing panel sends its own
+                // amount/term/purpose passthrough without typecode at all --
+                // neither of those must trip this required check for a
+                // request that was already a Micro Business Loan before this
+                // submission (e.g. legacy records that predate kind_of_loan).
+                Rule::requiredIf(function (): bool {
+                    if (! $this->has('loan_request.typecode')) {
+                        return false;
+                    }
+
+                    if ($this->input('loan_request.typecode') === $this->loanRequest?->typecode) {
+                        return false;
+                    }
+
+                    return $this->isMicroBusinessLoanType();
+                }),
                 'nullable', 'string', Rule::in(['Regular', 'Emergency']),
             ],
             'loan_request.requested_amount' => ['sometimes', 'numeric', 'min:1'],

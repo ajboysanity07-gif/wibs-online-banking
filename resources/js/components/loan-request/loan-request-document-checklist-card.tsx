@@ -396,7 +396,7 @@ export const LoanRequestDocumentChecklistCard = ({
                         </AlertDescription>
                     </Alert>
                 ) : null}
-                {blockedEntries.length > 0 ? (
+                {processingDetailsSaved && blockedEntries.length > 0 ? (
                     <Alert variant="destructive" className="mb-3">
                         <AlertCircle className="size-4" />
                         <AlertTitle>
@@ -552,7 +552,8 @@ export const LoanRequestDocumentChecklistCard = ({
                                                     </div>
                                                 </div>
                                                 <div className="flex shrink-0 items-center gap-2">
-                                                    {missingFieldCount > 0 ? (
+                                                    {processingDetailsSaved &&
+                                                    missingFieldCount > 0 ? (
                                                         <span className="text-xs text-destructive">
                                                             {missingFieldCount}{' '}
                                                             field

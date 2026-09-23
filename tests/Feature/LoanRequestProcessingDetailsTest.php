@@ -188,6 +188,107 @@ test('processing update can set the kind of loan when correcting to a Micro Busi
 });
 
 /**
+ * The inline processing panel always sends a `loan_request` passthrough (see
+ * the preserves-loan-details test above) but never touches typecode. A loan
+ * that is already a Micro Business Loan without a recorded kind_of_loan
+ * (legacy data, or created before this sub-selection existed) must still be
+ * saveable through that panel -- the required-kind_of_loan check must only
+ * fire when the request is actually changing the loan type.
+ */
+test('processing update passthrough does not require kind of loan for an already Micro Business Loan', function (): void {
+    DB::table('wlntype')->insert([
+        ['typecode' => 'LN-070', 'lntype' => 'MICRO BUSINESS LOAN'],
+    ]);
+
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950023');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-070',
+        'kind_of_loan' => null,
+        'requested_amount' => '25000.00',
+        'requested_term' => 12,
+        'loan_purpose' => 'Home improvement',
+        'availment_status' => 'New',
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Recorded verified processing terms.',
+            'loan_request' => [
+                'requested_amount' => '25000.00',
+                'requested_term' => 12,
+                'loan_purpose' => 'Home improvement',
+                'availment_status' => 'New',
+            ],
+        ])
+        ->assertOk();
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->kind_of_loan)->toBeNull();
+});
+
+/**
+ * The "Correct Application Data" sheet always sends the current typecode as
+ * part of loan_request -- pre-filled from the record -- whether or not staff
+ * actually touch the Loan type select. Editing unrelated loan details (e.g.
+ * loan_purpose) on a request that was already a Micro Business Loan before
+ * this submission, and that predates the kind_of_loan sub-selection, must
+ * not be blocked by a required-field error the staff member has no reason
+ * to expect and, if the Kind of loan select isn't surfaced, no way to fix.
+ */
+test('processing update correction passthrough does not require kind of loan when typecode is unchanged', function (): void {
+    DB::table('wlntype')->insert([
+        ['typecode' => 'LN-070', 'lntype' => 'MICRO BUSINESS LOAN'],
+    ]);
+
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950024');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-070',
+        'kind_of_loan' => null,
+        'requested_amount' => '25000.00',
+        'requested_term' => 12,
+        'loan_purpose' => 'Home improvement',
+        'availment_status' => 'New',
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Updated loan purpose per verified records.',
+            'loan_request' => [
+                // Correction form passthrough: typecode unchanged, kind_of_loan
+                // omitted because the Kind of loan select never appears for an
+                // unchanged loan type on the frontend.
+                'typecode' => 'LN-070',
+                'requested_amount' => '25000.00',
+                'requested_term' => 12,
+                'loan_purpose' => 'Updated business capital purpose',
+                'availment_status' => 'New',
+            ],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.loan_purpose', 'Updated business capital purpose');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->loan_purpose)->toBe('Updated business capital purpose')
+        ->and($loanRequest->kind_of_loan)->toBeNull();
+});
+
+/**
  * Mirrors the requiredIf gate in LoanRequestStoreRequest -- correcting a
  * request's loan type to Micro Business Loan without also supplying a kind
  * of loan must be rejected, not silently saved with a null value.
