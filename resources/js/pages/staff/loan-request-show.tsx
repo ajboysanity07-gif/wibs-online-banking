@@ -18,6 +18,11 @@ import {
     LoanRequestWorkFields,
 } from '@/components/loan-request/loan-request-fields';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
+import {
+    isMicroBusinessLoanLabel,
+    KIND_OF_LOAN_OPTIONS,
+    OTHER_LOAN_TYPECODE,
+} from '@/components/loan-request/loan-request-steps';
 import { LoanStatusWarning } from '@/components/loan-request/loan-status-warning';
 import {
     CurrencyInput,
@@ -49,6 +54,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import {
     Sheet,
@@ -113,6 +125,7 @@ import type {
     LoanRequestWorkflowContext,
     LoanRequestWorkflowHealth,
     LoanRequestWorkflowPermission,
+    LoanTypeOption,
 } from '@/types/loan-requests';
 
 type Props = {
@@ -123,6 +136,7 @@ type Props = {
     auditTrail: LoanRequestAuditEntry[];
     eligibleOfficers: LoanRequestAssignmentOfficerOption[];
     loanManagers: LoanManagerOption[];
+    loanTypes: LoanTypeOption[];
     dataSections: LoanRequestDataSections;
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
     cycleState: LoanRequestCycleState;
@@ -279,6 +293,9 @@ const documentResultStatusOrder = [
 // Category B — application-data corrections edited in the modal.
 type CorrectionFormState = {
     loan_request: {
+        typecode: string;
+        kind_of_loan: string;
+        other_loan_type_name: string;
         requested_amount: string;
         requested_term: string;
         loan_purpose: string;
@@ -298,6 +315,7 @@ export default function StaffLoanRequestShow({
     auditTrail,
     eligibleOfficers,
     loanManagers,
+    loanTypes,
     dataSections,
     dataSectionDefinitions,
     cycleState,
@@ -379,6 +397,9 @@ export default function StaffLoanRequestShow({
     );
     const [correctionForm, setCorrectionForm] = useState<CorrectionFormState>({
         loan_request: {
+            typecode: loanRequest.typecode ?? '',
+            kind_of_loan: loanRequest.kind_of_loan ?? '',
+            other_loan_type_name: loanRequest.other_loan_type_name ?? '',
             requested_amount: toStringValue(loanRequest.requested_amount),
             requested_term: toStringValue(loanRequest.requested_term),
             loan_purpose: loanRequest.loan_purpose ?? '',
@@ -518,6 +539,9 @@ export default function StaffLoanRequestShow({
         });
         setCorrectionForm({
             loan_request: {
+                typecode: currentRequest.typecode ?? '',
+                kind_of_loan: currentRequest.kind_of_loan ?? '',
+                other_loan_type_name: currentRequest.other_loan_type_name ?? '',
                 requested_amount: toStringValue(
                     currentRequest.requested_amount,
                 ),
@@ -832,6 +856,38 @@ export default function StaffLoanRequestShow({
             loan_request: {
                 ...current.loan_request,
                 [field]: value,
+            },
+        }));
+    };
+
+    const correctionSelectedLoanTypeLabel =
+        loanTypes.find(
+            (option) =>
+                option.typecode === correctionForm.loan_request.typecode,
+        )?.label ?? null;
+    const isCorrectionMicroBusinessLoan = isMicroBusinessLoanLabel(
+        correctionSelectedLoanTypeLabel,
+    );
+    const isCorrectionOtherLoan =
+        correctionForm.loan_request.typecode === OTHER_LOAN_TYPECODE;
+
+    const updateCorrectionLoanType = (typecode: string) => {
+        const label =
+            loanTypes.find((option) => option.typecode === typecode)?.label ??
+            null;
+
+        setCorrectionForm((current) => ({
+            ...current,
+            loan_request: {
+                ...current.loan_request,
+                typecode,
+                kind_of_loan: isMicroBusinessLoanLabel(label)
+                    ? current.loan_request.kind_of_loan
+                    : '',
+                other_loan_type_name:
+                    typecode === OTHER_LOAN_TYPECODE
+                        ? current.loan_request.other_loan_type_name
+                        : '',
             },
         }));
     };
@@ -1785,6 +1841,96 @@ export default function StaffLoanRequestShow({
                                 description="Update the verified request details used throughout the document package."
                             >
                                 <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="correction_loan_type">
+                                            Loan type
+                                        </Label>
+                                        <Select
+                                            value={
+                                                correctionForm.loan_request
+                                                    .typecode || undefined
+                                            }
+                                            onValueChange={(value) =>
+                                                updateCorrectionLoanType(value)
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                id="correction_loan_type"
+                                                className="w-full"
+                                            >
+                                                <SelectValue placeholder="Select loan type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {loanTypes.map((option) => (
+                                                    <SelectItem
+                                                        key={option.typecode}
+                                                        value={option.typecode}
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    {isCorrectionMicroBusinessLoan && (
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="correction_kind_of_loan">
+                                                Kind of loan
+                                            </Label>
+                                            <Select
+                                                value={
+                                                    correctionForm.loan_request
+                                                        .kind_of_loan ||
+                                                    undefined
+                                                }
+                                                onValueChange={(value) =>
+                                                    updateCorrectionDetailField(
+                                                        'kind_of_loan',
+                                                        value,
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger
+                                                    id="correction_kind_of_loan"
+                                                    className="w-full"
+                                                >
+                                                    <SelectValue placeholder="Select kind of loan" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {KIND_OF_LOAN_OPTIONS.map(
+                                                        (option) => (
+                                                            <SelectItem
+                                                                key={option}
+                                                                value={option}
+                                                            >
+                                                                {option}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
+                                    {isCorrectionOtherLoan && (
+                                        <div className="grid gap-2 md:col-span-2">
+                                            <Label htmlFor="correction_other_loan_type_name">
+                                                Other loan type name
+                                            </Label>
+                                            <Input
+                                                id="correction_other_loan_type_name"
+                                                value={
+                                                    correctionForm.loan_request
+                                                        .other_loan_type_name
+                                                }
+                                                onChange={(event) =>
+                                                    updateCorrectionDetailField(
+                                                        'other_loan_type_name',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    )}
                                     <div className="grid gap-2">
                                         <Label htmlFor="correction_requested_amount">
                                             Requested amount

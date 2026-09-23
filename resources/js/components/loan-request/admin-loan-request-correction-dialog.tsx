@@ -1539,6 +1539,7 @@ function CorrectionDialogForm({
 
         onSubmit({
             typecode: formData.typecode,
+            kind_of_loan: formData.kind_of_loan,
             requested_amount: formData.requested_amount,
             requested_term: formData.requested_term,
             loan_purpose: formData.loan_purpose,

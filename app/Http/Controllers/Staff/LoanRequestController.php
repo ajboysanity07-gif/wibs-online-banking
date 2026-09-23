@@ -22,6 +22,7 @@ use App\Services\LoanRequests\LoanRequestDocumentStorage;
 use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
+use App\Services\LoanRequests\LoanRequestService;
 use App\Services\LoanRequests\LoanWorkflowWorkspaceService;
 use App\Support\DocumentFilename;
 use Illuminate\Contracts\View\View;
@@ -53,6 +54,7 @@ class LoanRequestController extends Controller
         LoanWorkflowWorkspaceService $workspaceService,
         LoanManagerWitnessResolver $loanManagerWitnessResolver,
         LoanRequestCycleStateService $cycleStateService,
+        LoanRequestService $loanRequestService,
     ): Response {
         if ($this->isDraft($loanRequest)) {
             abort(404);
@@ -93,6 +95,7 @@ class LoanRequestController extends Controller
                 ? $assignmentService->eligibleOfficerOptions($loanRequest)
                 : [],
             'loanManagers' => $loanManagerWitnessResolver->options(),
+            'loanTypes' => $loanRequestService->getLoanTypes()->values()->all(),
             'dataSections' => $dataService->serializeSections($loanRequest),
             'dataSectionDefinitions' => $dataService->sectionDefinitions(),
             'cycleState' => $cycleStateService->resolveState($loanRequest),

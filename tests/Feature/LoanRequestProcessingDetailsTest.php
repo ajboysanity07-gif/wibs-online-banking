@@ -8,10 +8,20 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
 use App\Models\Role;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
     Role::ensureWorkflowDefaults();
+
+    if (! Schema::hasTable('wlntype')) {
+        Schema::create('wlntype', function (Blueprint $table): void {
+            $table->string('typecode')->primary();
+            $table->string('lntype');
+        });
+    }
 });
 
 /**
@@ -80,6 +90,134 @@ test('processing update with loan_request passthrough preserves loan details whi
         ->and($loanRequest->loan_purpose)->toBe('Home improvement')
         ->and($loanRequest->availment_status)->toBe('New')
         ->and($loanRequest->recommended_amount)->toBe('24000.00');
+});
+
+/**
+ * Loan processors/managers correcting a submitted application must be able
+ * to change the loan type -- previously only the member wizard and the admin
+ * correction dialog could edit typecode here.
+ */
+test('processing update can change the loan type', function (): void {
+    DB::table('wlntype')->insert([
+        ['typecode' => 'LN-050', 'lntype' => 'REGULAR LOAN'],
+        ['typecode' => 'LN-060', 'lntype' => 'EMERGENCY LOAN'],
+    ]);
+
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950020');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'requested_amount' => '25000.00',
+        'requested_term' => 12,
+        'loan_purpose' => 'Home improvement',
+        'availment_status' => 'New',
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Corrected the loan type per verified records.',
+            'loan_request' => [
+                'typecode' => 'LN-060',
+                'requested_amount' => '25000.00',
+                'requested_term' => 12,
+                'loan_purpose' => 'Home improvement',
+                'availment_status' => 'New',
+            ],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.typecode', 'LN-060');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->typecode)->toBe('LN-060');
+});
+
+/**
+ * A Micro Business Loan also carries a Regular/Emergency "kind of loan"
+ * sub-selection -- the wizard collects it, but the processing-details
+ * correction endpoint dropped it entirely until now.
+ */
+test('processing update can set the kind of loan when correcting to a Micro Business Loan', function (): void {
+    DB::table('wlntype')->insert([
+        ['typecode' => 'LN-050', 'lntype' => 'REGULAR LOAN'],
+        ['typecode' => 'LN-070', 'lntype' => 'MICRO BUSINESS LOAN'],
+    ]);
+
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950021');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'requested_amount' => '25000.00',
+        'requested_term' => 12,
+        'loan_purpose' => 'Home improvement',
+        'availment_status' => 'New',
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Corrected the loan type to Micro Business Loan.',
+            'loan_request' => [
+                'typecode' => 'LN-070',
+                'kind_of_loan' => 'Emergency',
+                'requested_amount' => '25000.00',
+                'requested_term' => 12,
+                'loan_purpose' => 'Home improvement',
+                'availment_status' => 'New',
+            ],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.typecode', 'LN-070')
+        ->assertJsonPath('data.loanRequest.kind_of_loan', 'Emergency');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->typecode)->toBe('LN-070')
+        ->and($loanRequest->kind_of_loan)->toBe('Emergency');
+});
+
+/**
+ * Mirrors the requiredIf gate in LoanRequestStoreRequest -- correcting a
+ * request's loan type to Micro Business Loan without also supplying a kind
+ * of loan must be rejected, not silently saved with a null value.
+ */
+test('processing update requires a kind of loan when correcting to a Micro Business Loan', function (): void {
+    DB::table('wlntype')->insert([
+        ['typecode' => 'LN-050', 'lntype' => 'REGULAR LOAN'],
+        ['typecode' => 'LN-070', 'lntype' => 'MICRO BUSINESS LOAN'],
+    ]);
+
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950022');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Corrected the loan type to Micro Business Loan.',
+            'loan_request' => [
+                'typecode' => 'LN-070',
+            ],
+        ])
+        ->assertJsonValidationErrors('loan_request.kind_of_loan');
 });
 
 /**

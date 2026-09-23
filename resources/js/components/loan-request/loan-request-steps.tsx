@@ -138,7 +138,7 @@ export const OTHER_LOAN_TYPECODE = '01';
 
 const REPAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Due date'] as const;
 
-const KIND_OF_LOAN_OPTIONS = ['Regular', 'Emergency'] as const;
+export const KIND_OF_LOAN_OPTIONS = ['Regular', 'Emergency'] as const;
 
 /** wlntype.lntype label match for "Micro Business Loan" -- no fixed typecode. */
 const MICRO_BUSINESS_LOAN_LABEL = 'MICRO BUSINESS LOAN';
@@ -148,7 +148,7 @@ const LOAN_TYPE_ABBREVIATIONS: Record<string, string> = {
     [MICRO_BUSINESS_LOAN_LABEL]: 'MBL',
 };
 
-function isMicroBusinessLoanLabel(label?: string | null): boolean {
+export function isMicroBusinessLoanLabel(label?: string | null): boolean {
     return (label ?? '').trim().toUpperCase() === MICRO_BUSINESS_LOAN_LABEL;
 }
 

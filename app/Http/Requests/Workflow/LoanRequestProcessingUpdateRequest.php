@@ -8,6 +8,7 @@ use App\LoanPaydayOption;
 use App\Models\AppUser;
 use App\Models\LoanRequestChange;
 use App\Models\MemberDependentProfile;
+use App\Models\Wlntype;
 use App\Rules\ValidPostalCode;
 use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
@@ -17,6 +18,7 @@ use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
@@ -152,6 +154,29 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
     }
 
     /**
+     * Checks the effective typecode (submitted, falling back to the loan
+     * request's current typecode when it isn't being changed in this
+     * request) against wlntype's "Micro Business Loan" row by label --
+     * there is no fixed typecode for it like Other Loan's. Mirrors
+     * LoanRequestStoreRequest::isMicroBusinessLoanType().
+     */
+    private function isMicroBusinessLoanType(): bool
+    {
+        $typecode = $this->input('loan_request.typecode', $this->loanRequest?->typecode);
+
+        if ($typecode === null
+            || ! Schema::hasTable('wlntype')
+            || ! Schema::hasColumn('wlntype', 'typecode')
+        ) {
+            return false;
+        }
+
+        $label = Wlntype::query()->where('typecode', $typecode)->value('lntype');
+
+        return $label !== null && strtoupper(trim((string) $label)) === 'MICRO BUSINESS LOAN';
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -164,8 +189,12 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
                     && LoanRequestChange::hasProcessingUpdate($this->loanRequest)),
                 'nullable', 'string', 'max:1000',
             ],
-            'loan_request' => ['sometimes', 'array:typecode,requested_amount,requested_term,loan_purpose,other_loan_type_name,availment_status'],
+            'loan_request' => ['sometimes', 'array:typecode,kind_of_loan,requested_amount,requested_term,loan_purpose,other_loan_type_name,availment_status'],
             'loan_request.typecode' => ['sometimes', 'string', 'max:255'],
+            'loan_request.kind_of_loan' => [
+                Rule::requiredIf(fn (): bool => $this->isMicroBusinessLoanType()),
+                'nullable', 'string', Rule::in(['Regular', 'Emergency']),
+            ],
             'loan_request.requested_amount' => ['sometimes', 'numeric', 'min:1'],
             'loan_request.requested_term' => ['sometimes', 'integer', 'min:1', 'max:360'],
             'loan_request.loan_purpose' => ['sometimes', 'string', 'max:255'],

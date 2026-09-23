@@ -1379,6 +1379,7 @@ class LoanRequestProcessingService
 
         return [
             'typecode' => $payload['typecode'] ?? null,
+            'kind_of_loan' => $payload['kind_of_loan'] ?? null,
             'requested_amount' => $payload['requested_amount'] ?? null,
             'requested_term' => $payload['requested_term'] ?? null,
             'loan_purpose' => $payload['loan_purpose'] ?? null,
@@ -1410,6 +1411,7 @@ class LoanRequestProcessingService
             'workflow_version' => $this->workflowVersionValue($loanRequest),
             'loan_request' => [
                 'typecode' => $loanRequest->typecode,
+                'kind_of_loan' => $loanRequest->kind_of_loan,
                 'requested_amount' => $loanRequest->requested_amount,
                 'requested_term' => $loanRequest->requested_term,
                 'loan_purpose' => $loanRequest->loan_purpose,

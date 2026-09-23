@@ -641,6 +641,7 @@ export type LoanRequestFormData = {
 export type LoanRequestCorrectionPayload = Pick<
     LoanRequestFormData,
     | 'typecode'
+    | 'kind_of_loan'
     | 'requested_amount'
     | 'requested_term'
     | 'loan_purpose'
