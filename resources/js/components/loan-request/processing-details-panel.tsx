@@ -1,4 +1,4 @@
-import { FileText, Info } from 'lucide-react';
+import { FileText, Info, Wrench } from 'lucide-react';
 import {
     useCallback,
     useEffect,
@@ -86,6 +86,8 @@ const INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE = 'unset';
 
 const actionCardClassName =
     'border-primary/25 bg-card/80 shadow-sm ring-1 ring-primary/10';
+const fixDetailsButtonClassName =
+    'transition-all duration-150 ease-out active:scale-90 active:duration-75 hover:-translate-y-0.5 hover:shadow-md [&_svg]:transition-transform [&_svg]:duration-150 active:[&_svg]:rotate-12';
 const readOnlyProcessingFieldClassName =
     'bg-muted/30 text-muted-foreground/80 border-border/40';
 
@@ -1507,16 +1509,18 @@ export function ProcessingDetailsPanel({
                         type="button"
                         variant="outline"
                         size="sm"
+                        className={fixDetailsButtonClassName}
                         onClick={() => setIsEditing(true)}
                     >
-                        Edit
+                        <Wrench />
+                        Fix details
                     </Button>
                 )}
             </CardHeader>
             <CardContent>
                 {canUpdateProcessing && isEditing ? (
                     <form
-                        className="space-y-4"
+                        className="animate-in space-y-4 duration-200 fade-in slide-in-from-top-2"
                         onSubmit={submitProcessingDetails}
                     >
                         <FormErrorSummary
@@ -2508,7 +2512,7 @@ export function ProcessingDetailsPanel({
                         </div>
                     </form>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="animate-in space-y-4 duration-200 fade-in slide-in-from-top-2">
                         <div className="grid gap-4 sm:grid-cols-2">
                             <SnapshotRow
                                 label="Recommended amount"
