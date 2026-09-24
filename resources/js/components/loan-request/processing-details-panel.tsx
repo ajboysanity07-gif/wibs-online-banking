@@ -1,4 +1,4 @@
-import { FileText, Info, Wrench } from 'lucide-react';
+import { FileText, Info, Pencil } from 'lucide-react';
 import {
     useCallback,
     useEffect,
@@ -86,7 +86,7 @@ const INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE = 'unset';
 
 const actionCardClassName =
     'border-primary/25 bg-card/80 shadow-sm ring-1 ring-primary/10';
-const fixDetailsButtonClassName =
+const sectionEditButtonClassName =
     'transition-all duration-150 ease-out active:scale-90 active:duration-75 hover:-translate-y-0.5 hover:shadow-md [&_svg]:transition-transform [&_svg]:duration-150 active:[&_svg]:rotate-12';
 const readOnlyProcessingFieldClassName =
     'bg-muted/30 text-muted-foreground/80 border-border/40';
@@ -1509,11 +1509,11 @@ export function ProcessingDetailsPanel({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className={fixDetailsButtonClassName}
+                        className={sectionEditButtonClassName}
                         onClick={() => setIsEditing(true)}
                     >
-                        <Wrench />
-                        Fix details
+                        <Pencil />
+                        Edit
                     </Button>
                 )}
             </CardHeader>

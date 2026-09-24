@@ -1,5 +1,5 @@
 ﻿import { Head, router, usePage } from '@inertiajs/react';
-import { Bell, CheckCircle2, Clock, HeartPulse, Wrench } from 'lucide-react';
+import { Bell, CheckCircle2, Clock, HeartPulse, Pencil } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
@@ -144,7 +144,7 @@ type Props = {
 
 const readOnlyCardClassName = 'border-border/20 bg-card/40 shadow-sm';
 
-const fixDetailsButtonClassName =
+const sectionEditButtonClassName =
     'transition-all duration-150 ease-out active:scale-90 active:duration-75 hover:-translate-y-0.5 hover:shadow-md [&_svg]:transition-transform [&_svg]:duration-150 active:[&_svg]:rotate-12';
 
 const emptyPerson: LoanRequestPersonFormData = {
@@ -1629,7 +1629,7 @@ export default function StaffLoanRequestShow({
                                                 variant="outline"
                                                 size="sm"
                                                 className={
-                                                    fixDetailsButtonClassName
+                                                    sectionEditButtonClassName
                                                 }
                                                 disabled={isWorkflowProcessing}
                                                 onClick={() =>
@@ -1638,8 +1638,8 @@ export default function StaffLoanRequestShow({
                                                     )
                                                 }
                                             >
-                                                <Wrench />
-                                                Fix details
+                                                <Pencil />
+                                                Edit
                                             </Button>
                                         ) : undefined
                                     }
@@ -1721,15 +1721,15 @@ export default function StaffLoanRequestShow({
                                                 variant="outline"
                                                 size="sm"
                                                 className={
-                                                    fixDetailsButtonClassName
+                                                    sectionEditButtonClassName
                                                 }
                                                 disabled={isWorkflowProcessing}
                                                 onClick={() =>
                                                     openSectionEdit('applicant')
                                                 }
                                             >
-                                                <Wrench />
-                                                Fix details
+                                                <Pencil />
+                                                Edit
                                             </Button>
                                         ) : undefined
                                     }
@@ -1841,7 +1841,7 @@ export default function StaffLoanRequestShow({
                                                 variant="outline"
                                                 size="sm"
                                                 className={
-                                                    fixDetailsButtonClassName
+                                                    sectionEditButtonClassName
                                                 }
                                                 disabled={isWorkflowProcessing}
                                                 onClick={() =>
@@ -1850,8 +1850,8 @@ export default function StaffLoanRequestShow({
                                                     )
                                                 }
                                             >
-                                                <Wrench />
-                                                Fix details
+                                                <Pencil />
+                                                Edit
                                             </Button>
                                         ) : undefined
                                     }
@@ -1862,7 +1862,7 @@ export default function StaffLoanRequestShow({
                                                 variant="outline"
                                                 size="sm"
                                                 className={
-                                                    fixDetailsButtonClassName
+                                                    sectionEditButtonClassName
                                                 }
                                                 disabled={isWorkflowProcessing}
                                                 onClick={() =>
@@ -1871,8 +1871,8 @@ export default function StaffLoanRequestShow({
                                                     )
                                                 }
                                             >
-                                                <Wrench />
-                                                Fix details
+                                                <Pencil />
+                                                Edit
                                             </Button>
                                         ) : undefined
                                     }
