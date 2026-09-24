@@ -295,8 +295,8 @@ export function LoanRequestPersonalFields({
         <div className="space-y-7">
             {hasReadOnlyFields ? (
                 <div className="rounded-lg border border-border/40 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-                    Verified profile fields are locked. Update your profile if
-                    you need changes.
+                    Verified profile fields are locked. To change this, visit
+                    the office.
                 </div>
             ) : null}
             {section === 'all' || section === 'basic' ? (

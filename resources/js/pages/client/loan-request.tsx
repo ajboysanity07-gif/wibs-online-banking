@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
@@ -10,6 +10,7 @@ import {
     getGlapiItemGroups,
     GLAPI_GROUPS_PER_STEP,
     GLAPI_VIRTUAL_ITEMS,
+    LoanRequestApplicantConfirmStep,
     LoanRequestApplicantPersonalStep,
     LoanRequestApplicantWorkStep,
     LoanRequestCoMakerStep,
@@ -24,9 +25,23 @@ import {
 import { LoanRequestSummaryPanel } from '@/components/loan-request/loan-request-summary-panel';
 import { LoanRequestWizardActions } from '@/components/loan-request/loan-request-wizard-footer';
 import { LoanRequestWizardShell } from '@/components/loan-request/loan-request-wizard-shell';
-import { loanRequestWizardSteps as steps } from '@/components/loan-request/loan-request-wizard-steps';
+import {
+    buildStepIndex,
+    getVisibleWizardSteps,
+} from '@/components/loan-request/loan-request-wizard-steps';
 import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { focusField } from '@/components/ui/form-error-summary';
@@ -55,10 +70,6 @@ import type {
 
 const loanRequestsIndexHref = loanRequestsIndex().url;
 
-const STEP_INDEX: Record<string, number> = Object.fromEntries(
-    steps.map((step, index) => [step.id, index]),
-);
-
 /**
  * No wizard steps are currently skipped -- the insurance/health questionnaire
  * is always required regardless of requested term (a loan processor may
@@ -84,6 +95,8 @@ type Props = {
     bankingPrefilledFromProfile: boolean;
     dependentsPrefilledFromProfile: boolean;
     healthPrefilledFromProfile: boolean;
+    applicantPrefilledFromProfile: boolean;
+    applicantWorkIncomePrefilledFromProfile: boolean;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -269,14 +282,25 @@ const toPersonForm = (
     };
 };
 
-// The GLAPI questionnaire's first sub-step (chunk 0) renders inside the
-// 'health' wizard step itself; the remaining chunks occupy the step indices
-// immediately after it.
-const GLAPI_STEP_START = STEP_INDEX['health'];
+type ApplicantConfirmSectionKey = 'basic' | 'contact' | 'family' | 'income';
+
+// Classifies an `applicant.*` field into the confirm-step section it belongs
+// to, shared between error-to-step routing and the auto-unlock-on-error
+// logic (a validation error on a hidden/locked field must both navigate to
+// its step AND unlock that section so the field is actually visible).
+const classifyApplicantField = (field: string): ApplicantConfirmSectionKey => {
+    if (applicantBasicFields.has(field)) return 'basic';
+    if (applicantContactFields.has(field)) return 'contact';
+    if (applicantFamilyFields.has(field)) return 'family';
+    if (applicantEmploymentFields.has(field)) return 'income';
+    if (personWorkFields.has(field)) return 'income';
+    return 'basic';
+};
 
 const resolveStepForErrorKey = (
     key: string,
     glapiItemNumberToStepOffset: Record<string, number>,
+    stepIndex: Record<string, number>,
 ): number | null => {
     if (
         key === 'typecode' ||
@@ -286,87 +310,94 @@ const resolveStepForErrorKey = (
         key === 'other_loan_type_name' ||
         key === 'availment_status'
     ) {
-        return STEP_INDEX['loan-details'];
+        return stepIndex['loan-details'];
     }
 
     if (key.startsWith('applicant.')) {
         const field = key.replace('applicant.', '');
-        return applicantBasicFields.has(field)
-            ? STEP_INDEX['personal-basic']
-            : applicantContactFields.has(field)
-              ? STEP_INDEX['personal-contact']
-              : applicantFamilyFields.has(field)
-                ? STEP_INDEX['personal-family']
-                : applicantEmploymentFields.has(field)
-                  ? STEP_INDEX['work-employment']
-                  : personWorkFields.has(field)
-                    ? STEP_INDEX['work-income']
-                    : STEP_INDEX['personal-basic'];
+        const section = classifyApplicantField(field);
+        const stepId =
+            section === 'basic'
+                ? 'personal-basic'
+                : section === 'contact'
+                  ? 'personal-contact'
+                  : section === 'family'
+                    ? 'personal-family'
+                    : applicantEmploymentFields.has(field)
+                      ? 'work-employment'
+                      : 'work-income';
+
+        // personal-contact/personal-family are absent from stepIndex when
+        // collapsed into the "Confirm your details" step -- fall back to
+        // personal-basic, which is where that step now lives.
+        return stepIndex[stepId] ?? stepIndex['personal-basic'];
     }
 
     if (key.startsWith('co_maker_1.')) {
         const field = key.replace('co_maker_1.', '');
         return applicantBasicFields.has(field)
-            ? STEP_INDEX['co-maker-1-basic']
+            ? stepIndex['co-maker-1-basic']
             : applicantContactFields.has(field) ||
                 field === 'educational_attainment'
-              ? STEP_INDEX['co-maker-1-contact']
+              ? stepIndex['co-maker-1-contact']
               : applicantEmploymentFields.has(field)
-                ? STEP_INDEX['co-maker-1-employment']
+                ? stepIndex['co-maker-1-employment']
                 : personWorkFields.has(field)
-                  ? STEP_INDEX['co-maker-1-income']
-                  : STEP_INDEX['co-maker-1-basic'];
+                  ? stepIndex['co-maker-1-income']
+                  : stepIndex['co-maker-1-basic'];
     }
 
     if (key.startsWith('co_maker_2.')) {
         const field = key.replace('co_maker_2.', '');
         return applicantBasicFields.has(field)
-            ? STEP_INDEX['co-maker-2-basic']
+            ? stepIndex['co-maker-2-basic']
             : applicantContactFields.has(field) ||
                 field === 'educational_attainment'
-              ? STEP_INDEX['co-maker-2-contact']
+              ? stepIndex['co-maker-2-contact']
               : applicantEmploymentFields.has(field)
-                ? STEP_INDEX['co-maker-2-employment']
+                ? stepIndex['co-maker-2-employment']
                 : personWorkFields.has(field)
-                  ? STEP_INDEX['co-maker-2-income']
-                  : STEP_INDEX['co-maker-2-basic'];
+                  ? stepIndex['co-maker-2-income']
+                  : stepIndex['co-maker-2-basic'];
     }
 
     if (key.startsWith('insurance.') || key === 'document_data') {
-        return STEP_INDEX['dependents'];
+        return stepIndex['dependents'];
     }
 
     if (key.startsWith('health.')) {
         const field = key.replace('health.', '');
         const chunkIndex = glapiItemNumberToStepOffset[field];
+        const glapiStepStart = stepIndex['health'];
 
         return chunkIndex !== undefined
-            ? GLAPI_STEP_START + chunkIndex
-            : STEP_INDEX['health'];
+            ? glapiStepStart + chunkIndex
+            : stepIndex['health'];
     }
 
     if (key.startsWith('health_glapi.')) {
         const field = key.replace('health_glapi.', '');
         const itemNumber = parseGlapiItem(field)?.number ?? field;
         const chunkIndex = glapiItemNumberToStepOffset[itemNumber];
+        const glapiStepStart = stepIndex['health'];
 
-        return GLAPI_STEP_START + (chunkIndex ?? 0);
+        return glapiStepStart + (chunkIndex ?? 0);
     }
 
     if (key.startsWith('banking.')) {
-        return STEP_INDEX['banking'];
+        return stepIndex['banking'];
     }
 
     if (key.startsWith('declarations.')) {
-        return STEP_INDEX['declarations'];
+        return stepIndex['declarations'];
     }
 
     if (key.startsWith('dependents.')) {
-        return STEP_INDEX['dependents'];
+        return stepIndex['dependents'];
     }
 
     if (key === 'undertaking_accepted') {
-        return STEP_INDEX['review'];
+        return stepIndex['review'];
     }
 
     return null;
@@ -375,10 +406,13 @@ const resolveStepForErrorKey = (
 const resolveStepFromErrors = (
     errors: Record<string, string | undefined>,
     glapiItemNumberToStepOffset: Record<string, number>,
+    stepIndex: Record<string, number>,
 ): number | null => {
     const stepMatches = Object.keys(errors)
         .filter((key) => Boolean(errors[key]))
-        .map((key) => resolveStepForErrorKey(key, glapiItemNumberToStepOffset))
+        .map((key) =>
+            resolveStepForErrorKey(key, glapiItemNumberToStepOffset, stepIndex),
+        )
         .filter((step): step is number => step !== null);
 
     return stepMatches.length > 0 ? Math.min(...stepMatches) : null;
@@ -400,7 +434,19 @@ export default function LoanRequestPage({
     bankingPrefilledFromProfile,
     dependentsPrefilledFromProfile,
     healthPrefilledFromProfile,
+    applicantPrefilledFromProfile,
+    applicantWorkIncomePrefilledFromProfile,
 }: Props) {
+    const steps = useMemo(
+        () => getVisibleWizardSteps(applicantPrefilledFromProfile),
+        [applicantPrefilledFromProfile],
+    );
+    const STEP_INDEX = useMemo(() => buildStepIndex(steps), [steps]);
+    // The GLAPI questionnaire's first sub-step (chunk 0) renders inside the
+    // 'health' wizard step itself; the remaining chunks occupy the step
+    // indices immediately after it.
+    const GLAPI_STEP_START = STEP_INDEX['health'];
+
     const [currentStep, setCurrentStep] = useState(initialStep);
     const [highestStepReached, setHighestStepReached] = useState(initialStep);
     const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>(
@@ -415,6 +461,13 @@ export default function LoanRequestPage({
     const [healthAnswersConfirmed, setHealthAnswersConfirmed] = useState(
         !healthPrefilledFromProfile,
     );
+    const [applicantPersonalConfirmed, setApplicantPersonalConfirmed] =
+        useState(!applicantPrefilledFromProfile);
+    const [applicantWorkIncomeConfirmed, setApplicantWorkIncomeConfirmed] =
+        useState(!applicantWorkIncomePrefilledFromProfile);
+    const [forceUnlockedApplicantSections, setForceUnlockedApplicantSections] =
+        useState<Set<'basic' | 'contact' | 'family'>>(() => new Set());
+    const [forceUnlockIncome, setForceUnlockIncome] = useState(false);
     const [activeAction, setActiveAction] = useState<'draft' | 'submit' | null>(
         null,
     );
@@ -531,6 +584,16 @@ export default function LoanRequestPage({
         return healthAnswersConfirmed;
     }, [healthPrefilledFromProfile, healthAnswersConfirmed]);
 
+    const isApplicantPersonalComplete = useMemo(() => {
+        if (!applicantPrefilledFromProfile) return true;
+        return applicantPersonalConfirmed;
+    }, [applicantPrefilledFromProfile, applicantPersonalConfirmed]);
+
+    const isApplicantWorkIncomeComplete = useMemo(() => {
+        if (!applicantWorkIncomePrefilledFromProfile) return true;
+        return applicantWorkIncomeConfirmed;
+    }, [applicantWorkIncomePrefilledFromProfile, applicantWorkIncomeConfirmed]);
+
     const isDeclarationsComplete = useMemo(() => {
         const declarations = form.data.declarations;
         return (
@@ -562,7 +625,7 @@ export default function LoanRequestPage({
         if (adjusted !== currentStep) {
             setCurrentStep(adjusted);
         }
-    }, [skippedStepIds, currentStep]);
+    }, [skippedStepIds, currentStep, steps]);
 
     const handleStepChange = (step: number) => {
         if (step === currentStep) {
@@ -579,7 +642,24 @@ export default function LoanRequestPage({
     // step's content as soon as `currentStep` changes, so a short delay
     // after navigating is enough for the field to be focusable.
     const handleErrorClick = (key: string) => {
-        const step = resolveStepForErrorKey(key, glapiItemNumberToStepOffset);
+        const step = resolveStepForErrorKey(
+            key,
+            glapiItemNumberToStepOffset,
+            STEP_INDEX,
+        );
+
+        if (key.startsWith('applicant.')) {
+            const field = key.replace('applicant.', '');
+            const section = classifyApplicantField(field);
+
+            if (section === 'income') {
+                setForceUnlockIncome(true);
+            } else {
+                setForceUnlockedApplicantSections((current) =>
+                    new Set(current).add(section),
+                );
+            }
+        }
 
         if (step === null || step === currentStep) {
             focusField(key);
@@ -803,7 +883,36 @@ export default function LoanRequestPage({
                 const step = resolveStepFromErrors(
                     errors,
                     glapiItemNumberToStepOffset,
+                    STEP_INDEX,
                 );
+
+                const basicSections = new Set<'basic' | 'contact' | 'family'>();
+                let incomeSection = false;
+
+                Object.keys(errors).forEach((key) => {
+                    if (!errors[key] || !key.startsWith('applicant.')) {
+                        return;
+                    }
+
+                    const field = key.replace('applicant.', '');
+                    const section = classifyApplicantField(field);
+
+                    if (section === 'income') {
+                        incomeSection = true;
+                    } else {
+                        basicSections.add(section);
+                    }
+                });
+
+                if (basicSections.size > 0) {
+                    setForceUnlockedApplicantSections(
+                        (current) => new Set([...current, ...basicSections]),
+                    );
+                }
+
+                if (incomeSection) {
+                    setForceUnlockIncome(true);
+                }
 
                 if (step !== null) {
                     handleStepChange(step);
@@ -822,6 +931,30 @@ export default function LoanRequestPage({
     const draftUpdatedAt = draftState?.updated_at
         ? formatDateTime(draftState.updated_at)
         : null;
+
+    const [isDiscardingDraft, setIsDiscardingDraft] = useState(false);
+
+    const handleDiscardDraft = async () => {
+        if (!draftState) {
+            return;
+        }
+
+        setIsDiscardingDraft(true);
+
+        try {
+            await client.delete(
+                LoanRequestController.discardDraft(draftState.id).url,
+            );
+            showSuccessToast('Draft discarded.');
+            router.visit(LoanRequestController.create().url, {
+                preserveState: false,
+            });
+        } catch (error) {
+            showErrorToast(error, 'Unable to discard this draft.');
+        } finally {
+            setIsDiscardingDraft(false);
+        }
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -867,17 +1000,56 @@ export default function LoanRequestPage({
                                 ) : null}
                             </div>
                         </div>
-                        <Button
-                            asChild
-                            variant="ghost"
-                            size="sm"
-                            className="gap-2 self-start"
-                        >
-                            <Link href={loanRequestsIndexHref}>
-                                <ArrowLeft className="h-4 w-4" />
-                                Back to loan requests
-                            </Link>
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-2 self-start">
+                            {draftState && draftState.status === 'draft' ? (
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-destructive hover:text-destructive"
+                                            disabled={isDiscardingDraft}
+                                        >
+                                            Discard draft
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>
+                                                Discard this draft?
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This permanently deletes your
+                                                in-progress loan request. This
+                                                cannot be undone.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>
+                                                Cancel
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction
+                                                onClick={handleDiscardDraft}
+                                                disabled={isDiscardingDraft}
+                                            >
+                                                Discard
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            ) : null}
+                            <Button
+                                asChild
+                                variant="ghost"
+                                size="sm"
+                                className="gap-2"
+                            >
+                                <Link href={loanRequestsIndexHref}>
+                                    <ArrowLeft className="h-4 w-4" />
+                                    Back to loan requests
+                                </Link>
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
@@ -918,6 +1090,14 @@ export default function LoanRequestPage({
                                             healthPrefilledFromProfile &&
                                             !healthAnswersConfirmed) ||
                                         (currentStep ===
+                                            STEP_INDEX['personal-basic'] &&
+                                            applicantPrefilledFromProfile &&
+                                            !applicantPersonalConfirmed) ||
+                                        (currentStep ===
+                                            STEP_INDEX['work-income'] &&
+                                            applicantWorkIncomePrefilledFromProfile &&
+                                            !applicantWorkIncomeConfirmed) ||
+                                        (currentStep ===
                                             STEP_INDEX['declarations'] &&
                                             (form.data.declarations
                                                 .declaration_truth_confirmation !==
@@ -929,7 +1109,9 @@ export default function LoanRequestPage({
                                             (!isBankingComplete ||
                                                 !isDependentsComplete ||
                                                 !isHealthComplete ||
-                                                !isDeclarationsComplete))
+                                                !isDeclarationsComplete ||
+                                                !isApplicantPersonalComplete ||
+                                                !isApplicantWorkIncomeComplete))
                                     }
                                 />
                             </div>
@@ -969,22 +1151,72 @@ export default function LoanRequestPage({
                                 </LoanRequestAnimatedStep>
 
                                 <LoanRequestAnimatedStep
-                                    show={currentStep === 1}
+                                    show={
+                                        currentStep ===
+                                        STEP_INDEX['personal-basic']
+                                    }
                                     direction={stepDirection}
                                 >
-                                    <LoanRequestApplicantPersonalStep
-                                        section="basic"
-                                        values={form.data.applicant}
-                                        errors={form.errors}
-                                        readOnly={applicantReadOnly}
-                                        onChange={updatePersonField(
-                                            'applicant',
-                                        )}
-                                    />
+                                    {applicantPrefilledFromProfile ? (
+                                        <div className="space-y-5">
+                                            <LoanRequestApplicantConfirmStep
+                                                values={form.data.applicant}
+                                                errors={form.errors}
+                                                readOnly={applicantReadOnly}
+                                                onChange={updatePersonField(
+                                                    'applicant',
+                                                )}
+                                                contactNumberOnFile={
+                                                    member.telephone
+                                                }
+                                                forceUnlockedKeys={
+                                                    forceUnlockedApplicantSections
+                                                }
+                                            />
+                                            <LoanRequestSectionCard
+                                                title="Confirm your details"
+                                                description="These details were pre-filled from your member profile. Please confirm they are still accurate."
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <Checkbox
+                                                        id="applicant_personal_confirmed"
+                                                        checked={
+                                                            applicantPersonalConfirmed
+                                                        }
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) =>
+                                                            setApplicantPersonalConfirmed(
+                                                                checked ===
+                                                                    true,
+                                                            )
+                                                        }
+                                                    />
+                                                    <Label htmlFor="applicant_personal_confirmed">
+                                                        These details are still
+                                                        correct
+                                                    </Label>
+                                                </div>
+                                            </LoanRequestSectionCard>
+                                        </div>
+                                    ) : (
+                                        <LoanRequestApplicantPersonalStep
+                                            section="basic"
+                                            values={form.data.applicant}
+                                            errors={form.errors}
+                                            readOnly={applicantReadOnly}
+                                            onChange={updatePersonField(
+                                                'applicant',
+                                            )}
+                                        />
+                                    )}
                                 </LoanRequestAnimatedStep>
 
                                 <LoanRequestAnimatedStep
-                                    show={currentStep === 2}
+                                    show={
+                                        currentStep ===
+                                        STEP_INDEX['personal-contact']
+                                    }
                                     direction={stepDirection}
                                 >
                                     <LoanRequestApplicantPersonalStep
@@ -1000,7 +1232,10 @@ export default function LoanRequestPage({
                                 </LoanRequestAnimatedStep>
 
                                 <LoanRequestAnimatedStep
-                                    show={currentStep === 3}
+                                    show={
+                                        currentStep ===
+                                        STEP_INDEX['personal-family']
+                                    }
                                     direction={stepDirection}
                                 >
                                     <LoanRequestApplicantPersonalStep
@@ -1103,14 +1338,49 @@ export default function LoanRequestPage({
                                     }
                                     direction={stepDirection}
                                 >
-                                    <LoanRequestApplicantWorkStep
-                                        section="income"
-                                        values={form.data.applicant}
-                                        errors={form.errors}
-                                        onChange={updatePersonField(
-                                            'applicant',
-                                        )}
-                                    />
+                                    <div className="space-y-5">
+                                        <LoanRequestApplicantWorkStep
+                                            section="income"
+                                            values={form.data.applicant}
+                                            errors={form.errors}
+                                            onChange={updatePersonField(
+                                                'applicant',
+                                            )}
+                                            hasExistingIncomeData={
+                                                applicantWorkIncomePrefilledFromProfile
+                                            }
+                                            forceUnlock={forceUnlockIncome}
+                                        />
+
+                                        {applicantWorkIncomePrefilledFromProfile ? (
+                                            <LoanRequestSectionCard
+                                                title="Confirm income details"
+                                                description="These details were pre-filled from a previous loan request. Please confirm they are still accurate."
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <Checkbox
+                                                        id="applicant_work_income_confirmed"
+                                                        checked={
+                                                            applicantWorkIncomeConfirmed
+                                                        }
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) =>
+                                                            setApplicantWorkIncomeConfirmed(
+                                                                checked ===
+                                                                    true,
+                                                            )
+                                                        }
+                                                    />
+                                                    <Label htmlFor="applicant_work_income_confirmed">
+                                                        Confirm these income
+                                                        details are still
+                                                        correct
+                                                    </Label>
+                                                </div>
+                                            </LoanRequestSectionCard>
+                                        ) : null}
+                                    </div>
                                 </LoanRequestAnimatedStep>
 
                                 <LoanRequestAnimatedStep

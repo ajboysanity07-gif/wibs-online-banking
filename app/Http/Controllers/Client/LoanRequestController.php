@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Client\DiscardDraftLoanRequestRequest;
 use App\Http\Requests\Client\LoanRequestCancelRequest;
 use App\Http\Requests\Client\LoanRequestDraftRequest;
 use App\Http\Requests\Client\LoanRequestResolveActionRequest;
@@ -248,6 +249,36 @@ class LoanRequestController extends Controller
                 'auditTrail' => $serializer->serializeMemberAuditTrail($updated),
             ],
         ]);
+    }
+
+    public function discardDraft(
+        DiscardDraftLoanRequestRequest $request,
+        int $loanRequest,
+        LoanRequestService $service,
+    ): JsonResponse|RedirectResponse {
+        $user = $request->user();
+
+        if (! $user instanceof AppUser) {
+            return redirect()->route('login');
+        }
+
+        $loanRequestRecord = $this->findLoanRequestForUser(
+            $user,
+            $loanRequest,
+            'discard-draft',
+        );
+
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        if (! $this->isEditableStatus($loanRequestRecord)) {
+            abort(422, 'Only draft loan requests can be discarded.');
+        }
+
+        $service->discardDraft($loanRequestRecord);
+
+        return response()->json(['ok' => true, 'data' => null]);
     }
 
     public function resolveAction(

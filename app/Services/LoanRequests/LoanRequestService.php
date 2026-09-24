@@ -171,6 +171,8 @@ class LoanRequestService
         );
 
         $healthPrefilledFromProfile = $healthPrefilledFromHealth || $healthPrefilledFromGlapi;
+        $applicantPrefilledFromProfile = $this->isApplicantPersonalPrefilledFromProfile($applicantReadOnly);
+        $applicantWorkIncomePrefilledFromProfile = $this->isApplicantWorkIncomePrefilledFromProfile($applicant);
 
         return [
             'loanTypes' => $this->getLoanTypes()->values()->all(),
@@ -195,6 +197,8 @@ class LoanRequestService
             'insurancePrefilledFromProfile' => $insurancePrefilledFromProfile,
             'dependentsPrefilledFromProfile' => $dependentsPrefilledFromProfile,
             'healthPrefilledFromProfile' => $healthPrefilledFromProfile,
+            'applicantPrefilledFromProfile' => $applicantPrefilledFromProfile,
+            'applicantWorkIncomePrefilledFromProfile' => $applicantWorkIncomePrefilledFromProfile,
         ];
     }
 
@@ -1054,6 +1058,35 @@ class LoanRequestService
             ->orderByDesc('updated_at')
             ->orderByDesc('created_at')
             ->first();
+    }
+
+    /**
+     * Strict Draft-only lookup for a member's resumable draft -- deliberately
+     * narrower than getActiveEditableRequest(), which also resumes
+     * submitted/under-review statuses into the wizard. Used by the dashboard
+     * "Continue your application" card and the discard-draft/purge flows,
+     * which must never touch a request that's already left Draft.
+     */
+    public function findDraftForResume(AppUser $user): ?LoanRequest
+    {
+        return LoanRequest::query()
+            ->where('user_id', $user->user_id)
+            ->where('status', LoanRequestStatus::Draft->value)
+            ->orderByDesc('updated_at')
+            ->first();
+    }
+
+    /**
+     * Hard-deletes a draft loan request and its people/data-entry rows. Only
+     * ever called for LoanRequestStatus::Draft records (enforced by
+     * callers) -- no LoanRequestChange audit entry is created (drafts never
+     * get audit entries) and MemberApplicationProfile is never touched.
+     */
+    public function discardDraft(LoanRequest $loanRequest): void
+    {
+        $loanRequest->people()->delete();
+        $loanRequest->dataEntries()->delete();
+        $loanRequest->delete();
     }
 
     private function initializeLoanRequest(AppUser $user): LoanRequest
@@ -2143,6 +2176,50 @@ class LoanRequestService
                 && $this->hasValue($wmaster?->dependent),
             'spouse_name' => $this->hasValue($wmaster?->spouse),
         ];
+    }
+
+    /**
+     * Whether the applicant's basic/contact/family details are complete
+     * enough on file to show the "Confirm your details" review-and-confirm
+     * step instead of the full personal-basic/contact/family forms. Based on
+     * the core fields wmaster already verifies via buildApplicantReadOnlyMap()
+     * -- deliberately excludes optional spouse fields so single members with
+     * a complete profile still get the confirm step.
+     *
+     * @param  array<string, bool>  $applicantReadOnly
+     */
+    private function isApplicantPersonalPrefilledFromProfile(array $applicantReadOnly): bool
+    {
+        $requiredKeys = [
+            'first_name',
+            'last_name',
+            'birthdate',
+            'address1',
+            'civil_status',
+        ];
+
+        foreach ($requiredKeys as $key) {
+            if (($applicantReadOnly[$key] ?? false) !== true) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether the applicant's work-income fields already carry values (from
+     * a prior loan request synced into MemberApplicationProfile). Unlike
+     * personal details, income has no wmaster-backed read-only source -- it
+     * must always be reconfirmed by the member, just shown as a summary
+     * instead of a blank form when it's already on file.
+     *
+     * @param  array<string, mixed>  $applicant
+     */
+    private function isApplicantWorkIncomePrefilledFromProfile(array $applicant): bool
+    {
+        return $this->normalizeOptionalString($applicant['gross_monthly_income'] ?? null) !== null
+            && $this->normalizeOptionalString($applicant['current_position'] ?? null) !== null;
     }
 
     private function resolveMemberName(AppUser $user): string

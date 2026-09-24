@@ -19,3 +19,7 @@ Schedule::command('loan-workflow:cleanup-temp-files')
 Schedule::command('loan-requests:archive')
     ->monthly()
     ->withoutOverlapping();
+
+Schedule::command('loan-requests:purge-stale-drafts')
+    ->daily()
+    ->withoutOverlapping();

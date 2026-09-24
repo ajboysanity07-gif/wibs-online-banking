@@ -512,6 +512,16 @@ export function LoanRequestApplicantPersonalStep({
 
 type ApplicantWorkStepProps = Omit<PersonStepProps, 'readOnly'> & {
     section: 'employment' | 'income';
+    /**
+     * True when income values are already on file from a prior loan request
+     * (LoanRequestService::applicantWorkIncomePrefilledFromProfile). Unlike
+     * personal details there's no per-field wmaster-backed lock for income --
+     * it renders as a single locked summary + Edit, always reconfirmed.
+     */
+    hasExistingIncomeData?: boolean;
+    /** Force-unlocks the income summary, e.g. when a validation error lands
+     * on a now-hidden income field after a submit attempt. */
+    forceUnlock?: boolean;
 };
 
 const WORK_STEP_DESCS: Record<ApplicantWorkStepProps['section'], string> = {
@@ -524,7 +534,59 @@ export function LoanRequestApplicantWorkStep({
     errors,
     onChange,
     section,
+    hasExistingIncomeData = false,
+    forceUnlock = false,
 }: ApplicantWorkStepProps) {
+    const [unlocked, setUnlocked] = useState(false);
+    const effectivelyUnlocked = unlocked || forceUnlock;
+
+    const showLockedSummary =
+        section === 'income' && hasExistingIncomeData && !effectivelyUnlocked;
+
+    if (showLockedSummary) {
+        const incomeSummary: SummaryItem[] = [
+            {
+                label: 'Employment type',
+                value: displayValue(values.employment_type),
+            },
+            {
+                label: 'Current position',
+                value: displayText(values.current_position),
+            },
+            {
+                label: 'Nature of business',
+                value: displayText(values.nature_of_business),
+            },
+            {
+                label: 'Gross monthly income',
+                value: displayValue(values.gross_monthly_income),
+            },
+            { label: 'Payday', value: displayValue(values.payday) },
+        ];
+
+        return (
+            <LoanRequestSectionCard
+                title="My work & finances"
+                description="Confirm your income details are still accurate."
+                errors={errors}
+            >
+                <Card className="gap-2 py-3">
+                    <CardContent className="space-y-3 px-4">
+                        <SummaryGrid items={incomeSummary} />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setUnlocked(true)}
+                        >
+                            Edit
+                        </Button>
+                    </CardContent>
+                </Card>
+            </LoanRequestSectionCard>
+        );
+    }
+
     return (
         <LoanRequestSectionCard
             title="My work & finances"
@@ -538,6 +600,11 @@ export function LoanRequestApplicantWorkStep({
                 section={section}
                 onChange={onChange}
             />
+            {section === 'income' && hasExistingIncomeData ? (
+                <p className="text-xs text-muted-foreground">
+                    Changes will also update your profile when you submit.
+                </p>
+            ) : null}
             {section === 'income' ? (
                 <>
                     <Separator className="bg-border/40" />
@@ -550,6 +617,163 @@ export function LoanRequestApplicantWorkStep({
                     </Alert>
                 </>
             ) : null}
+        </LoanRequestSectionCard>
+    );
+}
+
+type ApplicantConfirmSection = 'basic' | 'contact' | 'family';
+
+type ApplicantConfirmStepProps = {
+    values: LoanRequestPersonFormData;
+    errors: Record<string, string | undefined>;
+    readOnly?: LoanRequestReadOnlyMap | null;
+    onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
+    contactNumberOnFile?: string | null;
+    /** Section keys to force-unlock, e.g. because a validation error landed
+     * on one of that section's now-hidden fields after a submit attempt. */
+    forceUnlockedKeys?: Set<ApplicantConfirmSection>;
+};
+
+const CONFIRM_SECTION_LABELS: Record<ApplicantConfirmSection, string> = {
+    basic: 'Basic info',
+    contact: 'Address & contact',
+    family: 'Family & background',
+};
+
+function buildConfirmSectionSummary(
+    section: ApplicantConfirmSection,
+    values: LoanRequestPersonFormData,
+): SummaryItem[] {
+    if (section === 'basic') {
+        return [
+            { label: 'Full name', value: displayName(values) },
+            { label: 'Birthdate', value: displayValue(values.birthdate) },
+            { label: 'Sex', value: displayValue(values.sex) },
+            {
+                label: 'Birthplace',
+                value: displayText(resolveBirthplace(values)),
+            },
+        ];
+    }
+
+    if (section === 'contact') {
+        return [
+            { label: 'Address', value: displayText(resolveAddress(values)) },
+            { label: 'Cell no.', value: displayValue(values.cell_no) },
+            {
+                label: 'Housing status',
+                value: displayValue(values.housing_status),
+            },
+        ];
+    }
+
+    const items: SummaryItem[] = [
+        { label: 'Civil status', value: displayValue(values.civil_status) },
+        {
+            label: 'Educational attainment',
+            value: displayText(values.educational_attainment),
+        },
+    ];
+
+    if (values.civil_status === 'Married') {
+        items.push({
+            label: 'Spouse name',
+            value: displayText(values.spouse_name),
+        });
+    }
+
+    return items;
+}
+
+/**
+ * "Confirm your details" step for returning members whose basic/contact/
+ * family info is already complete on file (see
+ * LoanRequestService::isApplicantPersonalPrefilledFromProfile). Mirrors
+ * LoanRequestDependentsStep's locked-summary + per-section Edit pattern:
+ * each of the three sub-sections locks independently, and fields already
+ * verified against wmaster (readOnly) stay locked even once a section is
+ * unlocked for editing (see LoanRequestPersonalFields's readOnly rendering).
+ */
+export function LoanRequestApplicantConfirmStep({
+    values,
+    errors,
+    readOnly,
+    onChange,
+    contactNumberOnFile = null,
+    forceUnlockedKeys,
+}: ApplicantConfirmStepProps) {
+    const [unlockedKeys, setUnlockedKeys] = useState<
+        Set<ApplicantConfirmSection>
+    >(() => new Set());
+    const unlock = (key: ApplicantConfirmSection) =>
+        setUnlockedKeys((current) => new Set(current).add(key));
+
+    const effectiveUnlockedKeys = new Set([
+        ...unlockedKeys,
+        ...(forceUnlockedKeys ?? []),
+    ]);
+
+    const sections: ApplicantConfirmSection[] = ['basic', 'contact', 'family'];
+
+    return (
+        <LoanRequestSectionCard
+            title="Confirm your details"
+            description="Review the personal details we already have on file. If anything has changed, edit that section."
+            contentClassName="space-y-6"
+            errors={errors}
+        >
+            {sections.map((section) => {
+                const locked = !effectiveUnlockedKeys.has(section);
+
+                if (locked) {
+                    return (
+                        <div key={section} className="space-y-3">
+                            <p className="text-sm font-semibold text-foreground">
+                                {CONFIRM_SECTION_LABELS[section]}
+                            </p>
+                            <Card className="gap-2 py-3">
+                                <CardContent className="space-y-3 px-4">
+                                    <SummaryGrid
+                                        items={buildConfirmSectionSummary(
+                                            section,
+                                            values,
+                                        )}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => unlock(section)}
+                                    >
+                                        Edit
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div key={section} className="space-y-3">
+                        <LoanRequestPersonalFields
+                            prefix="applicant"
+                            values={values}
+                            errors={errors}
+                            readOnly={readOnly}
+                            includeSpouse
+                            includeChildren
+                            includeCivilHousing
+                            section={section}
+                            onChange={onChange}
+                            contactNumberOnFile={contactNumberOnFile}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Changes will also update your profile when you
+                            submit.
+                        </p>
+                    </div>
+                );
+            })}
         </LoanRequestSectionCard>
     );
 }

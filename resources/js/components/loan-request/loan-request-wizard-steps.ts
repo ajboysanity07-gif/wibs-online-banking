@@ -172,3 +172,49 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
         sidebarLabel: 'Review & submit',
     },
 ];
+
+/**
+ * Step ids collapsed into a single "Confirm your details" step (rendered at
+ * `personal-basic`'s slot) when the applicant's basic/contact/family details
+ * are already complete on file. `personal-basic`/`personal-contact`/
+ * `personal-family` stay as distinct entries in `loanRequestWizardSteps`
+ * itself so error-key-to-step resolution keeps working off stable ids --
+ * only this filtered view (and the `STEP_INDEX` built from it) collapses
+ * them. First-time/incomplete-profile members keep all three steps.
+ */
+const APPLICANT_CONFIRM_COLLAPSED_STEP_IDS = new Set([
+    'personal-contact',
+    'personal-family',
+]);
+
+/**
+ * Returns the step list the client wizard should actually render/index,
+ * collapsing `personal-basic`/`personal-contact`/`personal-family` into one
+ * "Confirm your details" step when `applicantPrefilledFromProfile` is true.
+ */
+export function getVisibleWizardSteps(
+    applicantPrefilledFromProfile: boolean,
+): LoanRequestWizardStep[] {
+    if (!applicantPrefilledFromProfile) {
+        return loanRequestWizardSteps;
+    }
+
+    return loanRequestWizardSteps
+        .filter((step) => !APPLICANT_CONFIRM_COLLAPSED_STEP_IDS.has(step.id))
+        .map((step) =>
+            step.id === 'personal-basic'
+                ? {
+                      ...step,
+                      title: 'Confirm your details',
+                      description:
+                          'Review your basic info, address, and family details.',
+                  }
+                : step,
+        );
+}
+
+export function buildStepIndex(
+    steps: LoanRequestWizardStep[],
+): Record<string, number> {
+    return Object.fromEntries(steps.map((step, index) => [step.id, index]));
+}

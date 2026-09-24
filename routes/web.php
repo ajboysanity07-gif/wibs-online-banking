@@ -319,6 +319,10 @@ Route::patch('client/loans/requests/{loanRequest}/save-draft', [LoanRequestContr
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.save-draft');
 
+Route::delete('client/loans/requests/{loanRequest}/discard-draft', [LoanRequestController::class, 'discardDraft'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.discard-draft');
+
 Route::post(
     'client/loans/requests/{loanRequest}/correction-reports',
     [ClientLoanRequestCorrectionReportController::class, 'store'],

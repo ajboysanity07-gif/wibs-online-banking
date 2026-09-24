@@ -1,5 +1,7 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { FileClock } from 'lucide-react';
 import { useState } from 'react';
+import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { MemberLoanStatusCard } from '@/components/member/member-loan-status-card';
 import { MemberProfileDetailsCard } from '@/components/member-profile-details-card';
 import { MemberProfileHeader } from '@/components/member-profile-header';
@@ -8,11 +10,13 @@ import { PageShell } from '@/components/page-shell';
 import { SectionHeader } from '@/components/section-header';
 import { SurfaceCard } from '@/components/surface-card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MemberAccountsSummarySection } from '@/features/member-accounts/components/member-accounts-summary-section';
 import { MemberRecentAccountActionsCard } from '@/features/member-accounts/components/member-recent-account-actions-card';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatDateTime } from '@/lib/formatters';
 import {
     getMemberStatusLabel,
     getMemberStatusVariant,
@@ -55,6 +59,7 @@ type Props = {
     recentAccountActions?: MemberAccountActionsResponse | null;
     recentAccountActionsError?: string | null;
     loanSummary?: LoanStatusSummaryForMember | null;
+    activeDraft?: { id: number; updated_at: string | null } | null;
 };
 
 type PageProps = {
@@ -75,6 +80,7 @@ export default function MemberProfile({
     recentAccountActions,
     recentAccountActionsError = null,
     loanSummary,
+    activeDraft = null,
 }: Props) {
     const { auth } = usePage<PageProps>().props;
     const getInitials = useInitials();
@@ -135,24 +141,34 @@ export default function MemberProfile({
                     statusBadge={
                         <Badge
                             variant={statusVariant}
-                            className="text-[0.65rem] uppercase tracking-[0.2em]"
+                            className="text-[0.65rem] tracking-[0.2em] uppercase"
                         >
                             {statusLabel}
                         </Badge>
                     }
                     meta={
                         <>
-                            <Badge variant="outline" className="bg-background/60">
+                            <Badge
+                                variant="outline"
+                                className="bg-background/60"
+                            >
                                 Account No: {currentMember.acctno ?? '--'}
                             </Badge>
-                            <Badge variant="outline" className="bg-background/60">
+                            <Badge
+                                variant="outline"
+                                className="bg-background/60"
+                            >
                                 Username: {currentMember.username}
                             </Badge>
                         </>
                     }
                 />
 
-                <SurfaceCard variant="default" padding="lg" className="space-y-6">
+                <SurfaceCard
+                    variant="default"
+                    padding="lg"
+                    className="space-y-6"
+                >
                     <SectionHeader
                         title="Profile summary"
                         description="Key account details and access status."
@@ -216,6 +232,31 @@ export default function MemberProfile({
                         disabled: !canNavigate,
                     }}
                 />
+
+                {activeDraft ? (
+                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                        <CardHeader className="space-y-2 pb-4">
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <FileClock className="size-4 text-muted-foreground" />
+                                Continue your application
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-wrap items-center justify-between gap-3">
+                            <p className="text-sm text-muted-foreground">
+                                You have a loan request draft
+                                {activeDraft.updated_at
+                                    ? ` last saved ${formatDateTime(activeDraft.updated_at)}`
+                                    : ''}
+                                .
+                            </p>
+                            <Button asChild size="sm">
+                                <Link href={LoanRequestController.create().url}>
+                                    Resume
+                                </Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                ) : null}
 
                 {loanSummary ? (
                     <MemberLoanStatusCard loanSummary={loanSummary} />

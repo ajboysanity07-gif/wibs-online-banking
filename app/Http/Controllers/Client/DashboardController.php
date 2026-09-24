@@ -7,6 +7,7 @@ use App\Domains\MemberAccounts\Resources\MemberRecentAccountActionResource;
 use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
 use App\Services\LoanRequests\LoanDeclarationAutoFillService;
+use App\Services\LoanRequests\LoanRequestService;
 use App\Support\SchemaCapabilities;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ class DashboardController extends Controller
         MemberAccountsService $service,
         SchemaCapabilities $schemaCapabilities,
         LoanDeclarationAutoFillService $loanDeclarationAutoFillService,
+        LoanRequestService $loanRequestService,
     ): Response|RedirectResponse {
         $user = $request->user();
 
@@ -136,6 +138,8 @@ class DashboardController extends Controller
             $loanSummary = null;
         }
 
+        $draft = $loanRequestService->findDraftForResume($user);
+
         return Inertia::render('client/dashboard', [
             'member' => $memberPayload,
             'summary' => $summaryPayload,
@@ -143,6 +147,10 @@ class DashboardController extends Controller
             'recentAccountActions' => $recentAccountActionsPayload,
             'recentAccountActionsError' => $recentAccountActionsError,
             'loanSummary' => $loanSummary,
+            'activeDraft' => $draft === null ? null : [
+                'id' => $draft->id,
+                'updated_at' => $draft->updated_at?->toIso8601String(),
+            ],
         ]);
     }
 
