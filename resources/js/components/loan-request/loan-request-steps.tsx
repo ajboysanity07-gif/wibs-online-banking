@@ -640,6 +640,57 @@ const CONFIRM_SECTION_LABELS: Record<ApplicantConfirmSection, string> = {
     family: 'Family & background',
 };
 
+// Fields in each section that are potentially locked by applicantReadOnly
+// (verified against wmaster). Used to decide whether an "Edit" affordance
+// would reveal anything actually editable.
+const SECTION_READONLY_CONTROLLED_FIELDS: Record<
+    ApplicantConfirmSection,
+    string[]
+> = {
+    basic: [
+        'first_name',
+        'middle_name',
+        'last_name',
+        'birthdate',
+        'birthplace_province',
+        'birthplace_city',
+        'sex',
+    ],
+    contact: [
+        'address1',
+        'address2',
+        'address3',
+        'address_zip',
+        'address_barangay',
+        'housing_status',
+    ],
+    family: ['civil_status', 'number_of_children', 'spouse_name'],
+};
+
+// Fields in each section never covered by applicantReadOnly -- always
+// editable regardless of the section's lock state.
+const SECTION_ALWAYS_EDITABLE_FIELDS: Record<
+    ApplicantConfirmSection,
+    string[]
+> = {
+    basic: ['nickname'],
+    contact: ['cell_no', 'length_of_stay'],
+    family: ['educational_attainment', 'spouse_birthdate', 'spouse_cell_no'],
+};
+
+function sectionHasEditableField(
+    section: ApplicantConfirmSection,
+    readOnly?: LoanRequestReadOnlyMap | null,
+): boolean {
+    if (SECTION_ALWAYS_EDITABLE_FIELDS[section].length > 0) {
+        return true;
+    }
+
+    return SECTION_READONLY_CONTROLLED_FIELDS[section].some(
+        (field) => !readOnly?.[field],
+    );
+}
+
 function buildConfirmSectionSummary(
     section: ApplicantConfirmSection,
     values: LoanRequestPersonFormData,
@@ -724,6 +775,7 @@ export function LoanRequestApplicantConfirmStep({
         >
             {sections.map((section) => {
                 const locked = !effectiveUnlockedKeys.has(section);
+                const editable = sectionHasEditableField(section, readOnly);
 
                 if (locked) {
                     return (
@@ -739,14 +791,30 @@ export function LoanRequestApplicantConfirmStep({
                                             values,
                                         )}
                                     />
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => unlock(section)}
-                                    >
-                                        Edit
-                                    </Button>
+                                    {editable ? (
+                                        <>
+                                            <p className="text-xs text-muted-foreground">
+                                                Some of these details are
+                                                verified with your bank record
+                                                and can only be changed at the
+                                                office.
+                                            </p>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => unlock(section)}
+                                            >
+                                                Edit
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground">
+                                            These details are verified with your
+                                            bank record. To change them, visit
+                                            the office.
+                                        </p>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>
