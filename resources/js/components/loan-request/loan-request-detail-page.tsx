@@ -507,6 +507,7 @@ export type LoanRequestSummaryHeaderProps = {
     releaseMethod?: string;
     paymentOption?: string;
     accountNumber?: string;
+    hideLoanSummary?: boolean;
 };
 
 export const LoanRequestSummaryHeader = ({
@@ -522,6 +523,7 @@ export const LoanRequestSummaryHeader = ({
     releaseMethod,
     paymentOption,
     accountNumber,
+    hideLoanSummary = false,
 }: LoanRequestSummaryHeaderProps) => (
     <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -548,45 +550,118 @@ export const LoanRequestSummaryHeader = ({
                     evaluation.
                 </p>
             </div>
-            <div className="grid w-full gap-3 sm:max-w-md sm:grid-cols-2">
-                <SummaryStat label="Requested amount" value={amount} />
-                <SummaryStat label="Loan type" value={loanTypeLabel} />
-                <SummaryStat label="Requested term" value={requestedTerm} />
-                <SummaryStat label="Availment status" value={availmentStatus} />
-                {otherLoanTypeName ? (
+            {!hideLoanSummary ? (
+                <div className="grid w-full gap-3 sm:max-w-md sm:grid-cols-2">
+                    <SummaryStat label="Requested amount" value={amount} />
+                    <SummaryStat label="Loan type" value={loanTypeLabel} />
+                    <SummaryStat label="Requested term" value={requestedTerm} />
                     <SummaryStat
-                        label="Loan name"
-                        value={otherLoanTypeName}
-                        className="col-span-2"
+                        label="Availment status"
+                        value={availmentStatus}
                     />
-                ) : null}
-                {loanPurpose ? (
-                    <SummaryStat
-                        label="Loan purpose"
-                        value={loanPurpose}
-                        className="col-span-2"
-                    />
-                ) : null}
-                {releaseMethod ? (
-                    <SummaryStat label="Release method" value={releaseMethod} />
-                ) : null}
-                {paymentOption ? (
-                    <SummaryStat
-                        label="Repayment method"
-                        value={paymentOption}
-                    />
-                ) : null}
-                {accountNumber ? (
-                    <SummaryStat
-                        label="Account no."
-                        value={accountNumber}
-                        className="col-span-2"
-                    />
-                ) : null}
-            </div>
+                    {otherLoanTypeName ? (
+                        <SummaryStat
+                            label="Loan name"
+                            value={otherLoanTypeName}
+                            className="col-span-2"
+                        />
+                    ) : null}
+                    {loanPurpose ? (
+                        <SummaryStat
+                            label="Loan purpose"
+                            value={loanPurpose}
+                            className="col-span-2"
+                        />
+                    ) : null}
+                    {releaseMethod ? (
+                        <SummaryStat
+                            label="Release method"
+                            value={releaseMethod}
+                        />
+                    ) : null}
+                    {paymentOption ? (
+                        <SummaryStat
+                            label="Repayment method"
+                            value={paymentOption}
+                        />
+                    ) : null}
+                    {accountNumber ? (
+                        <SummaryStat
+                            label="Account no."
+                            value={accountNumber}
+                            className="col-span-2"
+                        />
+                    ) : null}
+                </div>
+            ) : null}
         </div>
     </div>
 );
+
+export type LoanRequestLoanInformationCardProps = {
+    loanRequest: LoanRequestDetail;
+    headerAction?: ReactNode;
+};
+
+export const LoanRequestLoanInformationCard = ({
+    loanRequest,
+    headerAction,
+}: LoanRequestLoanInformationCardProps) => {
+    const amount = displayCurrency(loanRequest.requested_amount);
+    const loanTypeLabel = displayText(loanRequest.loan_type_label_snapshot);
+    const requestedTerm =
+        loanRequest.requested_term !== null &&
+        loanRequest.requested_term !== undefined &&
+        `${loanRequest.requested_term}`.trim() !== ''
+            ? `${loanRequest.requested_term} months`
+            : '--';
+    const availmentStatus = displayValue(loanRequest.availment_status);
+    const loanPurpose = displayText(loanRequest.loan_purpose);
+    const otherLoanTypeName =
+        loanRequest.other_loan_type_name?.trim() || undefined;
+
+    return (
+        <Card className="border-border/30 bg-card/60 shadow-sm">
+            <CardHeader className="flex flex-row items-start justify-between gap-3">
+                <div className="space-y-1.5">
+                    <CardTitle className="flex items-center gap-2">
+                        <IdCard className="size-4 text-muted-foreground" />
+                        Loan Information
+                    </CardTitle>
+                    <CardDescription>
+                        Requested loan details from the request.
+                    </CardDescription>
+                </div>
+                {headerAction ?? null}
+            </CardHeader>
+            <CardContent>
+                <div className="grid gap-3 sm:grid-cols-2">
+                    <SummaryStat label="Requested amount" value={amount} />
+                    <SummaryStat label="Loan type" value={loanTypeLabel} />
+                    <SummaryStat label="Requested term" value={requestedTerm} />
+                    <SummaryStat
+                        label="Availment status"
+                        value={availmentStatus}
+                    />
+                    {otherLoanTypeName ? (
+                        <SummaryStat
+                            label="Loan name"
+                            value={otherLoanTypeName}
+                            className="col-span-2"
+                        />
+                    ) : null}
+                    {loanPurpose ? (
+                        <SummaryStat
+                            label="Loan purpose"
+                            value={loanPurpose}
+                            className="col-span-2"
+                        />
+                    ) : null}
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
 
 export type PersonFieldSpec = {
     label: string;
@@ -735,10 +810,12 @@ const PersonAccordionRow = ({
 
 export type LoanRequestApplicantCardProps = {
     applicant: LoanRequestPersonData | null;
+    headerAction?: ReactNode;
 };
 
 export const LoanRequestApplicantCard = ({
     applicant,
+    headerAction,
 }: LoanRequestApplicantCardProps) => {
     const curatedFields: PersonFieldSpec[] = [
         {
@@ -893,14 +970,17 @@ export const LoanRequestApplicantCard = ({
 
     return (
         <Card className="border-border/30 bg-card/60 shadow-sm">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <UserIcon className="size-4 text-muted-foreground" />
-                    Applicant
-                </CardTitle>
-                <CardDescription>
-                    Primary borrower details from the request.
-                </CardDescription>
+            <CardHeader className="flex flex-row items-start justify-between gap-3">
+                <div className="space-y-1.5">
+                    <CardTitle className="flex items-center gap-2">
+                        <UserIcon className="size-4 text-muted-foreground" />
+                        Applicant
+                    </CardTitle>
+                    <CardDescription>
+                        Primary borrower details from the request.
+                    </CardDescription>
+                </div>
+                {headerAction ?? null}
             </CardHeader>
             <CardContent className="space-y-4">
                 {hasCategoryMismatch ? (
@@ -1022,11 +1102,15 @@ const buildCoMakerMoreFields = (
 export type LoanRequestCoMakersCardProps = {
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
+    coMakerOneAction?: ReactNode;
+    coMakerTwoAction?: ReactNode;
 };
 
 export const LoanRequestCoMakersCard = ({
     coMakerOne,
     coMakerTwo,
+    coMakerOneAction,
+    coMakerTwoAction,
 }: LoanRequestCoMakersCardProps) => (
     <Card className="border-border/30 bg-card/60 shadow-sm">
         <CardHeader>
@@ -1039,20 +1123,30 @@ export const LoanRequestCoMakersCard = ({
             </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <PersonAccordionRow
-                title="Co-maker 1"
-                person={coMakerOne}
-                subtitle={displayText(coMakerOne?.employer_business_name)}
-                curatedFields={buildCoMakerCuratedFields(coMakerOne)}
-                moreFields={buildCoMakerMoreFields(coMakerOne)}
-            />
-            <PersonAccordionRow
-                title="Co-maker 2"
-                person={coMakerTwo}
-                subtitle={displayText(coMakerTwo?.employer_business_name)}
-                curatedFields={buildCoMakerCuratedFields(coMakerTwo)}
-                moreFields={buildCoMakerMoreFields(coMakerTwo)}
-            />
+            <div className="space-y-2">
+                {coMakerOneAction ? (
+                    <div className="flex justify-end">{coMakerOneAction}</div>
+                ) : null}
+                <PersonAccordionRow
+                    title="Co-maker 1"
+                    person={coMakerOne}
+                    subtitle={displayText(coMakerOne?.employer_business_name)}
+                    curatedFields={buildCoMakerCuratedFields(coMakerOne)}
+                    moreFields={buildCoMakerMoreFields(coMakerOne)}
+                />
+            </div>
+            <div className="space-y-2">
+                {coMakerTwoAction ? (
+                    <div className="flex justify-end">{coMakerTwoAction}</div>
+                ) : null}
+                <PersonAccordionRow
+                    title="Co-maker 2"
+                    person={coMakerTwo}
+                    subtitle={displayText(coMakerTwo?.employer_business_name)}
+                    curatedFields={buildCoMakerCuratedFields(coMakerTwo)}
+                    moreFields={buildCoMakerMoreFields(coMakerTwo)}
+                />
+            </div>
         </CardContent>
     </Card>
 );

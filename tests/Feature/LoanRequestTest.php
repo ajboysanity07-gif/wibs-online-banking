@@ -4138,6 +4138,100 @@ test('admin loan request page exposes processing data sections needed to set rec
     expect($loanRequest->refresh()->recommended_amount)->toBe('24000.00');
 });
 
+/**
+ * Regression guard for the staff page's per-card correction UI: correcting
+ * just the applicant card submits `applicant` only (no `loan_request`,
+ * `co_maker_1`, or `co_maker_2` keys) through the shared processing-details
+ * endpoint. processingRequestPayload() used to backfill an absent
+ * `loan_request` key with an array of nulls, which fillLoanRequestDetails()
+ * then merged over the current loan_request columns -- null-coalescing them
+ * back to blank/zero and silently wiping typecode/amount/term/etc. on every
+ * single-section save.
+ */
+test('correcting only the applicant section through processing details leaves loan info and co-makers untouched', function () {
+    Role::ensureWorkflowDefaults();
+
+    $processor = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $processor->user_id]);
+    Role::attachNamedRole($processor, Role::LOAN_PROCESSOR);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => now(),
+        'typecode' => 'ML001',
+        'requested_amount' => '50000.00',
+        'requested_term' => 12,
+        'loan_purpose' => 'Original purpose',
+        'availment_status' => 'Re-Loan',
+    ]);
+    $applicant = LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Original',
+            'cell_no' => '09170000000',
+            'birthdate' => '1990-01-01',
+        ]);
+    $coMakerOne = LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create(['first_name' => 'CoMakerOne']);
+    $coMakerTwo = LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create(['first_name' => 'CoMakerTwo']);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Corrected applicant cell number.',
+            'applicant' => array_merge(
+                $applicant->only([
+                    'first_name', 'middle_name', 'last_name', 'nickname',
+                    'birthdate', 'birthplace_city', 'birthplace_province',
+                    'address1', 'address_barangay', 'address2', 'address3',
+                    'address_zip', 'length_of_stay', 'housing_status',
+                    'civil_status', 'sex', 'educational_attainment',
+                    'number_of_children', 'spouse_name', 'spouse_birthdate',
+                    'spouse_cell_no', 'employment_type',
+                    'employer_business_name', 'employer_business_address1',
+                    'employer_business_address_barangay',
+                    'employer_business_address2', 'employer_business_address3',
+                    'employer_business_address_zip', 'telephone_no',
+                    'current_position', 'nature_of_business',
+                    'institutional_employer_category',
+                    'years_in_work_business', 'employer_date_employed',
+                    'gross_monthly_income', 'payday',
+                ]),
+                ['cell_no' => '09170000001'],
+            ),
+        ])
+        ->assertOk();
+
+    $loanRequest->refresh();
+    expect($loanRequest->typecode)->toBe('ML001');
+    expect($loanRequest->requested_amount)->toBe('50000.00');
+    expect((int) $loanRequest->requested_term)->toBe(12);
+    expect($loanRequest->loan_purpose)->toBe('Original purpose');
+    expect($loanRequest->availment_status)->toBe('Re-Loan');
+
+    expect($applicant->refresh()->cell_no)->toBe('09170000001');
+    expect($coMakerOne->refresh()->first_name)->toBe('CoMakerOne');
+    expect($coMakerTwo->refresh()->first_name)->toBe('CoMakerTwo');
+
+    $change = LoanRequestChange::query()->sole();
+    expect($change->reason)->toContain('Corrected applicant cell number.');
+    expect($change->changed_fields_json)->toContain('applicant.cell_no');
+    expect(
+        collect($change->changed_fields_json)
+            ->contains(fn (string $field): bool => str_starts_with($field, 'loan_request.')
+                || str_starts_with($field, 'co_maker_1.')
+                || str_starts_with($field, 'co_maker_2.')),
+    )->toBeFalse();
+});
+
 test('admin loan request page exposes document checklist and generated documents can be viewed through it', function () {
     Role::ensureWorkflowDefaults();
 

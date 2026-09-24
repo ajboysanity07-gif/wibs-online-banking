@@ -1377,18 +1377,13 @@ class LoanRequestProcessingService
             ];
         }
 
-        return [
-            'typecode' => $payload['typecode'] ?? null,
-            'kind_of_loan' => $payload['kind_of_loan'] ?? null,
-            'requested_amount' => $payload['requested_amount'] ?? null,
-            'requested_term' => $payload['requested_term'] ?? null,
-            'loan_purpose' => $payload['loan_purpose'] ?? null,
-            'other_loan_type_name' => $payload['other_loan_type_name'] ?? null,
-            'availment_status' => $payload['availment_status'] ?? null,
-            'applicant' => $payload['applicant'] ?? null,
-            'co_maker_1' => $payload['co_maker_1'] ?? null,
-            'co_maker_2' => $payload['co_maker_2'] ?? null,
-        ];
+        // No `loan_request` key means the caller (e.g. a per-card
+        // correction submitting only `applicant`/`co_maker_1`/`co_maker_2`)
+        // didn't submit any loan-info changes at all -- returning an empty
+        // array here (rather than a dict of nulls) tells fillSubmittedDetails
+        // there is nothing to touch, instead of overwriting every loan_request
+        // column with its default/blank value.
+        return [];
     }
 
     /**

@@ -7,6 +7,7 @@ import {
     LoanRequestApplicantCard,
     LoanRequestCoMakersCard,
     LoanRequestDetailPage,
+    LoanRequestLoanInformationCard,
     LoanRequestSummaryHeader,
     displayCurrency,
     displayText,
@@ -62,13 +63,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import { useApprovedDocumentPackageDownload } from '@/hooks/loan-request/use-approved-document-package-download';
 import AppLayout from '@/layouts/app-layout';
@@ -290,22 +284,33 @@ const documentResultStatusOrder = [
     'incomplete',
 ] as const;
 
-// Category B — application-data corrections edited in the modal.
-type CorrectionFormState = {
-    loan_request: {
-        typecode: string;
-        kind_of_loan: string;
-        other_loan_type_name: string;
-        requested_amount: string;
-        requested_term: string;
-        loan_purpose: string;
-        availment_status: string;
-    };
-    applicant: LoanRequestPersonFormData;
-    co_maker_1: LoanRequestPersonFormData;
-    co_maker_2: LoanRequestPersonFormData;
-    reason: string;
+// Category B — application-data corrections, edited inline per card.
+type LoanInfoFormState = {
+    typecode: string;
+    kind_of_loan: string;
+    other_loan_type_name: string;
+    requested_amount: string;
+    requested_term: string;
+    loan_purpose: string;
+    availment_status: string;
 };
+
+type EditableSection =
+    | 'loan_request'
+    | 'applicant'
+    | 'co_maker_1'
+    | 'co_maker_2'
+    | null;
+
+const toLoanInfoForm = (request: LoanRequestDetail): LoanInfoFormState => ({
+    typecode: request.typecode ?? '',
+    kind_of_loan: request.kind_of_loan ?? '',
+    other_loan_type_name: request.other_loan_type_name ?? '',
+    requested_amount: toStringValue(request.requested_amount),
+    requested_term: toStringValue(request.requested_term),
+    loan_purpose: request.loan_purpose ?? '',
+    availment_status: request.availment_status ?? '',
+});
 
 export default function StaffLoanRequestShow({
     loanRequest,
@@ -381,7 +386,7 @@ export default function StaffLoanRequestShow({
     const [lastDocumentResults, setLastDocumentResults] = useState<
         LoanRequestDocumentChecklistItem[] | null
     >(null);
-    const [isCorrectionDialogOpen, setIsCorrectionDialogOpen] = useState(false);
+    const [editingSection, setEditingSection] = useState<EditableSection>(null);
     const [isMemberActionDialogOpen, setIsMemberActionDialogOpen] =
         useState(false);
     const [wibsReference, setWibsReference] = useState('');
@@ -395,21 +400,19 @@ export default function StaffLoanRequestShow({
     const [selectedMemberFields, setSelectedMemberFields] = useState<string[]>(
         [],
     );
-    const [correctionForm, setCorrectionForm] = useState<CorrectionFormState>({
-        loan_request: {
-            typecode: loanRequest.typecode ?? '',
-            kind_of_loan: loanRequest.kind_of_loan ?? '',
-            other_loan_type_name: loanRequest.other_loan_type_name ?? '',
-            requested_amount: toStringValue(loanRequest.requested_amount),
-            requested_term: toStringValue(loanRequest.requested_term),
-            loan_purpose: loanRequest.loan_purpose ?? '',
-            availment_status: loanRequest.availment_status ?? '',
-        },
-        applicant: toPersonForm(applicant),
-        co_maker_1: toPersonForm(coMakerOne),
-        co_maker_2: toPersonForm(coMakerTwo),
-        reason: '',
-    });
+    const [loanInfoForm, setLoanInfoForm] = useState<LoanInfoFormState>(() =>
+        toLoanInfoForm(loanRequest),
+    );
+    const [loanInfoReason, setLoanInfoReason] = useState('');
+    const [applicantForm, setApplicantForm] =
+        useState<LoanRequestPersonFormData>(() => toPersonForm(applicant));
+    const [applicantReason, setApplicantReason] = useState('');
+    const [coMakerOneForm, setCoMakerOneForm] =
+        useState<LoanRequestPersonFormData>(() => toPersonForm(coMakerOne));
+    const [coMakerOneReason, setCoMakerOneReason] = useState('');
+    const [coMakerTwoForm, setCoMakerTwoForm] =
+        useState<LoanRequestPersonFormData>(() => toPersonForm(coMakerTwo));
+    const [coMakerTwoReason, setCoMakerTwoReason] = useState('');
     const {
         claimLoanRequest,
         assignLoanRequest,
@@ -518,43 +521,25 @@ export default function StaffLoanRequestShow({
               }
             : null;
 
-    const [correctionSource, setCorrectionSource] = useState({
-        request: currentRequest,
-        applicant: currentApplicant,
-        coMakerOne: currentCoMakerOne,
-        coMakerTwo: currentCoMakerTwo,
-    });
+    const openSectionEdit = (section: Exclude<EditableSection, null>) => {
+        if (section === 'loan_request') {
+            setLoanInfoForm(toLoanInfoForm(currentRequest));
+            setLoanInfoReason('');
+        } else if (section === 'applicant') {
+            setApplicantForm(toPersonForm(currentApplicant));
+            setApplicantReason('');
+        } else if (section === 'co_maker_1') {
+            setCoMakerOneForm(toPersonForm(currentCoMakerOne));
+            setCoMakerOneReason('');
+        } else {
+            setCoMakerTwoForm(toPersonForm(currentCoMakerTwo));
+            setCoMakerTwoReason('');
+        }
 
-    if (
-        correctionSource.request !== currentRequest ||
-        correctionSource.applicant !== currentApplicant ||
-        correctionSource.coMakerOne !== currentCoMakerOne ||
-        correctionSource.coMakerTwo !== currentCoMakerTwo
-    ) {
-        setCorrectionSource({
-            request: currentRequest,
-            applicant: currentApplicant,
-            coMakerOne: currentCoMakerOne,
-            coMakerTwo: currentCoMakerTwo,
-        });
-        setCorrectionForm({
-            loan_request: {
-                typecode: currentRequest.typecode ?? '',
-                kind_of_loan: currentRequest.kind_of_loan ?? '',
-                other_loan_type_name: currentRequest.other_loan_type_name ?? '',
-                requested_amount: toStringValue(
-                    currentRequest.requested_amount,
-                ),
-                requested_term: toStringValue(currentRequest.requested_term),
-                loan_purpose: currentRequest.loan_purpose ?? '',
-                availment_status: currentRequest.availment_status ?? '',
-            },
-            applicant: toPersonForm(currentApplicant),
-            co_maker_1: toPersonForm(currentCoMakerOne),
-            co_maker_2: toPersonForm(currentCoMakerTwo),
-            reason: '',
-        });
-    }
+        setEditingSection(section);
+    };
+
+    const closeSectionEdit = () => setEditingSection(null);
 
     const hasWorkflowPermission = (
         permission: LoanRequestWorkflowPermission,
@@ -716,6 +701,7 @@ export default function StaffLoanRequestShow({
         hasWorkflowPermission('loan.correct') &&
         currentRequest.status === 'recommended_for_approval' &&
         isDesignatedManager;
+    const canCorrectApplication = canUpdateProcessing || canManagerCorrect;
     const canCorrectProcessingPostApproval =
         !isOwnRequest &&
         hasWorkflowPermission('loan.correct') &&
@@ -835,76 +821,117 @@ export default function StaffLoanRequestShow({
         items: memberFieldGroupsMap.get(sectionKey) ?? [],
     }));
 
-    const updateCorrectionPersonField =
-        (personKey: 'applicant' | 'co_maker_1' | 'co_maker_2') =>
-        (field: keyof LoanRequestPersonFormData, value: string) => {
-            setCorrectionForm((current) => ({
-                ...current,
-                [personKey]: {
-                    ...current[personKey],
-                    [field]: value,
-                },
-            }));
-        };
-
-    const updateCorrectionDetailField = (
-        field: keyof CorrectionFormState['loan_request'],
+    const updateLoanInfoField = (
+        field: keyof LoanInfoFormState,
         value: string,
     ) => {
-        setCorrectionForm((current) => ({
-            ...current,
-            loan_request: {
-                ...current.loan_request,
-                [field]: value,
-            },
-        }));
+        setLoanInfoForm((current) => ({ ...current, [field]: value }));
     };
 
-    const correctionSelectedLoanTypeLabel =
-        loanTypes.find(
-            (option) =>
-                option.typecode === correctionForm.loan_request.typecode,
-        )?.label ?? null;
-    const isCorrectionMicroBusinessLoan = isMicroBusinessLoanLabel(
-        correctionSelectedLoanTypeLabel,
+    const loanInfoSelectedLoanTypeLabel =
+        loanTypes.find((option) => option.typecode === loanInfoForm.typecode)
+            ?.label ?? null;
+    const isLoanInfoMicroBusinessLoan = isMicroBusinessLoanLabel(
+        loanInfoSelectedLoanTypeLabel,
     );
-    const isCorrectionOtherLoan =
-        correctionForm.loan_request.typecode === OTHER_LOAN_TYPECODE;
+    const isLoanInfoOtherLoan = loanInfoForm.typecode === OTHER_LOAN_TYPECODE;
 
-    const updateCorrectionLoanType = (typecode: string) => {
+    const updateLoanInfoType = (typecode: string) => {
         const label =
             loanTypes.find((option) => option.typecode === typecode)?.label ??
             null;
 
-        setCorrectionForm((current) => ({
+        setLoanInfoForm((current) => ({
             ...current,
-            loan_request: {
-                ...current.loan_request,
-                typecode,
-                kind_of_loan: isMicroBusinessLoanLabel(label)
-                    ? current.loan_request.kind_of_loan
+            typecode,
+            kind_of_loan: isMicroBusinessLoanLabel(label)
+                ? current.kind_of_loan
+                : '',
+            other_loan_type_name:
+                typecode === OTHER_LOAN_TYPECODE
+                    ? current.other_loan_type_name
                     : '',
-                other_loan_type_name:
-                    typecode === OTHER_LOAN_TYPECODE
-                        ? current.loan_request.other_loan_type_name
-                        : '',
-            },
         }));
     };
 
-    const submitCorrectionData = async (event: FormEvent<HTMLFormElement>) => {
+    const updateApplicantField = (
+        field: keyof LoanRequestPersonFormData,
+        value: string,
+    ) => {
+        setApplicantForm((current) => ({ ...current, [field]: value }));
+    };
+
+    const updateCoMakerOneField = (
+        field: keyof LoanRequestPersonFormData,
+        value: string,
+    ) => {
+        setCoMakerOneForm((current) => ({ ...current, [field]: value }));
+    };
+
+    const updateCoMakerTwoField = (
+        field: keyof LoanRequestPersonFormData,
+        value: string,
+    ) => {
+        setCoMakerTwoForm((current) => ({ ...current, [field]: value }));
+    };
+
+    const submitLoanInfoCorrection = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
         event.preventDefault();
 
         const result = await updateProcessingDetails(currentRequest.id, {
-            reason: correctionForm.reason,
-            loan_request: correctionForm.loan_request,
-            applicant: correctionForm.applicant,
-            co_maker_1: correctionForm.co_maker_1,
-            co_maker_2: correctionForm.co_maker_2,
+            reason: loanInfoReason,
+            loan_request: loanInfoForm,
         });
 
         if (result) {
-            setIsCorrectionDialogOpen(false);
+            closeSectionEdit();
+        }
+    };
+
+    const submitApplicantCorrection = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
+        event.preventDefault();
+
+        const result = await updateProcessingDetails(currentRequest.id, {
+            reason: applicantReason,
+            applicant: applicantForm,
+        });
+
+        if (result) {
+            closeSectionEdit();
+        }
+    };
+
+    const submitCoMakerOneCorrection = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
+        event.preventDefault();
+
+        const result = await updateProcessingDetails(currentRequest.id, {
+            reason: coMakerOneReason,
+            co_maker_1: coMakerOneForm,
+        });
+
+        if (result) {
+            closeSectionEdit();
+        }
+    };
+
+    const submitCoMakerTwoCorrection = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
+        event.preventDefault();
+
+        const result = await updateProcessingDetails(currentRequest.id, {
+            reason: coMakerTwoReason,
+            co_maker_2: coMakerTwoForm,
+        });
+
+        if (result) {
+            closeSectionEdit();
         }
     };
 
@@ -1133,17 +1160,6 @@ export default function StaffLoanRequestShow({
                     </AlertDescription>
                 </Alert>
             ) : null}
-            {canUpdateProcessing || canManagerCorrect ? (
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full justify-start"
-                    disabled={isWorkflowProcessing}
-                    onClick={() => setIsCorrectionDialogOpen(true)}
-                >
-                    Correct Application Data
-                </Button>
-            ) : null}
             {canRequestMemberAction ? (
                 <Button
                     type="button"
@@ -1358,6 +1374,7 @@ export default function StaffLoanRequestShow({
                     requestedTerm={summaryRequestedTerm}
                     availmentStatus={summaryAvailmentStatus}
                     loanPurpose={displayText(currentRequest.loan_purpose)}
+                    hideLoanSummary
                 />
                 <LoanStatusWarning
                     loanStatus={currentRequest.applicant_loan_status}
@@ -1388,13 +1405,440 @@ export default function StaffLoanRequestShow({
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div className="space-y-6">
-                        <LoanRequestApplicantCard
-                            applicant={currentApplicant}
-                        />
-                        <LoanRequestCoMakersCard
-                            coMakerOne={currentCoMakerOne}
-                            coMakerTwo={currentCoMakerTwo}
-                        />
+                        {editingSection === 'loan_request' ? (
+                            <LoanRequestSectionCard
+                                title="Loan Information"
+                                description="Update the verified request details used throughout the document package."
+                            >
+                                <form
+                                    className="space-y-6"
+                                    onSubmit={submitLoanInfoCorrection}
+                                >
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="loan_info_typecode">
+                                                Loan type
+                                            </Label>
+                                            <Select
+                                                value={
+                                                    loanInfoForm.typecode ||
+                                                    undefined
+                                                }
+                                                onValueChange={(value) =>
+                                                    updateLoanInfoType(value)
+                                                }
+                                            >
+                                                <SelectTrigger
+                                                    id="loan_info_typecode"
+                                                    className="w-full"
+                                                >
+                                                    <SelectValue placeholder="Select loan type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {loanTypes.map((option) => (
+                                                        <SelectItem
+                                                            key={
+                                                                option.typecode
+                                                            }
+                                                            value={
+                                                                option.typecode
+                                                            }
+                                                        >
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        {isLoanInfoMicroBusinessLoan && (
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="loan_info_kind_of_loan">
+                                                    Kind of loan
+                                                </Label>
+                                                <Select
+                                                    value={
+                                                        loanInfoForm.kind_of_loan ||
+                                                        undefined
+                                                    }
+                                                    onValueChange={(value) =>
+                                                        updateLoanInfoField(
+                                                            'kind_of_loan',
+                                                            value,
+                                                        )
+                                                    }
+                                                >
+                                                    <SelectTrigger
+                                                        id="loan_info_kind_of_loan"
+                                                        className="w-full"
+                                                    >
+                                                        <SelectValue placeholder="Select kind of loan" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {KIND_OF_LOAN_OPTIONS.map(
+                                                            (option) => (
+                                                                <SelectItem
+                                                                    key={option}
+                                                                    value={
+                                                                        option
+                                                                    }
+                                                                >
+                                                                    {option}
+                                                                </SelectItem>
+                                                            ),
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
+                                        {isLoanInfoOtherLoan && (
+                                            <div className="grid gap-2 md:col-span-2">
+                                                <Label htmlFor="loan_info_other_loan_type_name">
+                                                    Other loan type name
+                                                </Label>
+                                                <Input
+                                                    id="loan_info_other_loan_type_name"
+                                                    value={
+                                                        loanInfoForm.other_loan_type_name
+                                                    }
+                                                    onChange={(event) =>
+                                                        updateLoanInfoField(
+                                                            'other_loan_type_name',
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        )}
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="loan_info_requested_amount">
+                                                Requested amount
+                                            </Label>
+                                            <CurrencyInput
+                                                id="loan_info_requested_amount"
+                                                value={
+                                                    loanInfoForm.requested_amount
+                                                }
+                                                onValueChange={(value) =>
+                                                    updateLoanInfoField(
+                                                        'requested_amount',
+                                                        value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="loan_info_requested_term">
+                                                Requested term
+                                            </Label>
+                                            <MonthsInput
+                                                id="loan_info_requested_term"
+                                                value={
+                                                    loanInfoForm.requested_term
+                                                }
+                                                onChange={(value) =>
+                                                    updateLoanInfoField(
+                                                        'requested_term',
+                                                        value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2 md:col-span-2">
+                                            <Label htmlFor="loan_info_loan_purpose">
+                                                Loan purpose
+                                            </Label>
+                                            <Input
+                                                id="loan_info_loan_purpose"
+                                                value={
+                                                    loanInfoForm.loan_purpose
+                                                }
+                                                onChange={(event) =>
+                                                    updateLoanInfoField(
+                                                        'loan_purpose',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2 md:col-span-2">
+                                            <Label htmlFor="loan_info_availment_status">
+                                                Availment status
+                                            </Label>
+                                            <Input
+                                                id="loan_info_availment_status"
+                                                value={
+                                                    loanInfoForm.availment_status
+                                                }
+                                                onChange={(event) =>
+                                                    updateLoanInfoField(
+                                                        'availment_status',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="loan_info_reason">
+                                            Reason for correction
+                                        </Label>
+                                        <textarea
+                                            id="loan_info_reason"
+                                            className={textareaClassName}
+                                            required
+                                            value={loanInfoReason}
+                                            onChange={(event) =>
+                                                setLoanInfoReason(
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-end gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={closeSectionEdit}
+                                            disabled={isWorkflowProcessing}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            disabled={isWorkflowProcessing}
+                                        >
+                                            Save
+                                        </Button>
+                                    </div>
+                                </form>
+                            </LoanRequestSectionCard>
+                        ) : (
+                            <LoanRequestLoanInformationCard
+                                loanRequest={currentRequest}
+                                headerAction={
+                                    canCorrectApplication ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                openSectionEdit('loan_request')
+                                            }
+                                        >
+                                            Correct
+                                        </Button>
+                                    ) : undefined
+                                }
+                            />
+                        )}
+
+                        {editingSection === 'applicant' ? (
+                            <LoanRequestSectionCard
+                                title="Applicant"
+                                description="Correct verified applicant data when supported by the processing record."
+                            >
+                                <form
+                                    className="space-y-6"
+                                    onSubmit={submitApplicantCorrection}
+                                >
+                                    <LoanRequestPersonalFields
+                                        prefix="applicant"
+                                        values={applicantForm}
+                                        errors={{}}
+                                        includeSpouse
+                                        includeChildren
+                                        portal={false}
+                                        onChange={updateApplicantField}
+                                    />
+                                    <Separator className="bg-border/40" />
+                                    <LoanRequestWorkFields
+                                        prefix="applicant"
+                                        values={applicantForm}
+                                        errors={{}}
+                                        portal={false}
+                                        onChange={updateApplicantField}
+                                    />
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="applicant_reason">
+                                            Reason for correction
+                                        </Label>
+                                        <textarea
+                                            id="applicant_reason"
+                                            className={textareaClassName}
+                                            required
+                                            value={applicantReason}
+                                            onChange={(event) =>
+                                                setApplicantReason(
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-end gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={closeSectionEdit}
+                                            disabled={isWorkflowProcessing}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            disabled={isWorkflowProcessing}
+                                        >
+                                            Save
+                                        </Button>
+                                    </div>
+                                </form>
+                            </LoanRequestSectionCard>
+                        ) : (
+                            <LoanRequestApplicantCard
+                                applicant={currentApplicant}
+                                headerAction={
+                                    canCorrectApplication ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                openSectionEdit('applicant')
+                                            }
+                                        >
+                                            Correct
+                                        </Button>
+                                    ) : undefined
+                                }
+                            />
+                        )}
+
+                        {editingSection === 'co_maker_1' ||
+                        editingSection === 'co_maker_2' ? (
+                            <LoanRequestSectionCard
+                                title={
+                                    editingSection === 'co_maker_1'
+                                        ? 'Co-maker 1'
+                                        : 'Co-maker 2'
+                                }
+                                description="Update verified co-maker information when corrections are confirmed."
+                            >
+                                <form
+                                    className="space-y-6"
+                                    onSubmit={
+                                        editingSection === 'co_maker_1'
+                                            ? submitCoMakerOneCorrection
+                                            : submitCoMakerTwoCorrection
+                                    }
+                                >
+                                    <LoanRequestPersonalFields
+                                        prefix={editingSection}
+                                        values={
+                                            editingSection === 'co_maker_1'
+                                                ? coMakerOneForm
+                                                : coMakerTwoForm
+                                        }
+                                        errors={{}}
+                                        portal={false}
+                                        onChange={
+                                            editingSection === 'co_maker_1'
+                                                ? updateCoMakerOneField
+                                                : updateCoMakerTwoField
+                                        }
+                                    />
+                                    <Separator className="bg-border/40" />
+                                    <LoanRequestWorkFields
+                                        prefix={editingSection}
+                                        values={
+                                            editingSection === 'co_maker_1'
+                                                ? coMakerOneForm
+                                                : coMakerTwoForm
+                                        }
+                                        errors={{}}
+                                        portal={false}
+                                        onChange={
+                                            editingSection === 'co_maker_1'
+                                                ? updateCoMakerOneField
+                                                : updateCoMakerTwoField
+                                        }
+                                    />
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="co_maker_reason">
+                                            Reason for correction
+                                        </Label>
+                                        <textarea
+                                            id="co_maker_reason"
+                                            className={textareaClassName}
+                                            required
+                                            value={
+                                                editingSection === 'co_maker_1'
+                                                    ? coMakerOneReason
+                                                    : coMakerTwoReason
+                                            }
+                                            onChange={(event) =>
+                                                (editingSection === 'co_maker_1'
+                                                    ? setCoMakerOneReason
+                                                    : setCoMakerTwoReason)(
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-end gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={closeSectionEdit}
+                                            disabled={isWorkflowProcessing}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            disabled={isWorkflowProcessing}
+                                        >
+                                            Save
+                                        </Button>
+                                    </div>
+                                </form>
+                            </LoanRequestSectionCard>
+                        ) : (
+                            <LoanRequestCoMakersCard
+                                coMakerOne={currentCoMakerOne}
+                                coMakerTwo={currentCoMakerTwo}
+                                coMakerOneAction={
+                                    canCorrectApplication ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                openSectionEdit('co_maker_1')
+                                            }
+                                        >
+                                            Correct
+                                        </Button>
+                                    ) : undefined
+                                }
+                                coMakerTwoAction={
+                                    canCorrectApplication ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                openSectionEdit('co_maker_2')
+                                            }
+                                        >
+                                            Correct
+                                        </Button>
+                                    ) : undefined
+                                }
+                            />
+                        )}
                         {showProcessingSection ? (
                             <ProcessingDetailsPanel
                                 loanRequest={currentRequest}
@@ -1817,319 +2261,6 @@ export default function StaffLoanRequestShow({
                     </div>
                 </div>
             </section>
-
-            <Sheet
-                open={isCorrectionDialogOpen}
-                onOpenChange={setIsCorrectionDialogOpen}
-            >
-                <SheetContent side="right" className="sm:max-w-2xl">
-                    <SheetHeader>
-                        <SheetTitle>Correct Application Data</SheetTitle>
-                        <SheetDescription>
-                            Correct the member-supplied request, applicant, and
-                            co-maker details when supported by a record. Provide
-                            a reason and information source for the audit trail.
-                        </SheetDescription>
-                    </SheetHeader>
-                    <form
-                        className="flex min-h-0 flex-1 flex-col"
-                        onSubmit={submitCorrectionData}
-                    >
-                        <div className="flex-1 space-y-6 overflow-y-auto px-6 py-4">
-                            <LoanRequestSectionCard
-                                title="Loan request details"
-                                description="Update the verified request details used throughout the document package."
-                            >
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="correction_loan_type">
-                                            Loan type
-                                        </Label>
-                                        <Select
-                                            value={
-                                                correctionForm.loan_request
-                                                    .typecode || undefined
-                                            }
-                                            onValueChange={(value) =>
-                                                updateCorrectionLoanType(value)
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="correction_loan_type"
-                                                className="w-full"
-                                            >
-                                                <SelectValue placeholder="Select loan type" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {loanTypes.map((option) => (
-                                                    <SelectItem
-                                                        key={option.typecode}
-                                                        value={option.typecode}
-                                                    >
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    {isCorrectionMicroBusinessLoan && (
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="correction_kind_of_loan">
-                                                Kind of loan
-                                            </Label>
-                                            <Select
-                                                value={
-                                                    correctionForm.loan_request
-                                                        .kind_of_loan ||
-                                                    undefined
-                                                }
-                                                onValueChange={(value) =>
-                                                    updateCorrectionDetailField(
-                                                        'kind_of_loan',
-                                                        value,
-                                                    )
-                                                }
-                                            >
-                                                <SelectTrigger
-                                                    id="correction_kind_of_loan"
-                                                    className="w-full"
-                                                >
-                                                    <SelectValue placeholder="Select kind of loan" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {KIND_OF_LOAN_OPTIONS.map(
-                                                        (option) => (
-                                                            <SelectItem
-                                                                key={option}
-                                                                value={option}
-                                                            >
-                                                                {option}
-                                                            </SelectItem>
-                                                        ),
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    )}
-                                    {isCorrectionOtherLoan && (
-                                        <div className="grid gap-2 md:col-span-2">
-                                            <Label htmlFor="correction_other_loan_type_name">
-                                                Other loan type name
-                                            </Label>
-                                            <Input
-                                                id="correction_other_loan_type_name"
-                                                value={
-                                                    correctionForm.loan_request
-                                                        .other_loan_type_name
-                                                }
-                                                onChange={(event) =>
-                                                    updateCorrectionDetailField(
-                                                        'other_loan_type_name',
-                                                        event.target.value,
-                                                    )
-                                                }
-                                            />
-                                        </div>
-                                    )}
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="correction_requested_amount">
-                                            Requested amount
-                                        </Label>
-                                        <CurrencyInput
-                                            id="correction_requested_amount"
-                                            value={
-                                                correctionForm.loan_request
-                                                    .requested_amount
-                                            }
-                                            onValueChange={(value) =>
-                                                updateCorrectionDetailField(
-                                                    'requested_amount',
-                                                    value,
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="correction_requested_term">
-                                            Requested term
-                                        </Label>
-                                        <MonthsInput
-                                            id="correction_requested_term"
-                                            value={
-                                                correctionForm.loan_request
-                                                    .requested_term
-                                            }
-                                            onChange={(value) =>
-                                                updateCorrectionDetailField(
-                                                    'requested_term',
-                                                    value,
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                    <div className="grid gap-2 md:col-span-2">
-                                        <Label htmlFor="correction_loan_purpose">
-                                            Loan purpose
-                                        </Label>
-                                        <Input
-                                            id="correction_loan_purpose"
-                                            value={
-                                                correctionForm.loan_request
-                                                    .loan_purpose
-                                            }
-                                            onChange={(event) =>
-                                                updateCorrectionDetailField(
-                                                    'loan_purpose',
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                    <div className="grid gap-2 md:col-span-2">
-                                        <Label htmlFor="correction_availment_status">
-                                            Availment status
-                                        </Label>
-                                        <Input
-                                            id="correction_availment_status"
-                                            value={
-                                                correctionForm.loan_request
-                                                    .availment_status
-                                            }
-                                            onChange={(event) =>
-                                                updateCorrectionDetailField(
-                                                    'availment_status',
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                </div>
-                            </LoanRequestSectionCard>
-
-                            <LoanRequestSectionCard
-                                title="Applicant information"
-                                description="Correct verified applicant data when supported by the processing record."
-                            >
-                                <div className="space-y-6">
-                                    <LoanRequestPersonalFields
-                                        prefix="applicant"
-                                        values={correctionForm.applicant}
-                                        errors={{}}
-                                        includeSpouse
-                                        includeChildren
-                                        portal={false}
-                                        onChange={updateCorrectionPersonField(
-                                            'applicant',
-                                        )}
-                                    />
-                                    <Separator className="bg-border/40" />
-                                    <LoanRequestWorkFields
-                                        prefix="applicant"
-                                        values={correctionForm.applicant}
-                                        errors={{}}
-                                        portal={false}
-                                        onChange={updateCorrectionPersonField(
-                                            'applicant',
-                                        )}
-                                    />
-                                </div>
-                            </LoanRequestSectionCard>
-
-                            <LoanRequestSectionCard
-                                title="Co-maker 1"
-                                description="Update verified co-maker information when corrections are confirmed."
-                            >
-                                <div className="space-y-6">
-                                    <LoanRequestPersonalFields
-                                        prefix="co_maker_1"
-                                        values={correctionForm.co_maker_1}
-                                        errors={{}}
-                                        portal={false}
-                                        onChange={updateCorrectionPersonField(
-                                            'co_maker_1',
-                                        )}
-                                    />
-                                    <Separator className="bg-border/40" />
-                                    <LoanRequestWorkFields
-                                        prefix="co_maker_1"
-                                        values={correctionForm.co_maker_1}
-                                        errors={{}}
-                                        portal={false}
-                                        onChange={updateCorrectionPersonField(
-                                            'co_maker_1',
-                                        )}
-                                    />
-                                </div>
-                            </LoanRequestSectionCard>
-
-                            <LoanRequestSectionCard
-                                title="Co-maker 2"
-                                description="Update verified co-maker information when corrections are confirmed."
-                            >
-                                <div className="space-y-6">
-                                    <LoanRequestPersonalFields
-                                        prefix="co_maker_2"
-                                        values={correctionForm.co_maker_2}
-                                        errors={{}}
-                                        portal={false}
-                                        onChange={updateCorrectionPersonField(
-                                            'co_maker_2',
-                                        )}
-                                    />
-                                    <Separator className="bg-border/40" />
-                                    <LoanRequestWorkFields
-                                        prefix="co_maker_2"
-                                        values={correctionForm.co_maker_2}
-                                        errors={{}}
-                                        portal={false}
-                                        onChange={updateCorrectionPersonField(
-                                            'co_maker_2',
-                                        )}
-                                    />
-                                </div>
-                            </LoanRequestSectionCard>
-
-                            <Separator className="bg-border/40" />
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="correction_reason">
-                                    Remarks
-                                </Label>
-                                <textarea
-                                    id="correction_reason"
-                                    className={textareaClassName}
-                                    required
-                                    value={correctionForm.reason}
-                                    onChange={(event) =>
-                                        setCorrectionForm((current) => ({
-                                            ...current,
-                                            reason: event.target.value,
-                                        }))
-                                    }
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-end gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() =>
-                                        setIsCorrectionDialogOpen(false)
-                                    }
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={isWorkflowProcessing}
-                                >
-                                    Save Corrections
-                                </Button>
-                            </div>
-                        </div>
-                    </form>
-                </SheetContent>
-            </Sheet>
 
             <Dialog
                 open={isMemberActionDialogOpen}
