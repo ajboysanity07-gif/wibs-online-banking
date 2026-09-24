@@ -34,7 +34,12 @@ export function LoanRequestSectionCard({
     onErrorClick,
 }: Props) {
     return (
-        <Card className={cn('border-border/50 bg-card/70', className)}>
+        <Card
+            className={cn(
+                'animate-in border-border/50 bg-card/70 duration-200 fade-in slide-in-from-top-2',
+                className,
+            )}
+        >
             <CardHeader className="space-y-2 pb-5">
                 <CardTitle className="text-lg">{title}</CardTitle>
                 {description ? (

@@ -1,5 +1,5 @@
 ﻿import { Head, router, usePage } from '@inertiajs/react';
-import { Bell, CheckCircle2, Clock, HeartPulse } from 'lucide-react';
+import { Bell, CheckCircle2, Clock, HeartPulse, Wrench } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
@@ -143,6 +143,9 @@ type Props = {
 };
 
 const readOnlyCardClassName = 'border-border/20 bg-card/40 shadow-sm';
+
+const fixDetailsButtonClassName =
+    'transition-all duration-150 ease-out active:scale-90 active:duration-75 hover:-translate-y-0.5 hover:shadow-md [&_svg]:transition-transform [&_svg]:duration-150 active:[&_svg]:rotate-12';
 
 const emptyPerson: LoanRequestPersonFormData = {
     first_name: '',
@@ -1613,24 +1616,35 @@ export default function StaffLoanRequestShow({
                                 </form>
                             </LoanRequestSectionCard>
                         ) : (
-                            <LoanRequestLoanInformationCard
-                                loanRequest={currentRequest}
-                                headerAction={
-                                    canCorrectApplication ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                openSectionEdit('loan_request')
-                                            }
-                                        >
-                                            Correct
-                                        </Button>
-                                    ) : undefined
-                                }
-                            />
+                            <div
+                                key="loan_request-display"
+                                className="animate-in duration-200 fade-in slide-in-from-top-2"
+                            >
+                                <LoanRequestLoanInformationCard
+                                    loanRequest={currentRequest}
+                                    headerAction={
+                                        canCorrectApplication ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className={
+                                                    fixDetailsButtonClassName
+                                                }
+                                                disabled={isWorkflowProcessing}
+                                                onClick={() =>
+                                                    openSectionEdit(
+                                                        'loan_request',
+                                                    )
+                                                }
+                                            >
+                                                <Wrench />
+                                                Fix details
+                                            </Button>
+                                        ) : undefined
+                                    }
+                                />
+                            </div>
                         )}
 
                         {editingSection === 'applicant' ? (
@@ -1694,24 +1708,33 @@ export default function StaffLoanRequestShow({
                                 </form>
                             </LoanRequestSectionCard>
                         ) : (
-                            <LoanRequestApplicantCard
-                                applicant={currentApplicant}
-                                headerAction={
-                                    canCorrectApplication ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                openSectionEdit('applicant')
-                                            }
-                                        >
-                                            Correct
-                                        </Button>
-                                    ) : undefined
-                                }
-                            />
+                            <div
+                                key="applicant-display"
+                                className="animate-in duration-200 fade-in slide-in-from-top-2"
+                            >
+                                <LoanRequestApplicantCard
+                                    applicant={currentApplicant}
+                                    headerAction={
+                                        canCorrectApplication ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className={
+                                                    fixDetailsButtonClassName
+                                                }
+                                                disabled={isWorkflowProcessing}
+                                                onClick={() =>
+                                                    openSectionEdit('applicant')
+                                                }
+                                            >
+                                                <Wrench />
+                                                Fix details
+                                            </Button>
+                                        ) : undefined
+                                    }
+                                />
+                            </div>
                         )}
 
                         {editingSection === 'co_maker_1' ||
@@ -1804,40 +1827,57 @@ export default function StaffLoanRequestShow({
                                 </form>
                             </LoanRequestSectionCard>
                         ) : (
-                            <LoanRequestCoMakersCard
-                                coMakerOne={currentCoMakerOne}
-                                coMakerTwo={currentCoMakerTwo}
-                                coMakerOneAction={
-                                    canCorrectApplication ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                openSectionEdit('co_maker_1')
-                                            }
-                                        >
-                                            Correct
-                                        </Button>
-                                    ) : undefined
-                                }
-                                coMakerTwoAction={
-                                    canCorrectApplication ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                openSectionEdit('co_maker_2')
-                                            }
-                                        >
-                                            Correct
-                                        </Button>
-                                    ) : undefined
-                                }
-                            />
+                            <div
+                                key="co-makers-display"
+                                className="animate-in duration-200 fade-in slide-in-from-top-2"
+                            >
+                                <LoanRequestCoMakersCard
+                                    coMakerOne={currentCoMakerOne}
+                                    coMakerTwo={currentCoMakerTwo}
+                                    coMakerOneAction={
+                                        canCorrectApplication ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className={
+                                                    fixDetailsButtonClassName
+                                                }
+                                                disabled={isWorkflowProcessing}
+                                                onClick={() =>
+                                                    openSectionEdit(
+                                                        'co_maker_1',
+                                                    )
+                                                }
+                                            >
+                                                <Wrench />
+                                                Fix details
+                                            </Button>
+                                        ) : undefined
+                                    }
+                                    coMakerTwoAction={
+                                        canCorrectApplication ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className={
+                                                    fixDetailsButtonClassName
+                                                }
+                                                disabled={isWorkflowProcessing}
+                                                onClick={() =>
+                                                    openSectionEdit(
+                                                        'co_maker_2',
+                                                    )
+                                                }
+                                            >
+                                                <Wrench />
+                                                Fix details
+                                            </Button>
+                                        ) : undefined
+                                    }
+                                />
+                            </div>
                         )}
                         {showProcessingSection ? (
                             <ProcessingDetailsPanel
