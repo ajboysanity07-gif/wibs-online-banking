@@ -237,6 +237,7 @@ export default function LoanRequestShow({
         recommendApproval,
         approveLoanRequest,
         declineLoanRequest,
+        revertLoanRequestStatus,
         processingIds: workflowProcessingIds,
         lastErrors: workflowLastErrors,
         clearLastError: clearWorkflowLastError,
@@ -465,6 +466,7 @@ export default function LoanRequestShow({
         !decision.isOwnRequest &&
         currentRequest.status === 'recommended_for_approval' &&
         hasWorkflowPermission('loan.decline');
+    const canRevertStatus = currentRequest.can_revert_status;
     const isManagerViewer =
         hasWorkflowPermission('loan.approve') ||
         hasWorkflowPermission('loan.decline');
@@ -1047,6 +1049,17 @@ export default function LoanRequestShow({
                               isProcessing: isWorkflowProcessing,
                               onSubmit: (payload) =>
                                   declineLoanRequest(
+                                      currentRequest.id,
+                                      payload,
+                                  ),
+                          }
+                        : undefined,
+                    revertStatus: canRevertStatus
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              onSubmit: (payload) =>
+                                  revertLoanRequestStatus(
                                       currentRequest.id,
                                       payload,
                                   ),

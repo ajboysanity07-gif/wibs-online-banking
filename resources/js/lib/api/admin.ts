@@ -301,6 +301,10 @@ type LoanRequestWorkflowUpgradePayload = {
     reason: string;
 };
 
+type LoanRequestWorkflowRevertStatusPayload = {
+    reason: string;
+};
+
 type LoanRequestWorkflowResponse = LoanRequestWorkflowResult;
 
 type StaffMutationResponse = {
@@ -710,6 +714,19 @@ export const adminApi = {
             ApiResponse<LoanRequestWorkflowResponse>
         >(
             `/spa/workflow/loan-requests/${loanRequestId}/upgrade-workflow`,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async revertLoanRequestStatus(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowRevertStatusPayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(
+            `/spa/workflow/loan-requests/${loanRequestId}/revert-status`,
             payload,
         );
 

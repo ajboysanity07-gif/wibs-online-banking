@@ -108,6 +108,11 @@ class LoanRequestController extends Controller
                     $loanRequestRecord,
                     $actor instanceof AppUser ? $actor : null,
                 ),
+                'can_revert_status' => $actor instanceof AppUser
+                    && Gate::forUser($actor)->allows(
+                        'revertStatus',
+                        $loanRequestRecord,
+                    ),
             ],
             'eligibleOfficers' => $actor instanceof AppUser
                 && $assignmentService->canManageAssignments($actor)

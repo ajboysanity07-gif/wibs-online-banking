@@ -60,7 +60,8 @@ export type LoanRequestWorkflowAction =
     | 'decline'
     | 'returnForProcessing'
     | 'reopen'
-    | 'upgradeWorkflow';
+    | 'upgradeWorkflow'
+    | 'revertStatus';
 
 export type LoanRequestClaimPayload = Record<string, never>;
 
@@ -145,6 +146,10 @@ export type LoanRequestUpgradeWorkflowPayload = {
     reason: string;
 };
 
+export type LoanRequestRevertStatusPayload = {
+    reason: string;
+};
+
 type LoanRequestWorkflowPayload =
     | LoanRequestClaimPayload
     | LoanRequestAssignmentPayload
@@ -161,7 +166,8 @@ type LoanRequestWorkflowPayload =
     | LoanRequestWorkflowDeclinePayload
     | LoanRequestReturnForProcessingPayload
     | LoanRequestReopenPayload
-    | LoanRequestUpgradeWorkflowPayload;
+    | LoanRequestUpgradeWorkflowPayload
+    | LoanRequestRevertStatusPayload;
 
 type LoanRequestWorkflowOptions = {
     onUpdated?: (
@@ -196,6 +202,7 @@ const successCopy: Record<LoanRequestWorkflowAction, string> = {
     returnForProcessing: 'Loan request returned for processing.',
     reopen: 'Loan request reopened successfully.',
     upgradeWorkflow: 'Workflow upgraded successfully.',
+    revertStatus: 'Loan request status reverted successfully.',
 };
 
 const errorCopy: Record<LoanRequestWorkflowAction, string> = {
@@ -217,6 +224,7 @@ const errorCopy: Record<LoanRequestWorkflowAction, string> = {
     returnForProcessing: 'Failed to return the request for processing.',
     reopen: 'Failed to reopen the rejected request.',
     upgradeWorkflow: 'Failed to upgrade the workflow.',
+    revertStatus: 'Failed to revert the loan request status.',
 };
 
 export function useLoanRequestWorkflow(options?: LoanRequestWorkflowOptions) {
@@ -391,6 +399,13 @@ export function useLoanRequestWorkflow(options?: LoanRequestWorkflowOptions) {
                         );
                     }
 
+                    if (action === 'revertStatus') {
+                        return adminApi.revertLoanRequestStatus(
+                            loanRequestId,
+                            payload as LoanRequestRevertStatusPayload,
+                        );
+                    }
+
                     throw new Error(`Unsupported workflow action: ${action}`);
                 })();
 
@@ -499,5 +514,9 @@ export function useLoanRequestWorkflow(options?: LoanRequestWorkflowOptions) {
             loanRequestId: number,
             payload: LoanRequestUpgradeWorkflowPayload,
         ) => runAction(loanRequestId, 'upgradeWorkflow', payload),
+        revertLoanRequestStatus: (
+            loanRequestId: number,
+            payload: LoanRequestRevertStatusPayload,
+        ) => runAction(loanRequestId, 'revertStatus', payload),
     };
 }

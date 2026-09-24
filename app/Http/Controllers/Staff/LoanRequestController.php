@@ -74,6 +74,10 @@ class LoanRequestController extends Controller
                 ...$detail['loanRequest'],
                 ...$assignmentService->capabilitiesFor($loanRequest, $actor),
                 'wibs_loan_reference' => $loanRequest->wibs_loan_reference,
+                'can_revert_status' => Gate::forUser($actor)->allows(
+                    'revertStatus',
+                    $loanRequest,
+                ),
             ],
             'auditTrail' => $serializer->serializeAuditTrail($loanRequest),
             'notificationHistory' => $serializer->serializeNotificationHistory(

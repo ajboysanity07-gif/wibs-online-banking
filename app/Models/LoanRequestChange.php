@@ -87,6 +87,8 @@ class LoanRequestChange extends Model
 
     public const ACTION_MEMBER_PROFILE_INCOME_SYNCED = 'member_profile_income_synced';
 
+    public const ACTION_REVERT_STATUS = 'revert_status';
+
     /**
      * @var list<string>
      */

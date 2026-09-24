@@ -18,6 +18,7 @@ use App\Http\Requests\Workflow\LoanRequestRequestMemberActionRequest;
 use App\Http\Requests\Workflow\LoanRequestRequestRevisionRequest;
 use App\Http\Requests\Workflow\LoanRequestReturnForProcessingRequest;
 use App\Http\Requests\Workflow\LoanRequestReturnToQueueRequest;
+use App\Http\Requests\Workflow\LoanRequestRevertStatusRequest;
 use App\Http\Requests\Workflow\LoanRequestStartReviewRequest;
 use App\Http\Requests\Workflow\LoanRequestUpgradeWorkflowRequest;
 use App\Http\Requests\Workflow\LoanRequestWorkflowApproveRequest;
@@ -33,6 +34,7 @@ use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestProcessingService;
 use App\Services\LoanRequests\LoanRequestWorkflowService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
 
 class LoanRequestWorkflowController extends Controller
 {
@@ -570,6 +572,35 @@ class LoanRequestWorkflowController extends Controller
         );
     }
 
+    public function revertStatus(
+        LoanRequestRevertStatusRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestWorkflowService $service,
+        LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
+        LoanRequestPayloadSerializer $serializer,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        $updated = $service->revertStatus(
+            $loanRequest,
+            $actor,
+            $request->validated('reason'),
+        );
+
+        return $this->response(
+            $updated,
+            $actor,
+            $serializer,
+            $assignmentService,
+            $documentWorkflowService,
+            $dataService,
+        );
+    }
+
     private function response(
         LoanRequest $loanRequest,
         AppUser $actor,
@@ -590,6 +621,10 @@ class LoanRequestWorkflowController extends Controller
                     ...$assignmentService->capabilitiesFor(
                         $loanRequest,
                         $actor,
+                    ),
+                    'can_revert_status' => Gate::forUser($actor)->allows(
+                        'revertStatus',
+                        $loanRequest,
                     ),
                 ],
                 'auditTrail' => $serializer->serializeAuditTrail($loanRequest),

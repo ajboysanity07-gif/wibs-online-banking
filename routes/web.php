@@ -170,6 +170,9 @@ Route::prefix('spa')->middleware('web')->group(function () {
                 ->name('reopen');
             Route::patch('{loanRequest}/upgrade-workflow', [SpaLoanRequestWorkflowController::class, 'upgradeWorkflow'])
                 ->name('upgrade-workflow');
+            Route::patch('{loanRequest}/revert-status', [SpaLoanRequestWorkflowController::class, 'revertStatus'])
+                ->middleware('superadmin')
+                ->name('revert-status');
         });
 
     Route::middleware(['auth', 'verified', 'loan-workflow-staff'])->group(function () {

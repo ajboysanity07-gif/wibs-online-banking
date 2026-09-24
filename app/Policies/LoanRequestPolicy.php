@@ -407,6 +407,25 @@ class LoanRequestPolicy
         ) && $this->statusValue($loanRequest) === LoanRequestStatus::ReleaseScheduled->value;
     }
 
+    /**
+     * Superadmin-only emergency correction for a mistaken forward transition
+     * (e.g. a manager accidentally recommended or approved a request). Scoped
+     * to one step back via LoanRequestStatus::revertMap() -- statuses not in
+     * that map (including everything from ConvertedToLoan onward) cannot be
+     * reverted through this action.
+     */
+    public function revertStatus(AppUser $user, LoanRequest $loanRequest): bool
+    {
+        if (! $user->hasRole(Role::SUPERADMIN) && ! $user->isLegacySuperadmin()) {
+            return false;
+        }
+
+        return array_key_exists(
+            $this->statusValue($loanRequest),
+            LoanRequestStatus::revertMap(),
+        );
+    }
+
     public function delete(AppUser $user, LoanRequest $loanRequest): bool
     {
         return false;

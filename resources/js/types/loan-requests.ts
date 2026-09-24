@@ -480,6 +480,7 @@ export type LoanRequestDetail = {
     can_assign: boolean;
     can_reassign: boolean;
     can_return_to_queue: boolean;
+    can_revert_status: boolean;
     workflow_version: LoanRequestWorkflowVersion | null;
     recommended_amount: number | string | null;
     recommended_term: number | string | null;

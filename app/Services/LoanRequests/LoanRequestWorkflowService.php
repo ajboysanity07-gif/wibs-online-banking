@@ -372,6 +372,93 @@ class LoanRequestWorkflowService
         return $updated;
     }
 
+    /**
+     * Superadmin override to undo a mistaken forward transition (e.g. a
+     * manager who accidentally recommended-for-approval or approved a
+     * request). One step back only, per LoanRequestStatus::revertMap() --
+     * anything not in that map (including ConvertedToLoan and later, where
+     * external WIBS/release records may already exist) is rejected.
+     */
+    public function revertStatus(
+        LoanRequest $loanRequest,
+        AppUser $actor,
+        string $reason,
+    ): LoanRequest {
+        return DB::transaction(function () use (
+            $loanRequest,
+            $actor,
+            $reason,
+        ): LoanRequest {
+            $lockedLoanRequest = $this->lockLoanRequest($loanRequest);
+
+            Gate::forUser($actor)->authorize('revertStatus', $lockedLoanRequest);
+
+            $fromStatus = $this->statusValue($lockedLoanRequest);
+            $revertMap = LoanRequestStatus::revertMap();
+
+            if (! array_key_exists($fromStatus, $revertMap)) {
+                throw ValidationException::withMessages([
+                    'status' => 'This request cannot be reverted from its current status.',
+                ]);
+            }
+
+            $toStatus = $revertMap[$fromStatus];
+            $before = $this->snapshotForAudit($lockedLoanRequest);
+
+            $fields = ['status' => $toStatus];
+
+            if ($fromStatus === LoanRequestStatus::Approved->value) {
+                $fields = [
+                    ...$fields,
+                    'approved_by' => null,
+                    'approved_at' => null,
+                    'approved_amount' => null,
+                    'approved_term' => null,
+                    'approved_interest_rate' => null,
+                    'approval_remarks' => null,
+                    'decision_notes' => null,
+                    'account_snapshot_json' => null,
+                ];
+            }
+
+            if ($fromStatus === LoanRequestStatus::AwaitingMemberAcceptance->value) {
+                $fields = [
+                    ...$fields,
+                    'member_action_type' => null,
+                    'member_action_message' => null,
+                    'member_action_fields_json' => null,
+                    'member_action_requested_by' => null,
+                    'member_action_requested_at' => null,
+                    'member_action_resolved_at' => null,
+                ];
+            }
+
+            if ($fromStatus === LoanRequestStatus::RecommendedForApproval->value) {
+                $fields = [...$fields, 'review_decision' => null];
+            }
+
+            $lockedLoanRequest->fill($fields);
+            $lockedLoanRequest->save();
+
+            $updated = $this->refreshLoanRequest($lockedLoanRequest);
+
+            $this->recordWorkflowAudit(
+                $updated,
+                $actor,
+                LoanRequestChange::ACTION_REVERT_STATUS,
+                $reason,
+                $fromStatus,
+                $toStatus,
+                array_keys($fields),
+                ['reverted_by_superadmin' => true],
+                $before,
+                $this->snapshotForAudit($updated),
+            );
+
+            return $updated;
+        });
+    }
+
     private function lockLoanRequest(LoanRequest $loanRequest): LoanRequest
     {
         return LoanRequest::query()

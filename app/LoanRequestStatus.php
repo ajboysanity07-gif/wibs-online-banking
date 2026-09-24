@@ -110,6 +110,25 @@ enum LoanRequestStatus: string
     }
 
     /**
+     * Superadmin-only "undo the last transition" map: current status value =>
+     * status value to revert to. One step back only, and only while the
+     * request is still pre-conversion -- once it reaches ConvertedToLoan (or
+     * later) external WIBS/release records may already exist, so reverting
+     * the loan_requests row alone would desync it from those records.
+     *
+     * @return array<string, string>
+     */
+    public static function revertMap(): array
+    {
+        return [
+            self::UnderReview->value => self::PendingReview->value,
+            self::RecommendedForApproval->value => self::UnderReview->value,
+            self::AwaitingMemberAcceptance->value => self::RecommendedForApproval->value,
+            self::Approved->value => self::RecommendedForApproval->value,
+        ];
+    }
+
+    /**
      * @return list<string>
      */
     public static function workflowValues(): array

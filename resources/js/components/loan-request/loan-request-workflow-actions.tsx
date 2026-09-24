@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { fractionToPercentDisplay } from '@/components/loan-request/numeric-adorned-inputs';
@@ -89,6 +90,10 @@ export type LoanRequestWorkflowUpgradeWorkflowPayload = {
     reason: string;
 };
 
+export type LoanRequestWorkflowRevertStatusPayload = {
+    reason: string;
+};
+
 type LoanRequestWorkflowActionConfig<TPayload> = {
     show?: boolean;
     isProcessing?: boolean;
@@ -123,6 +128,7 @@ export type LoanRequestWorkflowProps = {
     returnForProcessing?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowReturnForProcessingPayload>;
     reopen?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowReopenPayload>;
     upgradeWorkflow?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowUpgradeWorkflowPayload>;
+    revertStatus?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowRevertStatusPayload>;
 };
 
 type Props = {
@@ -195,6 +201,27 @@ const toComparableNumber = (
     return Number.isNaN(parsed) ? null : parsed;
 };
 
+function ActionButtonLabel({
+    isProcessing,
+    label,
+    loadingLabel,
+}: {
+    isProcessing?: boolean;
+    label: string;
+    loadingLabel: string;
+}) {
+    if (!isProcessing) {
+        return <>{label}</>;
+    }
+
+    return (
+        <>
+            <Loader2 className="size-4 animate-spin" />
+            {loadingLabel}
+        </>
+    );
+}
+
 export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
     const [isAssignOpen, setIsAssignOpen] = useState(false);
     const [isReassignOpen, setIsReassignOpen] = useState(false);
@@ -210,6 +237,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
         useState(false);
     const [isReopenOpen, setIsReopenOpen] = useState(false);
     const [isUpgradeWorkflowOpen, setIsUpgradeWorkflowOpen] = useState(false);
+    const [isRevertStatusOpen, setIsRevertStatusOpen] = useState(false);
 
     const [assignOfficerUserId, setAssignOfficerUserId] = useState('');
     const [assignReason, setAssignReason] = useState('');
@@ -316,6 +344,10 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
     const [upgradeWorkflowReason, setUpgradeWorkflowReason] = useState('');
     const [upgradeWorkflowReasonError, setUpgradeWorkflowReasonError] =
         useState<string | null>(null);
+    const [revertStatusReason, setRevertStatusReason] = useState('');
+    const [revertStatusReasonError, setRevertStatusReasonError] = useState<
+        string | null
+    >(null);
 
     const assignOfficerOptions = workflow?.assign?.officerOptions ?? [];
     const reassignOfficerOptions = (
@@ -348,6 +380,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
         Boolean(workflow?.returnForProcessing?.show) ||
         Boolean(workflow?.reopen?.show) ||
         Boolean(workflow?.upgradeWorkflow?.show);
+    const hasSuperadminActions = Boolean(workflow?.revertStatus?.show);
 
     const nextAmount =
         loanRequest.approved_amount ??
@@ -783,6 +816,28 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
         }
     };
 
+    const submitRevertStatus = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        const reason = revertStatusReason.trim();
+
+        if (reason === '') {
+            setRevertStatusReasonError('Reason is required.');
+            return;
+        }
+
+        setRevertStatusReasonError(null);
+
+        const result = await workflow?.revertStatus?.onSubmit?.({
+            reason,
+        });
+
+        if (result) {
+            setRevertStatusReason('');
+            setIsRevertStatusOpen(false);
+        }
+    };
+
     return (
         <>
             {hasAssignmentActions ? (
@@ -807,7 +862,11 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                     void workflow.claim?.onSubmit?.()
                                 }
                             >
-                                Claim
+                                <ActionButtonLabel
+                                    isProcessing={workflow.claim.isProcessing}
+                                    label="Claim"
+                                    loadingLabel="Claiming..."
+                                />
                             </Button>
                         ) : null}
                         {workflow?.assign?.show ? (
@@ -871,7 +930,13 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                     })
                                 }
                             >
-                                Start Review
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow.startReview.isProcessing
+                                    }
+                                    label="Start Review"
+                                    loadingLabel="Starting..."
+                                />
                             </Button>
                         ) : null}
                         {workflow?.requestRevision?.show ? (
@@ -975,6 +1040,35 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                 onClick={() => setIsUpgradeWorkflowOpen(true)}
                             >
                                 Upgrade to Document Workflow v2
+                            </Button>
+                        ) : null}
+                    </div>
+                    <Separator className="bg-border/40" />
+                </div>
+            ) : null}
+
+            {hasSuperadminActions ? (
+                <div className="space-y-3">
+                    <div className="space-y-1">
+                        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                            Superadmin actions
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            Undo a mistaken forward transition (e.g. a mistaken
+                            recommendation or approval). This creates an audit
+                            entry and moves the request back one step.
+                        </p>
+                    </div>
+                    <div className="grid gap-2">
+                        {workflow?.revertStatus?.show ? (
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                className="w-full justify-start"
+                                disabled={workflow.revertStatus.isProcessing}
+                                onClick={() => setIsRevertStatusOpen(true)}
+                            >
+                                Revert Status
                             </Button>
                         ) : null}
                     </div>
@@ -1099,7 +1193,13 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                     assignOfficerOptions.length === 0
                                 }
                             >
-                                Assign Loan Processor
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.assign?.isProcessing
+                                    }
+                                    label="Assign Loan Processor"
+                                    loadingLabel="Assigning..."
+                                />
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1187,7 +1287,13 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                     reassignOfficerOptions.length === 0
                                 }
                             >
-                                Reassign Loan Processor
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.reassign?.isProcessing
+                                    }
+                                    label="Reassign Loan Processor"
+                                    loadingLabel="Reassigning..."
+                                />
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1254,7 +1360,13 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                 type="submit"
                                 disabled={workflow?.returnToQueue?.isProcessing}
                             >
-                                Return to Queue
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.returnToQueue?.isProcessing
+                                    }
+                                    label="Return to Queue"
+                                    loadingLabel="Returning..."
+                                />
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1321,7 +1433,13 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                     workflow?.requestRevision?.isProcessing
                                 }
                             >
-                                Request Revision
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.requestRevision?.isProcessing
+                                    }
+                                    label="Request Revision"
+                                    loadingLabel="Submitting..."
+                                />
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1376,7 +1494,13 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                 variant="destructive"
                                 disabled={workflow?.reject?.isProcessing}
                             >
-                                Reject
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.reject?.isProcessing
+                                    }
+                                    label="Reject"
+                                    loadingLabel="Rejecting..."
+                                />
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1433,7 +1557,14 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                     workflow?.recommendApproval?.isProcessing
                                 }
                             >
-                                Recommend Approval
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.recommendApproval
+                                            ?.isProcessing
+                                    }
+                                    label="Recommend Approval"
+                                    loadingLabel="Submitting..."
+                                />
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1511,7 +1642,13 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                 type="submit"
                                 disabled={workflow?.approve?.isProcessing}
                             >
-                                Approve Request
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.approve?.isProcessing
+                                    }
+                                    label="Approve Request"
+                                    loadingLabel="Approving..."
+                                />
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1582,7 +1719,13 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                 variant="destructive"
                                 disabled={workflow?.decline?.isProcessing}
                             >
-                                Decline
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.decline?.isProcessing
+                                    }
+                                    label="Decline"
+                                    loadingLabel="Declining..."
+                                />
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1713,7 +1856,14 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                         ?.isProcessing
                                 }
                             >
-                                Confirm Rejection
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.rejectDuringProcessing
+                                            ?.isProcessing
+                                    }
+                                    label="Confirm Rejection"
+                                    loadingLabel="Rejecting..."
+                                />
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1778,7 +1928,14 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                     workflow?.returnForProcessing?.isProcessing
                                 }
                             >
-                                Return for Processing
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.returnForProcessing
+                                            ?.isProcessing
+                                    }
+                                    label="Return for Processing"
+                                    loadingLabel="Submitting..."
+                                />
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1837,7 +1994,13 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                 type="submit"
                                 disabled={workflow?.reopen?.isProcessing}
                             >
-                                Reopen Request
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.reopen?.isProcessing
+                                    }
+                                    label="Reopen Request"
+                                    loadingLabel="Reopening..."
+                                />
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1900,7 +2063,74 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                     workflow?.upgradeWorkflow?.isProcessing
                                 }
                             >
-                                Upgrade Workflow
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.upgradeWorkflow?.isProcessing
+                                    }
+                                    label="Upgrade Workflow"
+                                    loadingLabel="Upgrading..."
+                                />
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={isRevertStatusOpen}
+                onOpenChange={setIsRevertStatusOpen}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Revert Status</DialogTitle>
+                        <DialogDescription>
+                            Move this request back one step to undo a mistaken
+                            action (e.g. an accidental recommendation or
+                            approval). Requires a reason and cannot be undone
+                            automatically.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form className="space-y-4" onSubmit={submitRevertStatus}>
+                        <div className="space-y-2">
+                            <Label htmlFor="workflow_revert_status_reason">
+                                Reason
+                            </Label>
+                            <textarea
+                                id="workflow_revert_status_reason"
+                                className={textareaClassName}
+                                required
+                                value={revertStatusReason}
+                                disabled={workflow?.revertStatus?.isProcessing}
+                                onChange={(event) => {
+                                    setRevertStatusReason(event.target.value);
+                                    setRevertStatusReasonError(null);
+                                }}
+                            />
+                            <InputError
+                                message={revertStatusReasonError ?? ''}
+                            />
+                        </div>
+                        <DialogFooter className="gap-2 sm:gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={workflow?.revertStatus?.isProcessing}
+                                onClick={() => setIsRevertStatusOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                variant="destructive"
+                                disabled={workflow?.revertStatus?.isProcessing}
+                            >
+                                <ActionButtonLabel
+                                    isProcessing={
+                                        workflow?.revertStatus?.isProcessing
+                                    }
+                                    label="Revert Status"
+                                    loadingLabel="Reverting..."
+                                />
                             </Button>
                         </DialogFooter>
                     </form>
