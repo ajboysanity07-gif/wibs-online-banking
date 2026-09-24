@@ -4,6 +4,7 @@ import {
     CreditCard,
     FileCheck2,
     Landmark,
+    Loader2,
     Wallet,
     type LucideIcon,
 } from 'lucide-react';
@@ -445,7 +446,14 @@ export function PaymentAccountPickerSheet({
                                                                                 handleUpdateAccount
                                                                             }
                                                                         >
-                                                                            Save
+                                                                            {isSaving ? (
+                                                                                <>
+                                                                                    <Loader2 className="size-4 animate-spin" />
+                                                                                    Saving...
+                                                                                </>
+                                                                            ) : (
+                                                                                'Save'
+                                                                            )}
                                                                         </Button>
                                                                         <Button
                                                                             size="sm"
@@ -717,7 +725,14 @@ export function PaymentAccountPickerSheet({
                                                             handleCreateAccount
                                                         }
                                                     >
-                                                        Save account
+                                                        {isSaving ? (
+                                                            <>
+                                                                <Loader2 className="size-4 animate-spin" />
+                                                                Saving...
+                                                            </>
+                                                        ) : (
+                                                            'Save account'
+                                                        )}
                                                     </Button>
                                                     <Button
                                                         type="button"
@@ -759,7 +774,14 @@ export function PaymentAccountPickerSheet({
                         }
                         onClick={handleConfirm}
                     >
-                        Confirm
+                        {isSaving ? (
+                            <>
+                                <Loader2 className="size-4 animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            'Confirm'
+                        )}
                     </Button>
                     <Button
                         type="button"

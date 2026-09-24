@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { buildOfficerLabel } from '@/components/loan-request/loan-request-workflow-actions';
 import { Button } from '@/components/ui/button';
@@ -161,7 +162,14 @@ export function AssignOfficerDialog({
                         onClick={handleConfirm}
                         disabled={isProcessing}
                     >
-                        Confirm
+                        {isProcessing ? (
+                            <>
+                                <Loader2 className="size-4 animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            'Confirm'
+                        )}
                     </Button>
                 </DialogFooter>
             </DialogContent>

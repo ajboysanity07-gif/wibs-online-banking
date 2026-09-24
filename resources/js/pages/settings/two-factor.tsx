@@ -1,5 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
-import { ShieldBan, ShieldCheck } from 'lucide-react';
+import { Loader2, ShieldBan, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { SurfaceCard } from '@/components/surface-card';
@@ -48,7 +48,11 @@ export default function TwoFactor({
             <h1 className="sr-only">Two-Factor Authentication Settings</h1>
 
             <SettingsLayout>
-                <SurfaceCard variant="default" padding="lg" className="space-y-6">
+                <SurfaceCard
+                    variant="default"
+                    padding="lg"
+                    className="space-y-6"
+                >
                     <Heading
                         variant="small"
                         title="Two-Factor Authentication"
@@ -78,7 +82,14 @@ export default function TwoFactor({
                                             type="submit"
                                             disabled={processing}
                                         >
-                                            <ShieldBan /> Disable 2FA
+                                            {processing ? (
+                                                <Loader2 className="animate-spin" />
+                                            ) : (
+                                                <ShieldBan />
+                                            )}
+                                            {processing
+                                                ? 'Disabling...'
+                                                : 'Disable 2FA'}
                                         </Button>
                                     )}
                                 </Form>
@@ -114,8 +125,14 @@ export default function TwoFactor({
                                                 type="submit"
                                                 disabled={processing}
                                             >
-                                                <ShieldCheck />
-                                                Enable 2FA
+                                                {processing ? (
+                                                    <Loader2 className="animate-spin" />
+                                                ) : (
+                                                    <ShieldCheck />
+                                                )}
+                                                {processing
+                                                    ? 'Enabling...'
+                                                    : 'Enable 2FA'}
                                             </Button>
                                         )}
                                     </Form>

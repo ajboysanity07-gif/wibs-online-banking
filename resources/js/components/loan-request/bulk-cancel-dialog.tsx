@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -96,7 +97,14 @@ export function BulkCancelDialog({
                         onClick={handleConfirm}
                         disabled={isProcessing}
                     >
-                        Cancel requests
+                        {isProcessing ? (
+                            <>
+                                <Loader2 className="size-4 animate-spin" />
+                                Cancelling...
+                            </>
+                        ) : (
+                            'Cancel requests'
+                        )}
                     </Button>
                 </DialogFooter>
             </DialogContent>

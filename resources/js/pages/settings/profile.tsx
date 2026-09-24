@@ -1,5 +1,6 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head, usePage } from '@inertiajs/react';
+import { Loader2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import LinkMembershipController from '@/actions/App/Http/Controllers/Settings/LinkMembershipController';
@@ -1207,7 +1208,14 @@ export default function Profile({
                                                             : 'default'
                                                     }
                                                 >
-                                                    Save
+                                                    {processing ? (
+                                                        <>
+                                                            <Loader2 className="size-4 animate-spin" />
+                                                            Saving...
+                                                        </>
+                                                    ) : (
+                                                        'Save'
+                                                    )}
                                                 </Button>
 
                                                 <Transition
@@ -1355,7 +1363,14 @@ export default function Profile({
                                                 type="submit"
                                                 disabled={processing}
                                             >
-                                                Link membership
+                                                {processing ? (
+                                                    <>
+                                                        <Loader2 className="size-4 animate-spin" />
+                                                        Linking...
+                                                    </>
+                                                ) : (
+                                                    'Link membership'
+                                                )}
                                             </Button>
                                         </>
                                     )}

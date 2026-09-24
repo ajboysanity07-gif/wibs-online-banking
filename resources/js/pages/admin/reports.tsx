@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Download } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { PageHero } from '@/components/page-hero';
 import { PageShell } from '@/components/page-shell';
@@ -67,6 +67,9 @@ export default function Reports({
 }: Props) {
     const [from, setFrom] = useState(dateRange.from ?? '');
     const [to, setTo] = useState(dateRange.to ?? '');
+    const [downloadingType, setDownloadingType] = useState<ReportType | null>(
+        null,
+    );
 
     function applyDateFilter() {
         router.get(
@@ -81,7 +84,12 @@ export default function Reports({
         if (from) params.set('from', from);
         if (to) params.set('to', to);
         const qs = params.toString() ? `?${params.toString()}` : '';
+
+        setDownloadingType(type);
         window.location.assign(exportReport(type).url + qs);
+        // window.location.assign navigates away rather than resolving a
+        // promise, so there's no callback to clear this on completion.
+        setTimeout(() => setDownloadingType(null), 3000);
     }
 
     return (
@@ -184,11 +192,20 @@ export default function Reports({
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    disabled={!canExport}
+                                    disabled={
+                                        !canExport ||
+                                        downloadingType === def.type
+                                    }
                                     onClick={() => downloadReport(def.type)}
                                 >
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Download Excel
+                                    {downloadingType === def.type ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Download className="mr-2 h-4 w-4" />
+                                    )}
+                                    {downloadingType === def.type
+                                        ? 'Downloading...'
+                                        : 'Download Excel'}
                                 </Button>
                                 {!canExport ? (
                                     <p className="mt-2 text-xs text-muted-foreground">

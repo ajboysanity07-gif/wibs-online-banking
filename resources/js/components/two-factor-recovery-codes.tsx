@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import { Eye, EyeOff, LockKeyhole, RefreshCw } from 'lucide-react';
+import { Eye, EyeOff, Loader2, LockKeyhole, RefreshCw } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,12 +25,15 @@ export default function TwoFactorRecoveryCodes({
     errors,
 }: Props) {
     const [codesAreVisible, setCodesAreVisible] = useState<boolean>(false);
+    const [isFetchingCodes, setIsFetchingCodes] = useState<boolean>(false);
     const codesSectionRef = useRef<HTMLDivElement | null>(null);
     const canRegenerateCodes = recoveryCodesList.length > 0 && codesAreVisible;
 
     const toggleCodesVisibility = async () => {
         if (!codesAreVisible && !recoveryCodesList.length) {
+            setIsFetchingCodes(true);
             await fetchRecoveryCodes();
+            setIsFetchingCodes(false);
         }
 
         setCodesAreVisible(!codesAreVisible);
@@ -64,14 +67,24 @@ export default function TwoFactorRecoveryCodes({
                     <Button
                         onClick={toggleCodesVisibility}
                         className="w-fit"
+                        disabled={isFetchingCodes}
                         aria-expanded={codesAreVisible}
                         aria-controls="recovery-codes-section"
                     >
-                        <RecoveryCodeIconComponent
-                            className="size-4"
-                            aria-hidden="true"
-                        />
-                        {codesAreVisible ? 'Hide' : 'View'} Recovery Codes
+                        {isFetchingCodes ? (
+                            <Loader2
+                                className="size-4 animate-spin"
+                                aria-hidden="true"
+                            />
+                        ) : (
+                            <RecoveryCodeIconComponent
+                                className="size-4"
+                                aria-hidden="true"
+                            />
+                        )}
+                        {isFetchingCodes
+                            ? 'Loading...'
+                            : `${codesAreVisible ? 'Hide' : 'View'} Recovery Codes`}
                     </Button>
 
                     {canRegenerateCodes && (
@@ -104,7 +117,14 @@ export default function TwoFactorRecoveryCodes({
                                     disabled={processing}
                                     aria-describedby="regenerate-warning"
                                 >
-                                    <RefreshCw /> Regenerate Codes
+                                    {processing ? (
+                                        <Loader2 className="animate-spin" />
+                                    ) : (
+                                        <RefreshCw />
+                                    )}
+                                    {processing
+                                        ? 'Regenerating...'
+                                        : 'Regenerate Codes'}
                                 </Button>
                             )}
                         </Form>

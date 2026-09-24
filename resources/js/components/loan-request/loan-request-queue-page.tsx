@@ -5,6 +5,7 @@ import {
     ArrowUp,
     ArrowUpDown,
     Eye,
+    Loader2,
     MoreHorizontal,
     UserCheck,
     UserCog,
@@ -1060,7 +1061,14 @@ export function LoanRequestQueuePage({
                                 }
                                 onClick={handleBulkClaim}
                             >
-                                {`Claim selected (${claimableSelectedIds.length})`}
+                                {isBulkSubmitting ? (
+                                    <>
+                                        <Loader2 className="size-4 animate-spin" />
+                                        Claiming...
+                                    </>
+                                ) : (
+                                    `Claim selected (${claimableSelectedIds.length})`
+                                )}
                             </Button>
                             <Button
                                 type="button"

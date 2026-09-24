@@ -1,6 +1,15 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from 'recharts';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { MemberListCardSkeleton } from '@/components/member-list-card-skeleton';
 import { PageHero } from '@/components/page-hero';
@@ -44,7 +53,11 @@ import { index as requestsIndex } from '@/routes/admin/requests';
 import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
 import type { DashboardSummary, MemberSummary } from '@/types/admin';
-import type { DateRange, ReportingMetrics, StaffPerformanceRow } from '@/types/reports';
+import type {
+    DateRange,
+    ReportingMetrics,
+    StaffPerformanceRow,
+} from '@/types/reports';
 
 type DateRangeToggle = 'today' | 'week' | 'month' | 'all';
 
@@ -129,7 +142,10 @@ const MobileMemberLookupCard = ({ member }: { member: MemberSummary }) => (
 );
 
 function useReducedMotion(): boolean {
-    return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return (
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    );
 }
 
 function ApplicationVolumeChart({ data }: { data: Record<string, number> }) {
@@ -141,8 +157,15 @@ function ApplicationVolumeChart({ data }: { data: Record<string, number> }) {
 
     return (
         <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <BarChart
+                data={chartData}
+                margin={{ top: 4, right: 4, left: -16, bottom: 0 }}
+            >
+                <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--border)"
+                    vertical={false}
+                />
                 <XAxis
                     dataKey="date"
                     tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
@@ -188,7 +211,10 @@ function formatCurrency(value: number): string {
     }).format(value);
 }
 
-function applyDateRangeToggle(toggle: DateRangeToggle): void {
+function buildDateRangeParams(toggle: DateRangeToggle): {
+    from?: string;
+    to?: string;
+} {
     const today = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     const fmt = (d: Date) =>
@@ -207,12 +233,15 @@ function applyDateRangeToggle(toggle: DateRangeToggle): void {
         from = fmt(new Date(today.getFullYear(), today.getMonth(), 1));
     }
 
-    router.get(
-        dashboard().url,
-        from ? { from, to } : {},
-        { preserveScroll: true, replace: true },
-    );
+    return from ? { from, to } : {};
 }
+
+const dateRangeToggleLabels: Record<DateRangeToggle, string> = {
+    today: 'Today',
+    week: 'This week',
+    month: 'This month',
+    all: 'All time',
+};
 
 export default function AdminDashboard({
     summary,
@@ -228,10 +257,21 @@ export default function AdminDashboard({
         error,
     } = useAdminDashboard(summary);
     const [memberSearch, setMemberSearch] = useState('');
+    const [pendingDateRangeToggle, setPendingDateRangeToggle] =
+        useState<DateRangeToggle | null>(null);
 
     useEffect(() => {
         void refresh();
     }, [refresh]);
+
+    const applyDateRangeToggle = (toggle: DateRangeToggle) => {
+        setPendingDateRangeToggle(toggle);
+        router.get(dashboard().url, buildDateRangeParams(toggle), {
+            preserveScroll: true,
+            replace: true,
+            onFinish: () => setPendingDateRangeToggle(null),
+        });
+    };
 
     const {
         items: lookupRows,
@@ -291,7 +331,9 @@ export default function AdminDashboard({
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
-                            <CardDescription>Registered members</CardDescription>
+                            <CardDescription>
+                                Registered members
+                            </CardDescription>
                             <CardTitle className="text-3xl">
                                 {summaryState.metrics.registeredCount}
                             </CardTitle>
@@ -304,7 +346,9 @@ export default function AdminDashboard({
                     </Card>
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
-                            <CardDescription>Unregistered members</CardDescription>
+                            <CardDescription>
+                                Unregistered members
+                            </CardDescription>
                             <CardTitle className="text-3xl">
                                 {summaryState.metrics.unregisteredCount}
                             </CardTitle>
@@ -363,23 +407,50 @@ export default function AdminDashboard({
                         <Separator />
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h2 className="text-lg font-semibold">Loan workflow reporting</h2>
-                                <p className="text-sm text-muted-foreground">Application volume and processing metrics.</p>
+                                <h2 className="text-lg font-semibold">
+                                    Loan workflow reporting
+                                </h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Application volume and processing metrics.
+                                </p>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                                {(['today', 'week', 'month', 'all'] as DateRangeToggle[]).map((t) => (
+                                {(
+                                    [
+                                        'today',
+                                        'week',
+                                        'month',
+                                        'all',
+                                    ] as DateRangeToggle[]
+                                ).map((t) => (
                                     <Button
                                         key={t}
                                         size="sm"
                                         variant="outline"
+                                        disabled={
+                                            pendingDateRangeToggle !== null
+                                        }
                                         onClick={() => applyDateRangeToggle(t)}
                                     >
-                                        {t === 'today' ? 'Today' : t === 'week' ? 'This week' : t === 'month' ? 'This month' : 'All time'}
+                                        {pendingDateRangeToggle === t ? (
+                                            <>
+                                                <Loader2 className="size-4 animate-spin" />
+                                                {dateRangeToggleLabels[t]}
+                                            </>
+                                        ) : (
+                                            dateRangeToggleLabels[t]
+                                        )}
                                     </Button>
                                 ))}
                                 {canExport ? (
-                                    <Button size="sm" variant="secondary" asChild>
-                                        <Link href={reportsIndex().url}>View reports</Link>
+                                    <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        asChild
+                                    >
+                                        <Link href={reportsIndex().url}>
+                                            View reports
+                                        </Link>
                                     </Button>
                                 ) : null}
                             </div>
@@ -388,54 +459,81 @@ export default function AdminDashboard({
                         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                             <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                                 <CardHeader>
-                                    <CardDescription>Pending applications</CardDescription>
-                                    <CardTitle className="text-3xl">{reportingMetrics.pending_count}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-muted-foreground">In-progress loan requests</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
-                                <CardHeader>
-                                    <CardDescription>Approved</CardDescription>
-                                    <CardTitle className="text-3xl">{reportingMetrics.approved_count}</CardTitle>
+                                    <CardDescription>
+                                        Pending applications
+                                    </CardDescription>
+                                    <CardTitle className="text-3xl">
+                                        {reportingMetrics.pending_count}
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-sm text-muted-foreground">
-                                        Approval rate: {reportingMetrics.approval_rate}%
+                                        In-progress loan requests
                                     </p>
                                 </CardContent>
                             </Card>
                             <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                                 <CardHeader>
-                                    <CardDescription>Avg processing days</CardDescription>
+                                    <CardDescription>Approved</CardDescription>
                                     <CardTitle className="text-3xl">
-                                        {reportingMetrics.average_processing_days ?? '--'}
+                                        {reportingMetrics.approved_count}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-sm text-muted-foreground">Days from submission to decision</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Approval rate:{' '}
+                                        {reportingMetrics.approval_rate}%
+                                    </p>
                                 </CardContent>
                             </Card>
                             <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                                 <CardHeader>
-                                    <CardDescription>Portfolio total</CardDescription>
-                                    <CardTitle className="text-2xl">{formatCurrency(reportingMetrics.portfolio_total)}</CardTitle>
+                                    <CardDescription>
+                                        Avg processing days
+                                    </CardDescription>
+                                    <CardTitle className="text-3xl">
+                                        {reportingMetrics.average_processing_days ??
+                                            '--'}
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-sm text-muted-foreground">Sum of approved loan amounts</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Days from submission to decision
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                                <CardHeader>
+                                    <CardDescription>
+                                        Portfolio total
+                                    </CardDescription>
+                                    <CardTitle className="text-2xl">
+                                        {formatCurrency(
+                                            reportingMetrics.portfolio_total,
+                                        )}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">
+                                        Sum of approved loan amounts
+                                    </p>
                                 </CardContent>
                             </Card>
                         </div>
 
-                        {applicationVolume && Object.keys(applicationVolume).length > 0 ? (
+                        {applicationVolume &&
+                        Object.keys(applicationVolume).length > 0 ? (
                             <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                                 <CardHeader>
                                     <CardTitle>Application volume</CardTitle>
-                                    <CardDescription>Daily loan application submissions.</CardDescription>
+                                    <CardDescription>
+                                        Daily loan application submissions.
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <ApplicationVolumeChart data={applicationVolume} />
+                                    <ApplicationVolumeChart
+                                        data={applicationVolume}
+                                    />
                                 </CardContent>
                             </Card>
                         ) : null}
@@ -444,27 +542,52 @@ export default function AdminDashboard({
                             <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                                 <CardHeader>
                                     <CardTitle>Staff workload</CardTitle>
-                                    <CardDescription>Per-processor assignment and decision summary.</CardDescription>
+                                    <CardDescription>
+                                        Per-processor assignment and decision
+                                        summary.
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent className="px-0">
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead className="px-6">Processor</TableHead>
-                                                <TableHead className="px-6">Assigned</TableHead>
-                                                <TableHead className="px-6">Approved</TableHead>
-                                                <TableHead className="px-6">Rejected</TableHead>
-                                                <TableHead className="px-6">Avg days</TableHead>
+                                                <TableHead className="px-6">
+                                                    Processor
+                                                </TableHead>
+                                                <TableHead className="px-6">
+                                                    Assigned
+                                                </TableHead>
+                                                <TableHead className="px-6">
+                                                    Approved
+                                                </TableHead>
+                                                <TableHead className="px-6">
+                                                    Rejected
+                                                </TableHead>
+                                                <TableHead className="px-6">
+                                                    Avg days
+                                                </TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {staffPerformance.map((row) => (
-                                                <TableRow key={row.processor_id}>
-                                                    <TableCell className="px-6 font-medium">{row.name}</TableCell>
-                                                    <TableCell className="px-6">{row.assigned}</TableCell>
-                                                    <TableCell className="px-6">{row.approved}</TableCell>
-                                                    <TableCell className="px-6">{row.rejected}</TableCell>
-                                                    <TableCell className="px-6">{row.avg_days ?? '--'}</TableCell>
+                                                <TableRow
+                                                    key={row.processor_id}
+                                                >
+                                                    <TableCell className="px-6 font-medium">
+                                                        {row.name}
+                                                    </TableCell>
+                                                    <TableCell className="px-6">
+                                                        {row.assigned}
+                                                    </TableCell>
+                                                    <TableCell className="px-6">
+                                                        {row.approved}
+                                                    </TableCell>
+                                                    <TableCell className="px-6">
+                                                        {row.rejected}
+                                                    </TableCell>
+                                                    <TableCell className="px-6">
+                                                        {row.avg_days ?? '--'}
+                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -537,7 +660,8 @@ export default function AdminDashboard({
                                                             '--'}
                                                     </TableCell>
                                                     <TableCell className="px-6">
-                                                        {request.reference ?? '--'}
+                                                        {request.reference ??
+                                                            '--'}
                                                     </TableCell>
                                                     <TableCell className="px-6">
                                                         <LoanRequestStatusBadge
@@ -669,7 +793,9 @@ export default function AdminDashboard({
                                                 ) : (
                                                     lookupRows.map((member) => (
                                                         <TableRow
-                                                            key={member.member_id}
+                                                            key={
+                                                                member.member_id
+                                                            }
                                                         >
                                                             <TableCell>
                                                                 <div className="flex flex-col">

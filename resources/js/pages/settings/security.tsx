@@ -1,6 +1,6 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head } from '@inertiajs/react';
-import { ShieldBan, ShieldCheck } from 'lucide-react';
+import { Loader2, ShieldBan, ShieldCheck } from 'lucide-react';
 import { useRef, useState } from 'react';
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import DeleteUser from '@/components/delete-user';
@@ -60,7 +60,11 @@ export default function Security({
             <h1 className="sr-only">Security Settings</h1>
 
             <SettingsLayout>
-                <SurfaceCard variant="default" padding="lg" className="space-y-8">
+                <SurfaceCard
+                    variant="default"
+                    padding="lg"
+                    className="space-y-8"
+                >
                     <section className="space-y-6">
                         <Heading
                             variant="small"
@@ -90,7 +94,11 @@ export default function Security({
                             }}
                             className="space-y-6"
                         >
-                            {({ errors: formErrors, processing, recentlySuccessful }) => (
+                            {({
+                                errors: formErrors,
+                                processing,
+                                recentlySuccessful,
+                            }) => (
                                 <>
                                     <div className="grid gap-2">
                                         <Label htmlFor="current_password">
@@ -108,7 +116,9 @@ export default function Security({
                                         />
 
                                         <InputError
-                                            message={formErrors.current_password}
+                                            message={
+                                                formErrors.current_password
+                                            }
                                         />
                                     </div>
 
@@ -127,7 +137,9 @@ export default function Security({
                                             placeholder="New password"
                                         />
 
-                                        <InputError message={formErrors.password} />
+                                        <InputError
+                                            message={formErrors.password}
+                                        />
                                     </div>
 
                                     <div className="grid gap-2">
@@ -145,7 +157,9 @@ export default function Security({
                                         />
 
                                         <InputError
-                                            message={formErrors.password_confirmation}
+                                            message={
+                                                formErrors.password_confirmation
+                                            }
                                         />
                                     </div>
 
@@ -154,7 +168,14 @@ export default function Security({
                                             disabled={processing}
                                             data-test="update-password-button"
                                         >
-                                            Save password
+                                            {processing ? (
+                                                <>
+                                                    <Loader2 className="size-4 animate-spin" />
+                                                    Saving...
+                                                </>
+                                            ) : (
+                                                'Save password'
+                                            )}
                                         </Button>
 
                                         <Transition
@@ -185,17 +206,18 @@ export default function Security({
 
                         {!twoFactorAvailable ? (
                             <p className="text-sm text-muted-foreground">
-                                Two-factor authentication is currently unavailable
-                                for this account.
+                                Two-factor authentication is currently
+                                unavailable for this account.
                             </p>
                         ) : twoFactorEnabled ? (
                             <div className="flex flex-col items-start justify-start space-y-4">
                                 <Badge variant="default">Enabled</Badge>
                                 <p className="text-muted-foreground">
-                                    With two-factor authentication enabled, you will
-                                    be prompted for a secure, random pin during login,
-                                    which you can retrieve from the TOTP-supported
-                                    application on your phone.
+                                    With two-factor authentication enabled, you
+                                    will be prompted for a secure, random pin
+                                    during login, which you can retrieve from
+                                    the TOTP-supported application on your
+                                    phone.
                                 </p>
 
                                 <TwoFactorRecoveryCodes
@@ -212,7 +234,14 @@ export default function Security({
                                                 type="submit"
                                                 disabled={processing}
                                             >
-                                                <ShieldBan /> Disable 2FA
+                                                {processing ? (
+                                                    <Loader2 className="animate-spin" />
+                                                ) : (
+                                                    <ShieldBan />
+                                                )}
+                                                {processing
+                                                    ? 'Disabling...'
+                                                    : 'Disable 2FA'}
                                             </Button>
                                         )}
                                     </Form>
@@ -222,30 +251,42 @@ export default function Security({
                             <div className="flex flex-col items-start justify-start space-y-4">
                                 <Badge variant="destructive">Disabled</Badge>
                                 <p className="text-muted-foreground">
-                                    When you enable two-factor authentication, you
-                                    will be prompted for a secure pin during login.
-                                    This pin can be retrieved from a TOTP-supported
-                                    application on your phone.
+                                    When you enable two-factor authentication,
+                                    you will be prompted for a secure pin during
+                                    login. This pin can be retrieved from a
+                                    TOTP-supported application on your phone.
                                 </p>
 
                                 <div>
                                     {hasSetupData ? (
-                                        <Button onClick={() => setShowSetupModal(true)}>
+                                        <Button
+                                            onClick={() =>
+                                                setShowSetupModal(true)
+                                            }
+                                        >
                                             <ShieldCheck />
                                             Continue Setup
                                         </Button>
                                     ) : (
                                         <Form
                                             {...enable.form()}
-                                            onSuccess={() => setShowSetupModal(true)}
+                                            onSuccess={() =>
+                                                setShowSetupModal(true)
+                                            }
                                         >
                                             {({ processing }) => (
                                                 <Button
                                                     type="submit"
                                                     disabled={processing}
                                                 >
-                                                    <ShieldCheck />
-                                                    Enable 2FA
+                                                    {processing ? (
+                                                        <Loader2 className="animate-spin" />
+                                                    ) : (
+                                                        <ShieldCheck />
+                                                    )}
+                                                    {processing
+                                                        ? 'Enabling...'
+                                                        : 'Enable 2FA'}
                                                 </Button>
                                             )}
                                         </Form>

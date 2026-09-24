@@ -6,6 +6,7 @@ import {
     FileText,
     HeartPulse,
     Info,
+    Loader2,
     Save,
     Shield,
     User,
@@ -2103,8 +2104,14 @@ function CorrectionDialogForm({
                             </Button>
                             {isLastStep ? (
                                 <Button type="submit" disabled={!canSubmit}>
-                                    <Save />
-                                    Save correction
+                                    {isProcessing ? (
+                                        <Loader2 className="animate-spin" />
+                                    ) : (
+                                        <Save />
+                                    )}
+                                    {isProcessing
+                                        ? 'Saving...'
+                                        : 'Save correction'}
                                 </Button>
                             ) : (
                                 <Button

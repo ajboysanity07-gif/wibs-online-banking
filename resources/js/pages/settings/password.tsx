@@ -1,5 +1,6 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head } from '@inertiajs/react';
+import { Loader2 } from 'lucide-react';
 import { useRef } from 'react';
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import Heading from '@/components/heading';
@@ -31,7 +32,11 @@ export default function Password() {
             <h1 className="sr-only">Password Settings</h1>
 
             <SettingsLayout>
-                <SurfaceCard variant="default" padding="lg" className="space-y-6">
+                <SurfaceCard
+                    variant="default"
+                    padding="lg"
+                    className="space-y-6"
+                >
                     <Heading
                         variant="small"
                         title="Update password"
@@ -124,7 +129,14 @@ export default function Password() {
                                         disabled={processing}
                                         data-test="update-password-button"
                                     >
-                                        Save password
+                                        {processing ? (
+                                            <>
+                                                <Loader2 className="size-4 animate-spin" />
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            'Save password'
+                                        )}
                                     </Button>
 
                                     <Transition
