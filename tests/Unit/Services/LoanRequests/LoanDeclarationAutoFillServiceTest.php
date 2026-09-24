@@ -308,6 +308,20 @@ test('requires_attention true when PDL or IIL present', function (): void {
     expect($pastDue['requires_attention'])->toBeTrue();
 });
 
+test('PDL loan with zero balance is not counted as past due', function (): void {
+    createWlnmasterTestTable();
+    createWlnmasterTestLoan(['acctno' => '000001', 'lnnumber' => 'A', 'lnstatus' => 'ACT', 'balance' => 1000]);
+    createWlnmasterTestLoan(['acctno' => '000001', 'lnnumber' => 'B', 'lnstatus' => 'PDL', 'balance' => 0]);
+    createWlnmasterTestLoan(['acctno' => '000001', 'lnnumber' => 'C', 'lnstatus' => 'PDL', 'balance' => 500]);
+
+    $summary = makeLoanDeclarationAutoFillService()->getLoanStatusSummaryForStaff('000001');
+
+    expect($summary['total_past_due'])->toBe(1);
+    expect($summary['has_past_due'])->toBeTrue();
+    expect($summary['past_due_balance_total'])->toBe(500.0);
+    expect($summary['warning_message'])->toBe('Applicant has 1 past due loan(s)');
+});
+
 test('warning_message formatting', function (): void {
     createWlnmasterTestTable();
 
@@ -350,6 +364,17 @@ test('getProblemLoans sort order (IIL first, then date_rel DESC)', function (): 
     $loans = makeLoanDeclarationAutoFillService()->getProblemLoans('000001');
 
     expect(array_column($loans, 'lnnumber'))->toBe(['IIL-OLD', 'PDL-NEW', 'PDL-OLD']);
+});
+
+test('getProblemLoans excludes PDL loans with zero balance', function (): void {
+    createWlnmasterTestTable();
+    createWlnmasterTestLoan(['acctno' => '000001', 'lnnumber' => 'PAID', 'lnstatus' => 'PDL', 'balance' => 0]);
+    createWlnmasterTestLoan(['acctno' => '000001', 'lnnumber' => 'OWED', 'lnstatus' => 'PDL', 'balance' => 500]);
+    createWlnmasterTestLoan(['acctno' => '000001', 'lnnumber' => 'LIT', 'lnstatus' => 'IIL', 'balance' => 0]);
+
+    $loans = makeLoanDeclarationAutoFillService()->getProblemLoans('000001');
+
+    expect(array_column($loans, 'lnnumber'))->toBe(['LIT', 'OWED']);
 });
 
 test('member summary complete with all loans', function (): void {

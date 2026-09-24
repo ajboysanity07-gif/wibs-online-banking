@@ -76,7 +76,7 @@ class LoanDeclarationAutoFillService
 
         $loans = $this->allLoansForAcctno($acctno);
         $active = $loans->filter(fn (Wlnmaster $loan): bool => $this->statusIs($loan, 'ACT'));
-        $pastDue = $loans->filter(fn (Wlnmaster $loan): bool => $this->statusIs($loan, 'PDL'));
+        $pastDue = $loans->filter(fn (Wlnmaster $loan): bool => $this->isPastDue($loan));
         $litigation = $loans->filter(fn (Wlnmaster $loan): bool => $this->statusIs($loan, 'IIL'));
 
         $summary = [
@@ -113,7 +113,12 @@ class LoanDeclarationAutoFillService
 
         return Wlnmaster::query()
             ->where('acctno', $acctno)
-            ->whereIn('lnstatus', ['PDL', 'IIL'])
+            ->where(function ($query): void {
+                $query->where('lnstatus', 'IIL')
+                    ->orWhere(function ($query): void {
+                        $query->where('lnstatus', 'PDL')->where('balance', '>', 0);
+                    });
+            })
             ->orderByRaw("CASE lnstatus WHEN 'IIL' THEN 0 ELSE 1 END")
             ->orderByDesc($this->resolveDateColumn())
             ->orderByDesc('lnnumber')
@@ -138,7 +143,7 @@ class LoanDeclarationAutoFillService
 
         $loans = $this->allLoansForAcctno($acctno);
         $active = $loans->filter(fn (Wlnmaster $loan): bool => $this->statusIs($loan, 'ACT'));
-        $pastDue = $loans->filter(fn (Wlnmaster $loan): bool => $this->statusIs($loan, 'PDL'));
+        $pastDue = $loans->filter(fn (Wlnmaster $loan): bool => $this->isPastDue($loan));
         $litigation = $loans->filter(fn (Wlnmaster $loan): bool => $this->statusIs($loan, 'IIL'));
 
         return [
@@ -223,6 +228,16 @@ class LoanDeclarationAutoFillService
     private function statusIs(Wlnmaster $loan, string $status): bool
     {
         return strtoupper(trim((string) $loan->lnstatus)) === $status;
+    }
+
+    /**
+     * A loan is only genuinely past due while it still carries a balance.
+     * The legacy WIBS desktop system doesn't reliably flip `lnstatus` off
+     * PDL once a loan is fully paid, so the status flag alone is stale.
+     */
+    private function isPastDue(Wlnmaster $loan): bool
+    {
+        return $this->statusIs($loan, 'PDL') && (float) ($loan->balance ?? 0) > 0.0;
     }
 
     /**
