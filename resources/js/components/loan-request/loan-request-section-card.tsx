@@ -67,7 +67,7 @@ export function LoanRequestSectionCard({
                 </div>
                 {headerAction ?? null}
             </CardHeader>
-            <CardContent className={cn('space-y-7', contentClassName)}>
+            <CardContent className={cn(contentClassName ?? 'space-y-7')}>
                 {errors ? (
                     <FormErrorSummary
                         errors={errors}
