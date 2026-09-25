@@ -1,5 +1,7 @@
+import { Home, MapPin, User, Users } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { BirthdateInput } from '@/components/loan-request/birthdate-input';
+import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { YearsInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { LocationCombobox } from '@/components/location-combobox';
 import { SurfaceCard } from '@/components/surface-card';
@@ -156,251 +158,268 @@ export function PersonalTab({
                         </p>
                     )}
 
-                    <div className="grid gap-4 md:grid-cols-3">
-                        <div className="grid gap-2 md:col-span-3">
-                            <Label htmlFor="member_full_name">
-                                Member full name
-                            </Label>
+                    <LoanRequestSectionCard title="Basic info" icon={User}>
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <div className="grid gap-2 md:col-span-3">
+                                <Label htmlFor="member_full_name">
+                                    Member full name
+                                </Label>
 
-                            <Input
-                                id="member_full_name"
-                                className={cn(
-                                    'mt-1 block w-full',
-                                    hasWmasterValue(memberDisplayName) &&
-                                        WMASTER_VALUE_CLASS,
-                                )}
-                                defaultValue={memberDisplayName}
-                                placeholder="Not available"
-                                disabled
-                            />
-                        </div>
-                        {hasStructuredName && (
-                            <>
-                                {memberFirstName !== '' && (
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="member_first_name">
-                                            First name
-                                        </Label>
+                                <Input
+                                    id="member_full_name"
+                                    className={cn(
+                                        'mt-1 block w-full',
+                                        hasWmasterValue(memberDisplayName) &&
+                                            WMASTER_VALUE_CLASS,
+                                    )}
+                                    defaultValue={memberDisplayName}
+                                    placeholder="Not available"
+                                    disabled
+                                />
+                            </div>
+                            {hasStructuredName && (
+                                <>
+                                    {memberFirstName !== '' && (
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="member_first_name">
+                                                First name
+                                            </Label>
 
-                                        <Input
-                                            id="member_first_name"
-                                            className={cn(
-                                                'mt-1 block w-full',
-                                                hasWmasterValue(
-                                                    memberFirstName,
-                                                ) && WMASTER_VALUE_CLASS,
-                                            )}
-                                            defaultValue={memberFirstName}
-                                            disabled
-                                        />
-                                    </div>
-                                )}
+                                            <Input
+                                                id="member_first_name"
+                                                className={cn(
+                                                    'mt-1 block w-full',
+                                                    hasWmasterValue(
+                                                        memberFirstName,
+                                                    ) && WMASTER_VALUE_CLASS,
+                                                )}
+                                                defaultValue={memberFirstName}
+                                                disabled
+                                            />
+                                        </div>
+                                    )}
 
-                                {memberLastName !== '' && (
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="member_last_name">
-                                            Last name
-                                        </Label>
+                                    {memberLastName !== '' && (
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="member_last_name">
+                                                Last name
+                                            </Label>
 
-                                        <Input
-                                            id="member_last_name"
-                                            className={cn(
-                                                'mt-1 block w-full',
-                                                hasWmasterValue(
-                                                    memberLastName,
-                                                ) && WMASTER_VALUE_CLASS,
-                                            )}
-                                            defaultValue={memberLastName}
-                                            disabled
-                                        />
-                                    </div>
-                                )}
+                                            <Input
+                                                id="member_last_name"
+                                                className={cn(
+                                                    'mt-1 block w-full',
+                                                    hasWmasterValue(
+                                                        memberLastName,
+                                                    ) && WMASTER_VALUE_CLASS,
+                                                )}
+                                                defaultValue={memberLastName}
+                                                disabled
+                                            />
+                                        </div>
+                                    )}
 
-                                {memberMiddleName !== '' && (
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="member_middle_name">
-                                            Middle name
-                                        </Label>
+                                    {memberMiddleName !== '' && (
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="member_middle_name">
+                                                Middle name
+                                            </Label>
 
-                                        <Input
-                                            id="member_middle_name"
-                                            className={cn(
-                                                'mt-1 block w-full',
-                                                hasWmasterValue(
-                                                    memberMiddleName,
-                                                ) && WMASTER_VALUE_CLASS,
-                                            )}
-                                            defaultValue={memberMiddleName}
-                                            disabled
-                                        />
-                                    </div>
-                                )}
-                            </>
-                        )}
-                        <div className="grid gap-2">
-                            <Label htmlFor="nickname">Nickname</Label>
+                                            <Input
+                                                id="member_middle_name"
+                                                className={cn(
+                                                    'mt-1 block w-full',
+                                                    hasWmasterValue(
+                                                        memberMiddleName,
+                                                    ) && WMASTER_VALUE_CLASS,
+                                                )}
+                                                defaultValue={memberMiddleName}
+                                                disabled
+                                            />
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                            <div className="grid gap-2">
+                                <Label htmlFor="nickname">Nickname</Label>
 
-                            <Input
-                                id="nickname"
-                                className="mt-1 block w-full"
-                                defaultValue={
-                                    memberApplicationProfile?.nickname ?? ''
-                                }
-                                name="nickname"
-                                autoComplete="nickname"
-                                placeholder="Preferred name"
-                            />
-
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.nickname}
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="member_birthday">Birthdate</Label>
-
-                            <Input
-                                id="member_birthday"
-                                type="date"
-                                className={cn(
-                                    'mt-1 block w-full',
-                                    hasWmasterValue(memberRecord?.birthday) &&
-                                        WMASTER_VALUE_CLASS,
-                                )}
-                                defaultValue={memberRecord?.birthday ?? ''}
-                                disabled
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="birthplace_province">
-                                Birthplace province
-                            </Label>
-                            <LocationCombobox
-                                id="birthplace_province"
-                                name="birthplace_province"
-                                search={birthplaceProvinceSearch}
-                                placeholder="Select province"
-                                required
-                                inputClassName={cn(
-                                    'mt-1 block w-full',
-                                    isFieldMissing('birthplace_province') &&
-                                        MISSING_FIELD_CLASS,
-                                )}
-                                loadingMessage="Searching province suggestions..."
-                                errorMessage="Province suggestions are temporarily unavailable."
-                                promptMessage="Type at least 2 characters to search provinces."
-                                onSelect={() => {
-                                    birthplaceCitySearch.setSelectedValue('');
-                                    birthplaceBarangaySearch.setSelectedValue(
-                                        '',
-                                    );
-                                }}
-                                onClear={() => {
-                                    birthplaceCitySearch.setSelectedValue('');
-                                    birthplaceBarangaySearch.setSelectedValue(
-                                        '',
-                                    );
-                                }}
-                            />
-
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.birthplace_province}
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="birthplace_city">
-                                Birthplace city/municipality
-                            </Label>
-                            <LocationCombobox
-                                id="birthplace_city"
-                                name="birthplace_city"
-                                search={birthplaceCitySearch}
-                                placeholder="Select city or municipality"
-                                required
-                                disabled={
-                                    !birthplaceProvinceSearch.selectedValue
-                                }
-                                inputClassName={cn(
-                                    'mt-1 block w-full',
-                                    isFieldMissing('birthplace_city') &&
-                                        MISSING_FIELD_CLASS,
-                                )}
-                                loadingMessage="Searching city suggestions..."
-                                errorMessage="City suggestions are temporarily unavailable."
-                                promptMessage="Select a province first."
-                                onSelect={(suggestion) => {
-                                    if (suggestion.province) {
-                                        birthplaceProvinceSearch.setSelectedValue(
-                                            suggestion.province,
-                                        );
+                                <Input
+                                    id="nickname"
+                                    className="mt-1 block w-full"
+                                    defaultValue={
+                                        memberApplicationProfile?.nickname ?? ''
                                     }
+                                    name="nickname"
+                                    autoComplete="nickname"
+                                    placeholder="Preferred name"
+                                />
 
-                                    birthplaceBarangaySearch.setSelectedValue(
-                                        '',
-                                    );
-                                }}
-                                onClear={() => {
-                                    birthplaceBarangaySearch.setSelectedValue(
-                                        '',
-                                    );
-                                }}
-                            />
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.nickname}
+                                />
+                            </div>
 
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.birthplace_city}
-                            />
+                            <div className="grid gap-2">
+                                <Label htmlFor="member_birthday">
+                                    Birthdate
+                                </Label>
+
+                                <Input
+                                    id="member_birthday"
+                                    type="date"
+                                    className={cn(
+                                        'mt-1 block w-full',
+                                        hasWmasterValue(
+                                            memberRecord?.birthday,
+                                        ) && WMASTER_VALUE_CLASS,
+                                    )}
+                                    defaultValue={memberRecord?.birthday ?? ''}
+                                    disabled
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="member_age">Age</Label>
+
+                                <Input
+                                    id="member_age"
+                                    type="number"
+                                    className={cn(
+                                        'mt-1 block w-full',
+                                        hasWmasterValue(memberAge) &&
+                                            WMASTER_VALUE_CLASS,
+                                    )}
+                                    defaultValue={memberAge ?? ''}
+                                    placeholder="Not available"
+                                    disabled
+                                />
+                            </div>
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="birthplace_barangay">
-                                Birthplace barangay{' '}
-                                <span className="text-xs text-muted-foreground">
-                                    (optional)
-                                </span>
-                            </Label>
-                            <LocationCombobox
-                                id="birthplace_barangay"
-                                name="birthplace_barangay"
-                                search={birthplaceBarangaySearch}
-                                placeholder="Select barangay"
-                                disabled={!birthplaceCitySearch.selectedValue}
-                                inputClassName={cn(
-                                    'mt-1 block w-full',
-                                    isFieldMissing('birthplace_barangay') &&
-                                        MISSING_FIELD_CLASS,
-                                )}
-                                loadingMessage="Loading barangays..."
-                                errorMessage="Barangay suggestions are temporarily unavailable."
-                                promptMessage="Select a city or municipality first."
-                            />
+                    </LoanRequestSectionCard>
 
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.birthplace_barangay}
-                            />
+                    <LoanRequestSectionCard title="Birthplace" icon={MapPin}>
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <div className="grid gap-2">
+                                <Label htmlFor="birthplace_province">
+                                    Birthplace province
+                                </Label>
+                                <LocationCombobox
+                                    id="birthplace_province"
+                                    name="birthplace_province"
+                                    search={birthplaceProvinceSearch}
+                                    placeholder="Select province"
+                                    required
+                                    inputClassName={cn(
+                                        'mt-1 block w-full',
+                                        isFieldMissing('birthplace_province') &&
+                                            MISSING_FIELD_CLASS,
+                                    )}
+                                    loadingMessage="Searching province suggestions..."
+                                    errorMessage="Province suggestions are temporarily unavailable."
+                                    promptMessage="Type at least 2 characters to search provinces."
+                                    onSelect={() => {
+                                        birthplaceCitySearch.setSelectedValue(
+                                            '',
+                                        );
+                                        birthplaceBarangaySearch.setSelectedValue(
+                                            '',
+                                        );
+                                    }}
+                                    onClear={() => {
+                                        birthplaceCitySearch.setSelectedValue(
+                                            '',
+                                        );
+                                        birthplaceBarangaySearch.setSelectedValue(
+                                            '',
+                                        );
+                                    }}
+                                />
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.birthplace_province}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="birthplace_city">
+                                    Birthplace city/municipality
+                                </Label>
+                                <LocationCombobox
+                                    id="birthplace_city"
+                                    name="birthplace_city"
+                                    search={birthplaceCitySearch}
+                                    placeholder="Select city or municipality"
+                                    required
+                                    disabled={
+                                        !birthplaceProvinceSearch.selectedValue
+                                    }
+                                    inputClassName={cn(
+                                        'mt-1 block w-full',
+                                        isFieldMissing('birthplace_city') &&
+                                            MISSING_FIELD_CLASS,
+                                    )}
+                                    loadingMessage="Searching city suggestions..."
+                                    errorMessage="City suggestions are temporarily unavailable."
+                                    promptMessage="Select a province first."
+                                    onSelect={(suggestion) => {
+                                        if (suggestion.province) {
+                                            birthplaceProvinceSearch.setSelectedValue(
+                                                suggestion.province,
+                                            );
+                                        }
+
+                                        birthplaceBarangaySearch.setSelectedValue(
+                                            '',
+                                        );
+                                    }}
+                                    onClear={() => {
+                                        birthplaceBarangaySearch.setSelectedValue(
+                                            '',
+                                        );
+                                    }}
+                                />
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.birthplace_city}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="birthplace_barangay">
+                                    Birthplace barangay{' '}
+                                    <span className="text-xs text-muted-foreground">
+                                        (optional)
+                                    </span>
+                                </Label>
+                                <LocationCombobox
+                                    id="birthplace_barangay"
+                                    name="birthplace_barangay"
+                                    search={birthplaceBarangaySearch}
+                                    placeholder="Select barangay"
+                                    disabled={
+                                        !birthplaceCitySearch.selectedValue
+                                    }
+                                    inputClassName={cn(
+                                        'mt-1 block w-full',
+                                        isFieldMissing('birthplace_barangay') &&
+                                            MISSING_FIELD_CLASS,
+                                    )}
+                                    loadingMessage="Loading barangays..."
+                                    errorMessage="Barangay suggestions are temporarily unavailable."
+                                    promptMessage="Select a city or municipality first."
+                                />
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.birthplace_barangay}
+                                />
+                            </div>
                         </div>
+                    </LoanRequestSectionCard>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="member_age">Age</Label>
-
-                            <Input
-                                id="member_age"
-                                type="number"
-                                className={cn(
-                                    'mt-1 block w-full',
-                                    hasWmasterValue(memberAge) &&
-                                        WMASTER_VALUE_CLASS,
-                                )}
-                                defaultValue={memberAge ?? ''}
-                                placeholder="Not available"
-                                disabled
-                            />
-                        </div>
-
-                        <div className="grid gap-4 md:col-span-3 md:grid-cols-2">
+                    <LoanRequestSectionCard title="Home address" icon={Home}>
+                        <div className="grid gap-4 md:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="home_address3">Province</Label>
                                 <OriginalValueHint
@@ -566,175 +585,164 @@ export function PersonalTab({
                                     message={formErrors.home_address1}
                                 />
                             </div>
-                        </div>
 
-                        <div className="grid gap-2">
-                            <div className="flex items-center justify-between gap-2">
-                                <Label htmlFor="length_of_stay">
-                                    Length of stay
-                                </Label>
-                                <label
-                                    htmlFor="length_of_stay_since_birth"
-                                    className="flex items-center gap-1.5 text-xs text-muted-foreground"
-                                >
-                                    <Checkbox
-                                        id="length_of_stay_since_birth"
-                                        checked={lengthOfStaySinceBirth}
-                                        disabled={memberAge === null}
-                                        onCheckedChange={(checked) => {
-                                            const isChecked = checked === true;
-                                            setLengthOfStaySinceBirth(
-                                                isChecked,
-                                            );
-
-                                            if (isChecked) {
-                                                setLengthOfStay(
-                                                    memberAge !== null
-                                                        ? String(memberAge)
-                                                        : '',
+                            <div className="grid gap-2">
+                                <div className="flex items-center justify-between gap-2">
+                                    <Label htmlFor="length_of_stay">
+                                        Length of stay
+                                    </Label>
+                                    <label
+                                        htmlFor="length_of_stay_since_birth"
+                                        className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                                    >
+                                        <Checkbox
+                                            id="length_of_stay_since_birth"
+                                            checked={lengthOfStaySinceBirth}
+                                            disabled={memberAge === null}
+                                            onCheckedChange={(checked) => {
+                                                const isChecked =
+                                                    checked === true;
+                                                setLengthOfStaySinceBirth(
+                                                    isChecked,
                                                 );
-                                            }
-                                        }}
-                                    />
-                                    Since birth
-                                </label>
-                            </div>
 
-                            <YearsInput
-                                id="length_of_stay"
-                                className={cn(
-                                    'mt-1 block w-full',
-                                    isFieldMissing('length_of_stay') &&
-                                        MISSING_FIELD_CLASS,
-                                )}
-                                value={lengthOfStay}
-                                onChange={setLengthOfStay}
-                                disabled={lengthOfStaySinceBirth}
-                                required
-                                placeholder="e.g. 2"
-                            />
+                                                if (isChecked) {
+                                                    setLengthOfStay(
+                                                        memberAge !== null
+                                                            ? String(memberAge)
+                                                            : '',
+                                                    );
+                                                }
+                                            }}
+                                        />
+                                        Since birth
+                                    </label>
+                                </div>
 
-                            <input
-                                type="hidden"
-                                name="length_of_stay"
-                                value={lengthOfStay}
-                            />
-
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.length_of_stay}
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label
-                                htmlFor={
-                                    isHousingStatusLocked
-                                        ? 'member_housing_status'
-                                        : 'housing_status'
-                                }
-                            >
-                                Housing status
-                            </Label>
-
-                            {isHousingStatusLocked ? (
-                                <Input
-                                    id="member_housing_status"
+                                <YearsInput
+                                    id="length_of_stay"
                                     className={cn(
                                         'mt-1 block w-full',
-                                        WMASTER_VALUE_CLASS,
+                                        isFieldMissing('length_of_stay') &&
+                                            MISSING_FIELD_CLASS,
                                     )}
-                                    defaultValue={
-                                        memberRecord?.housing_status ?? ''
-                                    }
-                                    placeholder="Not available"
-                                    disabled
+                                    value={lengthOfStay}
+                                    onChange={setLengthOfStay}
+                                    disabled={lengthOfStaySinceBirth}
+                                    required
+                                    placeholder="e.g. 2"
                                 />
-                            ) : (
-                                <>
-                                    <Select
-                                        value={housingStatusValue || undefined}
-                                        onValueChange={setHousingStatusValue}
-                                    >
-                                        <SelectTrigger
-                                            id="housing_status"
-                                            className={cn(
-                                                'mt-1 w-full',
-                                                isFieldMissing(
-                                                    'housing_status',
-                                                ) && MISSING_FIELD_CLASS,
-                                            )}
-                                        >
-                                            <SelectValue placeholder="Select housing status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {HOUSING_STATUS_OPTIONS.map(
-                                                (option) => (
-                                                    <SelectItem
-                                                        key={option.value}
-                                                        value={option.value}
-                                                    >
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ),
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                    <input
-                                        type="hidden"
-                                        name="housing_status"
-                                        value={housingStatusValue}
-                                    />
-                                    <InputError
-                                        className="mt-2"
-                                        message={formErrors.housing_status}
-                                    />
-                                </>
-                            )}
-                        </div>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor={isSexLocked ? 'member_sex' : 'sex'}>
-                                Sex
-                            </Label>
+                                <input
+                                    type="hidden"
+                                    name="length_of_stay"
+                                    value={lengthOfStay}
+                                />
 
-                            {isSexLocked ? (
-                                <Select value={memberSex || undefined} disabled>
-                                    <SelectTrigger
-                                        id="member_sex"
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.length_of_stay}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label
+                                    htmlFor={
+                                        isHousingStatusLocked
+                                            ? 'member_housing_status'
+                                            : 'housing_status'
+                                    }
+                                >
+                                    Housing status
+                                </Label>
+
+                                {isHousingStatusLocked ? (
+                                    <Input
+                                        id="member_housing_status"
                                         className={cn(
-                                            'mt-1 w-full',
+                                            'mt-1 block w-full',
                                             WMASTER_VALUE_CLASS,
                                         )}
-                                    >
-                                        <SelectValue placeholder="Not available" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {SEX_OPTIONS.map((option) => (
-                                            <SelectItem
-                                                key={option}
-                                                value={option}
+                                        defaultValue={
+                                            memberRecord?.housing_status ?? ''
+                                        }
+                                        placeholder="Not available"
+                                        disabled
+                                    />
+                                ) : (
+                                    <>
+                                        <Select
+                                            value={
+                                                housingStatusValue || undefined
+                                            }
+                                            onValueChange={
+                                                setHousingStatusValue
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                id="housing_status"
+                                                className={cn(
+                                                    'mt-1 w-full',
+                                                    isFieldMissing(
+                                                        'housing_status',
+                                                    ) && MISSING_FIELD_CLASS,
+                                                )}
                                             >
-                                                {option}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            ) : (
-                                <>
+                                                <SelectValue placeholder="Select housing status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {HOUSING_STATUS_OPTIONS.map(
+                                                    (option) => (
+                                                        <SelectItem
+                                                            key={option.value}
+                                                            value={option.value}
+                                                        >
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <input
+                                            type="hidden"
+                                            name="housing_status"
+                                            value={housingStatusValue}
+                                        />
+                                        <InputError
+                                            className="mt-2"
+                                            message={formErrors.housing_status}
+                                        />
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </LoanRequestSectionCard>
+
+                    <LoanRequestSectionCard
+                        title="Civil status & family"
+                        icon={Users}
+                    >
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <div className="grid gap-2">
+                                <Label
+                                    htmlFor={isSexLocked ? 'member_sex' : 'sex'}
+                                >
+                                    Sex
+                                </Label>
+
+                                {isSexLocked ? (
                                     <Select
-                                        value={sexValue || undefined}
-                                        onValueChange={setSexValue}
+                                        value={memberSex || undefined}
+                                        disabled
                                     >
                                         <SelectTrigger
-                                            id="sex"
+                                            id="member_sex"
                                             className={cn(
                                                 'mt-1 w-full',
-                                                isFieldMissing('sex') &&
-                                                    MISSING_FIELD_CLASS,
+                                                WMASTER_VALUE_CLASS,
                                             )}
                                         >
-                                            <SelectValue placeholder="Select sex" />
+                                            <SelectValue placeholder="Not available" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {SEX_OPTIONS.map((option) => (
@@ -747,71 +755,70 @@ export function PersonalTab({
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <input
-                                        type="hidden"
-                                        name="sex"
-                                        value={sexValue}
-                                    />
-                                    <InputError
-                                        className="mt-2"
-                                        message={formErrors.sex}
-                                    />
-                                </>
-                            )}
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label
-                                htmlFor={
-                                    isCivilStatusLocked
-                                        ? 'member_civil_status'
-                                        : 'civil_status'
-                                }
-                            >
-                                Civil status
-                            </Label>
-
-                            {isCivilStatusLocked ? (
-                                <Select
-                                    value={memberCivilStatus || undefined}
-                                    disabled
-                                >
-                                    <SelectTrigger
-                                        id="member_civil_status"
-                                        className={cn(
-                                            'mt-1 w-full',
-                                            WMASTER_VALUE_CLASS,
-                                        )}
-                                    >
-                                        <SelectValue placeholder="Not available" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {CIVIL_STATUS_OPTIONS.map((option) => (
-                                            <SelectItem
-                                                key={option}
-                                                value={option}
+                                ) : (
+                                    <>
+                                        <Select
+                                            value={sexValue || undefined}
+                                            onValueChange={setSexValue}
+                                        >
+                                            <SelectTrigger
+                                                id="sex"
+                                                className={cn(
+                                                    'mt-1 w-full',
+                                                    isFieldMissing('sex') &&
+                                                        MISSING_FIELD_CLASS,
+                                                )}
                                             >
-                                                {option}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            ) : (
-                                <>
+                                                <SelectValue placeholder="Select sex" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {SEX_OPTIONS.map((option) => (
+                                                    <SelectItem
+                                                        key={option}
+                                                        value={option}
+                                                    >
+                                                        {option}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <input
+                                            type="hidden"
+                                            name="sex"
+                                            value={sexValue}
+                                        />
+                                        <InputError
+                                            className="mt-2"
+                                            message={formErrors.sex}
+                                        />
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label
+                                    htmlFor={
+                                        isCivilStatusLocked
+                                            ? 'member_civil_status'
+                                            : 'civil_status'
+                                    }
+                                >
+                                    Civil status
+                                </Label>
+
+                                {isCivilStatusLocked ? (
                                     <Select
-                                        value={civilStatusValue || undefined}
-                                        onValueChange={setCivilStatusValue}
+                                        value={memberCivilStatus || undefined}
+                                        disabled
                                     >
                                         <SelectTrigger
-                                            id="civil_status"
+                                            id="member_civil_status"
                                             className={cn(
                                                 'mt-1 w-full',
-                                                isFieldMissing(
-                                                    'civil_status',
-                                                ) && MISSING_FIELD_CLASS,
+                                                WMASTER_VALUE_CLASS,
                                             )}
                                         >
-                                            <SelectValue placeholder="Select civil status" />
+                                            <SelectValue placeholder="Not available" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {CIVIL_STATUS_OPTIONS.map(
@@ -826,206 +833,247 @@ export function PersonalTab({
                                             )}
                                         </SelectContent>
                                     </Select>
-                                    <input
-                                        type="hidden"
-                                        name="civil_status"
-                                        value={civilStatusValue}
-                                    />
-                                    <InputError
-                                        className="mt-2"
-                                        message={formErrors.civil_status}
-                                    />
-                                </>
-                            )}
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="educational_attainment">
-                                Educational attainment
-                            </Label>
-
-                            <Select
-                                value={educationalAttainment || undefined}
-                                onValueChange={(value) => {
-                                    setEducationalAttainment(value);
-                                }}
-                            >
-                                <SelectTrigger
-                                    id="educational_attainment"
-                                    className={cn(
-                                        'mt-1 w-full',
-                                        isFieldMissing(
-                                            'educational_attainment',
-                                        ) && MISSING_FIELD_CLASS,
-                                    )}
-                                >
-                                    <SelectValue placeholder="Select educational attainment" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {educationalAttainmentOptions.map(
-                                        (option) => (
-                                            <SelectItem
-                                                key={option}
-                                                value={option}
-                                            >
-                                                {option}
-                                            </SelectItem>
-                                        ),
-                                    )}
-                                </SelectContent>
-                            </Select>
-
-                            <input
-                                type="hidden"
-                                name="educational_attainment"
-                                value={educationalAttainment}
-                            />
-
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.educational_attainment}
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="number_of_children">
-                                No. of children
-                            </Label>
-
-                            <Input
-                                id="number_of_children"
-                                type="number"
-                                className={cn(
-                                    'mt-1 block w-full',
-                                    hasWmasterValue(
-                                        memberRecord?.number_of_children,
-                                    ) && WMASTER_VALUE_CLASS,
-                                )}
-                                defaultValue={numberOfChildrenValue}
-                                name="number_of_children"
-                                min={0}
-                                inputMode="numeric"
-                            />
-
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.number_of_children}
-                            />
-                        </div>
-
-                        {!spouseFieldsHidden && (
-                            <>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="member_record_spouse_name">
-                                        Spouse name
-                                    </Label>
-                                    {isSpouseNameLocked ? (
-                                        <Input
-                                            id="member_record_spouse_name"
-                                            className={cn(
-                                                'mt-1 block w-full',
-                                                WMASTER_VALUE_CLASS,
-                                            )}
-                                            defaultValue={
-                                                memberRecord?.spouse_name ?? ''
+                                ) : (
+                                    <>
+                                        <Select
+                                            value={
+                                                civilStatusValue || undefined
                                             }
-                                            placeholder="Not available"
-                                            disabled
+                                            onValueChange={setCivilStatusValue}
+                                        >
+                                            <SelectTrigger
+                                                id="civil_status"
+                                                className={cn(
+                                                    'mt-1 w-full',
+                                                    isFieldMissing(
+                                                        'civil_status',
+                                                    ) && MISSING_FIELD_CLASS,
+                                                )}
+                                            >
+                                                <SelectValue placeholder="Select civil status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {CIVIL_STATUS_OPTIONS.map(
+                                                    (option) => (
+                                                        <SelectItem
+                                                            key={option}
+                                                            value={option}
+                                                        >
+                                                            {option}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <input
+                                            type="hidden"
+                                            name="civil_status"
+                                            value={civilStatusValue}
                                         />
-                                    ) : (
-                                        <>
+                                        <InputError
+                                            className="mt-2"
+                                            message={formErrors.civil_status}
+                                        />
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="educational_attainment">
+                                    Educational attainment
+                                </Label>
+
+                                <Select
+                                    value={educationalAttainment || undefined}
+                                    onValueChange={(value) => {
+                                        setEducationalAttainment(value);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        id="educational_attainment"
+                                        className={cn(
+                                            'mt-1 w-full',
+                                            isFieldMissing(
+                                                'educational_attainment',
+                                            ) && MISSING_FIELD_CLASS,
+                                        )}
+                                    >
+                                        <SelectValue placeholder="Select educational attainment" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {educationalAttainmentOptions.map(
+                                            (option) => (
+                                                <SelectItem
+                                                    key={option}
+                                                    value={option}
+                                                >
+                                                    {option}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+
+                                <input
+                                    type="hidden"
+                                    name="educational_attainment"
+                                    value={educationalAttainment}
+                                />
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.educational_attainment}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="number_of_children">
+                                    No. of children
+                                </Label>
+
+                                <Input
+                                    id="number_of_children"
+                                    type="number"
+                                    className={cn(
+                                        'mt-1 block w-full',
+                                        hasWmasterValue(
+                                            memberRecord?.number_of_children,
+                                        ) && WMASTER_VALUE_CLASS,
+                                    )}
+                                    defaultValue={numberOfChildrenValue}
+                                    name="number_of_children"
+                                    min={0}
+                                    inputMode="numeric"
+                                />
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.number_of_children}
+                                />
+                            </div>
+
+                            {!spouseFieldsHidden && (
+                                <>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="member_record_spouse_name">
+                                            Spouse name
+                                        </Label>
+                                        {isSpouseNameLocked ? (
                                             <Input
                                                 id="member_record_spouse_name"
                                                 className={cn(
                                                     'mt-1 block w-full',
-                                                    isFieldMissing(
-                                                        'spouse_name',
-                                                    ) && MISSING_FIELD_CLASS,
+                                                    WMASTER_VALUE_CLASS,
                                                 )}
-                                                value={spouseNameValue}
-                                                name="spouse_name"
-                                                placeholder="Spouse name"
-                                                onChange={(event) => {
-                                                    setSpouseNameValue(
-                                                        event.target.value,
-                                                    );
-                                                }}
+                                                defaultValue={
+                                                    memberRecord?.spouse_name ??
+                                                    ''
+                                                }
+                                                placeholder="Not available"
+                                                disabled
                                             />
-                                            <InputError
-                                                className="mt-2"
-                                                message={formErrors.spouse_name}
-                                            />
-                                        </>
-                                    )}
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="spouse_birthdate">
-                                        Spouse birthdate
-                                    </Label>
-
-                                    <BirthdateInput
-                                        id="spouse_birthdate"
-                                        name="spouse_birthdate"
-                                        className={cn(
-                                            isFieldMissing(
-                                                'spouse_birthdate',
-                                            ) && MISSING_FIELD_CLASS,
+                                        ) : (
+                                            <>
+                                                <Input
+                                                    id="member_record_spouse_name"
+                                                    className={cn(
+                                                        'mt-1 block w-full',
+                                                        isFieldMissing(
+                                                            'spouse_name',
+                                                        ) &&
+                                                            MISSING_FIELD_CLASS,
+                                                    )}
+                                                    value={spouseNameValue}
+                                                    name="spouse_name"
+                                                    placeholder="Spouse name"
+                                                    onChange={(event) => {
+                                                        setSpouseNameValue(
+                                                            event.target.value,
+                                                        );
+                                                    }}
+                                                />
+                                                <InputError
+                                                    className="mt-2"
+                                                    message={
+                                                        formErrors.spouse_name
+                                                    }
+                                                />
+                                            </>
                                         )}
-                                        value={spouseBirthdateValue}
-                                        onValueChange={setSpouseBirthdateValue}
-                                    />
+                                    </div>
 
-                                    <InputError
-                                        className="mt-2"
-                                        message={formErrors.spouse_birthdate}
-                                    />
-                                </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="spouse_birthdate">
+                                            Spouse birthdate
+                                        </Label>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="spouse_age_display">
-                                        Spouse age
-                                    </Label>
+                                        <BirthdateInput
+                                            id="spouse_birthdate"
+                                            name="spouse_birthdate"
+                                            className={cn(
+                                                isFieldMissing(
+                                                    'spouse_birthdate',
+                                                ) && MISSING_FIELD_CLASS,
+                                            )}
+                                            value={spouseBirthdateValue}
+                                            onValueChange={
+                                                setSpouseBirthdateValue
+                                            }
+                                        />
 
-                                    <Input
-                                        id="spouse_age_display"
-                                        type="number"
-                                        className="mt-1 block w-full"
-                                        value={spouseAge ?? ''}
-                                        placeholder="Computed from birthdate"
-                                        disabled
-                                        readOnly
-                                    />
-                                </div>
+                                        <InputError
+                                            className="mt-2"
+                                            message={
+                                                formErrors.spouse_birthdate
+                                            }
+                                        />
+                                    </div>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="spouse_cell_no">
-                                        Spouse cell no.
-                                    </Label>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="spouse_age_display">
+                                            Spouse age
+                                        </Label>
 
-                                    <Input
-                                        id="spouse_cell_no"
-                                        type="tel"
-                                        className="mt-1 block w-full"
-                                        defaultValue={
-                                            memberApplicationProfile?.spouse_cell_no ??
-                                            ''
-                                        }
-                                        name="spouse_cell_no"
-                                        inputMode="numeric"
-                                        maxLength={11}
-                                        placeholder="09XXXXXXXXX"
-                                        onChange={handleMobileNumberInput}
-                                    />
+                                        <Input
+                                            id="spouse_age_display"
+                                            type="number"
+                                            className="mt-1 block w-full"
+                                            value={spouseAge ?? ''}
+                                            placeholder="Computed from birthdate"
+                                            disabled
+                                            readOnly
+                                        />
+                                    </div>
 
-                                    <InputError
-                                        className="mt-2"
-                                        message={formErrors.spouse_cell_no}
-                                    />
-                                </div>
-                            </>
-                        )}
-                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="spouse_cell_no">
+                                            Spouse cell no.
+                                        </Label>
+
+                                        <Input
+                                            id="spouse_cell_no"
+                                            type="tel"
+                                            className="mt-1 block w-full"
+                                            defaultValue={
+                                                memberApplicationProfile?.spouse_cell_no ??
+                                                ''
+                                            }
+                                            name="spouse_cell_no"
+                                            inputMode="numeric"
+                                            maxLength={11}
+                                            placeholder="09XXXXXXXXX"
+                                            onChange={handleMobileNumberInput}
+                                        />
+
+                                        <InputError
+                                            className="mt-2"
+                                            message={formErrors.spouse_cell_no}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </LoanRequestSectionCard>
                 </div>
             </SurfaceCard>
         </TabsContent>
