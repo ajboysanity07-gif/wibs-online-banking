@@ -5,10 +5,14 @@ import {
     DollarSign,
     FileCheck2,
     Landmark,
+    MapPin,
     PenTool,
+    User,
+    Users,
+    X,
     type LucideIcon,
 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import {
     DEPENDENT_CATEGORIES,
@@ -524,6 +528,37 @@ type ApplicantWorkStepProps = Omit<PersonStepProps, 'readOnly'> & {
     forceUnlock?: boolean;
 };
 
+// Every field LoanRequestWorkFields (section="all") can touch -- used to
+// snapshot values on Edit and restore them on Cancel.
+const WORK_FIELD_KEYS: (keyof LoanRequestPersonFormData)[] = [
+    'employment_type',
+    'employer_business_name',
+    'employer_business_address1',
+    'employer_business_address2',
+    'employer_business_address3',
+    'employer_business_address_barangay',
+    'employer_business_address_zip',
+    'employer_date_employed',
+    'telephone_no',
+    'years_in_work_business',
+    'current_position',
+    'nature_of_business',
+    'gross_monthly_income',
+    'payday',
+];
+
+const displayCurrency = (value: string): string => {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+        return '--';
+    }
+
+    const numeric = Number(trimmed);
+
+    return Number.isNaN(numeric) ? '--' : formatCurrency(numeric);
+};
+
 /**
  * Combined "My work & finances" step -- employment and income used to be two
  * separate wizard steps, but neither is wmaster-verified (unlike personal
@@ -539,8 +574,28 @@ export function LoanRequestApplicantWorkStep({
 }: ApplicantWorkStepProps) {
     const [unlocked, setUnlocked] = useState(false);
     const effectivelyUnlocked = unlocked || forceUnlock;
+    const snapshotRef = useRef<LoanRequestPersonFormData | null>(null);
 
     const showLockedSummary = hasExistingIncomeData && !effectivelyUnlocked;
+
+    const handleEdit = () => {
+        snapshotRef.current = { ...values };
+        setUnlocked(true);
+    };
+
+    const handleCancel = () => {
+        const snapshot = snapshotRef.current;
+
+        if (snapshot) {
+            WORK_FIELD_KEYS.forEach((field) => {
+                if (values[field] !== snapshot[field]) {
+                    onChange(field, snapshot[field] as string);
+                }
+            });
+        }
+
+        setUnlocked(false);
+    };
 
     if (showLockedSummary) {
         const workSummary: SummaryItem[] = [
@@ -562,7 +617,7 @@ export function LoanRequestApplicantWorkStep({
             },
             {
                 label: 'Gross monthly income',
-                value: displayValue(values.gross_monthly_income),
+                value: displayCurrency(values.gross_monthly_income),
             },
             { label: 'Payday', value: displayValue(values.payday) },
         ];
@@ -571,6 +626,7 @@ export function LoanRequestApplicantWorkStep({
             <LoanRequestSectionCard
                 title="My work & finances"
                 description="Confirm your employment and income details are still accurate."
+                icon={Briefcase}
                 errors={errors}
             >
                 <Card className="gap-2 py-3">
@@ -580,7 +636,7 @@ export function LoanRequestApplicantWorkStep({
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setUnlocked(true)}
+                            onClick={handleEdit}
                         >
                             Edit
                         </Button>
@@ -594,8 +650,22 @@ export function LoanRequestApplicantWorkStep({
         <LoanRequestSectionCard
             title="My work & finances"
             description="Share your employment, employer, and income details."
+            icon={Briefcase}
             errors={errors}
         >
+            {hasExistingIncomeData && unlocked ? (
+                <div className="flex justify-end">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCancel}
+                    >
+                        <X className="size-4" />
+                        Cancel
+                    </Button>
+                </div>
+            ) : null}
             <LoanRequestWorkFields
                 prefix="applicant"
                 values={values}
@@ -638,6 +708,12 @@ const CONFIRM_SECTION_LABELS: Record<ApplicantConfirmSection, string> = {
     family: 'Family & background',
 };
 
+const CONFIRM_SECTION_ICONS: Record<ApplicantConfirmSection, LucideIcon> = {
+    basic: User,
+    contact: MapPin,
+    family: Users,
+};
+
 // Fields in each section that are potentially locked by applicantReadOnly
 // (verified against wmaster). Used to decide whether an "Edit" affordance
 // would reveal anything actually editable.
@@ -674,6 +750,23 @@ const SECTION_ALWAYS_EDITABLE_FIELDS: Record<
     basic: ['nickname'],
     contact: ['cell_no', 'length_of_stay'],
     family: ['educational_attainment', 'spouse_birthdate', 'spouse_cell_no'],
+};
+
+// All fields a section can touch (readonly-controlled + always-editable
+// combined) -- used to snapshot values on Edit and restore them on Cancel.
+const SECTION_FIELD_KEYS: Record<ApplicantConfirmSection, string[]> = {
+    basic: [
+        ...SECTION_READONLY_CONTROLLED_FIELDS.basic,
+        ...SECTION_ALWAYS_EDITABLE_FIELDS.basic,
+    ],
+    contact: [
+        ...SECTION_READONLY_CONTROLLED_FIELDS.contact,
+        ...SECTION_ALWAYS_EDITABLE_FIELDS.contact,
+    ],
+    family: [
+        ...SECTION_READONLY_CONTROLLED_FIELDS.family,
+        ...SECTION_ALWAYS_EDITABLE_FIELDS.family,
+    ],
 };
 
 function sectionHasEditableField(
@@ -754,8 +847,34 @@ export function LoanRequestApplicantConfirmStep({
     const [unlockedKeys, setUnlockedKeys] = useState<
         Set<ApplicantConfirmSection>
     >(() => new Set());
-    const unlock = (key: ApplicantConfirmSection) =>
-        setUnlockedKeys((current) => new Set(current).add(key));
+    const snapshotsRef = useRef<
+        Partial<Record<ApplicantConfirmSection, LoanRequestPersonFormData>>
+    >({});
+
+    const unlock = (section: ApplicantConfirmSection) => {
+        snapshotsRef.current[section] = { ...values };
+        setUnlockedKeys((current) => new Set(current).add(section));
+    };
+
+    const cancel = (section: ApplicantConfirmSection) => {
+        const snapshot = snapshotsRef.current[section];
+
+        if (snapshot) {
+            SECTION_FIELD_KEYS[section].forEach((field) => {
+                const key = field as keyof LoanRequestPersonFormData;
+
+                if (values[key] !== snapshot[key]) {
+                    onChange(key, snapshot[key] as string);
+                }
+            });
+        }
+
+        setUnlockedKeys((current) => {
+            const next = new Set(current);
+            next.delete(section);
+            return next;
+        });
+    };
 
     const effectiveUnlockedKeys = new Set([
         ...unlockedKeys,
@@ -768,17 +887,20 @@ export function LoanRequestApplicantConfirmStep({
         <LoanRequestSectionCard
             title="Confirm your details"
             description="Review the personal details we already have on file. If anything has changed, edit that section."
+            icon={User}
             contentClassName="space-y-6"
             errors={errors}
         >
             {sections.map((section) => {
                 const locked = !effectiveUnlockedKeys.has(section);
                 const editable = sectionHasEditableField(section, readOnly);
+                const SectionIcon = CONFIRM_SECTION_ICONS[section];
 
                 if (locked) {
                     return (
                         <div key={section} className="space-y-3">
-                            <p className="text-sm font-semibold text-foreground">
+                            <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                <SectionIcon className="size-4 text-muted-foreground" />
                                 {CONFIRM_SECTION_LABELS[section]}
                             </p>
                             <Card className="gap-2 py-3">
@@ -821,6 +943,23 @@ export function LoanRequestApplicantConfirmStep({
 
                 return (
                     <div key={section} className="space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                <SectionIcon className="size-4 text-muted-foreground" />
+                                {CONFIRM_SECTION_LABELS[section]}
+                            </p>
+                            {unlockedKeys.has(section) ? (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => cancel(section)}
+                                >
+                                    <X className="size-4" />
+                                    Cancel
+                                </Button>
+                            ) : null}
+                        </div>
                         <LoanRequestPersonalFields
                             prefix="applicant"
                             values={values}

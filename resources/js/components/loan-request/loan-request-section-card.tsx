@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import {
     Card,
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils';
 type Props = {
     title: string;
     description?: string;
+    icon?: LucideIcon;
     children: ReactNode;
     className?: string;
     contentClassName?: string;
@@ -27,6 +29,7 @@ type Props = {
 export function LoanRequestSectionCard({
     title,
     description,
+    icon: Icon,
     children,
     className,
     contentClassName,
@@ -41,7 +44,12 @@ export function LoanRequestSectionCard({
             )}
         >
             <CardHeader className="space-y-2 pb-5">
-                <CardTitle className="text-lg">{title}</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    {Icon ? (
+                        <Icon className="size-5 text-muted-foreground" />
+                    ) : null}
+                    {title}
+                </CardTitle>
                 {description ? (
                     <CardDescription>{description}</CardDescription>
                 ) : null}
