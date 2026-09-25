@@ -1,4 +1,4 @@
-import { Briefcase, Wallet } from 'lucide-react';
+import { Briefcase, IdCard, Wallet } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
@@ -21,13 +21,26 @@ import { TabsContent } from '@/components/ui/tabs';
 import type { useLocationSearch } from '@/hooks/use-location-search';
 import { cn } from '@/lib/utils';
 import {
+    ID_TYPE_OPTIONS,
+    ID_TYPE_OTHER_VALUE,
     MISSING_FIELD_CLASS,
     NATURE_OF_BUSINESS_OPTIONS,
     NATURE_OF_BUSINESS_OTHER_VALUE,
     PAYDAY_OPTIONS,
+    SOURCE_OF_FUND_OPTIONS,
+    SOURCE_OF_FUND_OTHER_VALUE,
     WMASTER_VALUE_CLASS,
     type MemberApplicationProfileData,
 } from '../profile-shared';
+
+/** Mirrors the id_type-keyed digit-count check in ProfileUpdateRequest::idNumberFormatRule(). */
+const ID_NUMBER_PLACEHOLDERS: Record<string, string> = {
+    SSS: '10-digit SSS number',
+    GSIS: '11-digit GSIS number',
+    TIN: '9 or 12-digit TIN',
+    'Phil ID': '16-18 digit PhilID (PCN)',
+    UMID: '12-digit CRN',
+};
 
 type LocationSearchState = ReturnType<typeof useLocationSearch>;
 
@@ -62,6 +75,15 @@ type Props = {
     setGrossMonthlyIncome: (value: string) => void;
     paydaySelection: string;
     setPaydaySelection: (value: string) => void;
+    idTypeSelection: string;
+    setIdTypeSelection: (value: string) => void;
+    idTypeOther: string;
+    setIdTypeOther: (value: string) => void;
+    sourceOfFundSelection: string;
+    setSourceOfFundSelection: (value: string) => void;
+    sourceOfFundOther: string;
+    setSourceOfFundOther: (value: string) => void;
+    resolvedSourceOfFund: string;
 };
 
 export function WorkTab({
@@ -95,6 +117,15 @@ export function WorkTab({
     setGrossMonthlyIncome,
     paydaySelection,
     setPaydaySelection,
+    idTypeSelection,
+    setIdTypeSelection,
+    idTypeOther,
+    setIdTypeOther,
+    sourceOfFundSelection,
+    setSourceOfFundSelection,
+    sourceOfFundOther,
+    setSourceOfFundOther,
+    resolvedSourceOfFund,
 }: Props) {
     return (
         <TabsContent value="work" forceMount className="mt-0">
@@ -608,6 +639,201 @@ export function WorkTab({
                                 <InputError
                                     className="mt-2"
                                     message={formErrors.payday}
+                                />
+                            </div>
+                        </div>
+                    </LoanRequestSectionCard>
+
+                    <LoanRequestSectionCard
+                        title="Source of Funds & Government ID"
+                        description="Required before you can start a loan request."
+                        icon={IdCard}
+                    >
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="source_of_fund_wealth">
+                                    Source of fund / wealth
+                                </Label>
+
+                                <Select
+                                    value={sourceOfFundSelection || undefined}
+                                    onValueChange={(value) => {
+                                        setSourceOfFundSelection(value);
+
+                                        if (
+                                            value !== SOURCE_OF_FUND_OTHER_VALUE
+                                        ) {
+                                            setSourceOfFundOther('');
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        id="source_of_fund_wealth"
+                                        className={cn(
+                                            'mt-1 w-full',
+                                            isFieldMissing(
+                                                'source_of_fund_wealth',
+                                            ) && MISSING_FIELD_CLASS,
+                                        )}
+                                    >
+                                        <SelectValue placeholder="Select source of fund" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {SOURCE_OF_FUND_OPTIONS.map(
+                                            (option) => (
+                                                <SelectItem
+                                                    key={option}
+                                                    value={option}
+                                                >
+                                                    {option}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+
+                                <input
+                                    type="hidden"
+                                    name="source_of_fund_wealth"
+                                    value={resolvedSourceOfFund}
+                                />
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.source_of_fund_wealth}
+                                />
+                            </div>
+
+                            {sourceOfFundSelection ===
+                                SOURCE_OF_FUND_OTHER_VALUE && (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="source_of_fund_wealth_other">
+                                        Specify source of fund
+                                    </Label>
+
+                                    <Input
+                                        id="source_of_fund_wealth_other"
+                                        className="mt-1 block w-full"
+                                        value={sourceOfFundOther}
+                                        name="source_of_fund_wealth_other"
+                                        placeholder="Describe your source of fund"
+                                        onChange={(event) => {
+                                            setSourceOfFundOther(
+                                                event.target.value,
+                                            );
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="id_type">
+                                    Government ID type
+                                </Label>
+
+                                <Select
+                                    value={idTypeSelection || undefined}
+                                    onValueChange={(value) => {
+                                        setIdTypeSelection(value);
+
+                                        if (value !== ID_TYPE_OTHER_VALUE) {
+                                            setIdTypeOther('');
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        id="id_type"
+                                        className={cn(
+                                            'mt-1 w-full',
+                                            isFieldMissing('id_type') &&
+                                                MISSING_FIELD_CLASS,
+                                        )}
+                                    >
+                                        <SelectValue placeholder="Select ID type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {ID_TYPE_OPTIONS.map((option) => (
+                                            <SelectItem
+                                                key={option}
+                                                value={option}
+                                            >
+                                                {option}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                <input
+                                    type="hidden"
+                                    name="id_type"
+                                    value={idTypeSelection}
+                                />
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.id_type}
+                                />
+                            </div>
+
+                            {idTypeSelection === ID_TYPE_OTHER_VALUE && (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="id_type_other">
+                                        Specify ID type
+                                    </Label>
+
+                                    <Input
+                                        id="id_type_other"
+                                        className="mt-1 block w-full"
+                                        value={idTypeOther}
+                                        name="id_type_other"
+                                        placeholder="Describe your ID type"
+                                        onChange={(event) => {
+                                            setIdTypeOther(event.target.value);
+                                        }}
+                                    />
+
+                                    <InputError
+                                        className="mt-2"
+                                        message={formErrors.id_type_other}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="id_number">ID number</Label>
+
+                                <Input
+                                    id="id_number"
+                                    className={cn(
+                                        'mt-1 block w-full',
+                                        isFieldMissing('id_number') &&
+                                            MISSING_FIELD_CLASS,
+                                    )}
+                                    defaultValue={
+                                        memberApplicationProfile?.id_number ??
+                                        ''
+                                    }
+                                    name="id_number"
+                                    placeholder={
+                                        ID_NUMBER_PLACEHOLDERS[
+                                            idTypeSelection
+                                        ] ?? 'ID number'
+                                    }
+                                />
+
+                                {ID_NUMBER_PLACEHOLDERS[idTypeSelection] && (
+                                    <p className="text-xs text-muted-foreground">
+                                        {
+                                            ID_NUMBER_PLACEHOLDERS[
+                                                idTypeSelection
+                                            ]
+                                        }
+                                    </p>
+                                )}
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.id_number}
                                 />
                             </div>
                         </div>

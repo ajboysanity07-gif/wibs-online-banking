@@ -1071,30 +1071,6 @@ export default function Profile({
                                                     setPaydaySelection={
                                                         setPaydaySelection
                                                     }
-                                                />
-                                            )}
-
-                                            {hasMemberAccess && (
-                                                <BankTab
-                                                    formErrors={formErrors}
-                                                    memberApplicationProfile={
-                                                        memberApplicationProfile
-                                                    }
-                                                    isFieldMissing={
-                                                        isFieldMissing
-                                                    }
-                                                    releaseMethod={
-                                                        releaseMethod
-                                                    }
-                                                    setReleaseMethod={
-                                                        setReleaseMethod
-                                                    }
-                                                    releaseAccountId={
-                                                        releaseAccountId
-                                                    }
-                                                    setReleaseAccountId={
-                                                        setReleaseAccountId
-                                                    }
                                                     idTypeSelection={
                                                         idTypeSelection
                                                     }
@@ -1104,18 +1080,6 @@ export default function Profile({
                                                     idTypeOther={idTypeOther}
                                                     setIdTypeOther={
                                                         setIdTypeOther
-                                                    }
-                                                    paymentOption={
-                                                        paymentOption
-                                                    }
-                                                    setPaymentOption={
-                                                        setPaymentOption
-                                                    }
-                                                    paymentAccountId={
-                                                        paymentAccountId
-                                                    }
-                                                    setPaymentAccountId={
-                                                        setPaymentAccountId
                                                     }
                                                     sourceOfFundSelection={
                                                         sourceOfFundSelection
@@ -1131,6 +1095,39 @@ export default function Profile({
                                                     }
                                                     resolvedSourceOfFund={
                                                         resolvedSourceOfFund
+                                                    }
+                                                />
+                                            )}
+
+                                            {hasMemberAccess && (
+                                                <BankTab
+                                                    formErrors={formErrors}
+                                                    isFieldMissing={
+                                                        isFieldMissing
+                                                    }
+                                                    releaseMethod={
+                                                        releaseMethod
+                                                    }
+                                                    setReleaseMethod={
+                                                        setReleaseMethod
+                                                    }
+                                                    releaseAccountId={
+                                                        releaseAccountId
+                                                    }
+                                                    setReleaseAccountId={
+                                                        setReleaseAccountId
+                                                    }
+                                                    paymentOption={
+                                                        paymentOption
+                                                    }
+                                                    setPaymentOption={
+                                                        setPaymentOption
+                                                    }
+                                                    paymentAccountId={
+                                                        paymentAccountId
+                                                    }
+                                                    setPaymentAccountId={
+                                                        setPaymentAccountId
                                                     }
                                                 />
                                             )}

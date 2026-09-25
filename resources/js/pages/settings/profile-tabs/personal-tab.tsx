@@ -1,4 +1,4 @@
-import { Home, MapPin, User, Users } from 'lucide-react';
+import { Home, MapPin, Ruler, User, Users } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { BirthdateInput } from '@/components/loan-request/birthdate-input';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
@@ -1072,6 +1072,76 @@ export function PersonalTab({
                                     </div>
                                 </>
                             )}
+                        </div>
+                    </LoanRequestSectionCard>
+
+                    <LoanRequestSectionCard
+                        title="Physical details"
+                        description="Required for the Generali Health Statement."
+                        icon={Ruler}
+                    >
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="height_cm">Height</Label>
+
+                                <div className="relative">
+                                    <Input
+                                        id="height_cm"
+                                        className={cn(
+                                            'mt-1 block w-full pr-10',
+                                            isFieldMissing('height_cm') &&
+                                                MISSING_FIELD_CLASS,
+                                        )}
+                                        defaultValue={
+                                            memberApplicationProfile?.height_cm ??
+                                            ''
+                                        }
+                                        name="height_cm"
+                                        inputMode="numeric"
+                                        placeholder="e.g. 165"
+                                    />
+
+                                    <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground">
+                                        cm
+                                    </span>
+                                </div>
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.height_cm}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="weight_kg">Weight</Label>
+
+                                <div className="relative">
+                                    <Input
+                                        id="weight_kg"
+                                        className={cn(
+                                            'mt-1 block w-full pr-10',
+                                            isFieldMissing('weight_kg') &&
+                                                MISSING_FIELD_CLASS,
+                                        )}
+                                        defaultValue={
+                                            memberApplicationProfile?.weight_kg ??
+                                            ''
+                                        }
+                                        name="weight_kg"
+                                        inputMode="numeric"
+                                        placeholder="e.g. 65"
+                                    />
+
+                                    <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground">
+                                        kg
+                                    </span>
+                                </div>
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.weight_kg}
+                                />
+                            </div>
                         </div>
                     </LoanRequestSectionCard>
                 </div>
