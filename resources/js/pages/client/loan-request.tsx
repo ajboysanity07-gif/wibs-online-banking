@@ -1057,6 +1057,7 @@ export default function LoanRequestPage({
                     <LoanRequestWizardShell
                         currentStep={currentStep}
                         onStepClick={handleStepChange}
+                        steps={steps}
                         hiddenStepIds={skippedStepIds}
                         contentClassName="p-6 sm:p-7 lg:p-8"
                         footer={
