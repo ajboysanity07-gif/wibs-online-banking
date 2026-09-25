@@ -987,7 +987,7 @@ type CoMakerStepProps = {
     title: string;
     description: string;
     prefix: string;
-    section: 'basic' | 'contact' | 'employment' | 'income';
+    section: 'basic' | 'contact' | 'all' | 'employment' | 'income';
     values: LoanRequestPersonFormData;
     errors: Record<string, string | undefined>;
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
@@ -1082,10 +1082,14 @@ export function LoanRequestCoMakerStep({
     onSaveCoMaker,
     isSavingCoMaker,
 }: CoMakerStepProps) {
+    const icon =
+        section === 'basic' ? User : section === 'contact' ? MapPin : Briefcase;
+
     return (
         <LoanRequestSectionCard
             title={title}
             description={description}
+            icon={icon}
             errors={errors}
         >
             {section === 'basic' && savedCoMakers ? (
@@ -1112,7 +1116,7 @@ export function LoanRequestCoMakerStep({
                         section={section}
                         onChange={onChange}
                     />
-                    {section === 'income' ? (
+                    {section === 'all' || section === 'income' ? (
                         <>
                             <Separator className="bg-border/40" />
                             <Alert className="border-border/50 bg-muted/10">

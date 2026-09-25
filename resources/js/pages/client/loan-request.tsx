@@ -343,11 +343,7 @@ const resolveStepForErrorKey = (
             : applicantContactFields.has(field) ||
                 field === 'educational_attainment'
               ? stepIndex['co-maker-1-contact']
-              : applicantEmploymentFields.has(field)
-                ? stepIndex['co-maker-1-employment']
-                : personWorkFields.has(field)
-                  ? stepIndex['co-maker-1-income']
-                  : stepIndex['co-maker-1-basic'];
+              : stepIndex['co-maker-1-employment'];
     }
 
     if (key.startsWith('co_maker_2.')) {
@@ -357,11 +353,7 @@ const resolveStepForErrorKey = (
             : applicantContactFields.has(field) ||
                 field === 'educational_attainment'
               ? stepIndex['co-maker-2-contact']
-              : applicantEmploymentFields.has(field)
-                ? stepIndex['co-maker-2-employment']
-                : personWorkFields.has(field)
-                  ? stepIndex['co-maker-2-income']
-                  : stepIndex['co-maker-2-basic'];
+              : stepIndex['co-maker-2-employment'];
     }
 
     if (key.startsWith('insurance.') || key === 'document_data') {
@@ -1428,30 +1420,10 @@ export default function LoanRequestPage({
                                     direction={stepDirection}
                                 >
                                     <LoanRequestCoMakerStep
-                                        title="Co-maker 1 — employment"
-                                        description="Employment and employer details for your first co-maker."
+                                        title="Co-maker 1 — work & income"
+                                        description="Employment, employer, and income details for your first co-maker."
                                         prefix="co_maker_1"
-                                        section="employment"
-                                        values={form.data.co_maker_1}
-                                        errors={form.errors}
-                                        onChange={updatePersonField(
-                                            'co_maker_1',
-                                        )}
-                                    />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['co-maker-1-income']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestCoMakerStep
-                                        title="Co-maker 1 — income & details"
-                                        description="Income and business details for your first co-maker."
-                                        prefix="co_maker_1"
-                                        section="income"
+                                        section="all"
                                         values={form.data.co_maker_1}
                                         errors={form.errors}
                                         onChange={updatePersonField(
@@ -1526,30 +1498,10 @@ export default function LoanRequestPage({
                                     direction={stepDirection}
                                 >
                                     <LoanRequestCoMakerStep
-                                        title="Co-maker 2 — employment"
-                                        description="Employment and employer details for your second co-maker."
+                                        title="Co-maker 2 — work & income"
+                                        description="Employment, employer, and income details for your second co-maker."
                                         prefix="co_maker_2"
-                                        section="employment"
-                                        values={form.data.co_maker_2}
-                                        errors={form.errors}
-                                        onChange={updatePersonField(
-                                            'co_maker_2',
-                                        )}
-                                    />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['co-maker-2-income']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestCoMakerStep
-                                        title="Co-maker 2 — income & details"
-                                        description="Income and business details for your second co-maker."
-                                        prefix="co_maker_2"
-                                        section="income"
+                                        section="all"
                                         values={form.data.co_maker_2}
                                         errors={form.errors}
                                         onChange={updatePersonField(

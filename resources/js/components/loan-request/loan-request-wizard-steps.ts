@@ -77,8 +77,9 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
     },
     {
         id: 'co-maker-1-employment',
-        title: 'Co-maker 1: employment',
-        description: 'Employment and employer details for your first co-maker.',
+        title: 'Co-maker 1: work & income',
+        description:
+            'Employment, employer, and income details for your first co-maker.',
         group: 'co-makers',
     },
     {
@@ -101,9 +102,9 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
     },
     {
         id: 'co-maker-2-employment',
-        title: 'Co-maker 2: employment',
+        title: 'Co-maker 2: work & income',
         description:
-            'Employment and employer details for your second co-maker.',
+            'Employment, employer, and income details for your second co-maker.',
         group: 'co-makers',
     },
     {
@@ -193,15 +194,21 @@ const APPLICANT_CONFIRM_COLLAPSED_STEP_IDS = new Set([
  * in the step content, so the wizard shouldn't count/navigate them as two
  * steps. Unlike the personal-info collapse above this isn't conditional:
  * income has no wmaster-backed verification to gate on, so there's no
- * "incomplete profile" case where showing them separately would help.
+ * "incomplete profile" case where showing them separately would help. Same
+ * reasoning applies to each co-maker's employment/income pair.
  */
-const ALWAYS_COLLAPSED_STEP_IDS = new Set(['work-income']);
+const ALWAYS_COLLAPSED_STEP_IDS = new Set([
+    'work-income',
+    'co-maker-1-income',
+    'co-maker-2-income',
+]);
 
 /**
  * Returns the step list the client wizard should actually render/index,
  * collapsing `personal-basic`/`personal-contact`/`personal-family` into one
  * "Confirm your details" step when `applicantPrefilledFromProfile` is true,
- * and always collapsing `work-income` into `work-employment`.
+ * and always collapsing each employment/income pair (applicant and both
+ * co-makers) into their employment step's slot.
  */
 export function getVisibleWizardSteps(
     applicantPrefilledFromProfile: boolean,
