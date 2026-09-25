@@ -49,6 +49,7 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import client from '@/lib/api/client';
 import { formatDateTime, toDateInputValue } from '@/lib/formatters';
+import { getStepMissingFields } from '@/lib/loan-request-step-validation';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { dashboard as clientDashboard } from '@/routes/client';
 import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
@@ -665,8 +666,29 @@ export default function LoanRequestPage({
         window.setTimeout(() => focusField(key), 250);
     };
 
+    const currentStepMissingFields = useMemo(
+        () =>
+            getStepMissingFields(steps[currentStep]?.id, form.data, {
+                applicantPrefilledFromProfile,
+                applicantWorkIncomePrefilledFromProfile,
+                healthPrefilledFromProfile,
+            }),
+        [
+            steps,
+            currentStep,
+            form.data,
+            applicantPrefilledFromProfile,
+            applicantWorkIncomePrefilledFromProfile,
+            healthPrefilledFromProfile,
+        ],
+    );
+
     const handleNextStep = () => {
         if (currentStep >= steps.length - 1) {
+            return;
+        }
+
+        if (currentStepMissingFields.length > 0) {
             return;
         }
 
@@ -1056,7 +1078,20 @@ export default function LoanRequestPage({
                         hiddenStepIds={skippedStepIds}
                         contentClassName="p-6 sm:p-7 lg:p-8"
                         footer={
-                            <div className="mt-8">
+                            <div className="mt-8 space-y-3">
+                                {currentStepMissingFields.length > 0 ? (
+                                    <Alert variant="destructive">
+                                        <AlertTitle>
+                                            Please complete the required fields
+                                        </AlertTitle>
+                                        <AlertDescription>
+                                            Missing:{' '}
+                                            {currentStepMissingFields.join(
+                                                ', ',
+                                            )}
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : null}
                                 <LoanRequestWizardActions
                                     isFirstStep={isFirstStep}
                                     isLastStep={isLastStep}
@@ -1068,6 +1103,10 @@ export default function LoanRequestPage({
                                     isSubmitting={isSubmitting}
                                     disablePrimary={
                                         !hasLoanTypes ||
+                                        currentStepMissingFields.length > 0 ||
+                                        (currentStep ===
+                                            STEP_INDEX['banking'] &&
+                                            !isBankingComplete) ||
                                         (currentStep ===
                                             STEP_INDEX['banking'] &&
                                             bankingPrefilledFromProfile &&

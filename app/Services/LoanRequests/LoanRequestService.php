@@ -589,12 +589,6 @@ class LoanRequestService
     {
         $user->loadMissing('memberApplicationProfile');
 
-        if (! ($user->memberApplicationProfile?->hasLoanPrerequisiteFields() ?? false)) {
-            throw ValidationException::withMessages([
-                'loan_prerequisites' => 'Please complete your Bank & Payout and Source of Fund / Government ID details before submitting.',
-            ]);
-        }
-
         $shouldNotifyAdmins = false;
 
         $loanRequest = DB::transaction(function () use ($user, $payload, &$shouldNotifyAdmins): LoanRequest {
@@ -650,6 +644,12 @@ class LoanRequestService
             }
 
             $this->syncMemberApplicationProfileFromSubmission($user, $payload);
+
+            if (! ($user->memberApplicationProfile?->hasLoanPrerequisiteFields() ?? false)) {
+                throw ValidationException::withMessages([
+                    'loan_prerequisites' => 'Please complete your Bank & Payout and Source of Fund / Government ID details before submitting.',
+                ]);
+            }
 
             $loanRequest = $loanRequest->refresh();
             $loanRequest->loadMissing('people');
