@@ -645,9 +645,19 @@ class LoanRequestService
 
             $this->syncMemberApplicationProfileFromSubmission($user, $payload);
 
-            if (! ($user->memberApplicationProfile?->hasLoanPrerequisiteFields() ?? false)) {
+            $missingPrerequisites = $user->memberApplicationProfile?->missingLoanPrerequisiteFields() ?? ['release_method'];
+
+            if ($missingPrerequisites !== []) {
+                $labels = MemberApplicationProfile::completionRequiredFieldLabels();
+
                 throw ValidationException::withMessages([
-                    'loan_prerequisites' => 'Please complete your Bank & Payout and Source of Fund / Government ID details before submitting.',
+                    'loan_prerequisites' => sprintf(
+                        'Please complete these details in your Profile Settings before submitting: %s.',
+                        implode(', ', array_map(
+                            fn (string $field): string => $labels[$field] ?? $field,
+                            $missingPrerequisites,
+                        )),
+                    ),
                 ]);
             }
 
