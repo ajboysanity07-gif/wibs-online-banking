@@ -20,6 +20,11 @@ beforeEach(function (): void {
             $table->string('bname')->nullable();
             $table->date('birthday')->nullable();
             $table->string('address')->nullable();
+            $table->string('address1')->nullable();
+            $table->string('address2')->nullable();
+            $table->string('address3')->nullable();
+            $table->string('address4')->nullable();
+            $table->string('zone_number')->nullable();
             $table->string('civilstat')->nullable();
         });
     }
@@ -52,6 +57,7 @@ test('applicantPrefilledFromProfile is true when wmaster has the core fields on 
             'lname' => 'Member',
             'birthday' => '1990-01-01',
             'address' => '123 Main St, Sample City, Sample Province',
+            'address2' => 'Sample Barangay',
             'civilstat' => 'Single',
         ],
     );
@@ -72,6 +78,31 @@ test('applicantPrefilledFromProfile is false when there is no wmaster record on 
         ->assertInertia(fn ($page) => $page
             ->component('client/loan-request')
             ->where('applicantPrefilledFromProfile', false),
+        );
+});
+
+test('applicantPrefilledFromProfile is true when wmaster verifies barangay but not the exact street line', function (): void {
+    $member = createConfirmFlowMember('006004');
+
+    DB::table('wmaster')->updateOrInsert(
+        ['acctno' => $member->acctno],
+        [
+            'fname' => 'Returning',
+            'lname' => 'Member',
+            'birthday' => '1990-01-01',
+            'address1' => null,
+            'address2' => 'Sample Barangay',
+            'address3' => 'Sample City',
+            'address4' => 'Sample Province',
+            'civilstat' => 'Single',
+        ],
+    );
+
+    $this->actingAs($member)
+        ->get(route('client.loan-requests.create'))
+        ->assertInertia(fn ($page) => $page
+            ->component('client/loan-request')
+            ->where('applicantPrefilledFromProfile', true),
         );
 });
 

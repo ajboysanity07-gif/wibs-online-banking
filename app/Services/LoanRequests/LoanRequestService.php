@@ -2184,7 +2184,10 @@ class LoanRequestService
      * step instead of the full personal-basic/contact/family forms. Based on
      * the core fields wmaster already verifies via buildApplicantReadOnlyMap()
      * -- deliberately excludes optional spouse fields so single members with
-     * a complete profile still get the confirm step.
+     * a complete profile still get the confirm step. Uses address_barangay
+     * rather than address1: wmaster's street line is member-supplied and
+     * essentially never KYC-verified, while barangay/city/province are, so
+     * gating on address1 meant this step never collapsed in practice.
      *
      * @param  array<string, bool>  $applicantReadOnly
      */
@@ -2194,7 +2197,7 @@ class LoanRequestService
             'first_name',
             'last_name',
             'birthdate',
-            'address1',
+            'address_barangay',
             'civil_status',
         ];
 
