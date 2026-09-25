@@ -511,43 +511,46 @@ export function LoanRequestApplicantPersonalStep({
 }
 
 type ApplicantWorkStepProps = Omit<PersonStepProps, 'readOnly'> & {
-    section: 'employment' | 'income';
     /**
      * True when income values are already on file from a prior loan request
      * (LoanRequestService::applicantWorkIncomePrefilledFromProfile). Unlike
-     * personal details there's no per-field wmaster-backed lock for income --
-     * it renders as a single locked summary + Edit, always reconfirmed.
+     * personal details there's no per-field wmaster-backed lock for work &
+     * income -- the whole card renders as a single locked summary + Edit,
+     * always reconfirmed.
      */
     hasExistingIncomeData?: boolean;
-    /** Force-unlocks the income summary, e.g. when a validation error lands
-     * on a now-hidden income field after a submit attempt. */
+    /** Force-unlocks the summary, e.g. when a validation error lands on a
+     * now-hidden field after a submit attempt. */
     forceUnlock?: boolean;
 };
 
-const WORK_STEP_DESCS: Record<ApplicantWorkStepProps['section'], string> = {
-    employment: 'Share your employment and employer details.',
-    income: 'Share your income, position, and business details.',
-};
-
+/**
+ * Combined "My work & finances" step -- employment and income used to be two
+ * separate wizard steps, but neither is wmaster-verified (unlike personal
+ * info), so splitting them added navigation with no corresponding lock
+ * granularity. Both render together in one card, one Edit toggle.
+ */
 export function LoanRequestApplicantWorkStep({
     values,
     errors,
     onChange,
-    section,
     hasExistingIncomeData = false,
     forceUnlock = false,
 }: ApplicantWorkStepProps) {
     const [unlocked, setUnlocked] = useState(false);
     const effectivelyUnlocked = unlocked || forceUnlock;
 
-    const showLockedSummary =
-        section === 'income' && hasExistingIncomeData && !effectivelyUnlocked;
+    const showLockedSummary = hasExistingIncomeData && !effectivelyUnlocked;
 
     if (showLockedSummary) {
-        const incomeSummary: SummaryItem[] = [
+        const workSummary: SummaryItem[] = [
             {
                 label: 'Employment type',
                 value: displayValue(values.employment_type),
+            },
+            {
+                label: 'Employer/Business name',
+                value: displayText(values.employer_business_name),
             },
             {
                 label: 'Current position',
@@ -567,12 +570,12 @@ export function LoanRequestApplicantWorkStep({
         return (
             <LoanRequestSectionCard
                 title="My work & finances"
-                description="Confirm your income details are still accurate."
+                description="Confirm your employment and income details are still accurate."
                 errors={errors}
             >
                 <Card className="gap-2 py-3">
                     <CardContent className="space-y-3 px-4">
-                        <SummaryGrid items={incomeSummary} />
+                        <SummaryGrid items={workSummary} />
                         <Button
                             type="button"
                             variant="ghost"
@@ -590,33 +593,28 @@ export function LoanRequestApplicantWorkStep({
     return (
         <LoanRequestSectionCard
             title="My work & finances"
-            description={WORK_STEP_DESCS[section]}
+            description="Share your employment, employer, and income details."
             errors={errors}
         >
             <LoanRequestWorkFields
                 prefix="applicant"
                 values={values}
                 errors={errors}
-                section={section}
+                section="all"
                 onChange={onChange}
             />
-            {section === 'income' && hasExistingIncomeData ? (
+            {hasExistingIncomeData ? (
                 <p className="text-xs text-muted-foreground">
                     Changes will also update your profile when you submit.
                 </p>
             ) : null}
-            {section === 'income' ? (
-                <>
-                    <Separator className="bg-border/40" />
-                    <Alert className="border-border/50 bg-muted/10">
-                        <AlertTitle>Physical signatures</AlertTitle>
-                        <AlertDescription>
-                            Signatures will be collected physically upon loan
-                            release.
-                        </AlertDescription>
-                    </Alert>
-                </>
-            ) : null}
+            <Separator className="bg-border/40" />
+            <Alert className="border-border/50 bg-muted/10">
+                <AlertTitle>Physical signatures</AlertTitle>
+                <AlertDescription>
+                    Signatures will be collected physically upon loan release.
+                </AlertDescription>
+            </Alert>
         </LoanRequestSectionCard>
     );
 }

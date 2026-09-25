@@ -323,14 +323,17 @@ const resolveStepForErrorKey = (
                   ? 'personal-contact'
                   : section === 'family'
                     ? 'personal-family'
-                    : applicantEmploymentFields.has(field)
-                      ? 'work-employment'
-                      : 'work-income';
+                    : 'work-employment';
 
         // personal-contact/personal-family are absent from stepIndex when
-        // collapsed into the "Confirm your details" step -- fall back to
-        // personal-basic, which is where that step now lives.
-        return stepIndex[stepId] ?? stepIndex['personal-basic'];
+        // collapsed into the "Confirm your details" step, and work-income is
+        // always absent (collapsed into work-employment) -- fall back to
+        // wherever that content actually lives now.
+        return (
+            stepIndex[stepId] ??
+            stepIndex['personal-basic'] ??
+            stepIndex['work-employment']
+        );
     }
 
     if (key.startsWith('co_maker_1.')) {
@@ -1095,7 +1098,7 @@ export default function LoanRequestPage({
                                             applicantPrefilledFromProfile &&
                                             !applicantPersonalConfirmed) ||
                                         (currentStep ===
-                                            STEP_INDEX['work-income'] &&
+                                            STEP_INDEX['work-employment'] &&
                                             applicantWorkIncomePrefilledFromProfile &&
                                             !applicantWorkIncomeConfirmed) ||
                                         (currentStep ===
@@ -1322,26 +1325,8 @@ export default function LoanRequestPage({
                                     }
                                     direction={stepDirection}
                                 >
-                                    <LoanRequestApplicantWorkStep
-                                        section="employment"
-                                        values={form.data.applicant}
-                                        errors={form.errors}
-                                        onChange={updatePersonField(
-                                            'applicant',
-                                        )}
-                                    />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['work-income']
-                                    }
-                                    direction={stepDirection}
-                                >
                                     <div className="space-y-5">
                                         <LoanRequestApplicantWorkStep
-                                            section="income"
                                             values={form.data.applicant}
                                             errors={form.errors}
                                             onChange={updatePersonField(
@@ -1355,7 +1340,7 @@ export default function LoanRequestPage({
 
                                         {applicantWorkIncomePrefilledFromProfile ? (
                                             <LoanRequestSectionCard
-                                                title="Confirm income details"
+                                                title="Confirm work & income details"
                                                 description="These details were pre-filled from a previous loan request. Please confirm they are still accurate."
                                             >
                                                 <div className="flex items-start gap-3">
@@ -1374,9 +1359,8 @@ export default function LoanRequestPage({
                                                         }
                                                     />
                                                     <Label htmlFor="applicant_work_income_confirmed">
-                                                        Confirm these income
-                                                        details are still
-                                                        correct
+                                                        Confirm these details
+                                                        are still correct
                                                     </Label>
                                                 </div>
                                             </LoanRequestSectionCard>

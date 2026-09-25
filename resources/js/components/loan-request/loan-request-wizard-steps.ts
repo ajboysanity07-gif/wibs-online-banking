@@ -53,8 +53,8 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
     },
     {
         id: 'work-employment',
-        title: 'Work: employment',
-        description: 'Share your employment and employer details.',
+        title: 'Work & income',
+        description: 'Share your employment, employer, and income details.',
         group: 'about-you',
     },
     {
@@ -188,29 +188,43 @@ const APPLICANT_CONFIRM_COLLAPSED_STEP_IDS = new Set([
 ]);
 
 /**
+ * `work-income` is always collapsed into `work-employment`'s slot --
+ * employment and income were always shown as one "My work & finances" card
+ * in the step content, so the wizard shouldn't count/navigate them as two
+ * steps. Unlike the personal-info collapse above this isn't conditional:
+ * income has no wmaster-backed verification to gate on, so there's no
+ * "incomplete profile" case where showing them separately would help.
+ */
+const ALWAYS_COLLAPSED_STEP_IDS = new Set(['work-income']);
+
+/**
  * Returns the step list the client wizard should actually render/index,
  * collapsing `personal-basic`/`personal-contact`/`personal-family` into one
- * "Confirm your details" step when `applicantPrefilledFromProfile` is true.
+ * "Confirm your details" step when `applicantPrefilledFromProfile` is true,
+ * and always collapsing `work-income` into `work-employment`.
  */
 export function getVisibleWizardSteps(
     applicantPrefilledFromProfile: boolean,
 ): LoanRequestWizardStep[] {
-    if (!applicantPrefilledFromProfile) {
-        return loanRequestWizardSteps;
-    }
-
     return loanRequestWizardSteps
-        .filter((step) => !APPLICANT_CONFIRM_COLLAPSED_STEP_IDS.has(step.id))
-        .map((step) =>
-            step.id === 'personal-basic'
-                ? {
-                      ...step,
-                      title: 'Confirm your details',
-                      description:
-                          'Review your basic info, address, and family details.',
-                  }
-                : step,
-        );
+        .filter((step) => !ALWAYS_COLLAPSED_STEP_IDS.has(step.id))
+        .filter(
+            (step) =>
+                !applicantPrefilledFromProfile ||
+                !APPLICANT_CONFIRM_COLLAPSED_STEP_IDS.has(step.id),
+        )
+        .map((step) => {
+            if (applicantPrefilledFromProfile && step.id === 'personal-basic') {
+                return {
+                    ...step,
+                    title: 'Confirm your details',
+                    description:
+                        'Review your basic info, address, and family details.',
+                };
+            }
+
+            return step;
+        });
 }
 
 export function buildStepIndex(
