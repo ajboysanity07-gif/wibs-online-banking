@@ -8,6 +8,7 @@ use App\Models\MemberDependent;
 use App\Models\MemberDependentProfile;
 use App\Models\Role;
 use App\Models\UserProfile;
+use App\Services\LoanRequests\DependentsProfileSyncService;
 use App\Services\LoanRequests\LoanRequestService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -266,6 +267,37 @@ test('submit writes back validated dependent fields to normalized profile tables
         ->first();
 
     expect($sibling)->toBeNull();
+});
+
+test('read only reports is_beneficiary as true for slots with a saved dependent row', function (): void {
+    $member = createDependentsTestMember('003305');
+
+    $dependentProfile = MemberDependentProfile::query()->create([
+        'member_application_profile_id' => $member->memberApplicationProfile->id,
+    ]);
+
+    MemberDependent::query()->create([
+        'member_dependent_profile_id' => $dependentProfile->id,
+        'category' => 'child',
+        'slot' => 1,
+        'name' => 'Only Child',
+        'birthdate' => '2010-01-01',
+        'is_beneficiary' => true,
+    ]);
+
+    $values = app(DependentsProfileSyncService::class)->read(
+        $member->memberApplicationProfile,
+    );
+
+    expect($values['dependent_child_1_name'])->toBe('Only Child');
+    expect($values['dependent_child_1_is_beneficiary'])->toBeTrue();
+
+    // Unfilled slots must come back fully null, not a real `false`, so the
+    // frontend's slotHasValue() check doesn't mistake them for saved data
+    // and render blank cards for every slot up to the category cap.
+    expect($values['dependent_child_2_name'])->toBeNull();
+    expect($values['dependent_child_2_is_beneficiary'])->toBeNull();
+    expect($values['dependent_child_3_is_beneficiary'])->toBeNull();
 });
 
 test('submit does not write back dependents on a draft-only save', function (): void {

@@ -33,7 +33,7 @@ class DependentsProfileSyncService
         foreach (MemberDependentProfile::CATEGORY_CAPS as $category => $cap) {
             for ($slot = 1; $slot <= $cap; $slot++) {
                 foreach (['name', 'birthdate', 'cycle_status', 'cycle_number', 'is_beneficiary'] as $attribute) {
-                    $values["dependent_{$category}_{$slot}_{$attribute}"] = $attribute === 'is_beneficiary' ? false : null;
+                    $values["dependent_{$category}_{$slot}_{$attribute}"] = null;
                 }
             }
         }
