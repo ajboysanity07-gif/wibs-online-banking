@@ -1,11 +1,6 @@
+import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { cn } from '@/lib/utils';
 
 type MemberProfileDetailItem = {
@@ -16,6 +11,7 @@ type MemberProfileDetailItem = {
 type MemberProfileDetailsCardProps = {
     title: string;
     description?: string;
+    icon?: LucideIcon;
     items: MemberProfileDetailItem[];
     className?: string;
     contentClassName?: string;
@@ -25,44 +21,36 @@ type MemberProfileDetailsCardProps = {
 export function MemberProfileDetailsCard({
     title,
     description,
+    icon,
     items,
     className,
     contentClassName,
     itemClassName,
 }: MemberProfileDetailsCardProps) {
     return (
-        <Card
-            className={cn(
-                'rounded-2xl border-border/40 bg-card/70 shadow-sm',
-                className,
-            )}
+        <LoanRequestSectionCard
+            title={title}
+            description={description}
+            icon={icon}
+            className={className}
+            contentClassName={cn('grid gap-4 sm:grid-cols-2', contentClassName)}
         >
-            <CardHeader className="space-y-2 pb-4">
-                <CardTitle className="text-lg">{title}</CardTitle>
-                {description ? (
-                    <CardDescription>{description}</CardDescription>
-                ) : null}
-            </CardHeader>
-            <CardContent
-                className={cn('grid gap-4 sm:grid-cols-2', contentClassName)}
-            >
-                {items.map((item) => (
-                    <div
-                        key={item.label}
-                        className={cn(
-                            'rounded-lg border border-border/30 bg-muted/20 p-3',
-                            itemClassName,
-                        )}
-                    >
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                            {item.label}
-                        </p>
-                        <p className="mt-1 text-sm font-semibold text-foreground">
-                            {item.value}
-                        </p>
-                    </div>
-                ))}
-            </CardContent>
-        </Card>
+            {items.map((item) => (
+                <div
+                    key={item.label}
+                    className={cn(
+                        'rounded-lg border border-border/30 bg-muted/20 p-3',
+                        itemClassName,
+                    )}
+                >
+                    <p className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                        {item.label}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">
+                        {item.value}
+                    </p>
+                </div>
+            ))}
+        </LoanRequestSectionCard>
     );
 }

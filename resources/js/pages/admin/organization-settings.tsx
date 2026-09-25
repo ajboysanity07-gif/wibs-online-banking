@@ -1,11 +1,20 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head } from '@inertiajs/react';
+import {
+    Building2,
+    FileText,
+    Image as ImageIcon,
+    Mail,
+    MessageSquare,
+    Palette,
+} from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import FontPicker from 'react-fontpicker-ts';
 import 'react-fontpicker-ts/dist/index.css';
 import OrganizationSettingsController from '@/actions/App/Http/Controllers/Admin/OrganizationSettingsController';
 import InputError from '@/components/input-error';
+import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
 import { PageHero } from '@/components/page-hero';
 import { PageShell } from '@/components/page-shell';
@@ -1057,24 +1066,12 @@ export default function OrganizationSettings() {
                                                     forceMount
                                                     className="mt-0"
                                                 >
-                                                    <SurfaceCard
-                                                        variant="muted"
-                                                        padding="md"
-                                                        className="space-y-6"
+                                                    <LoanRequestSectionCard
+                                                        title="General"
+                                                        description="Company name, portal label, and the app title shown to members."
+                                                        icon={Building2}
+                                                        contentClassName="space-y-6"
                                                     >
-                                                        <div className="space-y-1">
-                                                            <h3 className="text-base font-semibold tracking-tight">
-                                                                General
-                                                            </h3>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Company name,
-                                                                portal label,
-                                                                and the app
-                                                                title shown to
-                                                                members.
-                                                            </p>
-                                                        </div>
-
                                                         <div className="grid gap-6 md:grid-cols-2">
                                                             <div className="grid gap-2">
                                                                 <Label htmlFor="company_name">
@@ -1302,7 +1299,7 @@ export default function OrganizationSettings() {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </SurfaceCard>
+                                                    </LoanRequestSectionCard>
                                                 </TabsContent>
 
                                                 <TabsContent
@@ -1310,25 +1307,12 @@ export default function OrganizationSettings() {
                                                     forceMount
                                                     className="mt-0"
                                                 >
-                                                    <SurfaceCard
-                                                        variant="muted"
-                                                        padding="md"
-                                                        className="space-y-6"
+                                                    <LoanRequestSectionCard
+                                                        title="Brand assets"
+                                                        description="Choose the primary logo and portal icon used throughout the member experience."
+                                                        icon={ImageIcon}
+                                                        contentClassName="space-y-6"
                                                     >
-                                                        <div className="space-y-1">
-                                                            <h3 className="text-base font-semibold tracking-tight">
-                                                                Brand assets
-                                                            </h3>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Choose the
-                                                                primary logo and
-                                                                portal icon used
-                                                                throughout the
-                                                                member
-                                                                experience.
-                                                            </p>
-                                                        </div>
-
                                                         <div className="grid gap-6">
                                                             <div className="space-y-4 rounded-2xl border border-border/30 bg-background/60 p-4">
                                                                 <Label className="text-sm font-semibold">
@@ -1795,7 +1779,7 @@ export default function OrganizationSettings() {
                                                                 />
                                                             </div>
                                                         </div>
-                                                    </SurfaceCard>
+                                                    </LoanRequestSectionCard>
                                                 </TabsContent>
 
                                                 <TabsContent
@@ -1803,27 +1787,12 @@ export default function OrganizationSettings() {
                                                     forceMount
                                                     className="mt-0"
                                                 >
-                                                    <SurfaceCard
-                                                        variant="muted"
-                                                        padding="md"
-                                                        className="space-y-6"
+                                                    <LoanRequestSectionCard
+                                                        title="Reports & documents"
+                                                        description="Upload a single report header design and manage report body typography for generated documents."
+                                                        icon={FileText}
+                                                        contentClassName="space-y-6"
                                                     >
-                                                        <div className="space-y-1">
-                                                            <h3 className="text-base font-semibold tracking-tight">
-                                                                Reports &amp;
-                                                                documents
-                                                            </h3>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Upload a single
-                                                                report header
-                                                                design and
-                                                                manage report
-                                                                body typography
-                                                                for generated
-                                                                documents.
-                                                            </p>
-                                                        </div>
-
                                                         <div className="space-y-1">
                                                             <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                                 Report header
@@ -2621,7 +2590,7 @@ export default function OrganizationSettings() {
                                                                 />
                                                             </div>
                                                         </div>
-                                                    </SurfaceCard>
+                                                    </LoanRequestSectionCard>
                                                 </TabsContent>
 
                                                 <TabsContent
@@ -2629,25 +2598,12 @@ export default function OrganizationSettings() {
                                                     forceMount
                                                     className="mt-0"
                                                 >
-                                                    <SurfaceCard
-                                                        variant="muted"
-                                                        padding="md"
-                                                        className="space-y-6"
+                                                    <LoanRequestSectionCard
+                                                        title="Brand colors"
+                                                        description="Applied to primary and accent UI colors across the portal after save."
+                                                        icon={Palette}
+                                                        contentClassName="space-y-6"
                                                     >
-                                                        <div className="space-y-1">
-                                                            <h3 className="text-base font-semibold tracking-tight">
-                                                                Brand colors
-                                                            </h3>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Applied to
-                                                                primary and
-                                                                accent UI colors
-                                                                across the
-                                                                portal after
-                                                                save.
-                                                            </p>
-                                                        </div>
-
                                                         <div className="grid gap-6 md:grid-cols-2">
                                                             <div className="grid gap-3">
                                                                 <Label htmlFor="brand_primary_color">
@@ -2908,7 +2864,7 @@ export default function OrganizationSettings() {
                                                                 />
                                                             </div>
                                                         </div>
-                                                    </SurfaceCard>
+                                                    </LoanRequestSectionCard>
                                                 </TabsContent>
 
                                                 <TabsContent
@@ -2916,24 +2872,12 @@ export default function OrganizationSettings() {
                                                     forceMount
                                                     className="mt-0 space-y-6"
                                                 >
-                                                    <SurfaceCard
-                                                        variant="muted"
-                                                        padding="md"
-                                                        className="space-y-6"
+                                                    <LoanRequestSectionCard
+                                                        title="Contact & communications"
+                                                        description="Support contact details shown on the welcome and sign-in screens."
+                                                        icon={Mail}
+                                                        contentClassName="space-y-6"
                                                     >
-                                                        <div className="space-y-1">
-                                                            <h3 className="text-base font-semibold tracking-tight">
-                                                                Contact &amp;
-                                                                communications
-                                                            </h3>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Support contact
-                                                                details shown on
-                                                                the welcome and
-                                                                sign-in screens.
-                                                            </p>
-                                                        </div>
-
                                                         <div className="grid gap-6 md:grid-cols-2">
                                                             <div className="grid gap-2">
                                                                 <Label htmlFor="support_contact_name">
@@ -3000,28 +2944,14 @@ export default function OrganizationSettings() {
                                                                 />
                                                             </div>
                                                         </div>
-                                                    </SurfaceCard>
+                                                    </LoanRequestSectionCard>
 
-                                                    <SurfaceCard
-                                                        variant="muted"
-                                                        padding="md"
-                                                        className="space-y-6"
+                                                    <LoanRequestSectionCard
+                                                        title="Loan SMS templates"
+                                                        description="Customize the approval and decline SMS messages sent to members after decisions."
+                                                        icon={MessageSquare}
+                                                        contentClassName="space-y-6"
                                                     >
-                                                        <div className="space-y-1">
-                                                            <h3 className="text-base font-semibold tracking-tight">
-                                                                Loan SMS
-                                                                templates
-                                                            </h3>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Customize the
-                                                                approval and
-                                                                decline SMS
-                                                                messages sent to
-                                                                members after
-                                                                decisions.
-                                                            </p>
-                                                        </div>
-
                                                         <div className="grid gap-6">
                                                             <div className="rounded-2xl border border-border/30 bg-background/60 p-4">
                                                                 <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
@@ -3167,7 +3097,7 @@ export default function OrganizationSettings() {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </SurfaceCard>
+                                                    </LoanRequestSectionCard>
                                                 </TabsContent>
                                             </Tabs>
 

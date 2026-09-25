@@ -1,5 +1,12 @@
 ﻿import { Head, router, usePage } from '@inertiajs/react';
-import { Bell, CheckCircle2, Clock, HeartPulse, Pencil } from 'lucide-react';
+import {
+    Bell,
+    CheckCircle2,
+    Clock,
+    HeartPulse,
+    Pencil,
+    Truck,
+} from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
@@ -37,13 +44,6 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
@@ -1184,183 +1184,170 @@ export default function StaffLoanRequestShow({
                 audience="staff"
                 compact
             />
-            <Card className={readOnlyCardClassName}>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <HeartPulse className="size-4 text-muted-foreground" />
-                        Workflow health
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-x-6 gap-y-4">
-                    <div
-                        className={`col-span-2 rounded-lg border px-3 py-2 text-sm font-medium ${
-                            workflowHealthIssueCount === 0
-                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200'
-                                : 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200'
-                        }`}
+            <LoanRequestSectionCard
+                title="Workflow health"
+                icon={HeartPulse}
+                className={readOnlyCardClassName}
+                contentClassName="grid grid-cols-2 gap-x-6 gap-y-4"
+            >
+                <div
+                    className={`col-span-2 rounded-lg border px-3 py-2 text-sm font-medium ${
+                        workflowHealthIssueCount === 0
+                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200'
+                            : 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200'
+                    }`}
+                >
+                    {workflowHealthIssueCount === 0
+                        ? 'All clear — no issues detected'
+                        : `${workflowHealthIssueCount} issue${workflowHealthIssueCount === 1 ? '' : 's'} need${workflowHealthIssueCount === 1 ? 's' : ''} attention`}
+                </div>
+                <div>
+                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                        Processing age
+                    </p>
+                    <p
+                        className={`mt-2 text-2xl ${workflowHealthIssues.processingAge ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
                     >
-                        {workflowHealthIssueCount === 0
-                            ? 'All clear — no issues detected'
-                            : `${workflowHealthIssueCount} issue${workflowHealthIssueCount === 1 ? '' : 's'} need${workflowHealthIssueCount === 1 ? 's' : ''} attention`}
-                    </div>
-                    <div>
-                        <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                            Processing age
-                        </p>
-                        <p
-                            className={`mt-2 text-2xl ${workflowHealthIssues.processingAge ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                        {currentWorkflowHealth.processing_age_days === null
+                            ? '-'
+                            : `${currentWorkflowHealth.processing_age_days}d`}
+                    </p>
+                </div>
+                <div>
+                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                        Pending member action
+                    </p>
+                    <p
+                        className={`mt-2 text-2xl ${workflowHealthIssues.pendingMemberAction ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                    >
+                        {currentWorkflowHealth.pending_member_action
+                            ? 'Yes'
+                            : 'No'}
+                    </p>
+                </div>
+                <div>
+                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                        Stale documents
+                    </p>
+                    <p
+                        className={`mt-2 text-2xl ${workflowHealthIssues.staleDocuments ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                    >
+                        {currentWorkflowHealth.stale_document_count}
+                    </p>
+                </div>
+                <div>
+                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                        Failed documents
+                    </p>
+                    <p
+                        className={`mt-2 text-2xl ${workflowHealthIssues.failedDocuments ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                    >
+                        {currentWorkflowHealth.failed_document_count}
+                    </p>
+                </div>
+                <div>
+                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                        Legacy blockers
+                    </p>
+                    <p
+                        className={`mt-2 text-2xl ${workflowHealthIssues.legacyBlockers ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                    >
+                        {currentWorkflowHealth.legacy_blocker_count}
+                    </p>
+                </div>
+                <div>
+                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                        Notification failures
+                    </p>
+                    <p
+                        className={`mt-2 text-2xl ${workflowHealthIssues.notificationFailures ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                    >
+                        {currentWorkflowHealth.notification_failure_count}
+                    </p>
+                </div>
+                <div>
+                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                        Workflow failed jobs
+                    </p>
+                    <p
+                        className={`mt-2 text-2xl ${workflowHealthIssues.workflowFailedJobs ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                    >
+                        {currentWorkflowHealth.workflow_failed_job_count}
+                    </p>
+                </div>
+            </LoanRequestSectionCard>
+            <LoanRequestSectionCard
+                title="Notification history"
+                description="Delivery state for workflow-triggered member notifications."
+                icon={Bell}
+                className={readOnlyCardClassName}
+                contentClassName="space-y-3"
+            >
+                {currentNotificationHistory.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                        No workflow notifications recorded yet.
+                    </p>
+                ) : (
+                    currentNotificationHistory.map((event) => (
+                        <div
+                            key={event.id}
+                            className="rounded-xl border border-border/40 bg-muted/10 p-4"
                         >
-                            {currentWorkflowHealth.processing_age_days === null
-                                ? '-'
-                                : `${currentWorkflowHealth.processing_age_days}d`}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                            Pending member action
-                        </p>
-                        <p
-                            className={`mt-2 text-2xl ${workflowHealthIssues.pendingMemberAction ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                        >
-                            {currentWorkflowHealth.pending_member_action
-                                ? 'Yes'
-                                : 'No'}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                            Stale documents
-                        </p>
-                        <p
-                            className={`mt-2 text-2xl ${workflowHealthIssues.staleDocuments ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                        >
-                            {currentWorkflowHealth.stale_document_count}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                            Failed documents
-                        </p>
-                        <p
-                            className={`mt-2 text-2xl ${workflowHealthIssues.failedDocuments ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                        >
-                            {currentWorkflowHealth.failed_document_count}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                            Legacy blockers
-                        </p>
-                        <p
-                            className={`mt-2 text-2xl ${workflowHealthIssues.legacyBlockers ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                        >
-                            {currentWorkflowHealth.legacy_blocker_count}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                            Notification failures
-                        </p>
-                        <p
-                            className={`mt-2 text-2xl ${workflowHealthIssues.notificationFailures ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                        >
-                            {currentWorkflowHealth.notification_failure_count}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                            Workflow failed jobs
-                        </p>
-                        <p
-                            className={`mt-2 text-2xl ${workflowHealthIssues.workflowFailedJobs ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                        >
-                            {currentWorkflowHealth.workflow_failed_job_count}
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-            <Card className={readOnlyCardClassName}>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Bell className="size-4 text-muted-foreground" />
-                        Notification history
-                    </CardTitle>
-                    <CardDescription>
-                        Delivery state for workflow-triggered member
-                        notifications.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                    {currentNotificationHistory.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            No workflow notifications recorded yet.
-                        </p>
-                    ) : (
-                        currentNotificationHistory.map((event) => (
-                            <div
-                                key={event.id}
-                                className="rounded-xl border border-border/40 bg-muted/10 p-4"
-                            >
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                    <div className="space-y-1">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <p className="text-sm font-semibold">
-                                                {event.event_label}
-                                            </p>
-                                            <Badge variant="outline">
-                                                {event.channel}
-                                            </Badge>
-                                            <span
-                                                className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayNotificationStatusTone(event.status)}`}
-                                            >
-                                                {event.status ?? 'unknown'}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                                            <span>
-                                                Queued:{' '}
-                                                {event.queued_at
-                                                    ? formatDateTime(
-                                                          event.queued_at,
-                                                      )
-                                                    : '-'}
-                                            </span>
-                                            <span>
-                                                Sent:{' '}
-                                                {event.sent_at
-                                                    ? formatDateTime(
-                                                          event.sent_at,
-                                                      )
-                                                    : '-'}
-                                            </span>
-                                            <span>
-                                                Failed:{' '}
-                                                {event.failed_at
-                                                    ? formatDateTime(
-                                                          event.failed_at,
-                                                      )
-                                                    : '-'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="text-right text-xs text-muted-foreground">
-                                        <p>Attempts: {event.attempt_count}</p>
-                                        <p>Retries: {event.retry_count}</p>
-                                        <p>
-                                            Reminders: {event.reminder_attempts}
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="space-y-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <p className="text-sm font-semibold">
+                                            {event.event_label}
                                         </p>
+                                        <Badge variant="outline">
+                                            {event.channel}
+                                        </Badge>
+                                        <span
+                                            className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayNotificationStatusTone(event.status)}`}
+                                        >
+                                            {event.status ?? 'unknown'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                                        <span>
+                                            Queued:{' '}
+                                            {event.queued_at
+                                                ? formatDateTime(
+                                                      event.queued_at,
+                                                  )
+                                                : '-'}
+                                        </span>
+                                        <span>
+                                            Sent:{' '}
+                                            {event.sent_at
+                                                ? formatDateTime(event.sent_at)
+                                                : '-'}
+                                        </span>
+                                        <span>
+                                            Failed:{' '}
+                                            {event.failed_at
+                                                ? formatDateTime(
+                                                      event.failed_at,
+                                                  )
+                                                : '-'}
+                                        </span>
                                     </div>
                                 </div>
-                                {event.provider_error ? (
-                                    <p className="mt-3 text-xs text-rose-700 dark:text-rose-300">
-                                        {event.provider_error}
-                                    </p>
-                                ) : null}
+                                <div className="text-right text-xs text-muted-foreground">
+                                    <p>Attempts: {event.attempt_count}</p>
+                                    <p>Retries: {event.retry_count}</p>
+                                    <p>Reminders: {event.reminder_attempts}</p>
+                                </div>
                             </div>
-                        ))
-                    )}
-                </CardContent>
-            </Card>
+                            {event.provider_error ? (
+                                <p className="mt-3 text-xs text-rose-700 dark:text-rose-300">
+                                    {event.provider_error}
+                                </p>
+                            ) : null}
+                        </div>
+                    ))
+                )}
+            </LoanRequestSectionCard>
         </>
     );
 
@@ -1936,112 +1923,81 @@ export default function StaffLoanRequestShow({
                             }
                         />
                         {showWibsTrackingSection ? (
-                            <Card className="border-border/30 bg-card/70 shadow-sm">
-                                <CardHeader>
-                                    <CardTitle>WIBS Tracking</CardTitle>
-                                    <CardDescription>
-                                        Official loan tracking in the WIBS
-                                        system.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-muted-foreground">
-                                            Status:
-                                        </span>
-                                        <Badge variant="secondary">
-                                            {currentRequest.status ===
-                                            'converted_to_loan'
-                                                ? 'Converted to Loan'
+                            <LoanRequestSectionCard
+                                title="WIBS Tracking"
+                                description="Official loan tracking in the WIBS system."
+                                icon={Truck}
+                                className="border-border/30 bg-card/70 shadow-sm"
+                                contentClassName="space-y-4"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-muted-foreground">
+                                        Status:
+                                    </span>
+                                    <Badge variant="secondary">
+                                        {currentRequest.status ===
+                                        'converted_to_loan'
+                                            ? 'Converted to Loan'
+                                            : currentRequest.status ===
+                                                'for_wibs_encoding'
+                                              ? 'For WIBS Encoding'
+                                              : currentRequest.status ===
+                                                  'wibs_loan_created'
+                                                ? 'WIBS Loan Created'
                                                 : currentRequest.status ===
-                                                    'for_wibs_encoding'
-                                                  ? 'For WIBS Encoding'
-                                                  : currentRequest.status ===
-                                                      'wibs_loan_created'
-                                                    ? 'WIBS Loan Created'
-                                                    : currentRequest.status ===
-                                                        'release_scheduled'
-                                                      ? 'Release Scheduled'
-                                                      : 'Released'}
-                                        </Badge>
+                                                    'release_scheduled'
+                                                  ? 'Release Scheduled'
+                                                  : 'Released'}
+                                    </Badge>
+                                </div>
+
+                                {currentRequest.wibs_loan_reference ? (
+                                    <div className="text-sm">
+                                        <span className="font-medium">
+                                            WIBS Reference:
+                                        </span>{' '}
+                                        {currentRequest.wibs_loan_reference}
                                     </div>
+                                ) : null}
 
-                                    {currentRequest.wibs_loan_reference ? (
-                                        <div className="text-sm">
-                                            <span className="font-medium">
-                                                WIBS Reference:
-                                            </span>{' '}
-                                            {currentRequest.wibs_loan_reference}
-                                        </div>
-                                    ) : null}
+                                {currentRequest.wibs_release_date ? (
+                                    <div className="text-sm">
+                                        <span className="font-medium">
+                                            Scheduled Release:
+                                        </span>{' '}
+                                        {currentRequest.wibs_release_date}
+                                    </div>
+                                ) : null}
 
-                                    {currentRequest.wibs_release_date ? (
-                                        <div className="text-sm">
-                                            <span className="font-medium">
-                                                Scheduled Release:
-                                            </span>{' '}
-                                            {currentRequest.wibs_release_date}
-                                        </div>
-                                    ) : null}
+                                {currentRequest.wibs_released_at ? (
+                                    <div className="text-sm">
+                                        <span className="font-medium">
+                                            Released at:
+                                        </span>{' '}
+                                        {formatDateTime(
+                                            currentRequest.wibs_released_at,
+                                        )}
+                                    </div>
+                                ) : null}
 
-                                    {currentRequest.wibs_released_at ? (
-                                        <div className="text-sm">
-                                            <span className="font-medium">
-                                                Released at:
-                                            </span>{' '}
-                                            {formatDateTime(
-                                                currentRequest.wibs_released_at,
-                                            )}
-                                        </div>
-                                    ) : null}
+                                <Separator />
 
-                                    <Separator />
-
-                                    {currentRequest.status ===
-                                    'converted_to_loan' ? (
-                                        <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">
-                                                Forward this loan to WIBS for
-                                                encoding.
-                                            </p>
-                                            <Button
-                                                disabled={isWibsSubmitting}
-                                                onClick={() => {
-                                                    setIsWibsSubmitting(true);
-                                                    router.patch(
-                                                        wibsMarkForEncoding(
-                                                            currentRequest.id,
-                                                        ).url,
-                                                        {},
-                                                        {
-                                                            onFinish: () =>
-                                                                setIsWibsSubmitting(
-                                                                    false,
-                                                                ),
-                                                        },
-                                                    );
-                                                }}
-                                            >
-                                                {isWibsSubmitting
-                                                    ? 'Processing…'
-                                                    : 'Mark for WIBS Encoding'}
-                                            </Button>
-                                        </div>
-                                    ) : currentRequest.status ===
-                                      'for_wibs_encoding' ? (
-                                        <form
-                                            className="space-y-3"
-                                            onSubmit={(e) => {
-                                                e.preventDefault();
+                                {currentRequest.status ===
+                                'converted_to_loan' ? (
+                                    <div className="space-y-2">
+                                        <p className="text-sm text-muted-foreground">
+                                            Forward this loan to WIBS for
+                                            encoding.
+                                        </p>
+                                        <Button
+                                            disabled={isWibsSubmitting}
+                                            onClick={() => {
                                                 setIsWibsSubmitting(true);
                                                 router.patch(
-                                                    wibsRecordReference(
+                                                    wibsMarkForEncoding(
                                                         currentRequest.id,
                                                     ).url,
-                                                    {
-                                                        wibs_loan_reference:
-                                                            wibsReference,
-                                                    },
+                                                    {},
                                                     {
                                                         onFinish: () =>
                                                             setIsWibsSubmitting(
@@ -2051,47 +2007,123 @@ export default function StaffLoanRequestShow({
                                                 );
                                             }}
                                         >
-                                            <div className="space-y-1">
-                                                <Label htmlFor="wibs_loan_reference">
-                                                    WIBS Loan Reference
-                                                </Label>
-                                                <Input
-                                                    id="wibs_loan_reference"
-                                                    value={wibsReference}
-                                                    onChange={(e) =>
-                                                        setWibsReference(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    maxLength={100}
-                                                    required
-                                                    placeholder="e.g. WIBS-2026-001"
-                                                />
-                                            </div>
-                                            <Button
-                                                type="submit"
-                                                disabled={isWibsSubmitting}
-                                            >
-                                                {isWibsSubmitting
-                                                    ? 'Saving…'
-                                                    : 'Record WIBS Reference'}
-                                            </Button>
-                                        </form>
-                                    ) : currentRequest.status ===
-                                      'wibs_loan_created' ? (
-                                        <form
-                                            className="space-y-3"
-                                            onSubmit={(e) => {
-                                                e.preventDefault();
+                                            {isWibsSubmitting
+                                                ? 'Processing…'
+                                                : 'Mark for WIBS Encoding'}
+                                        </Button>
+                                    </div>
+                                ) : currentRequest.status ===
+                                  'for_wibs_encoding' ? (
+                                    <form
+                                        className="space-y-3"
+                                        onSubmit={(e) => {
+                                            e.preventDefault();
+                                            setIsWibsSubmitting(true);
+                                            router.patch(
+                                                wibsRecordReference(
+                                                    currentRequest.id,
+                                                ).url,
+                                                {
+                                                    wibs_loan_reference:
+                                                        wibsReference,
+                                                },
+                                                {
+                                                    onFinish: () =>
+                                                        setIsWibsSubmitting(
+                                                            false,
+                                                        ),
+                                                },
+                                            );
+                                        }}
+                                    >
+                                        <div className="space-y-1">
+                                            <Label htmlFor="wibs_loan_reference">
+                                                WIBS Loan Reference
+                                            </Label>
+                                            <Input
+                                                id="wibs_loan_reference"
+                                                value={wibsReference}
+                                                onChange={(e) =>
+                                                    setWibsReference(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                maxLength={100}
+                                                required
+                                                placeholder="e.g. WIBS-2026-001"
+                                            />
+                                        </div>
+                                        <Button
+                                            type="submit"
+                                            disabled={isWibsSubmitting}
+                                        >
+                                            {isWibsSubmitting
+                                                ? 'Saving…'
+                                                : 'Record WIBS Reference'}
+                                        </Button>
+                                    </form>
+                                ) : currentRequest.status ===
+                                  'wibs_loan_created' ? (
+                                    <form
+                                        className="space-y-3"
+                                        onSubmit={(e) => {
+                                            e.preventDefault();
+                                            setIsWibsSubmitting(true);
+                                            router.patch(
+                                                wibsScheduleRelease(
+                                                    currentRequest.id,
+                                                ).url,
+                                                {
+                                                    wibs_release_date:
+                                                        wibsReleaseDate,
+                                                },
+                                                {
+                                                    onFinish: () =>
+                                                        setIsWibsSubmitting(
+                                                            false,
+                                                        ),
+                                                },
+                                            );
+                                        }}
+                                    >
+                                        <div className="space-y-1">
+                                            <Label htmlFor="wibs_release_date">
+                                                Release Date
+                                            </Label>
+                                            <DateInputWithPicker
+                                                id="wibs_release_date"
+                                                name="wibs_release_date"
+                                                value={wibsReleaseDate}
+                                                onChange={setWibsReleaseDate}
+                                                required
+                                                aria-label="Choose release date"
+                                            />
+                                        </div>
+                                        <Button
+                                            type="submit"
+                                            disabled={isWibsSubmitting}
+                                        >
+                                            {isWibsSubmitting
+                                                ? 'Saving…'
+                                                : 'Schedule Release'}
+                                        </Button>
+                                    </form>
+                                ) : currentRequest.status ===
+                                  'release_scheduled' ? (
+                                    <div className="space-y-2">
+                                        <p className="text-sm text-muted-foreground">
+                                            Confirm that the loan has been
+                                            released to the member.
+                                        </p>
+                                        <Button
+                                            disabled={isWibsSubmitting}
+                                            onClick={() => {
                                                 setIsWibsSubmitting(true);
                                                 router.patch(
-                                                    wibsScheduleRelease(
+                                                    wibsConfirmRelease(
                                                         currentRequest.id,
                                                     ).url,
-                                                    {
-                                                        wibs_release_date:
-                                                            wibsReleaseDate,
-                                                    },
+                                                    {},
                                                     {
                                                         onFinish: () =>
                                                             setIsWibsSubmitting(
@@ -2101,63 +2133,13 @@ export default function StaffLoanRequestShow({
                                                 );
                                             }}
                                         >
-                                            <div className="space-y-1">
-                                                <Label htmlFor="wibs_release_date">
-                                                    Release Date
-                                                </Label>
-                                                <DateInputWithPicker
-                                                    id="wibs_release_date"
-                                                    name="wibs_release_date"
-                                                    value={wibsReleaseDate}
-                                                    onChange={
-                                                        setWibsReleaseDate
-                                                    }
-                                                    required
-                                                    aria-label="Choose release date"
-                                                />
-                                            </div>
-                                            <Button
-                                                type="submit"
-                                                disabled={isWibsSubmitting}
-                                            >
-                                                {isWibsSubmitting
-                                                    ? 'Saving…'
-                                                    : 'Schedule Release'}
-                                            </Button>
-                                        </form>
-                                    ) : currentRequest.status ===
-                                      'release_scheduled' ? (
-                                        <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">
-                                                Confirm that the loan has been
-                                                released to the member.
-                                            </p>
-                                            <Button
-                                                disabled={isWibsSubmitting}
-                                                onClick={() => {
-                                                    setIsWibsSubmitting(true);
-                                                    router.patch(
-                                                        wibsConfirmRelease(
-                                                            currentRequest.id,
-                                                        ).url,
-                                                        {},
-                                                        {
-                                                            onFinish: () =>
-                                                                setIsWibsSubmitting(
-                                                                    false,
-                                                                ),
-                                                        },
-                                                    );
-                                                }}
-                                            >
-                                                {isWibsSubmitting
-                                                    ? 'Processing…'
-                                                    : 'Confirm Release'}
-                                            </Button>
-                                        </div>
-                                    ) : null}
-                                </CardContent>
-                            </Card>
+                                            {isWibsSubmitting
+                                                ? 'Processing…'
+                                                : 'Confirm Release'}
+                                        </Button>
+                                    </div>
+                                ) : null}
+                            </LoanRequestSectionCard>
                         ) : null}
                     </div>
                     <div>

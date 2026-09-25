@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
+import { Palette } from 'lucide-react';
 import AppearanceTabs from '@/components/appearance-tabs';
-import Heading from '@/components/heading';
+import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { SurfaceCard } from '@/components/surface-card';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -22,13 +23,18 @@ export default function Appearance() {
             <h1 className="sr-only">Appearance Settings</h1>
 
             <SettingsLayout>
-                <SurfaceCard variant="default" padding="lg" className="space-y-6">
-                    <Heading
-                        variant="small"
+                <SurfaceCard
+                    variant="default"
+                    padding="lg"
+                    className="space-y-6"
+                >
+                    <LoanRequestSectionCard
                         title="Appearance settings"
                         description="Update your account's appearance settings"
-                    />
-                    <AppearanceTabs />
+                        icon={Palette}
+                    >
+                        <AppearanceTabs />
+                    </LoanRequestSectionCard>
                 </SurfaceCard>
             </SettingsLayout>
         </AppLayout>

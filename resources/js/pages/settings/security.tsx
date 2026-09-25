@@ -1,11 +1,11 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head } from '@inertiajs/react';
-import { Loader2, ShieldBan, ShieldCheck } from 'lucide-react';
+import { KeyRound, Loader2, ShieldBan, ShieldCheck } from 'lucide-react';
 import { useRef, useState } from 'react';
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import DeleteUser from '@/components/delete-user';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { SurfaceCard } from '@/components/surface-card';
 import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -65,13 +64,11 @@ export default function Security({
                     padding="lg"
                     className="space-y-8"
                 >
-                    <section className="space-y-6">
-                        <Heading
-                            variant="small"
-                            title="Update password"
-                            description="Ensure your account is using a long, random password to stay secure"
-                        />
-
+                    <LoanRequestSectionCard
+                        title="Update password"
+                        description="Ensure your account is using a long, random password to stay secure"
+                        icon={KeyRound}
+                    >
                         <Form
                             {...PasswordController.update.form()}
                             options={{
@@ -193,17 +190,13 @@ export default function Security({
                                 </>
                             )}
                         </Form>
-                    </section>
+                    </LoanRequestSectionCard>
 
-                    <Separator />
-
-                    <section className="space-y-6">
-                        <Heading
-                            variant="small"
-                            title="Two-Factor Authentication"
-                            description="Manage your two-factor authentication settings"
-                        />
-
+                    <LoanRequestSectionCard
+                        title="Two-Factor Authentication"
+                        description="Manage your two-factor authentication settings"
+                        icon={ShieldCheck}
+                    >
                         {!twoFactorAvailable ? (
                             <p className="text-sm text-muted-foreground">
                                 Two-factor authentication is currently
@@ -306,9 +299,7 @@ export default function Security({
                             fetchSetupData={fetchSetupData}
                             errors={errors}
                         />
-                    </section>
-
-                    <Separator />
+                    </LoanRequestSectionCard>
 
                     <DeleteUser />
                 </SurfaceCard>

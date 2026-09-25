@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { DEPENDENT_CATEGORIES } from '@/components/dependents/dependent-category-section';
 import { PAYDAY_OPTIONS } from '@/components/loan-request/loan-request-fields';
+import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import {
     CurrencyInput,
     fractionToPercentDisplay,
@@ -22,13 +23,6 @@ import {
 } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FormErrorSummary } from '@/components/ui/form-error-summary';
 import { Input } from '@/components/ui/input';
@@ -1479,32 +1473,17 @@ export function ProcessingDetailsPanel({
     };
 
     return (
-        <Card
+        <LoanRequestSectionCard
+            title="Processing details"
+            description="Recommendation and financial terms used across the document package."
+            icon={FileText}
             className={
                 canUpdateProcessing
                     ? actionCardClassName
                     : 'border-border/30 bg-card/70 shadow-sm'
             }
-        >
-            <CardHeader className="flex flex-row items-start justify-between gap-4">
-                <div>
-                    <CardTitle className="flex items-center gap-2">
-                        <FileText
-                            className={cn(
-                                'size-4',
-                                canUpdateProcessing
-                                    ? 'text-primary'
-                                    : 'text-muted-foreground',
-                            )}
-                        />
-                        Processing details
-                    </CardTitle>
-                    <CardDescription>
-                        Recommendation and financial terms used across the
-                        document package.
-                    </CardDescription>
-                </div>
-                {canUpdateProcessing && !isEditing && (
+            headerAction={
+                canUpdateProcessing && !isEditing ? (
                     <Button
                         type="button"
                         variant="outline"
@@ -1515,80 +1494,189 @@ export function ProcessingDetailsPanel({
                         <Pencil />
                         Edit
                     </Button>
-                )}
-            </CardHeader>
-            <CardContent>
-                {canUpdateProcessing && isEditing ? (
-                    <form
-                        className="animate-in space-y-4 duration-200 fade-in slide-in-from-top-2"
-                        onSubmit={submitProcessingDetails}
-                    >
-                        <FormErrorSummary
-                            errors={{
-                                inline_processing_reason:
-                                    reasonError ?? undefined,
-                            }}
-                        />
-                        {renderProcessingSectionLabel('Recommendation', {
-                            first: true,
+                ) : null
+            }
+        >
+            {canUpdateProcessing && isEditing ? (
+                <form
+                    className="animate-in space-y-4 duration-200 fade-in slide-in-from-top-2"
+                    onSubmit={submitProcessingDetails}
+                >
+                    <FormErrorSummary
+                        errors={{
+                            inline_processing_reason: reasonError ?? undefined,
+                        }}
+                    />
+                    {renderProcessingSectionLabel('Recommendation', {
+                        first: true,
+                    })}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-2">
+                            <Label htmlFor="inline_recommended_amount">
+                                Recommended amount
+                            </Label>
+                            <CurrencyInput
+                                id="inline_recommended_amount"
+                                value={processingForm.recommended_amount}
+                                onValueChange={(value) =>
+                                    setProcessingForm((current) => ({
+                                        ...current,
+                                        recommended_amount: value,
+                                    }))
+                                }
+                                onBlur={scheduleGnthpRecalculation}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="inline_recommended_term">
+                                Recommended term
+                            </Label>
+                            <MonthsInput
+                                id="inline_recommended_term"
+                                value={processingForm.recommended_term}
+                                onChange={(value) =>
+                                    setProcessingForm((current) => ({
+                                        ...current,
+                                        recommended_term: value,
+                                    }))
+                                }
+                                onBlur={scheduleGnthpRecalculation}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="inline_recommended_interest_rate">
+                                Recommended interest rate
+                            </Label>
+                            <PercentInput
+                                id="inline_recommended_interest_rate"
+                                value={processingForm.recommended_interest_rate}
+                                onValueChange={(value) =>
+                                    setProcessingForm((current) => ({
+                                        ...current,
+                                        recommended_interest_rate: value,
+                                    }))
+                                }
+                                onBlur={scheduleGnthpRecalculation}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label
+                                htmlFor="inline_recommended_payment_frequency"
+                                className="inline-flex items-center gap-1.5"
+                            >
+                                Payment frequency
+                                <TooltipProvider delayDuration={0}>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Info className="size-3.5 text-muted-foreground" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>
+                                                Member&apos;s payday:{' '}
+                                                {applicant?.payday || '—'}
+                                            </p>
+                                            <p>
+                                                Member requested:{' '}
+                                                {loanRequest.requested_payment_frequency ||
+                                                    '—'}
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </Label>
+                            <Select
+                                value={
+                                    processingForm.recommended_payment_frequency ||
+                                    undefined
+                                }
+                                onValueChange={(value) => {
+                                    setProcessingForm((current) => ({
+                                        ...current,
+                                        recommended_payment_frequency: value,
+                                        // Due date forces loan security/savings to 0%;
+                                        // switching away restores the standard default
+                                        // so staff aren't stuck at 0%. The Due date month
+                                        // count is derived from "Recommended term", not
+                                        // entered separately.
+                                        processing:
+                                            value === 'Due date'
+                                                ? {
+                                                      ...current.processing,
+                                                      loan_security_rate: 0,
+                                                      savings_rate: 0,
+                                                  }
+                                                : {
+                                                      ...current.processing,
+                                                      loan_security_rate:
+                                                          resolveDefaultLoanSecurityRate(
+                                                              loanRequest.typecode,
+                                                          ),
+                                                      savings_rate:
+                                                          resolveDefaultLoanSecurityRate(
+                                                              loanRequest.typecode,
+                                                          ),
+                                                  },
+                                    }));
+                                    scheduleGnthpRecalculation();
+                                }}
+                            >
+                                <SelectTrigger
+                                    id="inline_recommended_payment_frequency"
+                                    className="w-full"
+                                >
+                                    <SelectValue placeholder="Select payment frequency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {PAYMENT_FREQUENCY_OPTIONS.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {processingForm.recommended_payment_frequency ===
+                            'Due date' && (
+                            <p className="text-sm text-muted-foreground sm:col-span-2">
+                                Due date is repaid as a single payment after the
+                                recommended term above (
+                                {processingForm.recommended_term || '—'} month
+                                {processingForm.recommended_term === '1'
+                                    ? ''
+                                    : 's'}
+                                ).
+                            </p>
+                        )}
+                    </div>
+                    {renderProcessingSectionLabel('Charges & fees')}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        {renderProcessingField('service_charge_rate', {
+                            onBlur: scheduleGnthpRecalculation,
                         })}
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="grid gap-2">
-                                <Label htmlFor="inline_recommended_amount">
-                                    Recommended amount
-                                </Label>
-                                <CurrencyInput
-                                    id="inline_recommended_amount"
-                                    value={processingForm.recommended_amount}
-                                    onValueChange={(value) =>
-                                        setProcessingForm((current) => ({
-                                            ...current,
-                                            recommended_amount: value,
-                                        }))
-                                    }
-                                    onBlur={scheduleGnthpRecalculation}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="inline_recommended_term">
-                                    Recommended term
-                                </Label>
-                                <MonthsInput
-                                    id="inline_recommended_term"
-                                    value={processingForm.recommended_term}
-                                    onChange={(value) =>
-                                        setProcessingForm((current) => ({
-                                            ...current,
-                                            recommended_term: value,
-                                        }))
-                                    }
-                                    onBlur={scheduleGnthpRecalculation}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="inline_recommended_interest_rate">
-                                    Recommended interest rate
-                                </Label>
-                                <PercentInput
-                                    id="inline_recommended_interest_rate"
-                                    value={
-                                        processingForm.recommended_interest_rate
-                                    }
-                                    onValueChange={(value) =>
-                                        setProcessingForm((current) => ({
-                                            ...current,
-                                            recommended_interest_rate: value,
-                                        }))
-                                    }
-                                    onBlur={scheduleGnthpRecalculation}
-                                />
-                            </div>
+                        {renderProcessingField('insurance_rate', {
+                            onBlur: scheduleGnthpRecalculation,
+                            disabled: true,
+                            tooltip: isInsuranceSkipped
+                                ? 'No insurance premium applies to this loan (recommended term under 2 months) — locked at 0.'
+                                : isApplicantInInsuranceAgeBand
+                                  ? "Pesos per ₱1,000 of principal per month, NOT a percentage. Locked to the insurer's senior-age band rate for this applicant's age (66–70 → 2.05, 71–75 → 3.95)."
+                                  : "Pesos per ₱1,000 of principal per month, NOT a percentage. Applicant is outside the insurer's senior-age bands (66–70 → 2.05, 71–75 → 3.95), so the rate is fixed at 1.",
+                        })}
+                        {renderProcessingField('insurance_term', {
+                            onBlur: scheduleGnthpRecalculation,
+                            disabled: isInsuranceSkipped,
+                            tooltip: isInsuranceSkipped
+                                ? 'No insurance premium applies to this loan (recommended term under 2 months) — locked at 0.'
+                                : undefined,
+                        })}
+                        {processingForm.recommended_payment_frequency !==
+                            'Due date' && (
                             <div className="grid gap-2">
                                 <Label
-                                    htmlFor="inline_recommended_payment_frequency"
+                                    htmlFor="inline_processing_loan_security_rate"
                                     className="inline-flex items-center gap-1.5"
                                 >
-                                    Payment frequency
+                                    Loan security / Savings rate
                                     <TooltipProvider delayDuration={0}>
                                         <Tooltip>
                                             <TooltipTrigger>
@@ -1596,1053 +1684,897 @@ export function ProcessingDetailsPanel({
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <p>
-                                                    Member&apos;s payday:{' '}
-                                                    {applicant?.payday || '—'}
-                                                </p>
-                                                <p>
-                                                    Member requested:{' '}
-                                                    {loanRequest.requested_payment_frequency ||
-                                                        '—'}
+                                                    Suggested institutional
+                                                    rate, matching WIBS
+                                                    desktop&apos;s typecode rule
+                                                    (2% for &quot;Other
+                                                    Loan&quot;, 5% for every
+                                                    other loan type). Editable
+                                                    per loan when this request
+                                                    needs a different rate.
+                                                    Zeroed automatically for Due
+                                                    date loans.
                                                 </p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                 </Label>
-                                <Select
+                                <PercentInput
+                                    id="inline_processing_loan_security_rate"
                                     value={
-                                        processingForm.recommended_payment_frequency ||
-                                        undefined
+                                        processingForm.processing
+                                            .loan_security_rate !== null &&
+                                        processingForm.processing
+                                            .loan_security_rate !== undefined
+                                            ? `${processingForm.processing.loan_security_rate}`
+                                            : ''
                                     }
-                                    onValueChange={(value) => {
-                                        setProcessingForm((current) => ({
-                                            ...current,
-                                            recommended_payment_frequency:
-                                                value,
-                                            // Due date forces loan security/savings to 0%;
-                                            // switching away restores the standard default
-                                            // so staff aren't stuck at 0%. The Due date month
-                                            // count is derived from "Recommended term", not
-                                            // entered separately.
-                                            processing:
-                                                value === 'Due date'
-                                                    ? {
-                                                          ...current.processing,
-                                                          loan_security_rate: 0,
-                                                          savings_rate: 0,
-                                                      }
-                                                    : {
-                                                          ...current.processing,
-                                                          loan_security_rate:
-                                                              resolveDefaultLoanSecurityRate(
-                                                                  loanRequest.typecode,
-                                                              ),
-                                                          savings_rate:
-                                                              resolveDefaultLoanSecurityRate(
-                                                                  loanRequest.typecode,
-                                                              ),
-                                                      },
-                                        }));
-                                        scheduleGnthpRecalculation();
-                                    }}
-                                >
-                                    <SelectTrigger
-                                        id="inline_recommended_payment_frequency"
-                                        className="w-full"
-                                    >
-                                        <SelectValue placeholder="Select payment frequency" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {PAYMENT_FREQUENCY_OPTIONS.map(
-                                            (option) => (
-                                                <SelectItem
-                                                    key={option}
-                                                    value={option}
-                                                >
-                                                    {option}
-                                                </SelectItem>
-                                            ),
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                                    onValueChange={updateLoanSecurityRate}
+                                    onBlur={scheduleGnthpRecalculation}
+                                />
                             </div>
-                            {processingForm.recommended_payment_frequency ===
-                                'Due date' && (
-                                <p className="text-sm text-muted-foreground sm:col-span-2">
-                                    Due date is repaid as a single payment after
-                                    the recommended term above (
-                                    {processingForm.recommended_term || '—'}{' '}
-                                    month
-                                    {processingForm.recommended_term === '1'
-                                        ? ''
-                                        : 's'}
-                                    ).
-                                </p>
-                            )}
-                        </div>
-                        {renderProcessingSectionLabel('Charges & fees')}
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {renderProcessingField('service_charge_rate', {
-                                onBlur: scheduleGnthpRecalculation,
-                            })}
-                            {renderProcessingField('insurance_rate', {
-                                onBlur: scheduleGnthpRecalculation,
-                                disabled: true,
-                                tooltip: isInsuranceSkipped
-                                    ? 'No insurance premium applies to this loan (recommended term under 2 months) — locked at 0.'
-                                    : isApplicantInInsuranceAgeBand
-                                      ? "Pesos per ₱1,000 of principal per month, NOT a percentage. Locked to the insurer's senior-age band rate for this applicant's age (66–70 → 2.05, 71–75 → 3.95)."
-                                      : "Pesos per ₱1,000 of principal per month, NOT a percentage. Applicant is outside the insurer's senior-age bands (66–70 → 2.05, 71–75 → 3.95), so the rate is fixed at 1.",
-                            })}
-                            {renderProcessingField('insurance_term', {
-                                onBlur: scheduleGnthpRecalculation,
-                                disabled: isInsuranceSkipped,
-                                tooltip: isInsuranceSkipped
-                                    ? 'No insurance premium applies to this loan (recommended term under 2 months) — locked at 0.'
-                                    : undefined,
-                            })}
-                            {processingForm.recommended_payment_frequency !==
-                                'Due date' && (
-                                <div className="grid gap-2">
-                                    <Label
-                                        htmlFor="inline_processing_loan_security_rate"
-                                        className="inline-flex items-center gap-1.5"
-                                    >
-                                        Loan security / Savings rate
-                                        <TooltipProvider delayDuration={0}>
-                                            <Tooltip>
-                                                <TooltipTrigger>
-                                                    <Info className="size-3.5 text-muted-foreground" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>
-                                                        Suggested institutional
-                                                        rate, matching WIBS
-                                                        desktop&apos;s typecode
-                                                        rule (2% for &quot;Other
-                                                        Loan&quot;, 5% for every
-                                                        other loan type).
-                                                        Editable per loan when
-                                                        this request needs a
-                                                        different rate. Zeroed
-                                                        automatically for Due
-                                                        date loans.
-                                                    </p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    </Label>
-                                    <PercentInput
-                                        id="inline_processing_loan_security_rate"
-                                        value={
-                                            processingForm.processing
-                                                .loan_security_rate !== null &&
-                                            processingForm.processing
-                                                .loan_security_rate !==
-                                                undefined
-                                                ? `${processingForm.processing.loan_security_rate}`
-                                                : ''
-                                        }
-                                        onValueChange={updateLoanSecurityRate}
-                                        onBlur={scheduleGnthpRecalculation}
-                                    />
-                                </div>
-                            )}
-                            {renderProcessingField('documentary_stamp_rate', {
-                                onBlur: scheduleGnthpRecalculation,
-                                disabled: true,
-                                tooltip:
-                                    'Fixed institutional rate (0.75%) — documentary stamp tax is ₱1.50 per ₱200 of the loan amount (or fraction thereof), so the amount rounds up per band, matching the reference workbook. Not editable per loan.',
-                            })}
-                            {renderProcessingField('notarial_fee', {
-                                onBlur: scheduleGnthpRecalculation,
-                                placeholder: 'Enter notarial fee',
-                            })}
-                            {renderProcessingField('other_charges_amount', {
-                                onBlur: scheduleGnthpRecalculation,
-                            })}
-                            {renderProcessingField(
-                                'other_charges_description',
-                                {
-                                    onBlur: scheduleGnthpRecalculation,
-                                },
-                            )}
-                            {renderProcessingField('penalty_rate_per_month', {
-                                onBlur: scheduleGnthpRecalculation,
-                                disabled: true,
-                                tooltip:
-                                    'Fixed institutional rate (5% per month). Not editable per loan.',
-                            })}
-                        </div>
-                        {renderProcessingSectionLabel('Net take-home pay')}
-                        <div className="space-y-3">
-                            <p className="text-sm text-muted-foreground">
-                                Net proceeds and GNTHP are computed
-                                automatically from the recommendation and
-                                charges above.
+                        )}
+                        {renderProcessingField('documentary_stamp_rate', {
+                            onBlur: scheduleGnthpRecalculation,
+                            disabled: true,
+                            tooltip:
+                                'Fixed institutional rate (0.75%) — documentary stamp tax is ₱1.50 per ₱200 of the loan amount (or fraction thereof), so the amount rounds up per band, matching the reference workbook. Not editable per loan.',
+                        })}
+                        {renderProcessingField('notarial_fee', {
+                            onBlur: scheduleGnthpRecalculation,
+                            placeholder: 'Enter notarial fee',
+                        })}
+                        {renderProcessingField('other_charges_amount', {
+                            onBlur: scheduleGnthpRecalculation,
+                        })}
+                        {renderProcessingField('other_charges_description', {
+                            onBlur: scheduleGnthpRecalculation,
+                        })}
+                        {renderProcessingField('penalty_rate_per_month', {
+                            onBlur: scheduleGnthpRecalculation,
+                            disabled: true,
+                            tooltip:
+                                'Fixed institutional rate (5% per month). Not editable per loan.',
+                        })}
+                    </div>
+                    {renderProcessingSectionLabel('Net take-home pay')}
+                    <div className="space-y-3">
+                        <p className="text-sm text-muted-foreground">
+                            Net proceeds and GNTHP are computed automatically
+                            from the recommendation and charges above.
+                        </p>
+
+                        {recommendationPreviewError && (
+                            <p className="text-sm text-destructive">
+                                {recommendationPreviewError}
                             </p>
-
-                            {recommendationPreviewError && (
-                                <p className="text-sm text-destructive">
-                                    {recommendationPreviewError}
-                                </p>
-                            )}
-
-                            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                                <div className="mb-3 flex items-center gap-2">
-                                    <Label className="text-sm font-medium text-foreground">
-                                        Net Proceeds (at recommended terms)
-                                    </Label>
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <button
-                                                    type="button"
-                                                    className="text-muted-foreground hover:text-foreground"
-                                                >
-                                                    <Info className="h-4 w-4" />
-                                                </button>
-                                            </TooltipTrigger>
-                                            <TooltipContent className="max-w-xs">
-                                                <p>
-                                                    Loan granted less finance
-                                                    charges (service charge),
-                                                    non-finance charges
-                                                    (insurance, loan security,
-                                                    documentary stamp, notarial
-                                                    fee, and other charges), and
-                                                    total charges. Interest is
-                                                    disclosed under "Not
-                                                    Deducted From Proceeds of
-                                                    Loan" — it is amortized into
-                                                    the payment schedule instead
-                                                    of being deducted here.
-                                                </p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </div>
-                                {isRecommendationPreviewLoading ? (
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                        <span className="text-sm">
-                                            Calculating…
-                                        </span>
-                                    </div>
-                                ) : recommendationPreview &&
-                                  recommendationPreview.net_proceeds_raw !==
-                                      null ? (
-                                    <div className="space-y-1.5">
-                                        <div className="flex items-center justify-between gap-3 text-sm">
-                                            <span className="text-muted-foreground">
-                                                Loan granted
-                                            </span>
-                                            <span className="font-medium tabular-nums">
-                                                {formatCurrency(
-                                                    recommendationPreview.approved_amount_raw,
-                                                )}
-                                            </span>
-                                        </div>
-
-                                        <Accordion
-                                            type="multiple"
-                                            className="w-full"
-                                        >
-                                            <AccordionItem
-                                                value="finance-charges"
-                                                className="border-0"
-                                            >
-                                                <AccordionTrigger className="flex-row-reverse py-1 text-sm hover:no-underline">
-                                                    <span className="flex flex-1 items-center justify-between gap-3">
-                                                        <span className="text-muted-foreground">
-                                                            Finance charges
-                                                        </span>
-                                                        <span className="font-medium tabular-nums">
-                                                            {formatCurrency(
-                                                                recommendationPreview.finance_charge_total_raw,
-                                                            )}
-                                                        </span>
-                                                    </span>
-                                                </AccordionTrigger>
-                                                <AccordionContent className="pt-0 pb-1">
-                                                    <div className="ml-4 space-y-1 border-l border-border pl-3">
-                                                        <ChargeLineItem
-                                                            label="Service charge"
-                                                            amount={
-                                                                recommendationPreview.service_charge_amount_raw
-                                                            }
-                                                        />
-                                                        <ChargeLineItem
-                                                            label={
-                                                                processingForm.recommended_payment_frequency ===
-                                                                'Due date'
-                                                                    ? 'Interest (advance — deducted)'
-                                                                    : 'Interest (not deducted)'
-                                                            }
-                                                            amount={
-                                                                recommendationPreview.interest_not_deducted_raw
-                                                            }
-                                                        />
-                                                    </div>
-                                                </AccordionContent>
-                                            </AccordionItem>
-
-                                            <AccordionItem
-                                                value="non-finance-charges"
-                                                className="border-0"
-                                            >
-                                                <AccordionTrigger className="flex-row-reverse py-1 text-sm hover:no-underline">
-                                                    <span className="flex flex-1 items-center justify-between gap-3">
-                                                        <span className="text-muted-foreground">
-                                                            Non-finance charges
-                                                        </span>
-                                                        <span className="font-medium tabular-nums">
-                                                            {formatCurrency(
-                                                                recommendationPreview.non_finance_charge_total_raw,
-                                                            )}
-                                                        </span>
-                                                    </span>
-                                                </AccordionTrigger>
-                                                <AccordionContent className="pt-0 pb-1">
-                                                    <div className="ml-4 space-y-1 border-l border-border pl-3">
-                                                        <ChargeLineItem
-                                                            label="Insurance premium"
-                                                            amount={
-                                                                recommendationPreview.insurance_premium_raw
-                                                            }
-                                                        />
-                                                        <ChargeLineItem
-                                                            label="Loan security"
-                                                            amount={
-                                                                recommendationPreview.loan_security_amount_raw
-                                                            }
-                                                        />
-                                                        <ChargeLineItem
-                                                            label="Documentary stamps"
-                                                            amount={
-                                                                recommendationPreview.documentary_stamp_amount_raw
-                                                            }
-                                                        />
-                                                        <ChargeLineItem
-                                                            label="Notarial fee"
-                                                            amount={
-                                                                recommendationPreview.notarial_fee_raw
-                                                            }
-                                                        />
-                                                        <ChargeLineItem
-                                                            label={
-                                                                recommendationPreview.other_charges_description
-                                                                    ? `Other charges (${recommendationPreview.other_charges_description})`
-                                                                    : 'Other charges'
-                                                            }
-                                                            amount={
-                                                                recommendationPreview.other_charges_amount_raw
-                                                            }
-                                                        />
-                                                    </div>
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        </Accordion>
-
-                                        <div className="flex items-center justify-between gap-3 text-sm">
-                                            <span className="text-muted-foreground">
-                                                Total charges
-                                            </span>
-                                            <span className="font-medium tabular-nums">
-                                                {formatCurrency(
-                                                    recommendationPreview.deductions_total_raw,
-                                                )}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-3 border-t border-primary/20 pt-2">
-                                            <span className="text-sm font-medium text-foreground">
-                                                Net Proceeds
-                                            </span>
-                                            <span className="text-2xl font-semibold text-foreground tabular-nums">
-                                                {formatCurrency(
-                                                    recommendationPreview.net_proceeds_raw,
-                                                )}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ) : recommendationPreview ? (
-                                    <p className="text-sm text-muted-foreground">
-                                        Not enough data to compute.
-                                    </p>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        Fill in recommendation and charges above
-                                        to calculate.
-                                    </p>
-                                )}
-                            </div>
-
-                            {renderProcessingField(
-                                'guaranteed_net_take_home_pay',
-                                {
-                                    disabled: true,
-                                    className: readOnlyProcessingFieldClassName,
-                                    placeholder: isRecommendationPreviewLoading
-                                        ? 'Recalculating…'
-                                        : 'Computed automatically',
-                                    tooltip:
-                                        'Guaranteed Net Take-Home Pay is always the gross monthly income minus the monthly amortization at the recommended terms — it cannot be edited manually.',
-                                },
-                            )}
-
-                            {recommendationPreview &&
-                                recommendationPreview.suggested_gnthp_raw ===
-                                    null && (
-                                    <p className="text-xs text-muted-foreground">
-                                        {
-                                            recommendationPreview
-                                                .failure_information?.message
-                                        }
-                                        {recommendationPreview
-                                            .failure_information?.blockers
-                                            .length
-                                            ? ` ${recommendationPreview.failure_information.blockers.join(' ')}`
-                                            : null}
-                                    </p>
-                                )}
-                        </div>
-
-                        {renderProcessingSectionLabel('Personnel')}
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {renderProcessingField('witness_one_name', {
-                                disabled: true,
-                                placeholder:
-                                    "Filled automatically from the assigned processor's name",
-                                tooltip:
-                                    "Recorded automatically using the assigned processor's name.",
-                            })}
-                            {loanManagers.length > 1 ? (
-                                <div
-                                    key="witness_two_name"
-                                    className="grid gap-2"
-                                >
-                                    <Label
-                                        htmlFor="inline_processing_witness_two_name"
-                                        className="inline-flex items-center gap-1.5"
-                                    >
-                                        {
-                                            dataSectionDefinitions.processing
-                                                .fields.witness_two_name?.label
-                                        }
-                                        <TooltipProvider delayDuration={0}>
-                                            <Tooltip>
-                                                <TooltipTrigger>
-                                                    <Info className="size-3.5 text-muted-foreground" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>
-                                                        Select the loan manager
-                                                        who will witness this
-                                                        loan. Their name is
-                                                        recorded automatically
-                                                        on the documents.
-                                                    </p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    </Label>
-                                    <Select
-                                        value={
-                                            typeof processingForm.processing
-                                                .witness_two_id === 'number'
-                                                ? String(
-                                                      processingForm.processing
-                                                          .witness_two_id,
-                                                  )
-                                                : undefined
-                                        }
-                                        onValueChange={(value) => {
-                                            const manager = loanManagers.find(
-                                                (m) => String(m.id) === value,
-                                            );
-                                            if (manager) {
-                                                updateProcessingSectionField(
-                                                    'witness_two_id',
-                                                    manager.id,
-                                                );
-                                                updateProcessingSectionField(
-                                                    'witness_two_name',
-                                                    manager.name,
-                                                );
-                                            }
-                                        }}
-                                        disabled={!canUpdateProcessing}
-                                    >
-                                        <SelectTrigger
-                                            id="inline_processing_witness_two_name"
-                                            className="w-full"
-                                        >
-                                            <SelectValue placeholder="Select loan manager" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {loanManagers.map((manager) => (
-                                                <SelectItem
-                                                    key={manager.id}
-                                                    value={String(manager.id)}
-                                                >
-                                                    {manager.name} (
-                                                    {manager.active_loans}{' '}
-                                                    {manager.active_loans === 1
-                                                        ? 'loan'
-                                                        : 'loans'}{' '}
-                                                    in flight)
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            ) : (
-                                renderProcessingField('witness_two_name', {
-                                    disabled: true,
-                                    placeholder:
-                                        loanManagers.length === 1
-                                            ? "Filled automatically from the loan manager's name"
-                                            : 'Filled automatically upon approval',
-                                    tooltip:
-                                        loanManagers.length === 1
-                                            ? "Recorded automatically using the sole active loan manager's name."
-                                            : "Recorded automatically using the approving manager's name when the request is approved.",
-                                })
-                            )}
-                            {loanRequest.authority_to_deduct_guidance
-                                ?.category === 'blgu' && (
-                                <>
-                                    {renderProcessingField(
-                                        'barangay_official_name',
-                                    )}
-                                    {renderProcessingField(
-                                        'barangay_official_title',
-                                    )}
-                                    {renderProcessingField(
-                                        'barangay_official_designation',
-                                    )}
-                                    {renderProcessingField(
-                                        'barangay_agency_name',
-                                    )}
-                                    {renderProcessingField(
-                                        'barangay_agency_address',
-                                    )}
-                                </>
-                            )}
-                        </div>
-
-                        {cycleStateSlots.length > 0 && (
-                            <>
-                                {renderProcessingSectionLabel(
-                                    'Group Life Insurance Cycle',
-                                )}
-                                <div className="grid gap-3">
-                                    {cycleStateSlots.map(({ slotKey, label }) =>
-                                        renderCycleStateRow(slotKey, label),
-                                    )}
-                                </div>
-                            </>
                         )}
 
-                        {renderProcessingSectionLabel(
-                            'Employer Classification',
-                        )}
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="grid gap-2 sm:col-span-2">
-                                <Label htmlFor="inline_institutional_employer_category">
-                                    Institutional employer category
+                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                            <div className="mb-3 flex items-center gap-2">
+                                <Label className="text-sm font-medium text-foreground">
+                                    Net Proceeds (at recommended terms)
                                 </Label>
-                                <Select
-                                    value={
-                                        processingForm.institutional_employer_category ||
-                                        INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
-                                    }
-                                    onValueChange={(value) =>
-                                        updateInstitutionalEmployerCategory(
-                                            value ===
-                                                INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
-                                                ? ''
-                                                : value,
-                                        )
-                                    }
-                                >
-                                    <SelectTrigger
-                                        id="inline_institutional_employer_category"
-                                        className="w-full"
-                                    >
-                                        <SelectValue placeholder="Not set" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem
-                                            value={
-                                                INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
-                                            }
-                                        >
-                                            Not set
-                                        </SelectItem>
-                                        {INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS.map(
-                                            (option) => (
-                                                <SelectItem
-                                                    key={option.value}
-                                                    value={option.value}
-                                                >
-                                                    {option.label}
-                                                </SelectItem>
-                                            ),
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                                {institutionalEmployerCategoryHint && (
-                                    <p className="text-xs text-muted-foreground">
-                                        Detected from employer info:{' '}
-                                        {institutionalEmployerCategoryHint}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-
-                        {loanRequest.authority_to_deduct_guidance
-                            ?.applicable !== false && (
-                            <>
-                                {renderProcessingSectionLabel(
-                                    'Authority to Deduct (Salary Deduction)',
-                                )}
-                                {loanRequest.authority_to_deduct_guidance
-                                    ?.note && (
-                                    <p className="mb-3 text-sm text-muted-foreground">
-                                        {
-                                            loanRequest
-                                                .authority_to_deduct_guidance
-                                                .note
-                                        }
-                                    </p>
-                                )}
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {renderProcessingField(
-                                        'authority_to_deduct_institution_name',
-                                        { fullWidth: true },
-                                    )}
-                                    {loanRequest.authority_to_deduct_guidance
-                                        ?.saved_contact &&
-                                        `${processingForm.processing.authority_to_deduct_officer_1_name ?? ''}`.trim() ===
-                                            '' && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
                                             <button
                                                 type="button"
-                                                className="text-left text-sm text-primary hover:underline sm:col-span-2"
-                                                onClick={() => {
-                                                    const savedContact =
-                                                        loanRequest
-                                                            .authority_to_deduct_guidance
-                                                            ?.saved_contact;
-
-                                                    if (!savedContact) {
-                                                        return;
-                                                    }
-
-                                                    setProcessingForm(
-                                                        (current) => ({
-                                                            ...current,
-                                                            processing: {
-                                                                ...current.processing,
-                                                                authority_to_deduct_officer_1_name:
-                                                                    savedContact.officer_1_name,
-                                                                // Title is derived from the employer
-                                                                // category, not the saved contact --
-                                                                // only copy it here when no category
-                                                                // has locked it already.
-                                                                ...(fixedOfficerTitles.length ===
-                                                                0
-                                                                    ? {
-                                                                          authority_to_deduct_officer_1_title:
-                                                                              savedContact.officer_1_title,
-                                                                      }
-                                                                    : {}),
-                                                                authority_to_deduct_officer_2_name:
-                                                                    savedContact.officer_2_name,
-                                                                ...(fixedOfficerTitles.length <
-                                                                2
-                                                                    ? {
-                                                                          authority_to_deduct_officer_2_title:
-                                                                              savedContact.officer_2_title,
-                                                                      }
-                                                                    : {}),
-                                                            },
-                                                        }),
-                                                    );
-
-                                                    if (
-                                                        fixedOfficerTitles.length ===
-                                                            0 &&
-                                                        (savedContact.officer_2_name ||
-                                                            savedContact.officer_2_title)
-                                                    ) {
-                                                        setShowSecondOfficer(
-                                                            true,
-                                                        );
-                                                    }
-                                                }}
+                                                className="text-muted-foreground hover:text-foreground"
                                             >
-                                                Use saved officer(s) for this
-                                                institution
+                                                <Info className="h-4 w-4" />
                                             </button>
-                                        )}
-                                    <label className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm sm:col-span-2">
-                                        <Checkbox
-                                            checked={officersUnknown}
-                                            onCheckedChange={(checked) => {
-                                                const isUnknown =
-                                                    checked === true;
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                            <p>
+                                                Loan granted less finance
+                                                charges (service charge),
+                                                non-finance charges (insurance,
+                                                loan security, documentary
+                                                stamp, notarial fee, and other
+                                                charges), and total charges.
+                                                Interest is disclosed under "Not
+                                                Deducted From Proceeds of Loan"
+                                                — it is amortized into the
+                                                payment schedule instead of
+                                                being deducted here.
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                            {isRecommendationPreviewLoading ? (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                    <span className="text-sm">
+                                        Calculating…
+                                    </span>
+                                </div>
+                            ) : recommendationPreview &&
+                              recommendationPreview.net_proceeds_raw !==
+                                  null ? (
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between gap-3 text-sm">
+                                        <span className="text-muted-foreground">
+                                            Loan granted
+                                        </span>
+                                        <span className="font-medium tabular-nums">
+                                            {formatCurrency(
+                                                recommendationPreview.approved_amount_raw,
+                                            )}
+                                        </span>
+                                    </div>
+
+                                    <Accordion
+                                        type="multiple"
+                                        className="w-full"
+                                    >
+                                        <AccordionItem
+                                            value="finance-charges"
+                                            className="border-0"
+                                        >
+                                            <AccordionTrigger className="flex-row-reverse py-1 text-sm hover:no-underline">
+                                                <span className="flex flex-1 items-center justify-between gap-3">
+                                                    <span className="text-muted-foreground">
+                                                        Finance charges
+                                                    </span>
+                                                    <span className="font-medium tabular-nums">
+                                                        {formatCurrency(
+                                                            recommendationPreview.finance_charge_total_raw,
+                                                        )}
+                                                    </span>
+                                                </span>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="pt-0 pb-1">
+                                                <div className="ml-4 space-y-1 border-l border-border pl-3">
+                                                    <ChargeLineItem
+                                                        label="Service charge"
+                                                        amount={
+                                                            recommendationPreview.service_charge_amount_raw
+                                                        }
+                                                    />
+                                                    <ChargeLineItem
+                                                        label={
+                                                            processingForm.recommended_payment_frequency ===
+                                                            'Due date'
+                                                                ? 'Interest (advance — deducted)'
+                                                                : 'Interest (not deducted)'
+                                                        }
+                                                        amount={
+                                                            recommendationPreview.interest_not_deducted_raw
+                                                        }
+                                                    />
+                                                </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
+
+                                        <AccordionItem
+                                            value="non-finance-charges"
+                                            className="border-0"
+                                        >
+                                            <AccordionTrigger className="flex-row-reverse py-1 text-sm hover:no-underline">
+                                                <span className="flex flex-1 items-center justify-between gap-3">
+                                                    <span className="text-muted-foreground">
+                                                        Non-finance charges
+                                                    </span>
+                                                    <span className="font-medium tabular-nums">
+                                                        {formatCurrency(
+                                                            recommendationPreview.non_finance_charge_total_raw,
+                                                        )}
+                                                    </span>
+                                                </span>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="pt-0 pb-1">
+                                                <div className="ml-4 space-y-1 border-l border-border pl-3">
+                                                    <ChargeLineItem
+                                                        label="Insurance premium"
+                                                        amount={
+                                                            recommendationPreview.insurance_premium_raw
+                                                        }
+                                                    />
+                                                    <ChargeLineItem
+                                                        label="Loan security"
+                                                        amount={
+                                                            recommendationPreview.loan_security_amount_raw
+                                                        }
+                                                    />
+                                                    <ChargeLineItem
+                                                        label="Documentary stamps"
+                                                        amount={
+                                                            recommendationPreview.documentary_stamp_amount_raw
+                                                        }
+                                                    />
+                                                    <ChargeLineItem
+                                                        label="Notarial fee"
+                                                        amount={
+                                                            recommendationPreview.notarial_fee_raw
+                                                        }
+                                                    />
+                                                    <ChargeLineItem
+                                                        label={
+                                                            recommendationPreview.other_charges_description
+                                                                ? `Other charges (${recommendationPreview.other_charges_description})`
+                                                                : 'Other charges'
+                                                        }
+                                                        amount={
+                                                            recommendationPreview.other_charges_amount_raw
+                                                        }
+                                                    />
+                                                </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+
+                                    <div className="flex items-center justify-between gap-3 text-sm">
+                                        <span className="text-muted-foreground">
+                                            Total charges
+                                        </span>
+                                        <span className="font-medium tabular-nums">
+                                            {formatCurrency(
+                                                recommendationPreview.deductions_total_raw,
+                                            )}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3 border-t border-primary/20 pt-2">
+                                        <span className="text-sm font-medium text-foreground">
+                                            Net Proceeds
+                                        </span>
+                                        <span className="text-2xl font-semibold text-foreground tabular-nums">
+                                            {formatCurrency(
+                                                recommendationPreview.net_proceeds_raw,
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : recommendationPreview ? (
+                                <p className="text-sm text-muted-foreground">
+                                    Not enough data to compute.
+                                </p>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">
+                                    Fill in recommendation and charges above to
+                                    calculate.
+                                </p>
+                            )}
+                        </div>
+
+                        {renderProcessingField('guaranteed_net_take_home_pay', {
+                            disabled: true,
+                            className: readOnlyProcessingFieldClassName,
+                            placeholder: isRecommendationPreviewLoading
+                                ? 'Recalculating…'
+                                : 'Computed automatically',
+                            tooltip:
+                                'Guaranteed Net Take-Home Pay is always the gross monthly income minus the monthly amortization at the recommended terms — it cannot be edited manually.',
+                        })}
+
+                        {recommendationPreview &&
+                            recommendationPreview.suggested_gnthp_raw ===
+                                null && (
+                                <p className="text-xs text-muted-foreground">
+                                    {
+                                        recommendationPreview
+                                            .failure_information?.message
+                                    }
+                                    {recommendationPreview.failure_information
+                                        ?.blockers.length
+                                        ? ` ${recommendationPreview.failure_information.blockers.join(' ')}`
+                                        : null}
+                                </p>
+                            )}
+                    </div>
+
+                    {renderProcessingSectionLabel('Personnel')}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        {renderProcessingField('witness_one_name', {
+                            disabled: true,
+                            placeholder:
+                                "Filled automatically from the assigned processor's name",
+                            tooltip:
+                                "Recorded automatically using the assigned processor's name.",
+                        })}
+                        {loanManagers.length > 1 ? (
+                            <div key="witness_two_name" className="grid gap-2">
+                                <Label
+                                    htmlFor="inline_processing_witness_two_name"
+                                    className="inline-flex items-center gap-1.5"
+                                >
+                                    {
+                                        dataSectionDefinitions.processing.fields
+                                            .witness_two_name?.label
+                                    }
+                                    <TooltipProvider delayDuration={0}>
+                                        <Tooltip>
+                                            <TooltipTrigger>
+                                                <Info className="size-3.5 text-muted-foreground" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>
+                                                    Select the loan manager who
+                                                    will witness this loan.
+                                                    Their name is recorded
+                                                    automatically on the
+                                                    documents.
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </Label>
+                                <Select
+                                    value={
+                                        typeof processingForm.processing
+                                            .witness_two_id === 'number'
+                                            ? String(
+                                                  processingForm.processing
+                                                      .witness_two_id,
+                                              )
+                                            : undefined
+                                    }
+                                    onValueChange={(value) => {
+                                        const manager = loanManagers.find(
+                                            (m) => String(m.id) === value,
+                                        );
+                                        if (manager) {
+                                            updateProcessingSectionField(
+                                                'witness_two_id',
+                                                manager.id,
+                                            );
+                                            updateProcessingSectionField(
+                                                'witness_two_name',
+                                                manager.name,
+                                            );
+                                        }
+                                    }}
+                                    disabled={!canUpdateProcessing}
+                                >
+                                    <SelectTrigger
+                                        id="inline_processing_witness_two_name"
+                                        className="w-full"
+                                    >
+                                        <SelectValue placeholder="Select loan manager" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {loanManagers.map((manager) => (
+                                            <SelectItem
+                                                key={manager.id}
+                                                value={String(manager.id)}
+                                            >
+                                                {manager.name} (
+                                                {manager.active_loans}{' '}
+                                                {manager.active_loans === 1
+                                                    ? 'loan'
+                                                    : 'loans'}{' '}
+                                                in flight)
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        ) : (
+                            renderProcessingField('witness_two_name', {
+                                disabled: true,
+                                placeholder:
+                                    loanManagers.length === 1
+                                        ? "Filled automatically from the loan manager's name"
+                                        : 'Filled automatically upon approval',
+                                tooltip:
+                                    loanManagers.length === 1
+                                        ? "Recorded automatically using the sole active loan manager's name."
+                                        : "Recorded automatically using the approving manager's name when the request is approved.",
+                            })
+                        )}
+                        {loanRequest.authority_to_deduct_guidance?.category ===
+                            'blgu' && (
+                            <>
+                                {renderProcessingField(
+                                    'barangay_official_name',
+                                )}
+                                {renderProcessingField(
+                                    'barangay_official_title',
+                                )}
+                                {renderProcessingField(
+                                    'barangay_official_designation',
+                                )}
+                                {renderProcessingField('barangay_agency_name')}
+                                {renderProcessingField(
+                                    'barangay_agency_address',
+                                )}
+                            </>
+                        )}
+                    </div>
+
+                    {cycleStateSlots.length > 0 && (
+                        <>
+                            {renderProcessingSectionLabel(
+                                'Group Life Insurance Cycle',
+                            )}
+                            <div className="grid gap-3">
+                                {cycleStateSlots.map(({ slotKey, label }) =>
+                                    renderCycleStateRow(slotKey, label),
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {renderProcessingSectionLabel('Employer Classification')}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-2 sm:col-span-2">
+                            <Label htmlFor="inline_institutional_employer_category">
+                                Institutional employer category
+                            </Label>
+                            <Select
+                                value={
+                                    processingForm.institutional_employer_category ||
+                                    INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
+                                }
+                                onValueChange={(value) =>
+                                    updateInstitutionalEmployerCategory(
+                                        value ===
+                                            INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
+                                            ? ''
+                                            : value,
+                                    )
+                                }
+                            >
+                                <SelectTrigger
+                                    id="inline_institutional_employer_category"
+                                    className="w-full"
+                                >
+                                    <SelectValue placeholder="Not set" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem
+                                        value={
+                                            INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE
+                                        }
+                                    >
+                                        Not set
+                                    </SelectItem>
+                                    {INSTITUTIONAL_EMPLOYER_CATEGORY_OPTIONS.map(
+                                        (option) => (
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </SelectItem>
+                                        ),
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            {institutionalEmployerCategoryHint && (
+                                <p className="text-xs text-muted-foreground">
+                                    Detected from employer info:{' '}
+                                    {institutionalEmployerCategoryHint}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    {loanRequest.authority_to_deduct_guidance?.applicable !==
+                        false && (
+                        <>
+                            {renderProcessingSectionLabel(
+                                'Authority to Deduct (Salary Deduction)',
+                            )}
+                            {loanRequest.authority_to_deduct_guidance?.note && (
+                                <p className="mb-3 text-sm text-muted-foreground">
+                                    {
+                                        loanRequest.authority_to_deduct_guidance
+                                            .note
+                                    }
+                                </p>
+                            )}
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {renderProcessingField(
+                                    'authority_to_deduct_institution_name',
+                                    { fullWidth: true },
+                                )}
+                                {loanRequest.authority_to_deduct_guidance
+                                    ?.saved_contact &&
+                                    `${processingForm.processing.authority_to_deduct_officer_1_name ?? ''}`.trim() ===
+                                        '' && (
+                                        <button
+                                            type="button"
+                                            className="text-left text-sm text-primary hover:underline sm:col-span-2"
+                                            onClick={() => {
+                                                const savedContact =
+                                                    loanRequest
+                                                        .authority_to_deduct_guidance
+                                                        ?.saved_contact;
+
+                                                if (!savedContact) {
+                                                    return;
+                                                }
 
                                                 setProcessingForm(
                                                     (current) => ({
                                                         ...current,
                                                         processing: {
                                                             ...current.processing,
-                                                            authority_to_deduct_officers_unknown:
-                                                                isUnknown,
-                                                            ...(isUnknown
+                                                            authority_to_deduct_officer_1_name:
+                                                                savedContact.officer_1_name,
+                                                            // Title is derived from the employer
+                                                            // category, not the saved contact --
+                                                            // only copy it here when no category
+                                                            // has locked it already.
+                                                            ...(fixedOfficerTitles.length ===
+                                                            0
                                                                 ? {
-                                                                      authority_to_deduct_officer_1_name:
-                                                                          null,
                                                                       authority_to_deduct_officer_1_title:
-                                                                          null,
-                                                                      authority_to_deduct_officer_2_name:
-                                                                          null,
+                                                                          savedContact.officer_1_title,
+                                                                  }
+                                                                : {}),
+                                                            authority_to_deduct_officer_2_name:
+                                                                savedContact.officer_2_name,
+                                                            ...(fixedOfficerTitles.length <
+                                                            2
+                                                                ? {
                                                                       authority_to_deduct_officer_2_title:
-                                                                          null,
+                                                                          savedContact.officer_2_title,
                                                                   }
                                                                 : {}),
                                                         },
                                                     }),
                                                 );
+
+                                                if (
+                                                    fixedOfficerTitles.length ===
+                                                        0 &&
+                                                    (savedContact.officer_2_name ||
+                                                        savedContact.officer_2_title)
+                                                ) {
+                                                    setShowSecondOfficer(true);
+                                                }
                                             }}
-                                        />
-                                        <span>
-                                            I don&apos;t know the officer
-                                            information yet — leave these fields
-                                            blank
-                                        </span>
-                                    </label>
-                                    {renderProcessingField(
-                                        'authority_to_deduct_officer_1_name',
-                                        {
-                                            disabled: officersUnknown,
-                                            className: officersUnknown
+                                        >
+                                            Use saved officer(s) for this
+                                            institution
+                                        </button>
+                                    )}
+                                <label className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm sm:col-span-2">
+                                    <Checkbox
+                                        checked={officersUnknown}
+                                        onCheckedChange={(checked) => {
+                                            const isUnknown = checked === true;
+
+                                            setProcessingForm((current) => ({
+                                                ...current,
+                                                processing: {
+                                                    ...current.processing,
+                                                    authority_to_deduct_officers_unknown:
+                                                        isUnknown,
+                                                    ...(isUnknown
+                                                        ? {
+                                                              authority_to_deduct_officer_1_name:
+                                                                  null,
+                                                              authority_to_deduct_officer_1_title:
+                                                                  null,
+                                                              authority_to_deduct_officer_2_name:
+                                                                  null,
+                                                              authority_to_deduct_officer_2_title:
+                                                                  null,
+                                                          }
+                                                        : {}),
+                                                },
+                                            }));
+                                        }}
+                                    />
+                                    <span>
+                                        I don&apos;t know the officer
+                                        information yet — leave these fields
+                                        blank
+                                    </span>
+                                </label>
+                                {renderProcessingField(
+                                    'authority_to_deduct_officer_1_name',
+                                    {
+                                        disabled: officersUnknown,
+                                        className: officersUnknown
+                                            ? readOnlyProcessingFieldClassName
+                                            : undefined,
+                                    },
+                                )}
+                                {renderProcessingField(
+                                    'authority_to_deduct_officer_1_title',
+                                    {
+                                        disabled:
+                                            officersUnknown ||
+                                            fixedOfficerTitles.length > 0,
+                                        className:
+                                            officersUnknown ||
+                                            fixedOfficerTitles.length > 0
                                                 ? readOnlyProcessingFieldClassName
                                                 : undefined,
-                                        },
-                                    )}
-                                    {renderProcessingField(
-                                        'authority_to_deduct_officer_1_title',
-                                        {
-                                            disabled:
-                                                officersUnknown ||
-                                                fixedOfficerTitles.length > 0,
-                                            className:
-                                                officersUnknown ||
-                                                fixedOfficerTitles.length > 0
+                                    },
+                                )}
+                                {fixedOfficerTitles.length > 0 && (
+                                    <p className="-mt-2 text-xs text-muted-foreground sm:col-span-2">
+                                        Title is fixed for this employer
+                                        category.
+                                    </p>
+                                )}
+                                {showSecondOfficer ? (
+                                    <>
+                                        {renderProcessingField(
+                                            'authority_to_deduct_officer_2_name',
+                                            {
+                                                disabled: officersUnknown,
+                                                className: officersUnknown
                                                     ? readOnlyProcessingFieldClassName
                                                     : undefined,
-                                        },
-                                    )}
-                                    {fixedOfficerTitles.length > 0 && (
-                                        <p className="-mt-2 text-xs text-muted-foreground sm:col-span-2">
-                                            Title is fixed for this employer
-                                            category.
-                                        </p>
-                                    )}
-                                    {showSecondOfficer ? (
-                                        <>
-                                            {renderProcessingField(
-                                                'authority_to_deduct_officer_2_name',
-                                                {
-                                                    disabled: officersUnknown,
-                                                    className: officersUnknown
+                                            },
+                                        )}
+                                        {renderProcessingField(
+                                            'authority_to_deduct_officer_2_title',
+                                            {
+                                                disabled:
+                                                    officersUnknown ||
+                                                    fixedOfficerTitles.length >
+                                                        0,
+                                                className:
+                                                    officersUnknown ||
+                                                    fixedOfficerTitles.length >
+                                                        0
                                                         ? readOnlyProcessingFieldClassName
                                                         : undefined,
-                                                },
-                                            )}
-                                            {renderProcessingField(
-                                                'authority_to_deduct_officer_2_title',
-                                                {
-                                                    disabled:
-                                                        officersUnknown ||
-                                                        fixedOfficerTitles.length >
-                                                            0,
-                                                    className:
-                                                        officersUnknown ||
-                                                        fixedOfficerTitles.length >
-                                                            0
-                                                            ? readOnlyProcessingFieldClassName
-                                                            : undefined,
-                                                },
-                                            )}
-                                        </>
-                                    ) : (
-                                        !officersUnknown &&
-                                        fixedOfficerTitles.length === 0 && (
-                                            <button
-                                                type="button"
-                                                className="text-left text-sm text-primary hover:underline sm:col-span-2"
-                                                onClick={() =>
-                                                    setShowSecondOfficer(true)
-                                                }
-                                            >
-                                                + Add second officer
-                                            </button>
-                                        )
-                                    )}
-                                </div>
-                            </>
-                        )}
-                        {loanRequest.waiver_applicability?.deped.applicable && (
-                            <>
-                                {renderProcessingSectionLabel(
-                                    'Salary Deduction Authorization Waiver (Education Sector)',
-                                )}
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {renderProcessingField(
-                                        'deped_school_id_number',
-                                    )}
-                                    {renderProcessingField(
-                                        'deped_deduction_amount',
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        {loanRequest.waiver_applicability?.pension
-                            .applicable && (
-                            <>
-                                {renderProcessingSectionLabel(
-                                    'Waiver (Pensioners)',
-                                )}
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {renderProcessingField('pension_provider')}
-                                    {renderProcessingField('pension_bank_name')}
-                                    {renderProcessingField(
-                                        'pension_atm_card_number',
-                                    )}
-                                    {renderProcessingField(
-                                        'pension_deduction_amount',
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        {!PDC_SCHEDULE_TEMPORARILY_DISABLED &&
-                            dataSections.banking?.payment_option ===
-                                'Check' && (
-                                <>
-                                    {renderProcessingSectionLabel(
-                                        'Post-Dated Checks (PDC)',
-                                    )}
-                                    <div className="grid gap-4 sm:grid-cols-2">
-                                        {renderProcessingField(
-                                            'pdc_drawee_bank',
+                                            },
                                         )}
-                                    </div>
-                                </>
-                            )}
-
-                        <Separator className="bg-border/40" />
-                        <div className="grid gap-2">
-                            <Label htmlFor="inline_processing_reason">
-                                Remarks{' '}
-                                {isFirstProcessingSave && (
-                                    <span className="text-xs font-normal text-muted-foreground">
-                                        (optional)
-                                    </span>
-                                )}
-                            </Label>
-                            <textarea
-                                id="inline_processing_reason"
-                                className={textareaClassName}
-                                placeholder={
-                                    isFirstProcessingSave
-                                        ? 'Optional — add context beyond the auto-generated summary.'
-                                        : 'Required — explain why you’re making this change.'
-                                }
-                                value={processingForm.reason}
-                                aria-invalid={reasonError !== null}
-                                onChange={(event) => {
-                                    setReasonError(null);
-                                    setProcessingForm((current) => ({
-                                        ...current,
-                                        reason: event.target.value,
-                                    }));
-                                }}
-                            />
-                        </div>
-                        {saveError && (
-                            <div className="space-y-2">
-                                <FormErrorSummary
-                                    errors={saveError.fieldErrors}
-                                    idResolver={(key) =>
-                                        `inline_processing_${key.replace(/^processing\./, '')}`
-                                    }
-                                />
-                                {onDismissSaveError && (
-                                    <button
-                                        type="button"
-                                        className="text-xs text-muted-foreground hover:underline"
-                                        onClick={onDismissSaveError}
-                                    >
-                                        Dismiss
-                                    </button>
+                                    </>
+                                ) : (
+                                    !officersUnknown &&
+                                    fixedOfficerTitles.length === 0 && (
+                                        <button
+                                            type="button"
+                                            className="text-left text-sm text-primary hover:underline sm:col-span-2"
+                                            onClick={() =>
+                                                setShowSecondOfficer(true)
+                                            }
+                                        >
+                                            + Add second officer
+                                        </button>
+                                    )
                                 )}
                             </div>
-                        )}
-                        <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="flex-1"
-                                disabled={isProcessing}
-                                onClick={cancelEditingProcessingDetails}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                className="flex-1"
-                                disabled={isProcessing}
-                            >
-                                Save processing details
-                            </Button>
-                        </div>
-                    </form>
-                ) : (
-                    <div className="animate-in space-y-4 duration-200 fade-in slide-in-from-top-2">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <SnapshotRow
-                                label="Recommended amount"
-                                value={snapshotCurrency(
-                                    loanRequest.recommended_amount,
-                                )}
-                            />
-                            <SnapshotRow
-                                label="Recommended term"
-                                value={recommendedTermLabel}
-                            />
-                            <SnapshotRow
-                                label="Recommended interest rate"
-                                value={snapshotPercent(
-                                    loanRequest.recommended_interest_rate,
-                                )}
-                            />
-                            <SnapshotRow
-                                label="Payment frequency"
-                                value={snapshotDisplay(
-                                    loanRequest.recommended_payment_frequency,
-                                )}
-                            />
-                        </div>
-                        <Separator className="bg-border/40" />
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {Object.entries(
-                                dataSectionDefinitions.processing.fields,
-                            )
-                                .filter(
-                                    ([fieldKey]) =>
-                                        !SNAPSHOT_HIDDEN_FIELDS.has(fieldKey) &&
-                                        !SNAPSHOT_GATED_FIELDS.has(fieldKey),
-                                )
-                                .map(([fieldKey]) =>
-                                    renderSnapshotField(fieldKey),
-                                )}
-                        </div>
-
-                        {renderProcessingSectionLabel(
-                            'Bank & payout information',
-                        )}
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {renderBankingSnapshotField('release_method')}
-                            {renderBankingSnapshotField('payment_option')}
-                            {(dataSections.banking?.release_method === 'ATM' ||
-                                dataSections.banking?.release_method ===
-                                    'Bank Transfer') &&
-                                renderAccountDetailRows(releaseAccountDetail)}
-                            {(dataSections.banking?.payment_option ===
-                                'ATM Deduction' ||
-                                dataSections.banking?.payment_option ===
-                                    'Bank Transfer') &&
-                                renderAccountDetailRows(paymentAccountDetail)}
-                        </div>
-
-                        {loanRequest.authority_to_deduct_guidance?.category ===
-                            'blgu' && (
+                        </>
+                    )}
+                    {loanRequest.waiver_applicability?.deped.applicable && (
+                        <>
+                            {renderProcessingSectionLabel(
+                                'Salary Deduction Authorization Waiver (Education Sector)',
+                            )}
                             <div className="grid gap-4 sm:grid-cols-2">
-                                {SNAPSHOT_BARANGAY_FIELDS.map((fieldKey) =>
+                                {renderProcessingField(
+                                    'deped_school_id_number',
+                                )}
+                                {renderProcessingField(
+                                    'deped_deduction_amount',
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {loanRequest.waiver_applicability?.pension.applicable && (
+                        <>
+                            {renderProcessingSectionLabel(
+                                'Waiver (Pensioners)',
+                            )}
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {renderProcessingField('pension_provider')}
+                                {renderProcessingField('pension_bank_name')}
+                                {renderProcessingField(
+                                    'pension_atm_card_number',
+                                )}
+                                {renderProcessingField(
+                                    'pension_deduction_amount',
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {!PDC_SCHEDULE_TEMPORARILY_DISABLED &&
+                        dataSections.banking?.payment_option === 'Check' && (
+                            <>
+                                {renderProcessingSectionLabel(
+                                    'Post-Dated Checks (PDC)',
+                                )}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {renderProcessingField('pdc_drawee_bank')}
+                                </div>
+                            </>
+                        )}
+
+                    <Separator className="bg-border/40" />
+                    <div className="grid gap-2">
+                        <Label htmlFor="inline_processing_reason">
+                            Remarks{' '}
+                            {isFirstProcessingSave && (
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    (optional)
+                                </span>
+                            )}
+                        </Label>
+                        <textarea
+                            id="inline_processing_reason"
+                            className={textareaClassName}
+                            placeholder={
+                                isFirstProcessingSave
+                                    ? 'Optional — add context beyond the auto-generated summary.'
+                                    : 'Required — explain why you’re making this change.'
+                            }
+                            value={processingForm.reason}
+                            aria-invalid={reasonError !== null}
+                            onChange={(event) => {
+                                setReasonError(null);
+                                setProcessingForm((current) => ({
+                                    ...current,
+                                    reason: event.target.value,
+                                }));
+                            }}
+                        />
+                    </div>
+                    {saveError && (
+                        <div className="space-y-2">
+                            <FormErrorSummary
+                                errors={saveError.fieldErrors}
+                                idResolver={(key) =>
+                                    `inline_processing_${key.replace(/^processing\./, '')}`
+                                }
+                            />
+                            {onDismissSaveError && (
+                                <button
+                                    type="button"
+                                    className="text-xs text-muted-foreground hover:underline"
+                                    onClick={onDismissSaveError}
+                                >
+                                    Dismiss
+                                </button>
+                            )}
+                        </div>
+                    )}
+                    <div className="flex gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1"
+                            disabled={isProcessing}
+                            onClick={cancelEditingProcessingDetails}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            className="flex-1"
+                            disabled={isProcessing}
+                        >
+                            Save processing details
+                        </Button>
+                    </div>
+                </form>
+            ) : (
+                <div className="animate-in space-y-4 duration-200 fade-in slide-in-from-top-2">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <SnapshotRow
+                            label="Recommended amount"
+                            value={snapshotCurrency(
+                                loanRequest.recommended_amount,
+                            )}
+                        />
+                        <SnapshotRow
+                            label="Recommended term"
+                            value={recommendedTermLabel}
+                        />
+                        <SnapshotRow
+                            label="Recommended interest rate"
+                            value={snapshotPercent(
+                                loanRequest.recommended_interest_rate,
+                            )}
+                        />
+                        <SnapshotRow
+                            label="Payment frequency"
+                            value={snapshotDisplay(
+                                loanRequest.recommended_payment_frequency,
+                            )}
+                        />
+                    </div>
+                    <Separator className="bg-border/40" />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        {Object.entries(
+                            dataSectionDefinitions.processing.fields,
+                        )
+                            .filter(
+                                ([fieldKey]) =>
+                                    !SNAPSHOT_HIDDEN_FIELDS.has(fieldKey) &&
+                                    !SNAPSHOT_GATED_FIELDS.has(fieldKey),
+                            )
+                            .map(([fieldKey]) => renderSnapshotField(fieldKey))}
+                    </div>
+
+                    {renderProcessingSectionLabel('Bank & payout information')}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        {renderBankingSnapshotField('release_method')}
+                        {renderBankingSnapshotField('payment_option')}
+                        {(dataSections.banking?.release_method === 'ATM' ||
+                            dataSections.banking?.release_method ===
+                                'Bank Transfer') &&
+                            renderAccountDetailRows(releaseAccountDetail)}
+                        {(dataSections.banking?.payment_option ===
+                            'ATM Deduction' ||
+                            dataSections.banking?.payment_option ===
+                                'Bank Transfer') &&
+                            renderAccountDetailRows(paymentAccountDetail)}
+                    </div>
+
+                    {loanRequest.authority_to_deduct_guidance?.category ===
+                        'blgu' && (
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {SNAPSHOT_BARANGAY_FIELDS.map((fieldKey) =>
+                                renderSnapshotField(fieldKey),
+                            )}
+                        </div>
+                    )}
+
+                    {loanRequest.authority_to_deduct_guidance?.applicable !==
+                        false && (
+                        <>
+                            {renderProcessingSectionLabel(
+                                'Authority to Deduct (Salary Deduction)',
+                            )}
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {SNAPSHOT_AUTHORITY_TO_DEDUCT_FIELDS.map(
+                                    (fieldKey) => renderSnapshotField(fieldKey),
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {loanRequest.waiver_applicability?.deped.applicable && (
+                        <>
+                            {renderProcessingSectionLabel(
+                                'Salary Deduction Authorization Waiver (Education Sector)',
+                            )}
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {SNAPSHOT_DEPED_FIELDS.map((fieldKey) =>
                                     renderSnapshotField(fieldKey),
                                 )}
                             </div>
-                        )}
+                        </>
+                    )}
 
-                        {loanRequest.authority_to_deduct_guidance
-                            ?.applicable !== false && (
-                            <>
-                                {renderProcessingSectionLabel(
-                                    'Authority to Deduct (Salary Deduction)',
-                                )}
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {SNAPSHOT_AUTHORITY_TO_DEDUCT_FIELDS.map(
-                                        (fieldKey) =>
-                                            renderSnapshotField(fieldKey),
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        {loanRequest.waiver_applicability?.deped.applicable && (
-                            <>
-                                {renderProcessingSectionLabel(
-                                    'Salary Deduction Authorization Waiver (Education Sector)',
-                                )}
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {SNAPSHOT_DEPED_FIELDS.map((fieldKey) =>
-                                        renderSnapshotField(fieldKey),
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        {loanRequest.waiver_applicability?.pension
-                            .applicable && (
-                            <>
-                                {renderProcessingSectionLabel(
-                                    'Waiver (Pensioners)',
-                                )}
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {SNAPSHOT_PENSION_FIELDS.map((fieldKey) =>
-                                        renderSnapshotField(fieldKey),
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        {!PDC_SCHEDULE_TEMPORARILY_DISABLED &&
-                            dataSections.banking?.payment_option ===
-                                'Check' && (
-                                <>
-                                    {renderProcessingSectionLabel(
-                                        'Post-Dated Checks (PDC)',
-                                    )}
-                                    <div className="grid gap-4 sm:grid-cols-2">
-                                        {SNAPSHOT_PDC_FIELDS.map((fieldKey) =>
-                                            renderSnapshotField(fieldKey),
-                                        )}
-                                    </div>
-                                </>
+                    {loanRequest.waiver_applicability?.pension.applicable && (
+                        <>
+                            {renderProcessingSectionLabel(
+                                'Waiver (Pensioners)',
                             )}
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {SNAPSHOT_PENSION_FIELDS.map((fieldKey) =>
+                                    renderSnapshotField(fieldKey),
+                                )}
+                            </div>
+                        </>
+                    )}
 
-                        <p className="text-xs text-muted-foreground">
-                            {canUpdateProcessing
-                                ? 'Click "Edit" above to update the recommendation and charges.'
-                                : 'Only the assigned loan processor can edit processing terms before approval, or the designated manager afterward.'}
-                        </p>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                    {!PDC_SCHEDULE_TEMPORARILY_DISABLED &&
+                        dataSections.banking?.payment_option === 'Check' && (
+                            <>
+                                {renderProcessingSectionLabel(
+                                    'Post-Dated Checks (PDC)',
+                                )}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {SNAPSHOT_PDC_FIELDS.map((fieldKey) =>
+                                        renderSnapshotField(fieldKey),
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                    <p className="text-xs text-muted-foreground">
+                        {canUpdateProcessing
+                            ? 'Click "Edit" above to update the recommendation and charges.'
+                            : 'Only the assigned loan processor can edit processing terms before approval, or the designated manager afterward.'}
+                    </p>
+                </div>
+            )}
+        </LoanRequestSectionCard>
     );
 }

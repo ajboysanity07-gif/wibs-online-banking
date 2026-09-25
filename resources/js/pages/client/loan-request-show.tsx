@@ -1,8 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, PackageCheck, Wallet } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
+import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import {
     PaymentAccountPickerSheet,
@@ -880,112 +881,99 @@ export default function LoanRequestShow({
                 'released',
             ].includes(currentLoanRequest.status ?? '') ? (
                 <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Loan Release Status</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground">
-                                {currentLoanRequest.status ===
-                                'for_wibs_encoding'
-                                    ? 'Your loan is currently being processed for release in the WIBS system.'
-                                    : currentLoanRequest.status ===
-                                        'wibs_loan_created'
-                                      ? 'Your loan has been created in WIBS. A release date will be scheduled soon.'
-                                      : currentLoanRequest.status ===
-                                          'release_scheduled'
-                                        ? `Your loan release has been scheduled${currentLoanRequest.wibs_release_date ? ' for ' + currentLoanRequest.wibs_release_date : ''}. Please coordinate with your branch.`
-                                        : 'Your loan has been released. Please coordinate with your branch for the next steps.'}
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <LoanRequestSectionCard
+                        title="Loan Release Status"
+                        icon={PackageCheck}
+                    >
+                        <p className="text-sm text-muted-foreground">
+                            {currentLoanRequest.status === 'for_wibs_encoding'
+                                ? 'Your loan is currently being processed for release in the WIBS system.'
+                                : currentLoanRequest.status ===
+                                    'wibs_loan_created'
+                                  ? 'Your loan has been created in WIBS. A release date will be scheduled soon.'
+                                  : currentLoanRequest.status ===
+                                      'release_scheduled'
+                                    ? `Your loan release has been scheduled${currentLoanRequest.wibs_release_date ? ' for ' + currentLoanRequest.wibs_release_date : ''}. Please coordinate with your branch.`
+                                    : 'Your loan has been released. Please coordinate with your branch for the next steps.'}
+                        </p>
+                    </LoanRequestSectionCard>
                 </section>
             ) : null}
             {canEditPaymentMethod ? (
                 <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Payment Method</CardTitle>
-                            <CardDescription>
-                                You can change how your loan is released and
-                                repaid while your request is still awaiting
-                                review.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div className="flex flex-col gap-2">
-                                <p className="text-sm font-medium">
-                                    Release method
-                                </p>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <PaymentMethodIcon
-                                            method={
-                                                bankingReleaseMethod || null
-                                            }
-                                            className="h-4 w-4 text-muted-foreground"
-                                        />
-                                        <p className="text-sm text-muted-foreground">
-                                            {bankingReleaseMethod || 'Not set'}
-                                        </p>
-                                    </div>
-                                    {(bankingReleaseMethod === 'ATM' ||
-                                        bankingReleaseMethod ===
-                                            'Bank Transfer') && (
-                                        <p className="text-sm text-muted-foreground">
-                                            {bankingReleaseAccountLabel ??
-                                                'No account selected'}
-                                        </p>
-                                    )}
+                    <LoanRequestSectionCard
+                        title="Payment Method"
+                        description="You can change how your loan is released and repaid while your request is still awaiting review."
+                        icon={Wallet}
+                        contentClassName="grid grid-cols-1 gap-4 sm:grid-cols-2"
+                    >
+                        <div className="flex flex-col gap-2">
+                            <p className="text-sm font-medium">
+                                Release method
+                            </p>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <PaymentMethodIcon
+                                        method={bankingReleaseMethod || null}
+                                        className="h-4 w-4 text-muted-foreground"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {bankingReleaseMethod || 'Not set'}
+                                    </p>
                                 </div>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    className="mt-auto w-fit"
-                                    onClick={openReleaseMethodSheet}
-                                >
-                                    Change release method
-                                </Button>
+                                {(bankingReleaseMethod === 'ATM' ||
+                                    bankingReleaseMethod ===
+                                        'Bank Transfer') && (
+                                    <p className="text-sm text-muted-foreground">
+                                        {bankingReleaseAccountLabel ??
+                                            'No account selected'}
+                                    </p>
+                                )}
                             </div>
-                            <div className="flex flex-col gap-2">
-                                <p className="text-sm font-medium">
-                                    Repayment method
-                                </p>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <PaymentMethodIcon
-                                            method={
-                                                bankingPaymentOption || null
-                                            }
-                                            className="h-4 w-4 text-muted-foreground"
-                                        />
-                                        <p className="text-sm text-muted-foreground">
-                                            {bankingPaymentOption || 'Not set'}
-                                        </p>
-                                    </div>
-                                    {(bankingPaymentOption ===
-                                        'ATM Deduction' ||
-                                        bankingPaymentOption ===
-                                            'Bank Transfer') && (
-                                        <p className="text-sm text-muted-foreground">
-                                            {bankingPaymentAccountLabel ??
-                                                'No account selected'}
-                                        </p>
-                                    )}
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="mt-auto w-fit"
+                                onClick={openReleaseMethodSheet}
+                            >
+                                Change release method
+                            </Button>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <p className="text-sm font-medium">
+                                Repayment method
+                            </p>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <PaymentMethodIcon
+                                        method={bankingPaymentOption || null}
+                                        className="h-4 w-4 text-muted-foreground"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {bankingPaymentOption || 'Not set'}
+                                    </p>
                                 </div>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    className="mt-auto w-fit"
-                                    onClick={openPaymentMethodSheet}
-                                >
-                                    Change repayment method
-                                </Button>
+                                {(bankingPaymentOption === 'ATM Deduction' ||
+                                    bankingPaymentOption ===
+                                        'Bank Transfer') && (
+                                    <p className="text-sm text-muted-foreground">
+                                        {bankingPaymentAccountLabel ??
+                                            'No account selected'}
+                                    </p>
+                                )}
                             </div>
-                        </CardContent>
-                    </Card>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="mt-auto w-fit"
+                                onClick={openPaymentMethodSheet}
+                            >
+                                Change repayment method
+                            </Button>
+                        </div>
+                    </LoanRequestSectionCard>
                     <PaymentAccountPickerSheet
                         open={isReleaseMethodSheetOpen}
                         onOpenChange={setIsReleaseMethodSheetOpen}

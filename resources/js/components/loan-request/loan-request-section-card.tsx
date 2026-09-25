@@ -17,6 +17,9 @@ type Props = {
     children: ReactNode;
     className?: string;
     contentClassName?: string;
+    // Optional right-aligned header slot (e.g. a badge or action button)
+    // for detail-page cards that need one alongside the title/description.
+    headerAction?: ReactNode;
     // Field-level messages are no longer shown under each input -- this
     // renders them all as a single summary at the top of the step instead,
     // with each entry focusing/highlighting its field on click.
@@ -33,6 +36,7 @@ export function LoanRequestSectionCard({
     children,
     className,
     contentClassName,
+    headerAction,
     errors,
     onErrorClick,
 }: Props) {
@@ -43,16 +47,25 @@ export function LoanRequestSectionCard({
                 className,
             )}
         >
-            <CardHeader className="space-y-2 pb-5">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                    {Icon ? (
-                        <Icon className="size-5 text-muted-foreground" />
+            <CardHeader
+                className={cn(
+                    'space-y-2 pb-5',
+                    headerAction &&
+                        'flex flex-row items-start justify-between gap-3 space-y-0',
+                )}
+            >
+                <div className={cn(headerAction && 'space-y-1.5')}>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        {Icon ? (
+                            <Icon className="size-5 text-muted-foreground" />
+                        ) : null}
+                        {title}
+                    </CardTitle>
+                    {description ? (
+                        <CardDescription>{description}</CardDescription>
                     ) : null}
-                    {title}
-                </CardTitle>
-                {description ? (
-                    <CardDescription>{description}</CardDescription>
-                ) : null}
+                </div>
+                {headerAction ?? null}
             </CardHeader>
             <CardContent className={cn('space-y-7', contentClassName)}>
                 {errors ? (

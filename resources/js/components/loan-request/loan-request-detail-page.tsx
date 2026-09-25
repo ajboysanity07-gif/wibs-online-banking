@@ -38,6 +38,7 @@ import {
 } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
+import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import {
     LoanRequestWorkflowActions,
@@ -47,13 +48,6 @@ import { MonthsInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
@@ -621,45 +615,34 @@ export const LoanRequestLoanInformationCard = ({
         loanRequest.other_loan_type_name?.trim() || undefined;
 
     return (
-        <Card className="border-border/30 bg-card/60 shadow-sm">
-            <CardHeader className="flex flex-row items-start justify-between gap-3">
-                <div className="space-y-1.5">
-                    <CardTitle className="flex items-center gap-2">
-                        <IdCard className="size-4 text-muted-foreground" />
-                        Loan Information
-                    </CardTitle>
-                    <CardDescription>
-                        Requested loan details from the request.
-                    </CardDescription>
-                </div>
-                {headerAction ?? null}
-            </CardHeader>
-            <CardContent>
-                <div className="grid gap-3 sm:grid-cols-2">
-                    <SummaryStat label="Requested amount" value={amount} />
-                    <SummaryStat label="Loan type" value={loanTypeLabel} />
-                    <SummaryStat label="Requested term" value={requestedTerm} />
+        <LoanRequestSectionCard
+            title="Loan Information"
+            description="Requested loan details from the request."
+            icon={IdCard}
+            headerAction={headerAction ?? null}
+            className="border-border/30 bg-card/60 shadow-sm"
+        >
+            <div className="grid gap-3 sm:grid-cols-2">
+                <SummaryStat label="Requested amount" value={amount} />
+                <SummaryStat label="Loan type" value={loanTypeLabel} />
+                <SummaryStat label="Requested term" value={requestedTerm} />
+                <SummaryStat label="Availment status" value={availmentStatus} />
+                {otherLoanTypeName ? (
                     <SummaryStat
-                        label="Availment status"
-                        value={availmentStatus}
+                        label="Loan name"
+                        value={otherLoanTypeName}
+                        className="col-span-2"
                     />
-                    {otherLoanTypeName ? (
-                        <SummaryStat
-                            label="Loan name"
-                            value={otherLoanTypeName}
-                            className="col-span-2"
-                        />
-                    ) : null}
-                    {loanPurpose ? (
-                        <SummaryStat
-                            label="Loan purpose"
-                            value={loanPurpose}
-                            className="col-span-2"
-                        />
-                    ) : null}
-                </div>
-            </CardContent>
-        </Card>
+                ) : null}
+                {loanPurpose ? (
+                    <SummaryStat
+                        label="Loan purpose"
+                        value={loanPurpose}
+                        className="col-span-2"
+                    />
+                ) : null}
+            </div>
+        </LoanRequestSectionCard>
     );
 };
 
@@ -969,43 +952,35 @@ export const LoanRequestApplicantCard = ({
     );
 
     return (
-        <Card className="border-border/30 bg-card/60 shadow-sm">
-            <CardHeader className="flex flex-row items-start justify-between gap-3">
-                <div className="space-y-1.5">
-                    <CardTitle className="flex items-center gap-2">
-                        <UserIcon className="size-4 text-muted-foreground" />
-                        Applicant
-                    </CardTitle>
-                    <CardDescription>
-                        Primary borrower details from the request.
-                    </CardDescription>
-                </div>
-                {headerAction ?? null}
-            </CardHeader>
-            <CardContent className="space-y-4">
-                {hasCategoryMismatch ? (
-                    <Alert variant="destructive">
-                        <ShieldAlert className="size-4" />
-                        <AlertTitle>
-                            Institutional employer category may be outdated
-                        </AlertTitle>
-                        <AlertDescription>
-                            The declared category doesn&apos;t match this
-                            applicant&apos;s current employer details. Verify
-                            with the member before generating deduction
-                            documents.
-                        </AlertDescription>
-                    </Alert>
-                ) : null}
-                <PersonAccordionRow
-                    title="Applicant"
-                    person={applicant}
-                    subtitle={displayText(applicant?.employer_business_name)}
-                    curatedFields={curatedFields}
-                    moreFields={moreFields}
-                />
-            </CardContent>
-        </Card>
+        <LoanRequestSectionCard
+            title="Applicant"
+            description="Primary borrower details from the request."
+            icon={UserIcon}
+            headerAction={headerAction ?? null}
+            className="border-border/30 bg-card/60 shadow-sm"
+            contentClassName="space-y-4"
+        >
+            {hasCategoryMismatch ? (
+                <Alert variant="destructive">
+                    <ShieldAlert className="size-4" />
+                    <AlertTitle>
+                        Institutional employer category may be outdated
+                    </AlertTitle>
+                    <AlertDescription>
+                        The declared category doesn&apos;t match this
+                        applicant&apos;s current employer details. Verify with
+                        the member before generating deduction documents.
+                    </AlertDescription>
+                </Alert>
+            ) : null}
+            <PersonAccordionRow
+                title="Applicant"
+                person={applicant}
+                subtitle={displayText(applicant?.employer_business_name)}
+                curatedFields={curatedFields}
+                moreFields={moreFields}
+            />
+        </LoanRequestSectionCard>
     );
 };
 
@@ -1112,43 +1087,38 @@ export const LoanRequestCoMakersCard = ({
     coMakerOneAction,
     coMakerTwoAction,
 }: LoanRequestCoMakersCardProps) => (
-    <Card className="border-border/30 bg-card/60 shadow-sm">
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <Users className="size-4 text-muted-foreground" />
-                Co-makers
-            </CardTitle>
-            <CardDescription>
-                Supporting borrowers tied to this request.
-            </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <div className="space-y-2">
-                {coMakerOneAction ? (
-                    <div className="flex justify-end">{coMakerOneAction}</div>
-                ) : null}
-                <PersonAccordionRow
-                    title="Co-maker 1"
-                    person={coMakerOne}
-                    subtitle={displayText(coMakerOne?.employer_business_name)}
-                    curatedFields={buildCoMakerCuratedFields(coMakerOne)}
-                    moreFields={buildCoMakerMoreFields(coMakerOne)}
-                />
-            </div>
-            <div className="space-y-2">
-                {coMakerTwoAction ? (
-                    <div className="flex justify-end">{coMakerTwoAction}</div>
-                ) : null}
-                <PersonAccordionRow
-                    title="Co-maker 2"
-                    person={coMakerTwo}
-                    subtitle={displayText(coMakerTwo?.employer_business_name)}
-                    curatedFields={buildCoMakerCuratedFields(coMakerTwo)}
-                    moreFields={buildCoMakerMoreFields(coMakerTwo)}
-                />
-            </div>
-        </CardContent>
-    </Card>
+    <LoanRequestSectionCard
+        title="Co-makers"
+        description="Supporting borrowers tied to this request."
+        icon={Users}
+        className="border-border/30 bg-card/60 shadow-sm"
+        contentClassName="space-y-4"
+    >
+        <div className="space-y-2">
+            {coMakerOneAction ? (
+                <div className="flex justify-end">{coMakerOneAction}</div>
+            ) : null}
+            <PersonAccordionRow
+                title="Co-maker 1"
+                person={coMakerOne}
+                subtitle={displayText(coMakerOne?.employer_business_name)}
+                curatedFields={buildCoMakerCuratedFields(coMakerOne)}
+                moreFields={buildCoMakerMoreFields(coMakerOne)}
+            />
+        </div>
+        <div className="space-y-2">
+            {coMakerTwoAction ? (
+                <div className="flex justify-end">{coMakerTwoAction}</div>
+            ) : null}
+            <PersonAccordionRow
+                title="Co-maker 2"
+                person={coMakerTwo}
+                subtitle={displayText(coMakerTwo?.employer_business_name)}
+                curatedFields={buildCoMakerCuratedFields(coMakerTwo)}
+                moreFields={buildCoMakerMoreFields(coMakerTwo)}
+            />
+        </div>
+    </LoanRequestSectionCard>
 );
 
 const textareaClassName =
@@ -1634,433 +1604,398 @@ export function LoanRequestDetailPage({
                 ) : null}
 
                 <div className="space-y-4 lg:sticky lg:top-24">
-                    <Card className="border-border/30 bg-card/50 shadow-sm">
-                        <CardHeader className="space-y-2">
-                            <div className="flex items-center justify-between gap-2">
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <Activity className="size-4 text-muted-foreground" />
-                                    Request status
-                                </CardTitle>
-                                <LoanRequestStatusBadge
-                                    status={loanRequest.status}
-                                />
-                            </div>
-                            <CardDescription>
-                                {statusDescriptions[statusValue]}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="relative">
-                                <span
-                                    aria-hidden="true"
-                                    className="absolute left-3 w-px rounded-full bg-primary/50"
-                                    style={{
-                                        top: '0.3125rem',
-                                        bottom: '0.3125rem',
-                                    }}
-                                />
-                                <div className="space-y-5">
-                                    {timelineSteps.map((status, index) => {
-                                        const isCurrent =
-                                            status === statusValue;
-                                        const isComplete =
-                                            index < currentStatusIndex;
-
-                                        return (
-                                            <div
-                                                key={status}
-                                                className="flex gap-2.5"
-                                            >
-                                                <div className="flex w-6 items-start justify-center">
-                                                    <span
-                                                        className={cn(
-                                                            'relative z-10 rounded-full border transition-colors',
-                                                            isComplete
-                                                                ? 'h-2.5 w-2.5 border-primary/70 bg-primary/60'
-                                                                : isCurrent
-                                                                  ? 'h-3.5 w-3.5 border-primary bg-primary shadow-sm ring-4 shadow-primary/40 ring-primary/20'
-                                                                  : 'h-2 w-2 border-border/50 bg-card',
-                                                        )}
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <p
-                                                        className={cn(
-                                                            'text-sm',
-                                                            isCurrent
-                                                                ? 'font-semibold text-foreground'
-                                                                : isComplete
-                                                                  ? 'font-medium text-foreground/70'
-                                                                  : 'font-medium text-muted-foreground/70',
-                                                        )}
-                                                    >
-                                                        {statusLabels[status]}
-                                                    </p>
-                                                    {isCurrent ? (
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {
-                                                                statusDescriptions[
-                                                                    statusValue
-                                                                ]
-                                                            }
-                                                        </p>
-                                                    ) : null}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                            <div className="rounded-lg border border-border/30 bg-muted/10 p-3 text-xs text-muted-foreground">
-                                Workflow actions stay in sync with the current
-                                request status and your server-side access.
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {showDecisionForm ? (
-                        <Card className="border-border/30 bg-card/50 shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="text-base">
-                                    Decision
-                                </CardTitle>
-                                <CardDescription>
-                                    Approve or decline this request. Past
-                                    decisions and remarks are recorded in the
-                                    audit trail below.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="approved_amount">
-                                        Approved amount
-                                    </Label>
-                                    <Input
-                                        id="approved_amount"
-                                        type="number"
-                                        inputMode="decimal"
-                                        min="1"
-                                        step="0.01"
-                                        placeholder="Enter approved amount"
-                                        value={approvedAmount}
-                                        onChange={(event) =>
-                                            setApprovedAmount(
-                                                event.target.value,
-                                            )
-                                        }
-                                        disabled={decision?.isProcessing}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="approved_term">
-                                        Approved term
-                                    </Label>
-                                    <MonthsInput
-                                        id="approved_term"
-                                        placeholder="Enter approved term"
-                                        value={approvedTerm}
-                                        onChange={(value) =>
-                                            setApprovedTerm(value)
-                                        }
-                                        disabled={decision?.isProcessing}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="decision_notes">
-                                        Decision notes
-                                    </Label>
-                                    <textarea
-                                        id="decision_notes"
-                                        className="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-                                        placeholder="Add optional notes for the member"
-                                        value={decisionNotes}
-                                        onChange={(event) =>
-                                            setDecisionNotes(event.target.value)
-                                        }
-                                        disabled={decision?.isProcessing}
-                                    />
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    <Button
-                                        type="button"
-                                        onClick={openApprovalDialog}
-                                        disabled={decision?.isProcessing}
-                                    >
-                                        Approve
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() =>
-                                            decision?.onDecline?.({
-                                                decision_notes: decisionNotes
-                                                    ? decisionNotes
-                                                    : null,
-                                            })
-                                        }
-                                        disabled={decision?.isProcessing}
-                                    >
-                                        Decline
-                                    </Button>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    {approvalBlockedMessage ??
-                                        'Only requests under review can be decided.'}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ) : null}
-
-                    <Card className="border-border/30 bg-card/50 shadow-sm">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <Zap className="size-4 text-muted-foreground" />
-                                Actions
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {showCorrectionAction ? (
-                                <div className="space-y-3">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="w-full justify-start"
-                                        disabled={correction?.isProcessing}
-                                        onClick={correction?.onEdit}
-                                    >
-                                        <PencilLine />
-                                        Edit request details
-                                    </Button>
-                                    <Separator className="bg-border/40" />
-                                </div>
-                            ) : null}
-                            {actionsPanelHeader ? (
-                                <div className="space-y-3">
-                                    {actionsPanelHeader}
-                                </div>
-                            ) : null}
-                            <LoanRequestWorkflowActions
-                                loanRequest={loanRequest}
-                                workflow={workflow}
+                    <LoanRequestSectionCard
+                        title="Request status"
+                        description={statusDescriptions[statusValue]}
+                        icon={Activity}
+                        headerAction={
+                            <LoanRequestStatusBadge
+                                status={loanRequest.status}
                             />
-                            {showDownloadPdfAction ? (
-                                <div className="space-y-3">
-                                    <Button
-                                        asChild
-                                        className="w-full justify-start"
-                                    >
-                                        <a href={pdfHref}>
-                                            <Download />
-                                            Download PDF
-                                        </a>
-                                    </Button>
-                                    <Separator className="bg-border/40" />
-                                </div>
-                            ) : null}
-                            {showApprovedDocuments &&
-                            showApprovedDocumentList ? (
-                                <div className="space-y-3">
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                                            Approved documents
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            Download each approved loan document
-                                            individually, or download all as
-                                            ZIP.
-                                        </p>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        {approvedDocumentItems.map(
-                                            (document) => (
-                                                <div
-                                                    key={document.label}
-                                                    className="flex items-stretch gap-2"
+                        }
+                        className="border-border/30 bg-card/50 shadow-sm"
+                        contentClassName="space-y-4"
+                    >
+                        <div className="relative">
+                            <span
+                                aria-hidden="true"
+                                className="absolute left-3 w-px rounded-full bg-primary/50"
+                                style={{
+                                    top: '0.3125rem',
+                                    bottom: '0.3125rem',
+                                }}
+                            />
+                            <div className="space-y-5">
+                                {timelineSteps.map((status, index) => {
+                                    const isCurrent = status === statusValue;
+                                    const isComplete =
+                                        index < currentStatusIndex;
+
+                                    return (
+                                        <div
+                                            key={status}
+                                            className="flex gap-2.5"
+                                        >
+                                            <div className="flex w-6 items-start justify-center">
+                                                <span
+                                                    className={cn(
+                                                        'relative z-10 rounded-full border transition-colors',
+                                                        isComplete
+                                                            ? 'h-2.5 w-2.5 border-primary/70 bg-primary/60'
+                                                            : isCurrent
+                                                              ? 'h-3.5 w-3.5 border-primary bg-primary shadow-sm ring-4 shadow-primary/40 ring-primary/20'
+                                                              : 'h-2 w-2 border-border/50 bg-card',
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p
+                                                    className={cn(
+                                                        'text-sm',
+                                                        isCurrent
+                                                            ? 'font-semibold text-foreground'
+                                                            : isComplete
+                                                              ? 'font-medium text-foreground/70'
+                                                              : 'font-medium text-muted-foreground/70',
+                                                    )}
                                                 >
-                                                    {document.format ===
-                                                    'PDF' ? (
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            className="h-11 shrink-0 px-3"
-                                                            onClick={() =>
-                                                                setPreviewUrl(
-                                                                    document.href,
-                                                                )
-                                                            }
-                                                            title="Preview"
-                                                        >
-                                                            <Eye className="size-4" />
-                                                        </Button>
-                                                    ) : null}
-                                                    <Button
-                                                        asChild
-                                                        variant="outline"
-                                                        className="h-11 min-w-0 flex-1 justify-start px-3"
-                                                    >
-                                                        <a
-                                                            href={document.href}
-                                                            className="flex w-full min-w-0 items-center gap-2"
-                                                        >
-                                                            <Download className="size-4 shrink-0" />
-                                                            <span className="min-w-0 flex-1 truncate text-left text-sm">
-                                                                {document.label}
-                                                            </span>
-                                                            <span className="shrink-0 rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                                                                {
-                                                                    document.format
-                                                                }
-                                                            </span>
-                                                        </a>
-                                                    </Button>
-                                                </div>
-                                            ),
-                                        )}
-                                        {packageZipDownload ? (
-                                            <div className="mt-1 space-y-2">
-                                                <Button
-                                                    type="button"
-                                                    disabled={
-                                                        packageZipDownload.isPreparing
-                                                    }
-                                                    onClick={
-                                                        packageZipDownload.start
-                                                    }
-                                                    className="h-11 w-full justify-start px-3 shadow-sm"
-                                                >
-                                                    <span className="flex w-full min-w-0 items-center gap-2">
-                                                        {packageZipDownload.isPreparing ? (
-                                                            <Loader2 className="size-4 shrink-0 animate-spin" />
-                                                        ) : (
-                                                            <Download className="size-4 shrink-0" />
-                                                        )}
-                                                        <span className="min-w-0 flex-1 text-left text-sm font-semibold">
-                                                            {packageZipDownload.isPreparing
-                                                                ? 'Preparing ZIP…'
-                                                                : 'Download All as ZIP'}
-                                                        </span>
-                                                    </span>
-                                                </Button>
-                                                {packageZipDownload.errorMessage ? (
-                                                    <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                                                    {statusLabels[status]}
+                                                </p>
+                                                {isCurrent ? (
+                                                    <p className="text-xs text-muted-foreground">
                                                         {
-                                                            packageZipDownload.errorMessage
+                                                            statusDescriptions[
+                                                                statusValue
+                                                            ]
                                                         }
                                                     </p>
                                                 ) : null}
                                             </div>
-                                        ) : approvedDocumentHrefs.packageZip ? (
-                                            <Button
-                                                asChild
-                                                className="mt-1 h-11 w-full justify-start px-3 shadow-sm"
-                                            >
-                                                <a
-                                                    href={
-                                                        approvedDocumentHrefs.packageZip
-                                                    }
-                                                    className="flex w-full min-w-0 items-center gap-2"
-                                                >
-                                                    <Download className="size-4 shrink-0" />
-                                                    <span className="min-w-0 flex-1 text-left text-sm font-semibold">
-                                                        Download All as ZIP
-                                                    </span>
-                                                </a>
-                                            </Button>
-                                        ) : null}
-                                    </div>
-                                    <Separator className="bg-border/40" />
-                                </div>
-                            ) : null}
-                            {editHref !== null ? (
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="rounded-lg border border-border/30 bg-muted/10 p-3 text-xs text-muted-foreground">
+                            Workflow actions stay in sync with the current
+                            request status and your server-side access.
+                        </div>
+                    </LoanRequestSectionCard>
+
+                    {showDecisionForm ? (
+                        <LoanRequestSectionCard
+                            title="Decision"
+                            description="Approve or decline this request. Past decisions and remarks are recorded in the audit trail below."
+                            className="border-border/30 bg-card/50 shadow-sm"
+                            contentClassName="space-y-4"
+                        >
+                            <div className="space-y-2">
+                                <Label htmlFor="approved_amount">
+                                    Approved amount
+                                </Label>
+                                <Input
+                                    id="approved_amount"
+                                    type="number"
+                                    inputMode="decimal"
+                                    min="1"
+                                    step="0.01"
+                                    placeholder="Enter approved amount"
+                                    value={approvedAmount}
+                                    onChange={(event) =>
+                                        setApprovedAmount(event.target.value)
+                                    }
+                                    disabled={decision?.isProcessing}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="approved_term">
+                                    Approved term
+                                </Label>
+                                <MonthsInput
+                                    id="approved_term"
+                                    placeholder="Enter approved term"
+                                    value={approvedTerm}
+                                    onChange={(value) => setApprovedTerm(value)}
+                                    disabled={decision?.isProcessing}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="decision_notes">
+                                    Decision notes
+                                </Label>
+                                <textarea
+                                    id="decision_notes"
+                                    className="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Add optional notes for the member"
+                                    value={decisionNotes}
+                                    onChange={(event) =>
+                                        setDecisionNotes(event.target.value)
+                                    }
+                                    disabled={decision?.isProcessing}
+                                />
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    type="button"
+                                    onClick={openApprovalDialog}
+                                    disabled={decision?.isProcessing}
+                                >
+                                    Approve
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() =>
+                                        decision?.onDecline?.({
+                                            decision_notes: decisionNotes
+                                                ? decisionNotes
+                                                : null,
+                                        })
+                                    }
+                                    disabled={decision?.isProcessing}
+                                >
+                                    Decline
+                                </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {approvalBlockedMessage ??
+                                    'Only requests under review can be decided.'}
+                            </p>
+                        </LoanRequestSectionCard>
+                    ) : null}
+
+                    <LoanRequestSectionCard
+                        title="Actions"
+                        icon={Zap}
+                        className="border-border/30 bg-card/50 shadow-sm"
+                        contentClassName="space-y-4"
+                    >
+                        {showCorrectionAction ? (
+                            <div className="space-y-3">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full justify-start"
+                                    disabled={correction?.isProcessing}
+                                    onClick={correction?.onEdit}
+                                >
+                                    <PencilLine />
+                                    Edit request details
+                                </Button>
+                                <Separator className="bg-border/40" />
+                            </div>
+                        ) : null}
+                        {actionsPanelHeader ? (
+                            <div className="space-y-3">
+                                {actionsPanelHeader}
+                            </div>
+                        ) : null}
+                        <LoanRequestWorkflowActions
+                            loanRequest={loanRequest}
+                            workflow={workflow}
+                        />
+                        {showDownloadPdfAction ? (
+                            <div className="space-y-3">
                                 <Button
                                     asChild
                                     className="w-full justify-start"
                                 >
-                                    <Link href={editHref}>
-                                        <PencilLine />
-                                        {editLabel}
-                                    </Link>
+                                    <a href={pdfHref}>
+                                        <Download />
+                                        Download PDF
+                                    </a>
                                 </Button>
-                            ) : null}
-                            {showCancellationAction ? (
-                                <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-                                    <p className="text-xs font-semibold tracking-wide text-destructive uppercase">
-                                        {statusValue === 'approved'
-                                            ? 'Danger zone'
-                                            : 'Application action'}
+                                <Separator className="bg-border/40" />
+                            </div>
+                        ) : null}
+                        {showApprovedDocuments && showApprovedDocumentList ? (
+                            <div className="space-y-3">
+                                <div className="space-y-1">
+                                    <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                        Approved documents
                                     </p>
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        className="w-full justify-start"
-                                        disabled={cancellation?.isProcessing}
-                                        onClick={() =>
-                                            openCancellationDialog(
-                                                cancellation?.reasonPrefill ??
-                                                    null,
-                                            )
-                                        }
-                                    >
-                                        <Ban />
-                                        {cancellation?.actionLabel ??
-                                            'Cancel Application'}
-                                    </Button>
+                                    <p className="text-xs text-muted-foreground">
+                                        Download each approved loan document
+                                        individually, or download all as ZIP.
+                                    </p>
                                 </div>
-                            ) : null}
-                            {showCorrectedCopyAction ? (
-                                <div className="space-y-3">
-                                    <Button
-                                        type="button"
-                                        className="w-full justify-center"
-                                        disabled={correctedCopy?.isProcessing}
-                                        onClick={() =>
-                                            setIsCorrectedCopyDialogOpen(true)
-                                        }
-                                    >
-                                        {correctedCopy?.buttonLabel ??
-                                            'Create Admin-Corrected Request'}
-                                    </Button>
-                                    <Separator className="bg-border/40" />
+                                <div className="grid gap-2">
+                                    {approvedDocumentItems.map((document) => (
+                                        <div
+                                            key={document.label}
+                                            className="flex items-stretch gap-2"
+                                        >
+                                            {document.format === 'PDF' ? (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className="h-11 shrink-0 px-3"
+                                                    onClick={() =>
+                                                        setPreviewUrl(
+                                                            document.href,
+                                                        )
+                                                    }
+                                                    title="Preview"
+                                                >
+                                                    <Eye className="size-4" />
+                                                </Button>
+                                            ) : null}
+                                            <Button
+                                                asChild
+                                                variant="outline"
+                                                className="h-11 min-w-0 flex-1 justify-start px-3"
+                                            >
+                                                <a
+                                                    href={document.href}
+                                                    className="flex w-full min-w-0 items-center gap-2"
+                                                >
+                                                    <Download className="size-4 shrink-0" />
+                                                    <span className="min-w-0 flex-1 truncate text-left text-sm">
+                                                        {document.label}
+                                                    </span>
+                                                    <span className="shrink-0 rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                                                        {document.format}
+                                                    </span>
+                                                </a>
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    {packageZipDownload ? (
+                                        <div className="mt-1 space-y-2">
+                                            <Button
+                                                type="button"
+                                                disabled={
+                                                    packageZipDownload.isPreparing
+                                                }
+                                                onClick={
+                                                    packageZipDownload.start
+                                                }
+                                                className="h-11 w-full justify-start px-3 shadow-sm"
+                                            >
+                                                <span className="flex w-full min-w-0 items-center gap-2">
+                                                    {packageZipDownload.isPreparing ? (
+                                                        <Loader2 className="size-4 shrink-0 animate-spin" />
+                                                    ) : (
+                                                        <Download className="size-4 shrink-0" />
+                                                    )}
+                                                    <span className="min-w-0 flex-1 text-left text-sm font-semibold">
+                                                        {packageZipDownload.isPreparing
+                                                            ? 'Preparing ZIP…'
+                                                            : 'Download All as ZIP'}
+                                                    </span>
+                                                </span>
+                                            </Button>
+                                            {packageZipDownload.errorMessage ? (
+                                                <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                                                    {
+                                                        packageZipDownload.errorMessage
+                                                    }
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    ) : approvedDocumentHrefs.packageZip ? (
+                                        <Button
+                                            asChild
+                                            className="mt-1 h-11 w-full justify-start px-3 shadow-sm"
+                                        >
+                                            <a
+                                                href={
+                                                    approvedDocumentHrefs.packageZip
+                                                }
+                                                className="flex w-full min-w-0 items-center gap-2"
+                                            >
+                                                <Download className="size-4 shrink-0" />
+                                                <span className="min-w-0 flex-1 text-left text-sm font-semibold">
+                                                    Download All as ZIP
+                                                </span>
+                                            </a>
+                                        </Button>
+                                    ) : null}
                                 </div>
-                            ) : null}
-                            <Button
-                                asChild
-                                variant="ghost"
-                                className="w-full justify-start"
-                            >
-                                <Link href={backHref}>{backLabel}</Link>
+                                <Separator className="bg-border/40" />
+                            </div>
+                        ) : null}
+                        {editHref !== null ? (
+                            <Button asChild className="w-full justify-start">
+                                <Link href={editHref}>
+                                    <PencilLine />
+                                    {editLabel}
+                                </Link>
                             </Button>
-                        </CardContent>
-                    </Card>
+                        ) : null}
+                        {showCancellationAction ? (
+                            <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                                <p className="text-xs font-semibold tracking-wide text-destructive uppercase">
+                                    {statusValue === 'approved'
+                                        ? 'Danger zone'
+                                        : 'Application action'}
+                                </p>
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    className="w-full justify-start"
+                                    disabled={cancellation?.isProcessing}
+                                    onClick={() =>
+                                        openCancellationDialog(
+                                            cancellation?.reasonPrefill ?? null,
+                                        )
+                                    }
+                                >
+                                    <Ban />
+                                    {cancellation?.actionLabel ??
+                                        'Cancel Application'}
+                                </Button>
+                            </div>
+                        ) : null}
+                        {showCorrectedCopyAction ? (
+                            <div className="space-y-3">
+                                <Button
+                                    type="button"
+                                    className="w-full justify-center"
+                                    disabled={correctedCopy?.isProcessing}
+                                    onClick={() =>
+                                        setIsCorrectedCopyDialogOpen(true)
+                                    }
+                                >
+                                    {correctedCopy?.buttonLabel ??
+                                        'Create Admin-Corrected Request'}
+                                </Button>
+                                <Separator className="bg-border/40" />
+                            </div>
+                        ) : null}
+                        <Button
+                            asChild
+                            variant="ghost"
+                            className="w-full justify-start"
+                        >
+                            <Link href={backHref}>{backLabel}</Link>
+                        </Button>
+                    </LoanRequestSectionCard>
 
-                    <Card className="border-border/20 bg-card/30">
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                What happens next
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-sm text-muted-foreground">
-                            {statusValue === 'draft'
-                                ? 'Finish the application and submit to begin the review.'
-                                : statusValue === 'pending_review'
-                                  ? 'A loan processor can now pick this request up and start the review.'
-                                  : statusValue === 'under_review'
-                                    ? 'The request is under active review by a loan processor.'
-                                    : statusValue === 'needs_revision'
-                                      ? 'The member needs to update the request before it can continue.'
-                                      : statusValue ===
-                                          'recommended_for_approval'
-                                        ? 'A loan manager can now approve or decline this request.'
-                                        : statusValue === 'approved'
-                                          ? 'Approved - awaiting processing in WIBS.'
-                                          : statusValue === 'converted_to_loan'
-                                            ? 'The request is already linked to a created loan record.'
-                                            : statusValue === 'declined' ||
-                                                statusValue === 'rejected'
-                                              ? 'Contact support if you need to discuss the final decision.'
-                                              : 'This request remains available as read-only history.'}
-                        </CardContent>
-                    </Card>
+                    <LoanRequestSectionCard
+                        title="What happens next"
+                        className="border-border/20 bg-card/30"
+                        contentClassName="text-sm text-muted-foreground"
+                    >
+                        {statusValue === 'draft'
+                            ? 'Finish the application and submit to begin the review.'
+                            : statusValue === 'pending_review'
+                              ? 'A loan processor can now pick this request up and start the review.'
+                              : statusValue === 'under_review'
+                                ? 'The request is under active review by a loan processor.'
+                                : statusValue === 'needs_revision'
+                                  ? 'The member needs to update the request before it can continue.'
+                                  : statusValue === 'recommended_for_approval'
+                                    ? 'A loan manager can now approve or decline this request.'
+                                    : statusValue === 'approved'
+                                      ? 'Approved - awaiting processing in WIBS.'
+                                      : statusValue === 'converted_to_loan'
+                                        ? 'The request is already linked to a created loan record.'
+                                        : statusValue === 'declined' ||
+                                            statusValue === 'rejected'
+                                          ? 'Contact support if you need to discuss the final decision.'
+                                          : 'This request remains available as read-only history.'}
+                    </LoanRequestSectionCard>
 
                     {!hideMainColumn ? (
                         <LoanRequestAuditTrail
