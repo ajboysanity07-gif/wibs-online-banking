@@ -1,13 +1,13 @@
 import { Link } from '@inertiajs/react';
-import { Camera } from 'lucide-react';
+import { Camera, IdCard, UserCog } from 'lucide-react';
 import type { ChangeEvent, RefObject } from 'react';
 import InputError from '@/components/input-error';
+import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { SurfaceCard } from '@/components/surface-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { send } from '@/routes/verification';
@@ -60,7 +60,7 @@ export function AccountTab({
                     </p>
                 </div>
 
-                <div className="space-y-6">
+                <LoanRequestSectionCard title="Profile" icon={UserCog}>
                     <div className="grid gap-3">
                         <Label htmlFor="profile_photo">Profile picture</Label>
 
@@ -137,20 +137,13 @@ export function AccountTab({
                             />
                         </div>
                     )}
-                </div>
+                </LoanRequestSectionCard>
 
-                <Separator />
-
-                <div className="space-y-6">
-                    <div className="space-y-1">
-                        <h3 className="text-base font-semibold">
-                            Basic Account Information
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                            Update your login and contact details.
-                        </p>
-                    </div>
-
+                <LoanRequestSectionCard
+                    title="Basic Account Information"
+                    description="Update your login and contact details."
+                    icon={IdCard}
+                >
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="grid gap-2">
                             <Label htmlFor="username">Username</Label>
@@ -266,7 +259,7 @@ export function AccountTab({
                                 )}
                             </div>
                         )}
-                </div>
+                </LoanRequestSectionCard>
             </SurfaceCard>
         </TabsContent>
     );

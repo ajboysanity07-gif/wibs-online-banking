@@ -1,4 +1,4 @@
-import { UserRound } from 'lucide-react';
+import { Users, UserRound } from 'lucide-react';
 import {
     BeneficiaryCheckbox,
     countSelectedBeneficiaries,
@@ -9,6 +9,7 @@ import {
     SPOUSE_BENEFICIARY_KEY,
     type DependentValues,
 } from '@/components/dependents/dependent-category-section';
+import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { SurfaceCard } from '@/components/surface-card';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -43,16 +44,11 @@ export function DependentsTab({
     return (
         <TabsContent value="dependents" forceMount className="mt-0">
             <SurfaceCard variant="muted" padding="md" className="space-y-6">
-                <div className="space-y-6">
-                    <div className="space-y-1">
-                        <h3 className="text-base font-semibold">Dependents</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Keep your dependents' names and birthdates up to
-                            date. These are used to pre-fill future loan
-                            requests. Changes here save immediately.
-                        </p>
-                    </div>
-
+                <LoanRequestSectionCard
+                    title="Dependents"
+                    description="Keep your dependents' names and birthdates up to date. These are used to pre-fill future loan requests. Changes here save immediately."
+                    icon={Users}
+                >
                     {showSpouse ? (
                         <div className="space-y-3">
                             <div className="flex items-center gap-2">
@@ -141,7 +137,7 @@ export function DependentsTab({
                             onChange={handleDependentsChange}
                         />
                     ))}
-                </div>
+                </LoanRequestSectionCard>
             </SurfaceCard>
         </TabsContent>
     );
