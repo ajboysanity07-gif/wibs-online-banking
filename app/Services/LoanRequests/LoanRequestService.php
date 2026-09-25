@@ -173,6 +173,7 @@ class LoanRequestService
         $healthPrefilledFromProfile = $healthPrefilledFromHealth || $healthPrefilledFromGlapi;
         $applicantPrefilledFromProfile = $this->isApplicantPersonalPrefilledFromProfile($applicantReadOnly);
         $applicantWorkIncomePrefilledFromProfile = $this->isApplicantWorkIncomePrefilledFromProfile($applicant);
+        $missingIdentityPrerequisites = $this->missingIdentityPrerequisiteLabels($user->memberApplicationProfile);
 
         return [
             'loanTypes' => $this->getLoanTypes()->values()->all(),
@@ -199,7 +200,34 @@ class LoanRequestService
             'healthPrefilledFromProfile' => $healthPrefilledFromProfile,
             'applicantPrefilledFromProfile' => $applicantPrefilledFromProfile,
             'applicantWorkIncomePrefilledFromProfile' => $applicantWorkIncomePrefilledFromProfile,
+            'missingIdentityPrerequisites' => $missingIdentityPrerequisites,
         ];
+    }
+
+    /**
+     * Labels for the loan prerequisites that live only on the member's
+     * profile (Government ID / Source of Fund / Physical details), not the
+     * Bank & Payout ones -- those already have their own dedicated
+     * `bankingPrefilledFromProfile` + `isBankingComplete` gate in the wizard.
+     * Surfaced so the wizard can warn/block early (About You step) instead of
+     * only at final submit, since none of these fields are editable inside
+     * the wizard itself -- only in Profile Settings.
+     *
+     * @return list<string>
+     */
+    private function missingIdentityPrerequisiteLabels(?MemberApplicationProfile $profile): array
+    {
+        $bankFields = MemberApplicationProfile::payoutBankFields();
+        $labels = MemberApplicationProfile::completionRequiredFieldLabels();
+
+        $missing = $profile !== null
+            ? array_values(array_diff($profile->missingLoanPrerequisiteFields(), $bankFields))
+            : array_diff([
+                ...MemberApplicationProfile::sourceOfFundAndIdFields(),
+                ...MemberApplicationProfile::physicalDetailsFields(),
+            ], $bankFields);
+
+        return array_map(fn (string $field): string => $labels[$field] ?? $field, $missing);
     }
 
     /**

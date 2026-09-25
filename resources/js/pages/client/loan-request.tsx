@@ -53,6 +53,7 @@ import { getStepMissingFields } from '@/lib/loan-request-step-validation';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { dashboard as clientDashboard } from '@/routes/client';
 import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
+import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem } from '@/types';
 import type {
     AutoFilledDeclarations,
@@ -98,6 +99,7 @@ type Props = {
     healthPrefilledFromProfile: boolean;
     applicantPrefilledFromProfile: boolean;
     applicantWorkIncomePrefilledFromProfile: boolean;
+    missingIdentityPrerequisites: string[];
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -432,6 +434,7 @@ export default function LoanRequestPage({
     healthPrefilledFromProfile,
     applicantPrefilledFromProfile,
     applicantWorkIncomePrefilledFromProfile,
+    missingIdentityPrerequisites,
 }: Props) {
     const steps = useMemo(
         () => getVisibleWizardSteps(applicantPrefilledFromProfile),
@@ -1129,6 +1132,10 @@ export default function LoanRequestPage({
                                             applicantPrefilledFromProfile &&
                                             !applicantPersonalConfirmed) ||
                                         (currentStep ===
+                                            STEP_INDEX['personal-basic'] &&
+                                            missingIdentityPrerequisites.length >
+                                                0) ||
+                                        (currentStep ===
                                             STEP_INDEX['work-employment'] &&
                                             applicantWorkIncomePrefilledFromProfile &&
                                             !applicantWorkIncomeConfirmed) ||
@@ -1146,7 +1153,9 @@ export default function LoanRequestPage({
                                                 !isHealthComplete ||
                                                 !isDeclarationsComplete ||
                                                 !isApplicantPersonalComplete ||
-                                                !isApplicantWorkIncomeComplete))
+                                                !isApplicantWorkIncomeComplete ||
+                                                missingIdentityPrerequisites.length >
+                                                    0))
                                     }
                                 />
                             </div>
@@ -1192,6 +1201,35 @@ export default function LoanRequestPage({
                                     }
                                     direction={stepDirection}
                                 >
+                                    {missingIdentityPrerequisites.length > 0 ? (
+                                        <Alert
+                                            variant="destructive"
+                                            className="mb-5"
+                                        >
+                                            <AlertTitle>
+                                                Complete your profile before
+                                                continuing
+                                            </AlertTitle>
+                                            <AlertDescription className="space-y-2">
+                                                <p>
+                                                    Please add these details in
+                                                    your Profile Settings before
+                                                    submitting a loan request:{' '}
+                                                    {missingIdentityPrerequisites.join(
+                                                        ', ',
+                                                    )}
+                                                    .
+                                                </p>
+                                                <Button asChild size="sm">
+                                                    <Link
+                                                        href={editProfile().url}
+                                                    >
+                                                        Go to Profile Settings
+                                                    </Link>
+                                                </Button>
+                                            </AlertDescription>
+                                        </Alert>
+                                    ) : null}
                                     {applicantPrefilledFromProfile ? (
                                         <div className="space-y-5">
                                             <LoanRequestApplicantConfirmStep
