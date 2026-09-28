@@ -1400,7 +1400,7 @@ export default function StaffLoanRequestShow({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <section className="mx-auto mt-6 mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <LoanRequestSummaryHeader
                     reference={currentRequest.reference}
                     status={currentRequest.status}

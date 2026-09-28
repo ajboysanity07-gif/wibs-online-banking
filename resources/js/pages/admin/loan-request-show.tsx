@@ -678,7 +678,7 @@ export default function LoanRequestShow({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
             {requiresCorrectionBeforeApproval ? (
-                <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                <section className="mx-auto mt-6 mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                     <Alert className="border-amber-500/35 bg-amber-500/10 text-foreground">
                         <CircleAlert className="size-4 text-amber-700 dark:text-amber-200" />
                         <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

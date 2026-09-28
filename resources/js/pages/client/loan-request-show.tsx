@@ -568,7 +568,7 @@ export default function LoanRequestShow({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <section className="mx-auto mt-6 mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="rounded-xl border border-border/40 bg-card/70 p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="space-y-1">
