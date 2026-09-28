@@ -548,50 +548,53 @@ export default function AdminDashboard({
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="px-0">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead className="px-6">
-                                                    Processor
-                                                </TableHead>
-                                                <TableHead className="px-6">
-                                                    Assigned
-                                                </TableHead>
-                                                <TableHead className="px-6">
-                                                    Approved
-                                                </TableHead>
-                                                <TableHead className="px-6">
-                                                    Rejected
-                                                </TableHead>
-                                                <TableHead className="px-6">
-                                                    Avg days
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {staffPerformance.map((row) => (
-                                                <TableRow
-                                                    key={row.processor_id}
-                                                >
-                                                    <TableCell className="px-6 font-medium">
-                                                        {row.name}
-                                                    </TableCell>
-                                                    <TableCell className="px-6">
-                                                        {row.assigned}
-                                                    </TableCell>
-                                                    <TableCell className="px-6">
-                                                        {row.approved}
-                                                    </TableCell>
-                                                    <TableCell className="px-6">
-                                                        {row.rejected}
-                                                    </TableCell>
-                                                    <TableCell className="px-6">
-                                                        {row.avg_days ?? '--'}
-                                                    </TableCell>
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="px-6">
+                                                        Processor
+                                                    </TableHead>
+                                                    <TableHead className="px-6">
+                                                        Assigned
+                                                    </TableHead>
+                                                    <TableHead className="px-6">
+                                                        Approved
+                                                    </TableHead>
+                                                    <TableHead className="px-6">
+                                                        Rejected
+                                                    </TableHead>
+                                                    <TableHead className="px-6">
+                                                        Avg days
+                                                    </TableHead>
                                                 </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {staffPerformance.map((row) => (
+                                                    <TableRow
+                                                        key={row.processor_id}
+                                                    >
+                                                        <TableCell className="px-6 font-medium">
+                                                            {row.name}
+                                                        </TableCell>
+                                                        <TableCell className="px-6">
+                                                            {row.assigned}
+                                                        </TableCell>
+                                                        <TableCell className="px-6">
+                                                            {row.approved}
+                                                        </TableCell>
+                                                        <TableCell className="px-6">
+                                                            {row.rejected}
+                                                        </TableCell>
+                                                        <TableCell className="px-6">
+                                                            {row.avg_days ??
+                                                                '--'}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
                                 </CardContent>
                             </Card>
                         ) : null}
@@ -629,57 +632,59 @@ export default function AdminDashboard({
                                     No requests yet.
                                 </div>
                             ) : (
-                                <Table>
-                                    <TableHeader className="border-b border-border/60 text-muted-foreground">
-                                        <TableRow>
-                                            <TableHead className="px-6">
-                                                Member
-                                            </TableHead>
-                                            <TableHead className="px-6">
-                                                Reference
-                                            </TableHead>
-                                            <TableHead className="px-6">
-                                                Status
-                                            </TableHead>
-                                            <TableHead className="px-6">
-                                                Created
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {requestsPreview.map(
-                                            (request, index) => (
-                                                <TableRow
-                                                    key={
-                                                        request.id ??
-                                                        `request-${index}`
-                                                    }
-                                                >
-                                                    <TableCell className="px-6 font-medium">
-                                                        {request.member_name ??
-                                                            '--'}
-                                                    </TableCell>
-                                                    <TableCell className="px-6">
-                                                        {request.reference ??
-                                                            '--'}
-                                                    </TableCell>
-                                                    <TableCell className="px-6">
-                                                        <LoanRequestStatusBadge
-                                                            status={
-                                                                request.status
-                                                            }
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell className="px-6">
-                                                        {formatDate(
-                                                            request.created_at,
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ),
-                                        )}
-                                    </TableBody>
-                                </Table>
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader className="border-b border-border/60 text-muted-foreground">
+                                            <TableRow>
+                                                <TableHead className="px-6">
+                                                    Member
+                                                </TableHead>
+                                                <TableHead className="px-6">
+                                                    Reference
+                                                </TableHead>
+                                                <TableHead className="px-6">
+                                                    Status
+                                                </TableHead>
+                                                <TableHead className="px-6">
+                                                    Created
+                                                </TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {requestsPreview.map(
+                                                (request, index) => (
+                                                    <TableRow
+                                                        key={
+                                                            request.id ??
+                                                            `request-${index}`
+                                                        }
+                                                    >
+                                                        <TableCell className="px-6 font-medium">
+                                                            {request.member_name ??
+                                                                '--'}
+                                                        </TableCell>
+                                                        <TableCell className="px-6">
+                                                            {request.reference ??
+                                                                '--'}
+                                                        </TableCell>
+                                                        <TableCell className="px-6">
+                                                            <LoanRequestStatusBadge
+                                                                status={
+                                                                    request.status
+                                                                }
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="px-6">
+                                                            {formatDate(
+                                                                request.created_at,
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ),
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             )}
                         </CardContent>
                     </Card>

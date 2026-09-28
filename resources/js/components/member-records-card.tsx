@@ -96,7 +96,7 @@ export function MemberRecordsCard({
                             {skeletonDesktop ? (
                                 <div
                                     className={cn(
-                                        'hidden md:block',
+                                        'hidden overflow-x-auto md:block',
                                         desktopWrapperClassName,
                                     )}
                                     aria-busy="true"
@@ -123,7 +123,7 @@ export function MemberRecordsCard({
                         {desktopContent ? (
                             <div
                                 className={cn(
-                                    'hidden md:block',
+                                    'hidden overflow-x-auto md:block',
                                     desktopWrapperClassName,
                                 )}
                             >

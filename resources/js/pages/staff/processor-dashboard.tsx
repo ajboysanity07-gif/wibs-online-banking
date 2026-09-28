@@ -139,67 +139,72 @@ export default function ProcessorDashboard({
                                 Your queue is empty.
                             </div>
                         ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="px-6">
-                                            Reference
-                                        </TableHead>
-                                        <TableHead className="px-6">
-                                            Status
-                                        </TableHead>
-                                        <TableHead className="px-6">
-                                            Business days
-                                        </TableHead>
-                                        <TableHead className="px-6">
-                                            Aging
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {queueData.items.map((item) => (
-                                        <TableRow
-                                            key={item.id}
-                                            className={
-                                                item.is_aging
-                                                    ? 'bg-destructive/5'
-                                                    : ''
-                                            }
-                                        >
-                                            <TableCell className="px-6 font-medium">
-                                                <Link
-                                                    href={
-                                                        loanRequestShow(item.id)
-                                                            .url
-                                                    }
-                                                    className="underline-offset-4 hover:underline"
-                                                >
-                                                    {item.reference}
-                                                </Link>
-                                            </TableCell>
-                                            <TableCell className="px-6">
-                                                <Badge variant="outline">
-                                                    {item.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="px-6">
-                                                {item.business_days_in_queue}
-                                            </TableCell>
-                                            <TableCell className="px-6">
-                                                {item.is_aging ? (
-                                                    <Badge variant="destructive">
-                                                        Aging
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="secondary">
-                                                        On time
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="px-6">
+                                                Reference
+                                            </TableHead>
+                                            <TableHead className="px-6">
+                                                Status
+                                            </TableHead>
+                                            <TableHead className="px-6">
+                                                Business days
+                                            </TableHead>
+                                            <TableHead className="px-6">
+                                                Aging
+                                            </TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {queueData.items.map((item) => (
+                                            <TableRow
+                                                key={item.id}
+                                                className={
+                                                    item.is_aging
+                                                        ? 'bg-destructive/5'
+                                                        : ''
+                                                }
+                                            >
+                                                <TableCell className="px-6 font-medium">
+                                                    <Link
+                                                        href={
+                                                            loanRequestShow(
+                                                                item.id,
+                                                            ).url
+                                                        }
+                                                        className="underline-offset-4 hover:underline"
+                                                    >
+                                                        {item.reference}
+                                                    </Link>
+                                                </TableCell>
+                                                <TableCell className="px-6">
+                                                    <Badge variant="outline">
+                                                        {item.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="px-6">
+                                                    {
+                                                        item.business_days_in_queue
+                                                    }
+                                                </TableCell>
+                                                <TableCell className="px-6">
+                                                    {item.is_aging ? (
+                                                        <Badge variant="destructive">
+                                                            Aging
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="secondary">
+                                                            On time
+                                                        </Badge>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         )}
                     </CardContent>
                 </Card>
