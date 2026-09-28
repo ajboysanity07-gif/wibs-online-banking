@@ -113,20 +113,7 @@ export function DependentsTab({
                         </div>
                     ) : null}
 
-                    {DEPENDENT_CATEGORIES.filter((category) => {
-                        if (category.key === 'child') {
-                            return memberCivilStatus === 'Married';
-                        }
-
-                        if (
-                            category.key === 'sibling' ||
-                            category.key === 'parent'
-                        ) {
-                            return memberCivilStatus === 'Single';
-                        }
-
-                        return true;
-                    }).map((category) => (
+                    {DEPENDENT_CATEGORIES.map((category) => (
                         <DependentCategorySection
                             key={category.key}
                             category={category}

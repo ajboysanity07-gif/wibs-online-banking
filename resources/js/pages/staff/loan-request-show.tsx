@@ -41,6 +41,12 @@ import {
     textareaClassName,
     toStringValue,
 } from '@/components/loan-request/processing-details-panel';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -403,6 +409,10 @@ export default function StaffLoanRequestShow({
     const [selectedMemberFields, setSelectedMemberFields] = useState<string[]>(
         [],
     );
+    const [memberFieldSearch, setMemberFieldSearch] = useState('');
+    const [openMemberFieldGroups, setOpenMemberFieldGroups] = useState<
+        string[]
+    >([]);
     const [loanInfoForm, setLoanInfoForm] = useState<LoanInfoFormState>(() =>
         toLoanInfoForm(loanRequest),
     );
@@ -790,19 +800,36 @@ export default function StaffLoanRequestShow({
     memberFieldDefinitions.forEach((item) => {
         // 'health' and 'health_glapi' render as a single merged "Health
         // Insurance Questionnaire" group — there is no separate
-        // "Health declarations" concept.
+        // "Health declarations" concept. Beneficiary fields ('insurance')
+        // live inside the wizard's single "Dependents" step (not a separate
+        // "Insurance" step), so fold them into 'dependents' too — this loop
+        // visits 'insurance' before 'dependents' (SECTION_LABELS order),
+        // which naturally puts beneficiary fields first in the merged group.
         const sectionKey =
-            item.sectionKey === 'health' ? 'health_glapi' : item.sectionKey;
+            item.sectionKey === 'health'
+                ? 'health_glapi'
+                : item.sectionKey === 'insurance'
+                  ? 'dependents'
+                  : item.sectionKey;
         const existing = memberFieldGroupsMap.get(sectionKey) ?? [];
         existing.push(item);
         memberFieldGroupsMap.set(sectionKey, existing);
     });
 
+    // Labels/order here mirror the current loan-request wizard's step
+    // naming (loan-request-wizard-steps.ts), not the legacy
+    // LoanRequestDataService::SECTION_LABELS wording used elsewhere.
+    const memberFieldGroupLabels: Record<string, string> = {
+        dependents: 'Dependents & Beneficiaries',
+        health_glapi: 'Health Insurance Questionnaire',
+        banking: 'Loan Disbursement & Repayment',
+        declarations: 'Declarations',
+    };
     const memberFieldPriorityOrder = [
-        'insurance',
+        'dependents',
         'health_glapi',
         'banking',
-        'barangay',
+        'declarations',
     ];
     const memberFieldPriorityKeys = memberFieldPriorityOrder.filter((key) =>
         memberFieldGroupsMap.has(key),
@@ -820,9 +847,26 @@ export default function StaffLoanRequestShow({
         ...memberFieldRemainingKeys,
     ].map((sectionKey) => ({
         sectionKey,
-        label: dataSectionDefinitions[sectionKey]?.label ?? sectionKey,
+        label:
+            memberFieldGroupLabels[sectionKey] ??
+            dataSectionDefinitions[sectionKey]?.label ??
+            sectionKey,
         items: memberFieldGroupsMap.get(sectionKey) ?? [],
     }));
+
+    const memberFieldSearchQuery = memberFieldSearch.trim().toLowerCase();
+    const visibleMemberFieldGroups = memberFieldSearchQuery
+        ? memberFieldGroups
+              .map((group) => ({
+                  ...group,
+                  items: group.items.filter((item) =>
+                      item.field.label
+                          .toLowerCase()
+                          .includes(memberFieldSearchQuery),
+                  ),
+              }))
+              .filter((group) => group.items.length > 0)
+        : memberFieldGroups;
 
     const updateLoanInfoField = (
         field: keyof LoanInfoFormState,
@@ -953,6 +997,8 @@ export default function StaffLoanRequestShow({
             setMemberActionMessage('');
             setMemberActionReason('');
             setSelectedMemberFields([]);
+            setMemberFieldSearch('');
+            setOpenMemberFieldGroups([]);
         }
     };
 
@@ -2360,51 +2406,121 @@ export default function StaffLoanRequestShow({
                                 }
                             />
                         </div>
-                        <div className="flex-1 space-y-3 overflow-y-auto px-6 pb-6">
+                        <div className="flex flex-1 flex-col space-y-3 overflow-hidden px-6 pb-6">
                             <p className="text-sm font-medium">
                                 Fields requiring member action
                             </p>
-                            {memberFieldGroups.map((group) => (
-                                <div key={group.sectionKey}>
-                                    <p className="mt-4 mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                                        {group.label}
-                                    </p>
-                                    <div className="grid gap-3 md:grid-cols-2">
-                                        {group.items.map((item) => (
-                                            <label
-                                                key={item.fieldKey}
-                                                className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm"
+                            <Input
+                                type="text"
+                                placeholder="Search fields…"
+                                value={memberFieldSearch}
+                                onChange={(event) =>
+                                    setMemberFieldSearch(event.target.value)
+                                }
+                            />
+                            <div className="flex-1 overflow-y-auto">
+                                <Accordion
+                                    type="multiple"
+                                    value={Array.from(
+                                        new Set([
+                                            ...openMemberFieldGroups,
+                                            ...visibleMemberFieldGroups
+                                                .filter(
+                                                    (group) =>
+                                                        memberFieldSearchQuery !==
+                                                            '' ||
+                                                        group.items.some(
+                                                            (item) =>
+                                                                selectedMemberFields.includes(
+                                                                    item.fieldKey,
+                                                                ),
+                                                        ),
+                                                )
+                                                .map(
+                                                    (group) => group.sectionKey,
+                                                ),
+                                        ]),
+                                    )}
+                                    onValueChange={setOpenMemberFieldGroups}
+                                >
+                                    {visibleMemberFieldGroups.map((group) => {
+                                        const selectedCount =
+                                            group.items.filter((item) =>
+                                                selectedMemberFields.includes(
+                                                    item.fieldKey,
+                                                ),
+                                            ).length;
+
+                                        return (
+                                            <AccordionItem
+                                                key={group.sectionKey}
+                                                value={group.sectionKey}
                                             >
-                                                <Checkbox
-                                                    checked={selectedMemberFields.includes(
-                                                        item.fieldKey,
-                                                    )}
-                                                    onCheckedChange={(
-                                                        checked,
-                                                    ) =>
-                                                        setSelectedMemberFields(
-                                                            (current) =>
-                                                                checked === true
-                                                                    ? [
-                                                                          ...current,
-                                                                          item.fieldKey,
-                                                                      ]
-                                                                    : current.filter(
-                                                                          (
-                                                                              field,
-                                                                          ) =>
-                                                                              field !==
-                                                                              item.fieldKey,
-                                                                      ),
-                                                        )
-                                                    }
-                                                />
-                                                <span>{item.field.label}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
+                                                <AccordionTrigger className="text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:no-underline">
+                                                    <span className="flex items-center gap-2">
+                                                        {group.label}
+                                                        {selectedCount > 0 ? (
+                                                            <Badge variant="secondary">
+                                                                {selectedCount}{' '}
+                                                                selected
+                                                            </Badge>
+                                                        ) : null}
+                                                    </span>
+                                                </AccordionTrigger>
+                                                <AccordionContent>
+                                                    <div className="grid gap-3 md:grid-cols-2">
+                                                        {group.items.map(
+                                                            (item) => (
+                                                                <label
+                                                                    key={
+                                                                        item.fieldKey
+                                                                    }
+                                                                    className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm"
+                                                                >
+                                                                    <Checkbox
+                                                                        checked={selectedMemberFields.includes(
+                                                                            item.fieldKey,
+                                                                        )}
+                                                                        onCheckedChange={(
+                                                                            checked,
+                                                                        ) =>
+                                                                            setSelectedMemberFields(
+                                                                                (
+                                                                                    current,
+                                                                                ) =>
+                                                                                    checked ===
+                                                                                    true
+                                                                                        ? [
+                                                                                              ...current,
+                                                                                              item.fieldKey,
+                                                                                          ]
+                                                                                        : current.filter(
+                                                                                              (
+                                                                                                  field,
+                                                                                              ) =>
+                                                                                                  field !==
+                                                                                                  item.fieldKey,
+                                                                                          ),
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                    <span>
+                                                                        {
+                                                                            item
+                                                                                .field
+                                                                                .label
+                                                                        }
+                                                                    </span>
+                                                                </label>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        );
+                                    })}
+                                </Accordion>
+                            </div>
                         </div>
                         <DialogFooter>
                             <Button

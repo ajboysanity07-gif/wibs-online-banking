@@ -69,30 +69,20 @@ function createDependentsCycleTestMember(string $acctno): AppUser
     return $member->fresh(['roles.permissions', 'userProfile', 'memberApplicationProfile']);
 }
 
-test('sectionDefinitions gates each dependent category by civil_status per the physical form', function (): void {
+test('sectionDefinitions only gates the Spouse singleton by civil_status, not Child/Sibling/Parent/Extended', function (): void {
     $fields = app(LoanRequestDataService::class)->sectionDefinitions()['dependents']['fields'];
 
-    // Spouse and Children: Married-only.
+    // Spouse: still Married-only -- a member without a spouse has no spouse to add.
     expect($fields['dependent_spouse_cycle_status']['visible_when'])->toBe([
         'field' => 'applicant.civil_status',
         'equals' => 'Married',
     ]);
-    expect($fields['dependent_child_1_name']['visible_when'])->toBe([
-        'field' => 'applicant.civil_status',
-        'equals' => 'Married',
-    ]);
 
-    // Siblings and Parents: Single-only.
-    expect($fields['dependent_sibling_1_name']['visible_when'])->toBe([
-        'field' => 'applicant.civil_status',
-        'equals' => 'Single',
-    ]);
-    expect($fields['dependent_parent_1_name']['visible_when'])->toBe([
-        'field' => 'applicant.civil_status',
-        'equals' => 'Single',
-    ]);
-
-    // Extended: never gated.
+    // Child/Sibling/Parent/Extended: available regardless of civil status --
+    // a single mother still has children, a married member still has parents.
+    expect($fields['dependent_child_1_name']['visible_when'])->toBeNull();
+    expect($fields['dependent_sibling_1_name']['visible_when'])->toBeNull();
+    expect($fields['dependent_parent_1_name']['visible_when'])->toBeNull();
     expect($fields['dependent_extended_1_name']['visible_when'])->toBeNull();
 });
 

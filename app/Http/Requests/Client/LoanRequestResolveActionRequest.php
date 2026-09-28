@@ -32,9 +32,10 @@ class LoanRequestResolveActionRequest extends FormRequest
         return [
             'decision' => ['sometimes', 'string', Rule::in(['accept', 'decline'])],
             'reason' => ['sometimes', 'nullable', 'string', 'max:1000'],
-            'insurance' => ['sometimes', 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_secondary_name,beneficiary_secondary_relationship'],
-            'insurance.beneficiary_primary_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'insurance.beneficiary_primary_relationship' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'insurance' => ['sometimes', 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship'],
+            'insurance.beneficiary_primary_name' => [Rule::requiredIf(fn () => $this->filled('insurance')), 'string', 'max:255'],
+            'insurance.beneficiary_primary_relationship' => [Rule::requiredIf(fn () => $this->filled('insurance')), 'string', 'max:255'],
+            'insurance.beneficiary_primary_birthdate' => [Rule::requiredIf(fn () => $this->filled('insurance')), 'date', 'before:today', 'after:1900-01-01'],
             'insurance.beneficiary_secondary_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'insurance.beneficiary_secondary_relationship' => ['sometimes', 'nullable', 'string', 'max:255'],
             'health' => ['sometimes', 'array:health_smoking_status,health_hypertension'],

@@ -117,7 +117,7 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
         id: 'dependents',
         title: 'Dependents',
         description:
-            'Add dependents covered under your group life insurance plan (optional). Check a dependent, or your spouse, to designate them as an insurance beneficiary.',
+            'Add your dependents and name a primary beneficiary for your loan insurance (required). Check a dependent, or your spouse, to designate them as an insurance beneficiary (optional).',
         group: 'insurance-health',
     },
     {

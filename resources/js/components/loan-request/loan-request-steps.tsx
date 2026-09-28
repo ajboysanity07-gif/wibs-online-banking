@@ -2699,11 +2699,11 @@ function isDependentSpouseVisible(
 /**
  * Dependents (Form B). Fixed slots per category (see
  * LoanRequestDataService::FIELD_DEFINITIONS), rendered with add/remove-row
- * UX so members aren't shown every slot at once. Each category (and the
- * Spouse singleton) is gated by civil_status via visible_when, same
- * mechanism as the GLAPI pregnancy question -- see
- * LoanRequestHealthQuestionnaireStep: Spouse/Children show for Married
- * members, Siblings/Parents show for Single members, Extended is ungated.
+ * UX so members aren't shown every slot at once. Child/Sibling/Parent/
+ * Extended are all shown regardless of civil status (a single mother still
+ * has children, a married member still has parents) -- only the Spouse
+ * singleton remains gated by civil_status via visible_when, same mechanism
+ * as the GLAPI pregnancy question -- see LoanRequestHealthQuestionnaireStep.
  *
  * Members with existing profile data (dependentsPrefilledFromProfile) get a
  * compact read-only summary instead of the full form -- editing happens in

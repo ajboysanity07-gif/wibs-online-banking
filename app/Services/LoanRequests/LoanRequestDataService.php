@@ -27,7 +27,7 @@ class LoanRequestDataService
             'label' => 'Primary beneficiary name',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
-            'required_on_submit' => false,
+            'required_on_submit' => true,
             'section' => 'insurance',
             'type' => 'string',
         ],
@@ -35,7 +35,7 @@ class LoanRequestDataService
             'label' => 'Primary beneficiary relationship',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
-            'required_on_submit' => false,
+            'required_on_submit' => true,
             'section' => 'insurance',
             'type' => 'string',
         ],
@@ -43,7 +43,7 @@ class LoanRequestDataService
             'label' => 'Primary beneficiary birthdate',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
-            'required_on_submit' => false,
+            'required_on_submit' => true,
             'section' => 'insurance',
             'type' => 'date',
         ],
@@ -1060,7 +1060,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_1_birthdate' => [
             'label' => 'Child 1 birthdate',
@@ -1069,7 +1068,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'date',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_1_cycle_status' => [
             'label' => 'Child 1 cycle status',
@@ -1078,7 +1076,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_1_cycle_number' => [
             'label' => 'Child 1 cycle number',
@@ -1087,7 +1084,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'number',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_1_is_beneficiary' => [
             'label' => 'Child 1 insurance beneficiary',
@@ -1096,7 +1092,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'boolean',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_2_name' => [
             'label' => 'Child 2 name',
@@ -1105,7 +1100,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_2_birthdate' => [
             'label' => 'Child 2 birthdate',
@@ -1114,7 +1108,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'date',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_2_cycle_status' => [
             'label' => 'Child 2 cycle status',
@@ -1123,7 +1116,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_2_cycle_number' => [
             'label' => 'Child 2 cycle number',
@@ -1132,7 +1124,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'number',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_2_is_beneficiary' => [
             'label' => 'Child 2 insurance beneficiary',
@@ -1141,7 +1132,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'boolean',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_3_name' => [
             'label' => 'Child 3 name',
@@ -1150,7 +1140,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_3_birthdate' => [
             'label' => 'Child 3 birthdate',
@@ -1159,7 +1148,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'date',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_3_cycle_status' => [
             'label' => 'Child 3 cycle status',
@@ -1168,7 +1156,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_3_cycle_number' => [
             'label' => 'Child 3 cycle number',
@@ -1177,7 +1164,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'number',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_child_3_is_beneficiary' => [
             'label' => 'Child 3 insurance beneficiary',
@@ -1186,7 +1172,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'boolean',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
         'dependent_sibling_1_name' => [
             'label' => 'Sibling 1 name',
@@ -1195,7 +1180,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_1_birthdate' => [
             'label' => 'Sibling 1 birthdate',
@@ -1204,7 +1188,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'date',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_1_cycle_status' => [
             'label' => 'Sibling 1 cycle status',
@@ -1213,7 +1196,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_1_cycle_number' => [
             'label' => 'Sibling 1 cycle number',
@@ -1222,7 +1204,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'number',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_1_is_beneficiary' => [
             'label' => 'Sibling 1 insurance beneficiary',
@@ -1231,7 +1212,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'boolean',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_2_name' => [
             'label' => 'Sibling 2 name',
@@ -1240,7 +1220,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_2_birthdate' => [
             'label' => 'Sibling 2 birthdate',
@@ -1249,7 +1228,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'date',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_2_cycle_status' => [
             'label' => 'Sibling 2 cycle status',
@@ -1258,7 +1236,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_2_cycle_number' => [
             'label' => 'Sibling 2 cycle number',
@@ -1267,7 +1244,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'number',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_2_is_beneficiary' => [
             'label' => 'Sibling 2 insurance beneficiary',
@@ -1276,7 +1252,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'boolean',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_3_name' => [
             'label' => 'Sibling 3 name',
@@ -1285,7 +1260,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_3_birthdate' => [
             'label' => 'Sibling 3 birthdate',
@@ -1294,7 +1268,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'date',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_3_cycle_status' => [
             'label' => 'Sibling 3 cycle status',
@@ -1303,7 +1276,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_3_cycle_number' => [
             'label' => 'Sibling 3 cycle number',
@@ -1312,7 +1284,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'number',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_sibling_3_is_beneficiary' => [
             'label' => 'Sibling 3 insurance beneficiary',
@@ -1321,7 +1292,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'boolean',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_parent_1_name' => [
             'label' => 'Parent 1 name',
@@ -1330,7 +1300,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_parent_1_birthdate' => [
             'label' => 'Parent 1 birthdate',
@@ -1339,7 +1308,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'date',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_parent_1_cycle_status' => [
             'label' => 'Parent 1 cycle status',
@@ -1348,7 +1316,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_parent_1_cycle_number' => [
             'label' => 'Parent 1 cycle number',
@@ -1357,7 +1324,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'number',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_parent_1_is_beneficiary' => [
             'label' => 'Parent 1 insurance beneficiary',
@@ -1366,7 +1332,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'boolean',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_parent_2_name' => [
             'label' => 'Parent 2 name',
@@ -1375,7 +1340,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_parent_2_birthdate' => [
             'label' => 'Parent 2 birthdate',
@@ -1384,7 +1348,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'date',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_parent_2_cycle_status' => [
             'label' => 'Parent 2 cycle status',
@@ -1393,7 +1356,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'string',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_parent_2_cycle_number' => [
             'label' => 'Parent 2 cycle number',
@@ -1402,7 +1364,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'number',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_parent_2_is_beneficiary' => [
             'label' => 'Parent 2 insurance beneficiary',
@@ -1411,7 +1372,6 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'dependents',
             'type' => 'boolean',
-            'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Single'],
         ],
         'dependent_extended_1_name' => [
             'label' => 'Extended family member 1 name',
