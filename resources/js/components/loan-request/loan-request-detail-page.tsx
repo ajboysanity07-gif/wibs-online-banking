@@ -1593,7 +1593,7 @@ export function LoanRequestDetailPage({
                 )}
             >
                 {!hideMainColumn ? (
-                    <div className="space-y-6">
+                    <div className="min-w-0 space-y-6">
                         <LoanRequestApplicantCard applicant={applicant} />
                         <LoanRequestCoMakersCard
                             coMakerOne={coMakerOne}
@@ -1603,7 +1603,7 @@ export function LoanRequestDetailPage({
                     </div>
                 ) : null}
 
-                <div className="space-y-4 lg:sticky lg:top-24">
+                <div className="min-w-0 space-y-4 lg:sticky lg:top-24">
                     <LoanRequestSectionCard
                         title="Request status"
                         description={statusDescriptions[statusValue]}

@@ -1440,7 +1440,7 @@ export default function StaffLoanRequestShow({
             </section>
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-                    <div className="space-y-6">
+                    <div className="min-w-0 space-y-6">
                         {editingSection === 'loan_request' ? (
                             <LoanRequestSectionCard
                                 title="Loan Information"
@@ -2188,7 +2188,7 @@ export default function StaffLoanRequestShow({
                             </LoanRequestSectionCard>
                         ) : null}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <LoanRequestDetailPage
                             loanRequest={currentRequest}
                             applicant={currentApplicant}
