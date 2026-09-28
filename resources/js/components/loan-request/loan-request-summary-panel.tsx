@@ -85,8 +85,8 @@ export function LoanRequestSummaryPanel({
         <div className="space-y-3 lg:sticky lg:top-28">
             <Card className="border-border/20 bg-card/40">
                 <CardHeader className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-base">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <CardTitle className="min-w-0 text-base">
                             Application summary
                         </CardTitle>
                         {draft ? (

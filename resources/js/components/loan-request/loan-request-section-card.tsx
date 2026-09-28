@@ -51,13 +51,13 @@ export function LoanRequestSectionCard({
                 className={cn(
                     'space-y-2 pb-5',
                     headerAction &&
-                        'flex flex-row items-start justify-between gap-3 space-y-0',
+                        'flex flex-row flex-wrap items-start justify-between gap-3 space-y-0',
                 )}
             >
-                <div className={cn(headerAction && 'space-y-1.5')}>
+                <div className={cn('min-w-0', headerAction && 'space-y-1.5')}>
                     <CardTitle className="flex items-center gap-2 text-lg">
                         {Icon ? (
-                            <Icon className="size-5 text-muted-foreground" />
+                            <Icon className="size-5 shrink-0 text-muted-foreground" />
                         ) : null}
                         {title}
                     </CardTitle>
