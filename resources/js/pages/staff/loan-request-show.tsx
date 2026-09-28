@@ -51,14 +51,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -69,6 +61,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import { useApprovedDocumentPackageDownload } from '@/hooks/loan-request/use-approved-document-package-download';
 import AppLayout from '@/layouts/app-layout';
@@ -2330,21 +2330,24 @@ export default function StaffLoanRequestShow({
                 </div>
             </section>
 
-            <Dialog
+            <Sheet
                 open={isMemberActionDialogOpen}
                 onOpenChange={setIsMemberActionDialogOpen}
             >
-                <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Request Member Action</DialogTitle>
-                        <DialogDescription>
+                <SheetContent
+                    side="right"
+                    className="flex w-full flex-col gap-0 sm:max-w-xl"
+                >
+                    <SheetHeader>
+                        <SheetTitle>Request Member Action</SheetTitle>
+                        <SheetDescription>
                             Ask the member for a correction or for additional
                             information, and record exactly which fields need
                             their attention.
-                        </DialogDescription>
-                    </DialogHeader>
+                        </SheetDescription>
+                    </SheetHeader>
                     <form
-                        className="flex flex-1 flex-col space-y-5 overflow-hidden"
+                        className="flex flex-1 flex-col space-y-5 overflow-hidden px-4"
                         onSubmit={submitMemberAction}
                     >
                         <div className="grid gap-2">
@@ -2406,7 +2409,7 @@ export default function StaffLoanRequestShow({
                                 }
                             />
                         </div>
-                        <div className="flex flex-1 flex-col space-y-3 overflow-hidden px-6 pb-6">
+                        <div className="flex flex-1 flex-col space-y-3 overflow-hidden pb-4">
                             <p className="text-sm font-medium">
                                 Fields requiring member action
                             </p>
@@ -2522,7 +2525,13 @@ export default function StaffLoanRequestShow({
                                 </Accordion>
                             </div>
                         </div>
-                        <DialogFooter>
+                        <SheetFooter className="px-0">
+                            <Button
+                                type="submit"
+                                disabled={isWorkflowProcessing}
+                            >
+                                Send Member Action Request
+                            </Button>
                             <Button
                                 type="button"
                                 variant="outline"
@@ -2532,16 +2541,10 @@ export default function StaffLoanRequestShow({
                             >
                                 Cancel
                             </Button>
-                            <Button
-                                type="submit"
-                                disabled={isWorkflowProcessing}
-                            >
-                                Send Member Action Request
-                            </Button>
-                        </DialogFooter>
+                        </SheetFooter>
                     </form>
-                </DialogContent>
-            </Dialog>
+                </SheetContent>
+            </Sheet>
         </AppLayout>
     );
 }
