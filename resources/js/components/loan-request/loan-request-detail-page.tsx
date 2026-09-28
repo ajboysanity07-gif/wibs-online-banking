@@ -545,7 +545,7 @@ export const LoanRequestSummaryHeader = ({
                 </p>
             </div>
             {!hideLoanSummary ? (
-                <div className="grid w-full gap-3 sm:max-w-md sm:grid-cols-2">
+                <div className="grid w-full grid-cols-1 gap-3 sm:max-w-md sm:grid-cols-2">
                     <SummaryStat label="Requested amount" value={amount} />
                     <SummaryStat label="Loan type" value={loanTypeLabel} />
                     <SummaryStat label="Requested term" value={requestedTerm} />
@@ -557,14 +557,14 @@ export const LoanRequestSummaryHeader = ({
                         <SummaryStat
                             label="Loan name"
                             value={otherLoanTypeName}
-                            className="col-span-2"
+                            className="sm:col-span-2"
                         />
                     ) : null}
                     {loanPurpose ? (
                         <SummaryStat
                             label="Loan purpose"
                             value={loanPurpose}
-                            className="col-span-2"
+                            className="sm:col-span-2"
                         />
                     ) : null}
                     {releaseMethod ? (
@@ -583,7 +583,7 @@ export const LoanRequestSummaryHeader = ({
                         <SummaryStat
                             label="Account no."
                             value={accountNumber}
-                            className="col-span-2"
+                            className="sm:col-span-2"
                         />
                     ) : null}
                 </div>
@@ -622,7 +622,7 @@ export const LoanRequestLoanInformationCard = ({
             headerAction={headerAction ?? null}
             className="border-border/30 bg-card/60 shadow-sm"
         >
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <SummaryStat label="Requested amount" value={amount} />
                 <SummaryStat label="Loan type" value={loanTypeLabel} />
                 <SummaryStat label="Requested term" value={requestedTerm} />
@@ -631,14 +631,14 @@ export const LoanRequestLoanInformationCard = ({
                     <SummaryStat
                         label="Loan name"
                         value={otherLoanTypeName}
-                        className="col-span-2"
+                        className="sm:col-span-2"
                     />
                 ) : null}
                 {loanPurpose ? (
                     <SummaryStat
                         label="Loan purpose"
                         value={loanPurpose}
-                        className="col-span-2"
+                        className="sm:col-span-2"
                     />
                 ) : null}
             </div>
