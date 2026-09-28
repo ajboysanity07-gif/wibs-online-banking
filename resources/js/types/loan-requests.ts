@@ -258,7 +258,7 @@ export type LoanRequestDataFieldDefinition = {
     type: LoanRequestDataFieldType;
     detail_of: string | string[] | null;
     visible_when: LoanRequestDataFieldVisibility | null;
-    options?: string[];
+    options?: string[] | null;
 };
 
 export type LoanRequestDataSectionDefinition = {

@@ -38,6 +38,7 @@ class LoanRequestDataService
             'required_on_submit' => true,
             'section' => 'insurance',
             'type' => 'string',
+            'options' => ['Spouse', 'Child', 'Parent', 'Sibling', 'Other'],
         ],
         'beneficiary_primary_birthdate' => [
             'label' => 'Primary beneficiary birthdate',
@@ -62,6 +63,7 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'insurance',
             'type' => 'string',
+            'options' => ['Spouse', 'Child', 'Parent', 'Sibling', 'Other'],
         ],
         'beneficiary_secondary_birthdate' => [
             'label' => 'Secondary beneficiary birthdate',
@@ -1583,6 +1585,7 @@ class LoanRequestDataService
                 'type' => $definition['type'],
                 'detail_of' => $definition['detail_of'] ?? null,
                 'visible_when' => $definition['visible_when'] ?? null,
+                'options' => $definition['options'] ?? null,
             ];
         }
 

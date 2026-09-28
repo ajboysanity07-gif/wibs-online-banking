@@ -6,6 +6,7 @@ use App\Models\LoanRequest;
 use App\Models\MemberApplicationProfile;
 use App\Models\Role;
 use App\Models\UserProfile;
+use App\Services\LoanRequests\LoanRequestDataService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -233,6 +234,18 @@ test('submitting a loan request is blocked when the primary beneficiary is blank
         'insurance.beneficiary_primary_birthdate',
     ]);
     expect(LoanRequest::query()->count())->toBe(0);
+});
+
+test('beneficiary relationship fields expose a fixed options list to the frontend', function (): void {
+    $definitions = app(LoanRequestDataService::class)->sectionDefinitions();
+    $fields = $definitions['insurance']['fields'];
+
+    expect($fields['beneficiary_primary_relationship']['options'])
+        ->toBe(['Spouse', 'Child', 'Parent', 'Sibling', 'Other']);
+    expect($fields['beneficiary_secondary_relationship']['options'])
+        ->toBe(['Spouse', 'Child', 'Parent', 'Sibling', 'Other']);
+    expect($fields['beneficiary_primary_name']['options'])->toBeNull();
+    expect($fields['beneficiary_primary_birthdate']['type'])->toBe('date');
 });
 
 test('submitting a loan request succeeds once a primary beneficiary is on file', function (): void {

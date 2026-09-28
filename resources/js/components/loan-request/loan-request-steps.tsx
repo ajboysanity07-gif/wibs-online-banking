@@ -25,6 +25,7 @@ import {
     slotFieldKey,
     summarizeDependents,
 } from '@/components/dependents/dependent-category-section';
+import { BirthdateInput } from '@/components/loan-request/birthdate-input';
 import { BooleanYesNoField } from '@/components/loan-request/boolean-yes-no-field';
 import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import {
@@ -2587,14 +2588,37 @@ export function LoanRequestInsuranceBeneficiariesStep({
                         aria-invalid={Boolean(errors[errorKey])}
                         onChange={(nextValue) => onChange(fieldKey, nextValue)}
                     />
+                ) : field.options ? (
+                    <Select
+                        value={value ? `${value}` : ''}
+                        onValueChange={(nextValue) =>
+                            onChange(fieldKey, nextValue)
+                        }
+                    >
+                        <SelectTrigger
+                            id={`${sectionKey}_${fieldKey}`}
+                            aria-invalid={Boolean(errors[errorKey])}
+                        >
+                            <SelectValue
+                                placeholder={`Select ${field.label.toLowerCase()}`}
+                            />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {field.options.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 ) : field.type === 'date' ? (
-                    <DateInputWithPicker
+                    <BirthdateInput
                         id={`${sectionKey}_${fieldKey}`}
                         value={value ? `${value}` : ''}
                         aria-invalid={Boolean(errors[errorKey])}
-                        aria-label={`Choose ${field.label.toLowerCase()}`}
-                        onChange={(nextValue) => onChange(fieldKey, nextValue)}
-                        className="mt-0"
+                        onValueChange={(nextValue) =>
+                            onChange(fieldKey, nextValue)
+                        }
                     />
                 ) : (
                     <Input
