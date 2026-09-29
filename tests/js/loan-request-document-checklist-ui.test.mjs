@@ -11,9 +11,9 @@ test('document checklist renders as a flat row list with an overflow menu, not t
     const pageFile = await readSource([
         'resources',
         'js',
-        'pages',
-        'staff',
-        'loan-request-show.tsx',
+        'components',
+        'loan-request',
+        'loan-request-document-checklist-card.tsx',
     ]);
 
     assert.ok(!pageFile.includes('grid-cols-1 gap-4 lg:grid-cols-2'));
@@ -34,15 +34,15 @@ test('document checklist rows show missing-field count as plain text, not a badg
     const pageFile = await readSource([
         'resources',
         'js',
-        'pages',
-        'staff',
-        'loan-request-show.tsx',
+        'components',
+        'loan-request',
+        'loan-request-document-checklist-card.tsx',
     ]);
 
     const rowsStart = pageFile.indexOf('const missingFieldCount =');
     const rowsBlock = pageFile.slice(
         rowsStart,
-        pageFile.indexOf('{showWibsTrackingSection ?', rowsStart),
+        pageFile.indexOf('<Dialog', rowsStart),
     );
 
     assert.ok(rowsBlock.includes('missing'));

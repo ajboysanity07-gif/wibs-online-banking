@@ -123,7 +123,7 @@ test('loan request audit trail component shows the most recent entry first and i
 
     assert.match(
         componentFile,
-        /orderedEntries\s*=\s*useMemo\(\(\)\s*=>\s*\[\.\.\.entries\]\.reverse\(\),\s*\[entries\]\)/,
+        /orderedEntries\s*=\s*\[\.\.\.entries\]\.reverse\(\)/,
     );
     assert.match(
         componentFile,

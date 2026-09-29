@@ -23,14 +23,12 @@ test('loan request entry flow shows physical signature guidance instead of signa
         'loan-request-steps.tsx',
     ]);
 
-    assert.match(
-        requestPageFile,
-        /Signatures will be collected physically upon loan release\./,
-    );
-    assert.match(
-        stepsFile,
-        /Signatures will be collected physically upon loan release\./,
-    );
+    // JSX wraps this sentence across lines, so match any whitespace.
+    const guidance =
+        /Signatures will be collected\s+physically\s+upon\s+loan\s+release\./;
+
+    assert.match(requestPageFile, guidance);
+    assert.match(stepsFile, guidance);
     assert.ok(!requestPageFile.includes('SignaturePadField'));
     assert.ok(!stepsFile.includes('SignaturePadField'));
     assert.ok(!stepsFile.includes('signature_data'));

@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-test('processing details submit no longer requires remarks/reason before saving', async () => {
+test('processing details submit requires remarks only after the first save', async () => {
     const file = await readFile(
         resolve(
             'resources',
@@ -26,10 +26,13 @@ test('processing details submit no longer requires remarks/reason before saving'
 
     const submitFnBody = submitFnMatch[0];
 
-    assert.doesNotMatch(
+    // Mirrors LoanRequestProcessingUpdateRequest: remarks are optional on
+    // the first processing save (the backend auto-generates a summary) and
+    // required on every later save.
+    assert.match(
         submitFnBody,
-        /processingForm\.reason\.trim\(\) === ''/,
-        'remarks are optional now — the empty-reason guard must be gone',
+        /!isFirstProcessingSave && processingForm\.reason\.trim\(\) === ''/,
+        'the empty-reason guard must only apply to non-first saves',
     );
 
     // The reason field must still be forwarded as-is (the backend fills in

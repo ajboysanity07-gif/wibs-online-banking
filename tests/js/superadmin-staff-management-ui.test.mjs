@@ -33,11 +33,11 @@ test('legacy admin and member roles are not editable in the new staff page', asy
 
     assert.doesNotMatch(file, /value:\s*'admin'/);
     assert.doesNotMatch(file, /value:\s*'member'/);
+    // JSX wraps this sentence across lines, so match any whitespace.
     assert.match(
         file,
-        /Member is[\s\S]*visible in the directory when present/,
+        /Member access\s+is granted separately and is never assigned\s+or removed from this page\./,
     );
-    assert.match(file, /never assigned or removed from this page\./);
 });
 
 test('staff page renders API and history load errors', async () => {

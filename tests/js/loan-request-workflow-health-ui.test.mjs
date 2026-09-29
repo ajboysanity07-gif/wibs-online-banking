@@ -27,7 +27,7 @@ test('workflow health card renders as a summary bar plus fixed 2-column plain gr
             'rounded-xl border border-border/40 bg-muted/10',
         ),
     );
-    assert.ok(cardBlock.includes('grid gap-x-6 gap-y-4 grid-cols-2'));
+    assert.ok(cardBlock.includes('grid grid-cols-2 gap-x-6 gap-y-4'));
     assert.ok(!cardBlock.includes('sm:grid-cols-4'));
     assert.ok(!cardBlock.includes('sm:col-span-4'));
 
@@ -69,7 +69,7 @@ test('staff page composes Audit trail, Workflow health, and Notification history
 
     const sectionWrapperMatches = [
         ...pageFile.matchAll(
-            /<section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">/g,
+            /<section className="mx-auto (?:mt-6 )?mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">/g,
         ),
     ];
     assert.equal(
@@ -80,7 +80,7 @@ test('staff page composes Audit trail, Workflow health, and Notification history
 
     const mainSectionStart = sectionWrapperMatches[1].index;
     const mainColumnStart = pageFile.indexOf(
-        '<div className="space-y-6">',
+        '<div className="min-w-0 space-y-6">',
         mainSectionStart,
     );
     const applicantCardIndex = pageFile.indexOf(
@@ -92,11 +92,11 @@ test('staff page composes Audit trail, Workflow health, and Notification history
         mainSectionStart,
     );
     const inlineProcessingPanelIndex = pageFile.indexOf(
-        '{isProcessingStage ? inlineProcessingPanel : null}',
+        '<ProcessingDetailsPanel',
         mainSectionStart,
     );
     const documentChecklistIndex = pageFile.indexOf(
-        'Document checklist',
+        '<LoanRequestDocumentChecklistCard',
         mainSectionStart,
     );
 

@@ -83,7 +83,9 @@ test('client loan request pages surface revision and conversion workflow states'
         'loan-requests.tsx',
     ]);
 
-    assert.match(detailFile, /Revision remarks/);
+    // The standalone "Revision remarks" decision-summary row was dropped in
+    // ee668169; members now see the reviewer's remarks in the audit trail.
+    assert.match(detailFile, /audience=\{auditTrailAudience\}/);
     assert.match(detailFile, /converted_to_loan/);
     assert.match(detailFile, /Approved - awaiting processing in WIBS\./);
     assert.match(listFile, /Pending Processing/);

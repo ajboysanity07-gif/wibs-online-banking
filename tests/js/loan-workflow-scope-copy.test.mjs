@@ -10,7 +10,8 @@ test('welcome page no longer claims the portal tracks loan release', async () =>
     );
 
     assert.doesNotMatch(file, /submission to release/);
-    assert.match(file, /WIBS-managed loan updates/);
+    // Tracking copy stops at approval; release is handled in WIBS Desktop.
+    assert.match(file, /submission through review, recommendation, and approval/);
 });
 
 test('organization settings approved sms default ends at WIBS processing', async () => {
