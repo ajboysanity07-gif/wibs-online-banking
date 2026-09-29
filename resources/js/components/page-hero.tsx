@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { SurfaceCard } from '@/components/surface-card';
 import { cn } from '@/lib/utils';
 
 type PageHeroProps = {
@@ -11,6 +10,8 @@ type PageHeroProps = {
     className?: string;
 };
 
+// Primary band. Slots (badges, actions) sit on a card-colored tray so any
+// button/badge variant stays legible on both the light and dark primary.
 export function PageHero({
     title,
     kicker,
@@ -20,40 +21,41 @@ export function PageHero({
     className,
 }: PageHeroProps) {
     return (
-        <SurfaceCard
-            variant="hero"
-            padding="lg"
-            className={cn('space-y-6', className)}
+        <section
+            className={cn(
+                'space-y-6 rounded-xl bg-primary p-6 text-primary-foreground shadow-card sm:p-7 lg:p-8',
+                className,
+            )}
         >
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div className="space-y-3">
                     {kicker ? (
-                        <p className="text-xs font-semibold tracking-[0.28em] text-muted-foreground uppercase">
+                        <p className="text-xs font-bold tracking-[0.2em] text-primary-foreground/85 uppercase">
                             {kicker}
                         </p>
                     ) : null}
                     <div className="space-y-2">
-                        <h1 className="text-3xl font-semibold tracking-tight">
+                        <h1 className="text-3xl font-bold tracking-tight">
                             {title}
                         </h1>
                         {description ? (
-                            <p className="max-w-2xl text-sm text-muted-foreground">
+                            <p className="max-w-2xl text-sm text-primary-foreground/90">
                                 {description}
                             </p>
                         ) : null}
                     </div>
                     {badges ? (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex w-fit max-w-full flex-wrap gap-2 rounded-lg bg-card p-1.5 text-card-foreground">
                             {badges}
                         </div>
                     ) : null}
                 </div>
                 {rightSlot ? (
-                    <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
+                    <div className="flex w-full flex-wrap items-center gap-2 rounded-lg bg-card p-2 text-card-foreground lg:w-auto lg:justify-end">
                         {rightSlot}
                     </div>
                 ) : null}
             </div>
-        </SurfaceCard>
+        </section>
     );
 }
