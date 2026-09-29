@@ -11,7 +11,7 @@ This guide covers Phase 7.1 production deployment for the RBAC loan workflow, do
   - Strict final deployment gate.
   - This is also the default behavior of `php artisan loan-workflow:preflight`.
 - `php artisan loan-workflow:seed-permissions`
-  - Seeds only the loan workflow roles, permissions, role-permission mappings, and legacy admin/superadmin/member user-role backfills.
+  - Seeds only the loan workflow roles, permissions, role-permission mappings, and superadmin/member user-role backfills.
   - Preserves existing staff assignments, custom unrelated roles, and custom unrelated permissions.
 - `php artisan loan-workflow:seed-permissions --dry-run`
   - Reports workflow RBAC changes without committing them.
@@ -124,7 +124,7 @@ Use `php artisan loan-workflow:seed-permissions` after migrations instead of `ph
 The dedicated command is:
 
 - idempotent
-- limited to workflow roles, permissions, role mappings, and legacy admin/superadmin/member backfills
+- limited to workflow roles, permissions, role mappings, and superadmin/member backfills
 - safe for existing staff assignments because it only attaches missing user-role rows
 - safe for custom unrelated roles and permissions because it does not delete or rewrite them
 - dry-runnable with `--dry-run`

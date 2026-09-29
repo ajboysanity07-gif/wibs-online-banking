@@ -939,7 +939,7 @@ function createAdminUser(
             'user_id' => $user->user_id,
             'access_level' => $superadmin
                 ? AdminProfile::ACCESS_LEVEL_SUPERADMIN
-                : AdminProfile::ACCESS_LEVEL_ADMIN,
+                : 'admin',
         ])
         ->create();
 

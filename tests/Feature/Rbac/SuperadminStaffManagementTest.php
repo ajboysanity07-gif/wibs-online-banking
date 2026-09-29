@@ -227,7 +227,7 @@ test('superadmin can assign and remove editable staff roles while preserving mem
     );
 });
 
-test('staff role mutations require a reason; assigning a role to a legacy admin succeeds and records a migration audit entry', function (): void {
+test('staff role mutations require a reason; assigning a role to a legacy admin profile succeeds and records an audit entry', function (): void {
     $superadmin = createManagedSuperadmin();
     $target = AppUser::factory()->create([
         'acctno' => '400002',
@@ -257,14 +257,13 @@ test('staff role mutations require a reason; assigning a role to a legacy admin 
 
     $legacyAdmin->refresh()->load('roles', 'adminProfile');
     expect($legacyAdmin->hasRole(Role::LOAN_MANAGER))->toBeTrue();
-    expect($legacyAdmin->adminProfile?->access_level)->toBe(AdminProfile::ACCESS_LEVEL_ADMIN);
+    expect($legacyAdmin->adminProfile?->access_level)->toBe('admin');
 
     $audit = UserRoleChange::query()
         ->where('target_user_id', $legacyAdmin->user_id)
         ->latest('id')
         ->first();
-    expect($audit)->not->toBeNull()
-        ->and($audit->metadata_json['migrated_from_legacy_admin'] ?? false)->toBeTrue();
+    expect($audit)->not->toBeNull();
 });
 
 test('staff-only account creation hashes the password, assigns selected roles, and hides raw secrets', function (): void {

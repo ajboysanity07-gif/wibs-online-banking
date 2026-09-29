@@ -22,8 +22,8 @@ test('assignment permissions are scoped to explicit workflow roles', function ()
     $loanManager = createAssignmentActor([Role::LOAN_MANAGER]);
     $superadmin = createAssignmentActor([Role::SUPERADMIN]);
     $legacyAdmin = createAssignmentActor(
-        [Role::ADMIN],
-        adminAccessLevel: AdminProfile::ACCESS_LEVEL_ADMIN,
+        [],
+        adminAccessLevel: 'admin',
     );
     $member = createAssignmentActor([Role::MEMBER], acctno: '410001');
     $owner = createAssignmentActor([Role::MEMBER], acctno: '410002');
@@ -682,7 +682,7 @@ function createAssignmentActor(
         AdminProfile::factory()->superadmin()->create([
             'user_id' => $user->user_id,
         ]);
-    } elseif ($adminAccessLevel === AdminProfile::ACCESS_LEVEL_ADMIN) {
+    } elseif ($adminAccessLevel === 'admin') {
         AdminProfile::factory()->admin()->create([
             'user_id' => $user->user_id,
         ]);

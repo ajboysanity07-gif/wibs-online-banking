@@ -27,10 +27,10 @@ return new class extends Migration
 
         DB::transaction(function (): void {
             AdminProfile::query()
-                ->where('access_level', AdminProfile::ACCESS_LEVEL_ADMIN)
+                ->where('access_level', 'admin')
                 ->update(['access_level' => AdminProfile::ACCESS_LEVEL_SUPERADMIN]);
 
-            $adminRoleId = Role::query()->where('name', Role::ADMIN)->value('id');
+            $adminRoleId = Role::query()->where('name', 'admin')->value('id');
             $superadminRoleId = Role::query()->where('name', Role::SUPERADMIN)->value('id');
 
             if ($adminRoleId === null) {

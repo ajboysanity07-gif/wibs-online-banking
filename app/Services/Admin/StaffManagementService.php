@@ -175,7 +175,6 @@ class StaffManagementService
         return DB::transaction(function () use ($target, $actor, $normalizedRole, $normalizedReason): AppUser {
             $user = $this->lockUser($target->user_id);
             $this->lockSupportingRows($user->user_id);
-            $isLegacyMigration = $this->isLegacyAdminMigration($user);
 
             if ($this->userAlreadyHasEditableRole($user, $normalizedRole)) {
                 return $this->reloadUser($user->user_id);
@@ -207,7 +206,7 @@ class StaffManagementService
                 $beforeStatus,
                 $this->auditStaffStatus($user),
                 $normalizedReason,
-                $isLegacyMigration ? ['migrated_from_legacy_admin' => true] : null,
+                null,
             );
 
             return $this->reloadUser($user->user_id);
@@ -680,7 +679,6 @@ class StaffManagementService
         return DB::transaction(function () use ($target, $actor, $normalizedRole, $normalizedReason): AppUser {
             $user = $this->lockUser($target->user_id);
             $this->lockSupportingRows($user->user_id);
-            $isLegacyMigration = $this->isLegacyAdminMigration($user);
 
             if (
                 ! $this->userAlreadyHasEditableRole($user, $normalizedRole)
@@ -703,9 +701,7 @@ class StaffManagementService
             $this->activateStaffAccessRow($user);
             $user = $this->reloadUser($user->user_id);
 
-            $metadata = $isLegacyMigration
-                ? ['account_type' => 'member_promoted', 'migrated_from_legacy_admin' => true]
-                : ['account_type' => 'member_promoted'];
+            $metadata = ['account_type' => 'member_promoted'];
 
             $this->recordUserRoleChange(
                 $user,
@@ -934,12 +930,6 @@ class StaffManagementService
         $trimmed = trim($value);
 
         return $trimmed !== '' ? $trimmed : null;
-    }
-
-    private function isLegacyAdminMigration(AppUser $user): bool
-    {
-        return $user->adminProfile?->access_level === AdminProfile::ACCESS_LEVEL_ADMIN
-            && ! $user->hasAnyRole(Role::editableStaffNames());
     }
 
     private function guardSuspendableTarget(AppUser $user): void

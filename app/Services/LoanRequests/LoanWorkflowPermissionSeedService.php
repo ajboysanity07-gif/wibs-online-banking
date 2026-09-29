@@ -347,7 +347,6 @@ class LoanWorkflowPermissionSeedService
         }
 
         foreach ([
-            Role::ADMIN => 'admin role backfill',
             Role::SUPERADMIN => 'superadmin role backfill',
             Role::MEMBER => 'member role backfill',
         ] as $roleName => $label) {
@@ -439,7 +438,7 @@ class LoanWorkflowPermissionSeedService
 
         $userRoles = [];
 
-        foreach ([Role::ADMIN, Role::SUPERADMIN, Role::MEMBER] as $roleName) {
+        foreach ([Role::SUPERADMIN, Role::MEMBER] as $roleName) {
             $roleId = Role::query()
                 ->where('name', $roleName)
                 ->value('id');

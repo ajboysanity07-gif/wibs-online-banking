@@ -44,8 +44,8 @@ class AdminProfileFactory extends Factory
     }
 
     /**
-     * Retired legacy tier, kept only so tests can simulate un-migrated
-     * legacy data (e.g. the preflight drift check). Also the factory's
+     * Non-superadmin profile (the admin_profiles.access_level column default),
+     * kept so tests can simulate staff profiles with no implicit superadmin. Also the factory's
      * default state -- tests that don't care about tier and sync their
      * own RBAC role afterward must NOT get an implicit `isLegacySuperadmin()`
      * bypass from a default of ACCESS_LEVEL_SUPERADMIN.
@@ -53,7 +53,7 @@ class AdminProfileFactory extends Factory
     public function admin(): static
     {
         return $this->state(fn () => [
-            'access_level' => AdminProfile::ACCESS_LEVEL_ADMIN,
+            'access_level' => 'admin',
         ]);
     }
 

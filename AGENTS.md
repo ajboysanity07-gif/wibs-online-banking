@@ -25,7 +25,7 @@
 
 | Concern | Path |
 |---|---|
-| Controllers (Inertia) | `app/Http/Controllers/Spa/{Admin,Staff,Superadmin}/` |
+| Controllers (Inertia) | `app/Http/Controllers/Spa/{Admin,Staff,Superadmin}/` — `Admin` = staff (legacy folder name, not a role) |
 | Controllers (JSON) | `app/Http/Controllers/{Admin,Client,Staff,Superadmin}/` |
 | Services | `app/Services/{Admin,Auth,LoanRequests,Locations,Notifications,Reports,Sms}/` |
 | Form Requests | `app/Http/Requests/{Admin,Client,Staff,Superadmin,Workflow,Spa}/` |
@@ -58,8 +58,9 @@
 | `Role::MEMBER` | `member` |
 | `Role::LOAN_PROCESSOR` | `loan_processor` |
 | `Role::LOAN_MANAGER` | `loan_manager` |
-| `Role::ADMIN` | `admin` |
 | `Role::SUPERADMIN` | `superadmin` |
+
+There is no `admin` role (retired by migration `2026_08_07_090000_retire_legacy_admin_role`). "Admin" in folder, route, middleware and class names just means staff (an `admin_profiles` row + active staff access). Gate features by permission (e.g. `Permission::LOAN_CORRECT`), not by an admin role.
 
 ## Commands
 

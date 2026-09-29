@@ -101,7 +101,7 @@ test('unauthenticated users cannot access staff workflow pages', function (): vo
 
 test('admins still have access to the existing admin request pages', function (): void {
     $admin = createLoanWorkflowStaffUser(
-        [Role::ADMIN],
+        [],
         withAdminProfile: true,
     );
 

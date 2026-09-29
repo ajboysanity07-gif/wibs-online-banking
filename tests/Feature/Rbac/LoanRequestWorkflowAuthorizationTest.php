@@ -312,7 +312,7 @@ test('legacy admins cannot bypass recommendation through the existing admin endp
     Queue::fake();
 
     $admin = createWorkflowAuthorizationActor(
-        [Role::ADMIN],
+        [],
         withAdminProfile: true,
         acctno: null,
     );

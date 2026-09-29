@@ -10,8 +10,6 @@ class AdminProfile extends Model
 {
     use HasFactory;
 
-    public const ACCESS_LEVEL_ADMIN = 'admin';
-
     public const ACCESS_LEVEL_SUPERADMIN = 'superadmin';
 
     protected $table = 'admin_profiles';
