@@ -728,17 +728,17 @@ export function LoanRequestQueuePage({
         {
             label: 'Pending Review',
             value: summaryCounts.pendingReview,
-            emphasisClassName: 'text-amber-600 dark:text-amber-400',
+            emphasisClassName: 'text-amber-700 dark:text-amber-400',
         },
         {
             label: 'Under Review',
             value: summaryCounts.underReview,
-            emphasisClassName: 'text-sky-600 dark:text-sky-400',
+            emphasisClassName: 'text-sky-700 dark:text-sky-400',
         },
         {
             label: 'Needs Revision',
             value: summaryCounts.needsRevision,
-            emphasisClassName: 'text-orange-600 dark:text-orange-400',
+            emphasisClassName: 'text-orange-700 dark:text-orange-400',
         },
         {
             label: 'Recommended',
@@ -748,12 +748,12 @@ export function LoanRequestQueuePage({
         {
             label: 'Approved',
             value: summaryCounts.approved,
-            emphasisClassName: 'text-emerald-600 dark:text-emerald-400',
+            emphasisClassName: 'text-emerald-700 dark:text-emerald-400',
         },
         {
             label: 'Converted',
             value: summaryCounts.converted,
-            emphasisClassName: 'text-teal-600 dark:text-teal-400',
+            emphasisClassName: 'text-teal-700 dark:text-teal-400',
         },
         {
             label: 'Declined/Rejected',
@@ -765,12 +765,12 @@ export function LoanRequestQueuePage({
                   {
                       label: 'Reported',
                       value: summaryCounts.reported,
-                      emphasisClassName: 'text-amber-600 dark:text-amber-400',
+                      emphasisClassName: 'text-amber-700 dark:text-amber-400',
                   },
                   {
                       label: 'Open correction reports',
                       value: meta.openCorrectionReports,
-                      emphasisClassName: 'text-amber-600 dark:text-amber-400',
+                      emphasisClassName: 'text-amber-700 dark:text-amber-400',
                   },
               ]
             : []),

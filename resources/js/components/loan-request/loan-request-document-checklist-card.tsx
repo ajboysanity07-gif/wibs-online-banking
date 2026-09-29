@@ -81,7 +81,7 @@ const checklistStatusIcon = (status: LoanRequestDocumentReadinessStatus) => {
         case 'incomplete':
             return {
                 Icon: AlertCircle,
-                className: 'text-amber-600 dark:text-amber-300',
+                className: 'text-amber-700 dark:text-amber-300',
             };
         case 'awaiting_member_confirmation':
             return {
@@ -91,17 +91,17 @@ const checklistStatusIcon = (status: LoanRequestDocumentReadinessStatus) => {
         case 'ready_to_generate':
             return {
                 Icon: PlayCircle,
-                className: 'text-sky-600 dark:text-sky-300',
+                className: 'text-sky-700 dark:text-sky-300',
             };
         case 'generated_current':
             return {
                 Icon: CheckCircle2,
-                className: 'text-emerald-600 dark:text-emerald-300',
+                className: 'text-emerald-700 dark:text-emerald-300',
             };
         case 'generated_stale':
             return {
                 Icon: RefreshCw,
-                className: 'text-amber-600 dark:text-amber-300',
+                className: 'text-amber-700 dark:text-amber-300',
             };
         case 'generation_failed':
             return {
@@ -113,7 +113,7 @@ const checklistStatusIcon = (status: LoanRequestDocumentReadinessStatus) => {
         case 'legacy_data_incomplete':
             return {
                 Icon: AlertCircle,
-                className: 'text-amber-600 dark:text-amber-300',
+                className: 'text-amber-700 dark:text-amber-300',
             };
         default:
             return { Icon: Circle, className: 'text-muted-foreground' };

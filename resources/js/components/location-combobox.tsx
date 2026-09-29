@@ -104,7 +104,7 @@ export function LocationCombobox({
 
         if (search.status === 'error') {
             return (
-                <div className="py-6 text-center text-sm text-amber-600">
+                <div className="py-6 text-center text-sm text-amber-700">
                     {search.error ?? errorMessage ?? DEFAULT_ERROR_MESSAGE}
                 </div>
             );

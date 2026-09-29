@@ -1599,7 +1599,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                             {row.value}
                                         </dd>
                                         {row.requested !== null ? (
-                                            <p className="text-xs text-amber-600">
+                                            <p className="text-xs text-amber-700">
                                                 Requested: {row.requested}
                                             </p>
                                         ) : null}

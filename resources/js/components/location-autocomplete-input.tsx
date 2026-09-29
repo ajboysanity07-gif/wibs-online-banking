@@ -101,7 +101,7 @@ export function LocationAutocompleteInput({
                     )}
 
                     {search.status === 'error' && (
-                        <p className="px-2 py-1 text-amber-600">
+                        <p className="px-2 py-1 text-amber-700">
                             {search.error ??
                                 errorMessage ??
                                 DEFAULT_ERROR_MESSAGE}

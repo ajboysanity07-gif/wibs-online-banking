@@ -218,7 +218,7 @@ export default function ReportedRequestsPage() {
                             label: 'Open reports',
                             value: meta.openCorrectionReports,
                             emphasisClassName:
-                                'text-amber-600 dark:text-amber-400',
+                                'text-amber-700 dark:text-amber-400',
                         },
                         {
                             label: 'Approved requests reported',

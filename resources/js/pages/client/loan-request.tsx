@@ -971,7 +971,7 @@ export default function LoanRequestPage({
                                 )}
                                 {form.recentlySuccessful &&
                                 lastAction === 'draft' ? (
-                                    <span className="text-emerald-600">
+                                    <span className="text-emerald-700">
                                         Draft saved.
                                     </span>
                                 ) : null}

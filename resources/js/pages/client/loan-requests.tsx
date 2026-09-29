@@ -211,18 +211,18 @@ export default function LoanRequestsPage({
                             label: 'Draft',
                             value: summaryCounts.draft,
                             emphasisClassName:
-                                'text-amber-600 dark:text-amber-400',
+                                'text-amber-700 dark:text-amber-400',
                         },
                         {
                             label: 'Pending Processing',
                             value: summaryCounts.pendingReview,
                             emphasisClassName:
-                                'text-orange-600 dark:text-orange-400',
+                                'text-orange-700 dark:text-orange-400',
                         },
                         {
                             label: 'In Processing',
                             value: summaryCounts.underReview,
-                            emphasisClassName: 'text-sky-600 dark:text-sky-400',
+                            emphasisClassName: 'text-sky-700 dark:text-sky-400',
                         },
                         {
                             label: 'Awaiting Member Correction',
@@ -240,7 +240,7 @@ export default function LoanRequestsPage({
                             label: 'Approved/Converted',
                             value: summaryCounts.approvedOrConverted,
                             emphasisClassName:
-                                'text-emerald-600 dark:text-emerald-400',
+                                'text-emerald-700 dark:text-emerald-400',
                         },
                         {
                             label: 'Closed',

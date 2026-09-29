@@ -94,7 +94,7 @@ export default function Register({ memberName }: Props) {
     const confirmationClassName = shouldShowConfirmationHint
         ? confirmationMismatchMessage
             ? 'text-xs text-red-600'
-            : 'text-xs text-emerald-600'
+            : 'text-xs text-emerald-700'
         : undefined;
 
     const clearError = (key: string) => {
@@ -120,7 +120,7 @@ export default function Register({ memberName }: Props) {
 
     const availabilityClassName =
         shownAvailability === 'available'
-            ? 'text-xs text-emerald-600'
+            ? 'text-xs text-emerald-700'
             : shownAvailability === 'taken'
               ? 'text-xs text-red-600'
               : 'text-xs text-muted-foreground';

@@ -55,7 +55,7 @@ export function LoanStatusWarning({
             role="alert"
         >
             <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-700 dark:text-amber-400" />
                 <div className="min-w-0 flex-1 space-y-2">
                     <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
                         {loanStatus.warning_message ??
