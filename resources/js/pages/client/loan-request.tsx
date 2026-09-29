@@ -2,7 +2,6 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
-import { countSelectedBeneficiaries } from '@/components/dependents/dependent-category-section';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
@@ -631,19 +630,12 @@ export default function LoanRequestPage({
         currentStepBlockers.push('Confirmation of your work & income details');
     }
 
-    if (currentStepId === 'dependents') {
-        // Mirrors LoanRequestStoreRequest: a blank dependents step fails
-        // because at least one dependent (or spouse) must be flagged as the
-        // insurance beneficiary.
-        if (countSelectedBeneficiaries(form.data.dependents) === 0) {
-            currentStepBlockers.push(
-                'At least one dependent (or spouse) as insurance beneficiary',
-            );
-        }
-
-        if (dependentsPrefilledFromProfile && !dependentsConfirmed) {
-            currentStepBlockers.push('Confirmation of your dependents');
-        }
+    if (
+        currentStepId === 'dependents' &&
+        dependentsPrefilledFromProfile &&
+        !dependentsConfirmed
+    ) {
+        currentStepBlockers.push('Confirmation of your dependents');
     }
 
     if (currentStepId === 'banking') {

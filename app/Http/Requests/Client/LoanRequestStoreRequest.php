@@ -319,32 +319,6 @@ class LoanRequestStoreRequest extends FormRequest
     }
 
     /**
-     * True if the member flagged any dependent (or spouse) as an insurance
-     * beneficiary via the Dependents step's checkbox -- the active mechanism
-     * for designating primary/secondary beneficiaries (first checked =
-     * primary, second = secondary; see ApprovedLoanDocumentDataBuilder::
-     * flaggedBeneficiaryDependents()). The free-text insurance.beneficiary_primary_*
-     * fields were dropped from the wizard, so they're only required when this
-     * checkbox mechanism wasn't used instead (e.g. legacy/staff-entered data).
-     */
-    private function hasFlaggedBeneficiaryDependent(): bool
-    {
-        foreach (self::DEPENDENT_KEYS as $key) {
-            if (! str_ends_with($key, '_is_beneficiary')) {
-                continue;
-            }
-
-            $value = $this->input("dependents.{$key}");
-
-            if ($value === true || $value === '1' || $value === 1) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     private function dependentsRules(): array
@@ -480,14 +454,6 @@ class LoanRequestStoreRequest extends FormRequest
             }
         }
 
-        // The free-text primary beneficiary fields are only required when
-        // the member hasn't already designated one via the Dependents step's
-        // "Add as insurance beneficiary" checkbox (the active mechanism --
-        // see hasFlaggedBeneficiaryDependent()).
-        $beneficiaryRequired = Rule::requiredIf(
-            fn () => ! $this->hasFlaggedBeneficiaryDependent(),
-        );
-
         return [
             'typecode' => $loanTypeRules,
             'requested_amount' => ['required', 'numeric', 'min:1'],
@@ -517,9 +483,9 @@ class LoanRequestStoreRequest extends FormRequest
                 Rule::in(['Regular', 'Emergency']),
             ],
             'insurance' => ['sometimes', 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship,beneficiary_secondary_birthdate'],
-            'insurance.beneficiary_primary_name' => [$beneficiaryRequired, 'nullable', 'string', 'max:255'],
-            'insurance.beneficiary_primary_relationship' => [$beneficiaryRequired, 'nullable', 'string', 'max:255'],
-            'insurance.beneficiary_primary_birthdate' => [$beneficiaryRequired, 'nullable', 'date', 'before:today', 'after:1900-01-01'],
+            'insurance.beneficiary_primary_name' => ['nullable', 'string', 'max:255'],
+            'insurance.beneficiary_primary_relationship' => ['nullable', 'string', 'max:255'],
+            'insurance.beneficiary_primary_birthdate' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
             'insurance.beneficiary_secondary_name' => ['nullable', 'string', 'max:255'],
             'insurance.beneficiary_secondary_relationship' => ['nullable', 'string', 'max:255'],
             'insurance.beneficiary_secondary_birthdate' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],

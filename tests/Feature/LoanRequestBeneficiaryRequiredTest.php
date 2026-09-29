@@ -217,7 +217,7 @@ function beneficiaryRequiredTestPayload(?MemberApplicationProfile $profile, arra
     ];
 }
 
-test('submitting a loan request is blocked when the primary beneficiary is blank', function (): void {
+test('submitting a loan request succeeds when the primary beneficiary is blank', function (): void {
     $member = beneficiaryRequiredTestMember('700020');
 
     $response = $this
@@ -228,12 +228,17 @@ test('submitting a loan request is blocked when the primary beneficiary is blank
             'beneficiary_primary_birthdate' => '',
         ]));
 
-    $response->assertSessionHasErrors([
+    $loanRequest = LoanRequest::query()->first();
+
+    $response->assertSessionDoesntHaveErrors([
         'insurance.beneficiary_primary_name',
         'insurance.beneficiary_primary_relationship',
         'insurance.beneficiary_primary_birthdate',
+        'loan_prerequisites',
     ]);
-    expect(LoanRequest::query()->count())->toBe(0);
+    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
+    expect($loanRequest)->not->toBeNull();
+    expect($loanRequest->status)->toBe(LoanRequestStatus::PendingReview);
 });
 
 test('beneficiary relationship fields expose a fixed options list to the frontend', function (): void {

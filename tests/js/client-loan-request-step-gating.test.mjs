@@ -17,24 +17,23 @@ test('client wizard sidebar clicks go through the gated handler', () => {
     );
 });
 
-test('client wizard blocks Next and shows why for confirm checkboxes and dependents', () => {
+test('client wizard blocks Next and shows why for unchecked confirm checkboxes', () => {
     for (const message of [
         'Confirmation that your details are correct',
         'Confirmation of your work & income details',
         'Confirmation of your dependents',
         'Confirmation of your bank details',
-        'At least one dependent (or spouse) as insurance beneficiary',
     ]) {
         assert.ok(pageFile.includes(message), `missing blocker: ${message}`);
     }
 
-    assert.match(
-        pageFile,
-        /countSelectedBeneficiaries\(form\.data\.dependents\)/,
-    );
     assert.match(pageFile, /currentStepBlockers\.length > 0 \?/);
     assert.match(
         pageFile,
         /if \(currentStepBlockers\.length > 0\) \{\s*return;/,
     );
+});
+
+test('dependents step does not require a dependent or beneficiary yet', () => {
+    assert.doesNotMatch(pageFile, /countSelectedBeneficiaries/);
 });
