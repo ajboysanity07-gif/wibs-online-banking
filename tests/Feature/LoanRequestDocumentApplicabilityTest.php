@@ -1386,21 +1386,19 @@ test('when officers are marked unknown, the generated authority to deduct docume
         ->and($documentData['authority_to_deduct']['officer_1_title'])->toBeNull();
 });
 
-test('generali application form is incomplete while applicant PEP status is blank', function (): void {
+test('generali application form is ready to generate while applicant PEP status is blank', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
     ]);
 
     $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::GeneraliApplicationForm);
 
-    // The field is sensitive/member-owned, so a blank required value routes
-    // to AwaitingMemberConfirmation rather than the generic Incomplete
-    // status -- same as grepalife's beneficiary fields. Cycle status/number
-    // are not part of this gate -- the applicant's is auto-computed
-    // (LoanRequestCycleStateService) and dependents' are processor-entered,
-    // neither a member-collected prerequisite.
+    // PEP is answered on the paper form, in person -- never a prerequisite.
+    // Cycle status/number are not part of this gate either -- the applicant's
+    // is auto-computed (LoanRequestCycleStateService) and dependents' are
+    // processor-entered.
     expect($entry['is_applicable'])->toBeTrue()
-        ->and($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::AwaitingMemberConfirmation->value);
+        ->and($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value);
 });
 
 test('generali application form becomes ready once applicant PEP status is answered', function (): void {

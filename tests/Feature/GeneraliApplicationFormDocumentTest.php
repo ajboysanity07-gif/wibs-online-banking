@@ -266,7 +266,7 @@ test('generali application form field map resolves dependent rows via closures',
         ->and($resolvedValues)->toContain('Junior Member');
 });
 
-test('application_form data block resolves pep and id fields from processing and member profile', function () {
+test('application_form data block leaves pep blank even when answers are on file, and resolves id fields from the member profile', function () {
     $loanRequest = generaliApplicationFormCreateApprovedLoanRequestWithApplicant(
         memberApplicationProfileAttributes: [
             'source_of_fund_wealth' => 'Salary',
@@ -281,8 +281,8 @@ test('application_form data block resolves pep and id fields from processing and
 
     $documentData = generaliApplicationFormBuildDocumentData($loanRequest->fresh());
 
-    expect($documentData['application_form']['pep_status'])->toBeTrue()
-        ->and($documentData['application_form']['pep_status_details'])->toBe('Barangay Councilor, since 2020')
+    expect($documentData['application_form']['pep_status'])->toBeNull()
+        ->and($documentData['application_form']['pep_status_details'])->toBeNull()
         ->and($documentData['application_form']['source_of_fund_wealth'])->toBe('Salary')
         ->and($documentData['application_form']['id_type'])->toBe('TIN')
         ->and($documentData['application_form']['id_number'])->toBe('123-456-789');

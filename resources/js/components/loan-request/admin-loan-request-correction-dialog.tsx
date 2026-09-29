@@ -4,7 +4,6 @@ import {
     Building2,
     ClipboardCheck,
     FileText,
-    HeartPulse,
     Info,
     Loader2,
     Save,
@@ -67,9 +66,6 @@ import type {
 } from '@/types/loan-requests';
 
 type CorrectionFormData = LoanRequestFormData & {
-    // Only the applicant's PEP self-attestation lives here; the health
-    // questionnaire itself is completed in person, not in the app.
-    health_glapi: LoanRequestDataSectionValues;
     change_reason: string;
 };
 
@@ -94,7 +90,6 @@ type WizardStepId =
     | 'co_maker_2'
     | 'insurance'
     | 'dependents'
-    | 'health'
     | 'banking'
     | 'review';
 
@@ -170,13 +165,6 @@ const WIZARD_STEPS: Array<LoanRequestWizardStep & { id: WizardStepId }> = [
         group: 'dependents',
     },
     {
-        id: 'health',
-        title: 'PEP declaration',
-        description:
-            "Review the applicant's Politically Exposed Person status.",
-        group: 'health',
-    },
-    {
         id: 'banking',
         title: 'Loan Disbursement & Repayment',
         description: 'Review disbursement and repayment method details.',
@@ -199,7 +187,6 @@ const WIZARD_STEP_GROUP_META = {
     co_maker_2: { label: 'Co-maker 2', icon: Users },
     insurance: { label: 'Insurance & beneficiaries', icon: Shield },
     dependents: { label: 'Dependents', icon: Baby },
-    health: { label: 'PEP declaration', icon: HeartPulse },
     banking: { label: 'Disbursement & Repayment', icon: Building2 },
     review: { label: 'Review & reason', icon: ClipboardCheck },
 };
@@ -287,10 +274,6 @@ const dataSectionFieldLabels: Record<string, Record<string, string>> = {
         beneficiary_secondary_relationship:
             'Secondary beneficiary relationship',
         beneficiary_secondary_birthdate: 'Secondary beneficiary birthdate',
-    },
-    health_glapi: {
-        applicant_pep_status: 'Applicant is a Politically Exposed Person (PEP)',
-        applicant_pep_status_details: 'PEP role, function, and date assumed',
     },
     banking: {
         release_method: 'Release method',
@@ -589,7 +572,6 @@ const buildInitialFormData = (
     co_maker_1: toPersonForm(coMakerOne),
     co_maker_2: toPersonForm(coMakerTwo),
     insurance: dataSections.insurance ?? {},
-    health_glapi: dataSections.health_glapi ?? {},
     banking: dataSections.banking ?? {},
     declarations: dataSections.declarations ?? {},
     dependents: dataSections.dependents ?? {},
@@ -1284,13 +1266,6 @@ function CorrectionDialogForm({
             dataSectionFieldLabels.insurance,
         );
 
-        const healthGlapiChanges = buildDataSectionChanges(
-            'health_glapi',
-            initialFormData.health_glapi ?? {},
-            formData.health_glapi,
-            dataSectionFieldLabels.health_glapi,
-        );
-
         const bankingChanges = buildDataSectionChanges(
             'banking',
             initialFormData.banking ?? {},
@@ -1361,12 +1336,6 @@ function CorrectionDialogForm({
                 changes: dependentsChanges,
             },
             {
-                id: 'health',
-                title: 'PEP declaration',
-                description: 'Politically Exposed Person status.',
-                changes: healthGlapiChanges,
-            },
-            {
                 id: 'banking',
                 title: 'Banking & payout',
                 description: 'Bank account details.',
@@ -1390,21 +1359,6 @@ function CorrectionDialogForm({
     const stepMeta = WIZARD_STEPS[currentStep];
 
     const mergedErrors = { ...errors, ...clientErrors };
-
-    // Correction is scoped to just the applicant's own PEP self-attestation --
-    // the other ~66 GLAPI health-questionnaire fields are member-only and have
-    // no editing surface here (the questionnaire is completed in person).
-    const pepDefinition = {
-        label: dataSectionDefinitions.health_glapi?.label ?? 'GLAPI',
-        fields: {
-            applicant_pep_status:
-                dataSectionDefinitions.health_glapi?.fields
-                    ?.applicant_pep_status,
-            applicant_pep_status_details:
-                dataSectionDefinitions.health_glapi?.fields
-                    ?.applicant_pep_status_details,
-        },
-    };
 
     const handleLoanDetailChange = (field: LoanDetailField, value: string) => {
         setFormData((current) => ({
@@ -1445,7 +1399,7 @@ function CorrectionDialogForm({
         };
 
     const updateDataSection =
-        (sectionKey: 'insurance' | 'health_glapi' | 'banking' | 'dependents') =>
+        (sectionKey: 'insurance' | 'banking' | 'dependents') =>
         (field: string, value: string | number | boolean | null) => {
             const key = `${sectionKey}.${field}`;
             setFormData((current) => ({
@@ -1534,12 +1488,6 @@ function CorrectionDialogForm({
             co_maker_2: formData.co_maker_2,
             insurance: formData.insurance,
             dependents: formData.dependents,
-            health_glapi: {
-                applicant_pep_status:
-                    formData.health_glapi.applicant_pep_status,
-                applicant_pep_status_details:
-                    formData.health_glapi.applicant_pep_status_details,
-            },
             banking: formData.banking,
             change_reason: formData.change_reason.trim(),
         });
@@ -1565,7 +1513,7 @@ function CorrectionDialogForm({
                         <AlertTitle>What you can correct here</AlertTitle>
                         <AlertDescription>
                             This covers loan terms, applicant/co-maker profiles,
-                            insurance beneficiaries, PEP status, banking, and
+                            insurance beneficiaries, banking, and
                             dependents. The health questionnaire and the
                             member&apos;s declarations are the member&apos;s own
                             sworn statements — they can only be corrected by the
@@ -1797,24 +1745,6 @@ function CorrectionDialogForm({
                                     }}
                                     onChange={updateDataSection('dependents')}
                                     hasExistingProfileData={false}
-                                />
-                            </div>
-                        </LoanRequestAnimatedStep>
-
-                        {/* PEP declaration */}
-                        <LoanRequestAnimatedStep
-                            show={currentStep === stepIndexOf('health')}
-                            direction={stepDirection}
-                        >
-                            <div className="space-y-5">
-                                <LoanRequestDataSectionStep
-                                    sectionKey="health_glapi"
-                                    title="Politically Exposed Person (PEP) status"
-                                    description="Applicant's self-attested PEP status for the Generali Individual Application Form."
-                                    values={formData.health_glapi}
-                                    definition={pepDefinition}
-                                    errors={mergedErrors}
-                                    onChange={updateDataSection('health_glapi')}
                                 />
                             </div>
                         </LoanRequestAnimatedStep>

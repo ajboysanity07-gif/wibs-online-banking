@@ -57,12 +57,6 @@ class LoanRequestCorrectionRequest extends LoanRequestStoreRequest
         $rules['insurance.beneficiary_secondary_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['insurance.beneficiary_secondary_relationship'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['insurance.beneficiary_secondary_birthdate'] = ['sometimes', 'nullable', 'date'];
-        $rules['health'] = ['sometimes', 'array:health_smoking_status,health_hypertension'];
-        $rules['health.health_smoking_status'] = ['sometimes', 'string', Rule::in(['none', 'light', 'heavy'])];
-        $rules['health.health_hypertension'] = ['sometimes', 'boolean'];
-        $rules['health_glapi'] = ['sometimes', 'array:applicant_pep_status,applicant_pep_status_details'];
-        $rules['health_glapi.applicant_pep_status'] = ['sometimes', 'nullable', 'boolean'];
-        $rules['health_glapi.applicant_pep_status_details'] = ['sometimes', 'nullable', 'string', 'max:1000'];
         $rules['banking'] = ['sometimes', 'array:release_method,release_saved_account_id,payment_option,payment_saved_account_id'];
         $rules['banking.release_method'] = ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))];
         $rules['banking.payment_option'] = ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanPaymentOption::cases(), 'value'))];

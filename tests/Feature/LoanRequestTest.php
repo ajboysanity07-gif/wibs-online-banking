@@ -5703,7 +5703,7 @@ test('admin can correct under review loan request details and people snapshots',
     );
 });
 
-test('admin correction persists health, health_glapi, dependents, insurance, and banking edits', function () {
+test('admin correction persists dependents, insurance, and banking edits, and ignores health/PEP payloads', function () {
     $admin = User::factory()->create([
         'acctno' => '000523',
     ]);
@@ -5738,6 +5738,8 @@ test('admin correction persists health, health_glapi, dependents, insurance, and
                 'insurance' => [
                     'beneficiary_primary_name' => 'Corrected Beneficiary',
                 ],
+                // The questionnaire and PEP are answered in person -- a stale
+                // client posting them must not persist anything.
                 'health' => [
                     'health_smoking_status' => 'light',
                     'health_hypertension' => true,
@@ -5763,10 +5765,7 @@ test('admin correction persists health, health_glapi, dependents, insurance, and
         ->loadFlatValues($loanRequest);
 
     expect($flatValues['beneficiary_primary_name'])->toBe('Corrected Beneficiary')
-        ->and($flatValues['health_smoking_status'])->toBe('light')
-        ->and($flatValues['health_hypertension'])->toBeTrue()
-        ->and($flatValues['applicant_pep_status'])->toBeTrue()
-        ->and($flatValues['applicant_pep_status_details'])->toBe('Barangay Councilor, since 2020')
+        ->and($flatValues)->not->toHaveKeys(['health_smoking_status', 'health_hypertension', 'applicant_pep_status', 'applicant_pep_status_details'])
         ->and((int) $flatValues['release_saved_account_id'])->toBe($account->id)
         ->and($flatValues['applicant_cycle_status'])->toBe('Old')
         ->and((int) $flatValues['applicant_cycle_number'])->toBe(3);
@@ -5777,14 +5776,12 @@ test('admin correction persists health, health_glapi, dependents, insurance, and
 
     expect($dataChanges)->toContain(
         'beneficiary_primary_name',
-        'health_smoking_status',
-        'applicant_pep_status',
         'release_saved_account_id',
         'applicant_cycle_status',
     );
 });
 
-test('admin correction rejects health_glapi fields outside the narrowed PEP whitelist', function () {
+test('admin correction no longer accepts a PEP or health questionnaire edit', function () {
     $admin = User::factory()->create([
         'acctno' => '000525',
     ]);
@@ -5810,13 +5807,14 @@ test('admin correction rejects health_glapi fields outside the narrowed PEP whit
             "/spa/admin/requests/{$loanRequest->id}/corrections",
             validLoanRequestCorrectionPayload([
                 'health_glapi' => [
-                    'gl_health_q01_weight_change' => true,
+                    'applicant_pep_status' => true,
                 ],
             ]),
         );
 
-    $response->assertUnprocessable();
-    $response->assertJsonValidationErrors(['health_glapi']);
+    $response->assertOk();
+    expect(app(App\Services\LoanRequests\LoanRequestDataService::class)->loadFlatValues($loanRequest->refresh()))
+        ->not->toHaveKey('applicant_pep_status');
 });
 
 test('non admins cannot correct loan requests', function () {

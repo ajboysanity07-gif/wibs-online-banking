@@ -24,8 +24,6 @@ class LoanRequestCorrectionService
      */
     private const DATA_SECTION_KEYS = [
         'insurance',
-        'health',
-        'health_glapi',
         'banking',
         'dependents',
     ];
@@ -51,8 +49,6 @@ class LoanRequestCorrectionService
      *     co_maker_1: array<string, mixed>,
      *     co_maker_2: array<string, mixed>,
      *     insurance?: array<string, mixed>,
-     *     health?: array<string, mixed>,
-     *     health_glapi?: array<string, mixed>,
      *     banking?: array<string, mixed>,
      *     barangay?: array<string, mixed>,
      *     dependents?: array<string, mixed>
@@ -138,7 +134,7 @@ class LoanRequestCorrectionService
     }
 
     /**
-     * Flattens the payload's data-section arrays (insurance/health/etc, each
+     * Flattens the payload's data-section arrays (insurance/banking/etc, each
      * keyed by field key) into the single flat field_key => value map
      * applyStaffUpdates() expects. Fields absent from the payload are left
      * untouched -- applyStaffUpdates() only ever changes keys it's given.

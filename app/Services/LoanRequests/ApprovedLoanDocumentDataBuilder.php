@@ -1054,10 +1054,9 @@ class ApprovedLoanDocumentDataBuilder
         $applicantCycle = $this->cycleStateService->resolveState($loanRequest)['applicant'];
 
         return [
-            'pep_status' => $overrideProcessing['applicant_pep_status'] ?? $flatValues['applicant_pep_status'] ?? null,
-            'pep_status_details' => $this->normalizeText(
-                $overrideProcessing['applicant_pep_status_details'] ?? $flatValues['applicant_pep_status_details'] ?? null,
-            ),
+            // PEP question is answered on the paper form, in person -- always blank.
+            'pep_status' => null,
+            'pep_status_details' => null,
             'cycle_status' => $this->normalizeText($applicantCycle['cycle_status']),
             'cycle_number' => $this->normalizeText($applicantCycle['cycle_number']),
             'employer_date_employed' => $this->formatShortDateValue(
