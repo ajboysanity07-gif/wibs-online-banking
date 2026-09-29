@@ -139,36 +139,36 @@ export default function Reports({
                 </Card>
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <Card className="rounded-xl border-border bg-card shadow-card">
+                    <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>Pending</CardDescription>
-                            <CardTitle className="text-3xl">
+                            <CardTitle className="text-3xl tabular-nums">
                                 {reportingMetrics.pending_count}
                             </CardTitle>
                         </CardHeader>
                     </Card>
-                    <Card className="rounded-xl border-border bg-card shadow-card">
+                    <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>Approved</CardDescription>
-                            <CardTitle className="text-3xl">
+                            <CardTitle className="text-3xl tabular-nums">
                                 {reportingMetrics.approved_count}
                             </CardTitle>
                         </CardHeader>
                     </Card>
-                    <Card className="rounded-xl border-border bg-card shadow-card">
+                    <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>Approval rate</CardDescription>
-                            <CardTitle className="text-3xl">
+                            <CardTitle className="text-3xl tabular-nums">
                                 {reportingMetrics.approval_rate}%
                             </CardTitle>
                         </CardHeader>
                     </Card>
-                    <Card className="rounded-xl border-border bg-card shadow-card">
+                    <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Avg processing days
                             </CardDescription>
-                            <CardTitle className="text-3xl">
+                            <CardTitle className="text-3xl tabular-nums">
                                 {reportingMetrics.average_processing_days ??
                                     '--'}
                             </CardTitle>
