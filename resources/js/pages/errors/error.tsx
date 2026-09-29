@@ -217,10 +217,6 @@ export default function ErrorPage({ status }: ErrorPageProps) {
         <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
             <Head title={`${status} ${copy.title}`} />
 
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_16%,hsl(var(--primary)/0.14),transparent_34%),radial-gradient(circle_at_84%_12%,hsl(var(--accent)/0.18),transparent_32%),radial-gradient(circle_at_50%_100%,hsl(var(--primary)/0.08),transparent_45%)]" />
-            <div className="absolute inset-x-0 top-0 h-64 bg-linear-to-b from-primary/10 via-transparent to-transparent" />
-            <div className="absolute right-0 bottom-0 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
-
             <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-6 py-10 sm:py-14 lg:px-10">
                 <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                     <Link
@@ -251,10 +247,9 @@ export default function ErrorPage({ status }: ErrorPageProps) {
                     <SurfaceCard
                         variant="hero"
                         padding="lg"
-                        className="relative overflow-hidden border-border bg-card/82 shadow-[0_20px_60px_rgba(15,23,42,0.12)] backdrop-blur-md"
+                        className="relative overflow-hidden border-border"
                     >
-                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_20%,hsl(var(--primary)/0.14),transparent_32%)]" />
-                        <div className="pointer-events-none absolute top-5 right-5 text-[5rem] font-semibold tracking-tight text-foreground/[0.04] sm:text-[7rem]">
+                        <div className="pointer-events-none absolute top-5 right-5 text-[5rem] font-semibold tracking-tight text-primary/15 sm:text-[7rem]">
                             {status}
                         </div>
 
@@ -297,7 +292,7 @@ export default function ErrorPage({ status }: ErrorPageProps) {
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3">
-                                <Button asChild size="lg" className="shadow-sm">
+                                <Button asChild size="lg">
                                     <Link href={route} prefetch>
                                         <Home className="size-4" />
                                         {label}
@@ -357,7 +352,7 @@ export default function ErrorPage({ status }: ErrorPageProps) {
                         <SurfaceCard
                             variant="default"
                             padding="md"
-                            className="border-border bg-card/78 shadow-[0_16px_40px_rgba(15,23,42,0.1)] backdrop-blur-md"
+                            className="border-border"
                         >
                             <div className="flex items-start justify-between gap-3">
                                 <div className="space-y-1">
@@ -397,7 +392,7 @@ export default function ErrorPage({ status }: ErrorPageProps) {
                         <SurfaceCard
                             variant="muted"
                             padding="md"
-                            className="border-border bg-card/74 shadow-[0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-md"
+                            className="border-border"
                         >
                             <Alert className="border-border bg-background/75">
                                 <LifeBuoy className="text-primary" />

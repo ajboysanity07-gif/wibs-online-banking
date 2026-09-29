@@ -98,12 +98,12 @@ export default function Welcome() {
             <Head title="Welcome" />
 
             <div className="mx-auto flex max-w-6xl flex-col px-6 pt-8 pb-16 lg:px-10 lg:pt-12 lg:pb-24">
-                <header className="flex flex-wrap items-center justify-between gap-4">
+                <header className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-sidebar px-5 py-3 text-sidebar-foreground shadow-card">
                     <div className="flex items-center gap-3">
                         <img
                             src={branding.logoUrl}
                             alt={branding.appTitle}
-                            className="h-10 w-auto object-contain md:h-12"
+                            className="box-content h-10 w-auto rounded-md bg-sidebar-foreground object-contain p-1 md:h-12"
                         />
                         <div>
                             {showCompanyName ? (
@@ -111,7 +111,7 @@ export default function Welcome() {
                                     {branding.companyName}
                                 </p>
                             ) : null}
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-sidebar-foreground/75">
                                 {branding.portalLabel}
                             </p>
                         </div>
@@ -128,7 +128,7 @@ export default function Welcome() {
                                     <Link href={login()}>Log in</Link>
                                 </Button>
                                 {canRegister && (
-                                    <Button asChild size="sm">
+                                    <Button asChild size="sm" variant="accent">
                                         <Link href={register()}>
                                             Create portal login
                                         </Link>
@@ -141,14 +141,14 @@ export default function Welcome() {
 
                 <main className="mt-8 space-y-16 lg:mt-20">
                     <section className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-                        <div className="space-y-6">
+                        <div className="space-y-6 rounded-xl bg-primary p-8 text-primary-foreground shadow-card sm:p-10">
                             <Badge variant="secondary" className="w-fit">
                                 {branding.appTitle}
                             </Badge>
-                            <h1 className="text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
+                            <h1 className="text-4xl leading-tight font-bold tracking-tight sm:text-5xl">
                                 Your loan account, one clear request away.
                             </h1>
-                            <p className="text-lg text-muted-foreground sm:text-xl">
+                            <p className="text-lg text-primary-foreground/90 sm:text-xl">
                                 Request a loan, follow it through approval, and
                                 keep an eye on savings and payments — all kept
                                 in sync with WIBS Desktop.
@@ -159,7 +159,8 @@ export default function Welcome() {
                                     <Button
                                         asChild
                                         size="lg"
-                                        className="shadow-sm"
+                                        variant="accent"
+                                        className="dark:bg-primary-foreground dark:text-primary"
                                     >
                                         <Link href={dashboard()}>
                                             Go to dashboard
@@ -170,7 +171,8 @@ export default function Welcome() {
                                         <Button
                                             asChild
                                             size="lg"
-                                            className="shadow-sm"
+                                            variant="accent"
+                                            className="dark:bg-primary-foreground dark:text-primary"
                                         >
                                             <Link href={login()}>Log in</Link>
                                         </Button>
@@ -179,7 +181,7 @@ export default function Welcome() {
                                                 asChild
                                                 size="lg"
                                                 variant="outline"
-                                                className="shadow-sm"
+                                                className="shadow-none"
                                             >
                                                 <Link href={register()}>
                                                     Create portal login
