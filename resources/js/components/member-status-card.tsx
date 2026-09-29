@@ -35,7 +35,7 @@ export function MemberStatusCard({
     return (
         <Card
             className={cn(
-                'rounded-2xl border-border/40 bg-card/70 shadow-card',
+                'rounded-xl border-border bg-card shadow-card',
                 className,
             )}
         >
@@ -46,18 +46,15 @@ export function MemberStatusCard({
                 ) : null}
             </CardHeader>
             <CardContent
-                className={cn(
-                    'flex flex-1 flex-col gap-4',
-                    contentClassName,
-                )}
+                className={cn('flex flex-1 flex-col gap-4', contentClassName)}
             >
-                <div className="flex items-center justify-between rounded-lg border border-border/30 bg-muted/20 px-3 py-2">
-                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2">
+                    <span className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
                         Current status
                     </span>
                     <Badge
                         variant={statusVariant}
-                        className="text-[0.65rem] uppercase tracking-[0.2em]"
+                        className="text-[0.65rem] tracking-[0.2em] uppercase"
                     >
                         {statusLabel}
                     </Badge>

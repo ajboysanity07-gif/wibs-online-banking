@@ -45,7 +45,7 @@ function NotificationHeader({
     onMarkAllAsRead: () => void;
 }) {
     return (
-        <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-card/70 px-4 py-3">
+        <div className="flex items-start justify-between gap-3 border-b border-border bg-card px-4 py-3">
             <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">
@@ -53,7 +53,7 @@ function NotificationHeader({
                     </span>
                     <Badge
                         variant="outline"
-                        className="rounded-full border-border/50 bg-muted/30 px-2 py-0 text-[10px] font-semibold tracking-[0.12em] text-muted-foreground uppercase"
+                        className="rounded-full border-border bg-muted/30 px-2 py-0 text-[10px] font-semibold tracking-[0.12em] text-muted-foreground uppercase"
                     >
                         {hasUnread
                             ? `${formatNotificationBadgeCount(unreadCount)} unread`
@@ -88,7 +88,7 @@ function NotificationSkeletonList() {
             {[0, 1, 2].map((item) => (
                 <div
                     key={item}
-                    className="flex items-start gap-3 rounded-xl border border-border/40 bg-card/50 px-3 py-3"
+                    className="flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3"
                 >
                     <Skeleton className="size-10 rounded-xl" />
                     <div className="min-w-0 flex-1 space-y-2">
@@ -127,7 +127,7 @@ function NotificationStatePanel({
             role="status"
             aria-live="polite"
         >
-            <div className="flex size-11 items-center justify-center rounded-2xl border border-border/50 bg-muted/30 text-muted-foreground">
+            <div className="flex size-11 items-center justify-center rounded-xl border border-border bg-muted/30 text-muted-foreground">
                 <Icon className="size-5" />
             </div>
             <div className="space-y-1">
@@ -194,10 +194,10 @@ function NotificationListItem({
                 'focus:bg-muted/50 data-[highlighted]:bg-muted/50 data-[highlighted]:ring-1 data-[highlighted]:ring-border/60',
                 isUnread
                     ? 'border-primary/15 bg-primary/[0.05]'
-                    : 'border-border/50 bg-background/70',
+                    : 'border-border bg-background/70',
             )}
         >
-            <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background/80">
+            <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background/80">
                 <span
                     className={cn(
                         'flex size-8 items-center justify-center rounded-lg ring-1 ring-inset',
@@ -270,7 +270,7 @@ function NotificationListItem({
                 ) : null}
 
                 {supportingNote ? (
-                    <div className="rounded-lg border border-border/40 bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
+                    <div className="rounded-lg border border-border bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
                         <span className="mr-1 font-medium text-foreground/75">
                             Supporting note:
                         </span>
@@ -279,7 +279,7 @@ function NotificationListItem({
                 ) : null}
 
                 {notes ? (
-                    <div className="rounded-lg border border-border/40 bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
+                    <div className="rounded-lg border border-border bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
                         <span className="mr-1 font-medium text-foreground/75">
                             Note:
                         </span>
@@ -426,7 +426,7 @@ export function NotificationBell() {
 
             <DropdownMenuContent
                 align="end"
-                className="w-[23rem] rounded-2xl border-border/60 bg-popover/95 p-0 shadow-[0_16px_36px_rgba(15,23,42,0.12)] backdrop-blur-sm sm:w-[25.5rem]"
+                className="w-[23rem] rounded-xl border-border bg-popover/95 p-0 shadow-[0_16px_36px_rgba(15,23,42,0.12)] backdrop-blur-sm sm:w-[25.5rem]"
             >
                 <NotificationHeader
                     hasUnread={hasUnread}
@@ -489,7 +489,7 @@ export function NotificationBell() {
                     ) : null}
                 </div>
 
-                <div className="border-t border-border/60 p-2">
+                <div className="border-t border-border p-2">
                     <Button
                         asChild
                         variant="ghost"

@@ -568,7 +568,7 @@ export default function LoanRequestShow({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
             <section className="mx-auto mt-6 mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="rounded-xl border border-border/40 bg-card/70 p-5">
+                <div className="rounded-xl border border-border bg-card p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="space-y-1">
                             <p className="text-sm font-semibold text-foreground">
@@ -604,7 +604,7 @@ export default function LoanRequestShow({
                             </AlertDescription>
                         </Alert>
                     ) : (
-                        <div className="rounded-xl border border-border/40 bg-card/70 p-4">
+                        <div className="rounded-xl border border-border bg-card p-4">
                             <p className="text-sm text-muted-foreground">
                                 Found incorrect details in this approved
                                 request?
@@ -622,7 +622,7 @@ export default function LoanRequestShow({
             ) : null}
             {currentLoanRequest.status === 'awaiting_member_information' ? (
                 <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <Card className="border-amber-500/30 bg-card/80">
+                    <Card className="border-amber-500/30 bg-card">
                         <CardHeader>
                             <CardTitle>Awaiting member information</CardTitle>
                             <CardDescription>
@@ -780,7 +780,7 @@ export default function LoanRequestShow({
             ) : null}
             {currentLoanRequest.status === 'awaiting_member_acceptance' ? (
                 <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <Card className="border-indigo-500/30 bg-card/80">
+                    <Card className="border-indigo-500/30 bg-card">
                         <CardHeader>
                             <CardTitle>Awaiting member acceptance</CardTitle>
                             <CardDescription>
@@ -790,7 +790,7 @@ export default function LoanRequestShow({
                         </CardHeader>
                         <CardContent className="space-y-5">
                             <div className="grid gap-4 md:grid-cols-2">
-                                <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                                <div className="rounded-lg border border-border bg-muted/20 p-4">
                                     <p className="text-xs text-muted-foreground">
                                         Revised amount
                                     </p>
@@ -800,7 +800,7 @@ export default function LoanRequestShow({
                                         )}
                                     </p>
                                 </div>
-                                <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                                <div className="rounded-lg border border-border bg-muted/20 p-4">
                                     <p className="text-xs text-muted-foreground">
                                         Revised term
                                     </p>
@@ -811,7 +811,7 @@ export default function LoanRequestShow({
                                         months
                                     </p>
                                 </div>
-                                <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                                <div className="rounded-lg border border-border bg-muted/20 p-4">
                                     <p className="text-xs text-muted-foreground">
                                         Revised interest rate
                                     </p>
@@ -821,7 +821,7 @@ export default function LoanRequestShow({
                                         )}
                                     </p>
                                 </div>
-                                <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                                <div className="rounded-lg border border-border bg-muted/20 p-4">
                                     <p className="text-xs text-muted-foreground">
                                         Payment frequency
                                     </p>

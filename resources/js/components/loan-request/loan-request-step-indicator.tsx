@@ -174,7 +174,7 @@ export function LoanRequestStepIndicator({
                             </button>
 
                             {isActive && (
-                                <div className="mt-0.5 mb-1 ml-5 space-y-0.5 border-l border-border/50 pl-4">
+                                <div className="mt-0.5 mb-1 ml-5 space-y-0.5 border-l border-border pl-4">
                                     {group.steps.map((stepIndex, i) => {
                                         const isSubDone =
                                             stepIndex < currentStep;

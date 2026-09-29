@@ -148,7 +148,7 @@ type Props = {
     workflowHealth: LoanRequestWorkflowHealth;
 };
 
-const readOnlyCardClassName = 'border-border/20 bg-card/40 shadow-card';
+const readOnlyCardClassName = 'border-border bg-card/40 shadow-card';
 
 const sectionEditButtonClassName =
     'transition-all duration-150 ease-out active:scale-90 active:duration-75 hover:-translate-y-0.5 hover:shadow-md [&_svg]:transition-transform [&_svg]:duration-150 active:[&_svg]:rotate-12';
@@ -263,7 +263,7 @@ const displayChecklistStatusTone = (status: string): string => {
                 'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-200',
             generation_failed:
                 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200',
-        }[status] ?? 'border-border/60 bg-muted/20 text-muted-foreground'
+        }[status] ?? 'border-border bg-muted/20 text-muted-foreground'
     );
 };
 
@@ -278,8 +278,8 @@ const displayNotificationStatusTone = (status: string | null): string => {
             sent: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
             failed: 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200',
             skipped:
-                'border-border/60 bg-muted/20 text-muted-foreground dark:text-muted-foreground',
-        }[status ?? ''] ?? 'border-border/60 bg-muted/20 text-muted-foreground'
+                'border-border bg-muted/20 text-muted-foreground dark:text-muted-foreground',
+        }[status ?? ''] ?? 'border-border bg-muted/20 text-muted-foreground'
     );
 };
 
@@ -1337,7 +1337,7 @@ export default function StaffLoanRequestShow({
                     currentNotificationHistory.map((event) => (
                         <div
                             key={event.id}
-                            className="rounded-xl border border-border/40 bg-muted/10 p-4"
+                            className="rounded-xl border border-border bg-muted/10 p-4"
                         >
                             <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div className="space-y-1">
@@ -1973,7 +1973,7 @@ export default function StaffLoanRequestShow({
                                 title="WIBS Tracking"
                                 description="Official loan tracking in the WIBS system."
                                 icon={Truck}
-                                className="border-border/30 bg-card/70 shadow-card"
+                                className="border-border bg-card shadow-card"
                                 contentClassName="space-y-4"
                             >
                                 <div className="flex items-center gap-2">
@@ -2478,7 +2478,7 @@ export default function StaffLoanRequestShow({
                                                                     key={
                                                                         item.fieldKey
                                                                     }
-                                                                    className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm"
+                                                                    className="flex items-start gap-3 rounded-lg border border-border bg-muted/10 p-3 text-sm"
                                                                 >
                                                                     <Checkbox
                                                                         checked={selectedMemberFields.includes(

@@ -739,7 +739,7 @@ export default function LoanRequestShow({
                                 return (
                                     <div
                                         key={report.id}
-                                        className="rounded-lg border border-border/50 bg-background/80 p-4"
+                                        className="rounded-lg border border-border bg-background/80 p-4"
                                     >
                                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                                             <Badge

@@ -84,7 +84,7 @@ function SummaryRow({
     onAction: () => void;
 }) {
     return (
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-muted/30 px-4 py-3">
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/30 px-4 py-3">
             <div className="min-w-0 space-y-1">
                 <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">
                     {label}
@@ -124,9 +124,9 @@ function ProgressStepRow({
                             item.state === 'complete' &&
                                 'border-primary/30 bg-primary/10 text-primary',
                             item.state === 'current' &&
-                                'border-border/60 bg-background text-foreground shadow-xs',
+                                'border-border bg-background text-foreground shadow-xs',
                             item.state === 'upcoming' &&
-                                'border-border/40 bg-muted/30 text-muted-foreground',
+                                'border-border bg-muted/30 text-muted-foreground',
                         )}
                         aria-current={
                             item.state === 'current' ? 'step' : undefined
@@ -467,7 +467,7 @@ export default function ForgotPassword({ recovery, status }: Props) {
                         <button
                             key={option.type}
                             type="button"
-                            className="flex w-full items-start justify-between gap-4 rounded-xl border border-border/50 bg-background px-4 py-4 text-left transition-colors hover:border-border"
+                            className="flex w-full items-start justify-between gap-4 rounded-xl border border-border bg-background px-4 py-4 text-left transition-colors hover:border-border"
                             onClick={() => {
                                 if (option.type === 'email') {
                                     void sendEmailRecovery();
@@ -499,7 +499,7 @@ export default function ForgotPassword({ recovery, status }: Props) {
         if (currentStep === PASSWORD_RECOVERY_WIZARD_STEPS.EMAIL_CONFIRMATION) {
             return (
                 <div className="space-y-4 text-center">
-                    <div className="rounded-xl border border-border/50 bg-muted/40 px-4 py-4 text-sm text-muted-foreground">
+                    <div className="rounded-xl border border-border bg-muted/40 px-4 py-4 text-sm text-muted-foreground">
                         If the details match our records, the next step is in
                         your inbox.
                     </div>

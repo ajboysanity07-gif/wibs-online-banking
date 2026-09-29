@@ -353,7 +353,7 @@ function MobileStaffCard({
                 </Badge>
             </div>
 
-            <div className="mt-3 space-y-3 rounded-xl border border-border/30 bg-muted/30 p-3 text-xs">
+            <div className="mt-3 space-y-3 rounded-xl border border-border bg-muted/30 p-3 text-xs">
                 <div className="flex items-center justify-between gap-3">
                     <span className="text-muted-foreground">Member access</span>
                     <span className="text-sm font-medium">
@@ -1330,7 +1330,7 @@ export default function SuperadminStaffPage() {
                     padding="none"
                     className="overflow-hidden"
                 >
-                    <div className="border-b border-border/40 bg-card/70 px-6 py-4">
+                    <div className="border-b border-border bg-card px-6 py-4">
                         <SectionHeader
                             title="Results"
                             description={resultsLabel}
@@ -1380,7 +1380,7 @@ export default function SuperadminStaffPage() {
                             <>
                                 <div className="space-y-3 px-2 pt-4 pb-3 md:hidden">
                                     {items.length === 0 ? (
-                                        <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+                                        <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                                             No staff accounts found.
                                         </div>
                                     ) : (
@@ -1560,7 +1560,7 @@ export default function SuperadminStaffPage() {
                                         <label
                                             key={role.value}
                                             className={cn(
-                                                'flex cursor-pointer items-start gap-3 rounded-xl border border-border/40 bg-card/60 p-4 transition-colors',
+                                                'flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-card p-4 transition-colors',
                                                 checked
                                                     ? 'border-primary/40 bg-primary/5'
                                                     : 'hover:border-border',
@@ -1653,7 +1653,7 @@ export default function SuperadminStaffPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={handleRoleMutation}>
-                        <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm">
+                        <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm">
                             <p className="font-medium">
                                 {editableRoleOptions.find(
                                     (role) => role.value === roleMutation.role,
@@ -1740,7 +1740,7 @@ export default function SuperadminStaffPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={handleAccessMutation}>
-                        <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm">
+                        <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm">
                             <div className="flex items-center gap-2 font-medium">
                                 {accessMutation.action === 'suspend' ? (
                                     <ShieldOff className="h-4 w-4" />
@@ -1827,7 +1827,7 @@ export default function SuperadminStaffPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={handleResetPassword}>
-                        <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm text-muted-foreground">
+                        <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
                             A random temporary password will be generated and
                             shown once. You will not be able to view it again,
                             so relay it to the staff member right away.
@@ -1896,7 +1896,7 @@ export default function SuperadminStaffPage() {
                                 : 'This password will not be shown again.'}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-muted/30 p-3">
+                    <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-3">
                         <code className="flex-1 font-mono text-sm break-all">
                             {resetPasswordResult?.temporaryPassword}
                         </code>
@@ -1979,7 +1979,7 @@ export default function SuperadminStaffPage() {
                                 ))}
                             </div>
                         ) : historyItems.length === 0 ? (
-                            <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+                            <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                                 No audit entries found for this account yet.
                             </div>
                         ) : (
@@ -2033,7 +2033,7 @@ export default function SuperadminStaffPage() {
                                         </div>
 
                                         <div className="grid gap-3 md:grid-cols-2">
-                                            <div className="rounded-xl border border-border/30 bg-muted/20 p-3">
+                                            <div className="rounded-xl border border-border bg-muted/20 p-3">
                                                 <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                     Before
                                                 </p>
@@ -2065,7 +2065,7 @@ export default function SuperadminStaffPage() {
                                                     )}
                                                 </p>
                                             </div>
-                                            <div className="rounded-xl border border-border/30 bg-muted/20 p-3">
+                                            <div className="rounded-xl border border-border bg-muted/20 p-3">
                                                 <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                     After
                                                 </p>
@@ -2099,7 +2099,7 @@ export default function SuperadminStaffPage() {
                                             </div>
                                         </div>
 
-                                        <div className="space-y-1 rounded-xl border border-border/30 bg-background/60 p-3">
+                                        <div className="space-y-1 rounded-xl border border-border bg-background/60 p-3">
                                             <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                 Reason
                                             </p>
@@ -2215,7 +2215,7 @@ export default function SuperadminStaffPage() {
 
                                         <div
                                             className={cn(
-                                                'overflow-x-auto overflow-y-hidden rounded-xl border border-border/40 motion-safe:transition-opacity motion-safe:duration-150',
+                                                'overflow-x-auto overflow-y-hidden rounded-xl border border-border motion-safe:transition-opacity motion-safe:duration-150',
                                                 promoteDialog.searchLoading
                                                     ? 'opacity-60'
                                                     : 'opacity-100',
@@ -2407,7 +2407,7 @@ export default function SuperadminStaffPage() {
                                 onSubmit={handlePromoteMember}
                             >
                                 {promoteDialog.selectedMember ? (
-                                    <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm">
+                                    <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm">
                                         <p className="font-semibold">
                                             {
                                                 promoteDialog.selectedMember
@@ -2459,7 +2459,7 @@ export default function SuperadminStaffPage() {
                                                 <label
                                                     key={role.value}
                                                     className={cn(
-                                                        'flex cursor-pointer items-start gap-3 rounded-xl border border-border/40 bg-card/60 p-4 transition-colors',
+                                                        'flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-card p-4 transition-colors',
                                                         checked
                                                             ? 'border-primary/40 bg-primary/5'
                                                             : 'hover:border-border',

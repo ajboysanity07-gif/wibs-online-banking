@@ -167,7 +167,7 @@ const OfficerSummary = ({
 }: {
     officer: LoanRequestAssignmentOfficerOption;
 }) => (
-    <div className="space-y-3 rounded-lg border border-border/50 bg-muted/20 p-3">
+    <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
         <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">
                 {officer.name}
@@ -1313,7 +1313,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={submitReturnToQueue}>
-                        <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-sm">
+                        <div className="rounded-lg border border-border bg-muted/20 p-3 text-sm">
                             <p className="font-medium text-foreground">
                                 Current assignee
                             </p>
@@ -1582,7 +1582,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={submitApprove}>
-                        <div className="space-y-3 rounded-xl border border-border/30 bg-muted/10 p-4">
+                        <div className="space-y-3 rounded-xl border border-border bg-muted/10 p-4">
                             <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                                 Terms to approve
                             </p>
@@ -1969,7 +1969,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                             />
                             <InputError message={reopenReasonError ?? ''} />
                         </div>
-                        <label className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm">
+                        <label className="flex items-start gap-3 rounded-lg border border-border bg-muted/10 p-3 text-sm">
                             <Checkbox
                                 checked={retainAssignmentOnReopen}
                                 disabled={workflow?.reopen?.isProcessing}

@@ -103,7 +103,7 @@ export function LoanRequestAuditTrail({
                     </div>
                 ) : null}
                 {entry.reason ? (
-                    <div className="rounded-lg border border-border/40 bg-muted/10 p-3">
+                    <div className="rounded-lg border border-border bg-muted/10 p-3">
                         <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                             Remarks
                         </p>
@@ -117,7 +117,7 @@ export function LoanRequestAuditTrail({
                         {entry.metadata.map((metadataItem) => (
                             <div
                                 key={`${entry.id}-${metadataItem.key}`}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-background/80 px-2.5 py-1 text-xs"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-2.5 py-1 text-xs"
                             >
                                 <span className="text-muted-foreground">
                                     {metadataItem.label}
@@ -134,7 +134,7 @@ export function LoanRequestAuditTrail({
     );
 
     return (
-        <Card className="border-border/30 bg-card/60 shadow-card">
+        <Card className="border-border bg-card shadow-card">
             <Collapsible open={open} onOpenChange={setOpen}>
                 <CollapsibleTrigger asChild disabled={!hasOlderEntries}>
                     <CardHeader
@@ -144,7 +144,7 @@ export function LoanRequestAuditTrail({
                         )}
                     >
                         <div className="flex items-center gap-3">
-                            <div className="rounded-full border border-border/50 bg-muted/20 p-2 text-muted-foreground">
+                            <div className="rounded-full border border-border bg-muted/20 p-2 text-muted-foreground">
                                 <History className="size-4" />
                             </div>
                             <div className="flex-1 space-y-1">
@@ -180,7 +180,7 @@ export function LoanRequestAuditTrail({
                 </CollapsibleTrigger>
                 <CardContent>
                     {entries.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-sm text-muted-foreground">
+                        <div className="rounded-xl border border-dashed border-border bg-muted/10 px-4 py-6 text-sm text-muted-foreground">
                             {emptyCopy}
                         </div>
                     ) : (

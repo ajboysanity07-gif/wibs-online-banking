@@ -8,7 +8,10 @@ import {
 } from '@/components/ui/collapsible';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import type { LoanStatusSummaryForStaff, ProblemLoan } from '@/types/loan-requests';
+import type {
+    LoanStatusSummaryForStaff,
+    ProblemLoan,
+} from '@/types/loan-requests';
 
 type LoanStatusWarningProps = {
     loanStatus: LoanStatusSummaryForStaff | null;
@@ -46,7 +49,7 @@ export function LoanStatusWarning({
     return (
         <div
             className={cn(
-                'rounded-2xl border border-amber-500/40 bg-amber-500/10 p-5',
+                'rounded-xl border border-amber-500/40 bg-amber-500/10 p-5',
                 className,
             )}
             role="alert"
@@ -55,19 +58,24 @@ export function LoanStatusWarning({
                 <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
                 <div className="min-w-0 flex-1 space-y-2">
                     <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-                        {loanStatus.warning_message ?? 'Applicant has problematic loans'}
+                        {loanStatus.warning_message ??
+                            'Applicant has problematic loans'}
                     </p>
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                         {loanStatus.total_past_due > 0 ? (
                             <Badge variant="secondary">
                                 {loanStatus.total_past_due} past due ·{' '}
-                                {formatCurrency(loanStatus.past_due_balance_total)}
+                                {formatCurrency(
+                                    loanStatus.past_due_balance_total,
+                                )}
                             </Badge>
                         ) : null}
                         {loanStatus.total_litigation > 0 ? (
                             <Badge variant="destructive">
                                 {loanStatus.total_litigation} in litigation ·{' '}
-                                {formatCurrency(loanStatus.litigation_balance_total)}
+                                {formatCurrency(
+                                    loanStatus.litigation_balance_total,
+                                )}
                             </Badge>
                         ) : null}
                     </div>
@@ -84,7 +92,7 @@ export function LoanStatusWarning({
                             {problemLoans.map((loan) => (
                                 <div
                                     key={loan.lnnumber}
-                                    className="rounded-xl border border-border/40 bg-card/60 p-3"
+                                    className="rounded-xl border border-border bg-card p-3"
                                 >
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div className="space-y-1">
@@ -96,7 +104,7 @@ export function LoanStatusWarning({
                                                     variant={loanStatusBadgeVariant(
                                                         loan,
                                                     )}
-                                                    className="text-[0.65rem] uppercase tracking-[0.14em]"
+                                                    className="text-[0.65rem] tracking-[0.14em] uppercase"
                                                 >
                                                     {loan.lnstatus_label}
                                                 </Badge>
@@ -106,7 +114,8 @@ export function LoanStatusWarning({
                                             </p>
                                             <p className="text-xs text-muted-foreground">
                                                 Released{' '}
-                                                {formatDate(loan.date_rel)} · Matures{' '}
+                                                {formatDate(loan.date_rel)} ·
+                                                Matures{' '}
                                                 {formatDate(loan.date_mat)}
                                             </p>
                                         </div>
@@ -114,13 +123,17 @@ export function LoanStatusWarning({
                                             <p className="text-muted-foreground">
                                                 Principal:{' '}
                                                 <span className="font-medium text-foreground">
-                                                    {formatCurrency(loan.principal)}
+                                                    {formatCurrency(
+                                                        loan.principal,
+                                                    )}
                                                 </span>
                                             </p>
                                             <p className="text-muted-foreground">
                                                 Balance:{' '}
                                                 <span className="font-medium text-foreground">
-                                                    {formatCurrency(loan.balance)}
+                                                    {formatCurrency(
+                                                        loan.balance,
+                                                    )}
                                                 </span>
                                             </p>
                                         </div>
@@ -129,7 +142,7 @@ export function LoanStatusWarning({
                             ))}
                         </CollapsibleContent>
                     </Collapsible>
-                    <p className="pt-1 text-xs italic text-muted-foreground">
+                    <p className="pt-1 text-xs text-muted-foreground italic">
                         Soft warning — you may approve or decline based on your
                         assessment and organizational policies.
                     </p>

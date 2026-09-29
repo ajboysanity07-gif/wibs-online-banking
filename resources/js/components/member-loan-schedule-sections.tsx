@@ -190,7 +190,7 @@ export function MemberLoanScheduleSections({
                 body={
                     <>
                         {items.length === 0 ? (
-                            <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+                            <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                                 No schedule entries found for this loan.
                             </div>
                         ) : (
@@ -237,7 +237,7 @@ export function MemberLoanScheduleSections({
                             />
                         )}
                         {selectedEntry ? (
-                            <div className="rounded-2xl border border-border/40 bg-card/70 p-4 shadow-card">
+                            <div className="rounded-xl border border-border bg-card p-4 shadow-card">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="space-y-1">
                                         <p className="text-sm font-semibold">
@@ -258,7 +258,7 @@ export function MemberLoanScheduleSections({
                                     </Button>
                                 </div>
                                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                                    <div className="rounded-xl border border-border/30 bg-muted/30 px-3 py-2">
+                                    <div className="rounded-xl border border-border bg-muted/30 px-3 py-2">
                                         <p className="text-xs text-muted-foreground">
                                             Amortization
                                         </p>
@@ -268,7 +268,7 @@ export function MemberLoanScheduleSections({
                                             )}
                                         </p>
                                     </div>
-                                    <div className="rounded-xl border border-border/30 bg-muted/30 px-3 py-2">
+                                    <div className="rounded-xl border border-border bg-muted/30 px-3 py-2">
                                         <p className="text-xs text-muted-foreground">
                                             Interest
                                         </p>
@@ -278,7 +278,7 @@ export function MemberLoanScheduleSections({
                                             )}
                                         </p>
                                     </div>
-                                    <div className="rounded-xl border border-border/30 bg-muted/30 px-3 py-2">
+                                    <div className="rounded-xl border border-border bg-muted/30 px-3 py-2">
                                         <p className="text-xs text-muted-foreground">
                                             Balance
                                         </p>
@@ -310,15 +310,15 @@ export function MemberLoanScheduleSections({
                     <TableSkeleton
                         columns={scheduleTableSkeletonColumns}
                         rows={6}
-                        className="rounded-xl border border-border/40 bg-card/60"
+                        className="rounded-xl border border-border bg-card"
                         tableClassName="min-w-[720px]"
                     />
                 }
                 mobileWrapperClassName="space-y-3"
-                desktopWrapperClassName="rounded-xl border border-border/40 bg-card/60"
+                desktopWrapperClassName="rounded-xl border border-border bg-card"
                 mobileContent={
                     items.length === 0 ? (
-                        <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+                        <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                             No schedule entries available yet.
                         </div>
                     ) : (

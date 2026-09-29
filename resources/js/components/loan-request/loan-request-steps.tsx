@@ -679,7 +679,7 @@ export function LoanRequestApplicantWorkStep({
                 </p>
             ) : null}
             <Separator className="bg-border/40" />
-            <Alert className="border-border/50 bg-muted/10">
+            <Alert className="border-border bg-muted/10">
                 <AlertTitle>Physical signatures</AlertTitle>
                 <AlertDescription>
                     Signatures will be collected physically upon loan release.
@@ -1015,7 +1015,7 @@ function SavedCoMakerPicker({
     }
 
     return (
-        <div className="space-y-3 rounded-md border border-border/50 bg-muted/10 p-3">
+        <div className="space-y-3 rounded-md border border-border bg-muted/10 p-3">
             <div>
                 <p className="text-sm font-medium">Load a saved co-maker</p>
                 <p className="text-xs text-muted-foreground">
@@ -1028,7 +1028,7 @@ function SavedCoMakerPicker({
                 {savedCoMakers.map((option) => (
                     <div
                         key={option.id}
-                        className="flex items-center justify-between gap-2 rounded-md border border-border/40 bg-background px-3 py-2"
+                        className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2"
                     >
                         <div>
                             <p className="text-sm font-medium">
@@ -1119,7 +1119,7 @@ export function LoanRequestCoMakerStep({
                     {section === 'all' || section === 'income' ? (
                         <>
                             <Separator className="bg-border/40" />
-                            <Alert className="border-border/50 bg-muted/10">
+                            <Alert className="border-border bg-muted/10">
                                 <AlertTitle>Physical signatures</AlertTitle>
                                 <AlertDescription>
                                     Signatures will be collected physically upon
@@ -1232,7 +1232,7 @@ type SummaryCardProps = {
 };
 
 const SummaryCard = ({ title, description, children }: SummaryCardProps) => (
-    <div className="rounded-lg border border-border/50 bg-card/60 p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
         <div className="space-y-1">
             <h3 className="text-sm font-semibold">{title}</h3>
             {description ? (
@@ -1258,7 +1258,7 @@ const AccordionSummaryCard = ({
 }: AccordionSummaryCardProps) => (
     <AccordionItem
         value={value}
-        className="rounded-lg border border-b-0 border-border/50 bg-card/60 px-4"
+        className="rounded-lg border border-b-0 border-border bg-card px-4"
     >
         <AccordionTrigger className="py-4 hover:no-underline">
             <div className="space-y-1 text-left">
@@ -1696,7 +1696,7 @@ export function LoanRequestDataSectionStep({
                         applicantInstitutionalEmployerCategory
                     }
                 />
-                <Alert className="border-border/50 bg-muted/10">
+                <Alert className="border-border bg-muted/10">
                     <AlertTitle>Member-provided details</AlertTitle>
                     <AlertDescription>
                         Complete the applicable fields in this section before
@@ -1873,7 +1873,7 @@ export function LoanRequestDataSectionStep({
                     );
                 })}
             </div>
-            <Alert className="border-border/50 bg-muted/10">
+            <Alert className="border-border bg-muted/10">
                 <AlertTitle>Member-provided details</AlertTitle>
                 <AlertDescription>
                     Complete the applicable fields in this section before
@@ -2000,7 +2000,7 @@ export function LoanRequestInsuranceBeneficiariesStep({
                     {SECONDARY_BENEFICIARY_KEYS.map(renderField)}
                 </div>
             </div>
-            <Alert className="border-border/50 bg-muted/10">
+            <Alert className="border-border bg-muted/10">
                 <AlertTitle>Member-provided details</AlertTitle>
                 <AlertDescription>
                     Complete the applicable fields in this section before
@@ -2712,7 +2712,7 @@ export function LoanRequestReviewStep({
             errors={errors}
             onErrorClick={onErrorClick}
         >
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-4 text-sm">
+            <div className="rounded-lg border border-border bg-muted/20 p-4 text-sm">
                 <p className="text-xs text-muted-foreground uppercase">
                     Member
                 </p>
@@ -2862,7 +2862,7 @@ export function LoanRequestReviewStep({
                 ))}
             </Accordion>
 
-            <Alert className="border-border/50 bg-muted/10">
+            <Alert className="border-border bg-muted/10">
                 <AlertTitle>Physical signatures</AlertTitle>
                 <AlertDescription>
                     Signatures will be collected physically upon loan release.

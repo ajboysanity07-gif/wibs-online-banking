@@ -176,7 +176,7 @@ export function LocationCombobox({
                             !hasValue && 'text-muted-foreground',
                             hasValue && isInteractive && 'pr-14',
                             readOnly &&
-                                'pointer-events-none border-border/40 bg-muted/30 text-muted-foreground/80',
+                                'pointer-events-none border-border bg-muted/30 text-muted-foreground/80',
                         )}
                     >
                         <span className="truncate">

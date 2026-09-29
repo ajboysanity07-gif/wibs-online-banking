@@ -498,7 +498,7 @@ export default function MemberProfile({
                             className="space-y-4"
                             onSubmit={handleResetPassword}
                         >
-                            <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm text-muted-foreground">
+                            <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
                                 A random temporary password will be generated
                                 and shown once. You will not be able to view it
                                 again, so relay it to the member right away.
@@ -562,7 +562,7 @@ export default function MemberProfile({
                                 {`Share this temporary password with ${memberName} now. It will not be shown again, and they must set a new password on next login.`}
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-muted/30 p-3">
+                        <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-3">
                             <code className="flex-1 font-mono text-sm break-all">
                                 {resetPasswordResult?.temporaryPassword}
                             </code>

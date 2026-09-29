@@ -79,11 +79,11 @@ const PDC_SCHEDULE_TEMPORARILY_DISABLED = true;
 const INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE = 'unset';
 
 const actionCardClassName =
-    'border-primary/25 bg-card/80 shadow-card ring-1 ring-primary/10';
+    'border-primary/25 bg-card shadow-card ring-1 ring-primary/10';
 const sectionEditButtonClassName =
     'transition-all duration-150 ease-out active:scale-90 active:duration-75 hover:-translate-y-0.5 hover:shadow-md [&_svg]:transition-transform [&_svg]:duration-150 active:[&_svg]:rotate-12';
 const readOnlyProcessingFieldClassName =
-    'bg-muted/30 text-muted-foreground/80 border-border/40';
+    'bg-muted/30 text-muted-foreground/80 border-border';
 
 export const toStringValue = (
     value?: string | number | null,
@@ -1177,7 +1177,7 @@ export function ProcessingDetailsPanel({
             return (
                 <label
                     key={fieldKey}
-                    className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm sm:col-span-2"
+                    className="flex items-start gap-3 rounded-lg border border-border bg-muted/10 p-3 text-sm sm:col-span-2"
                 >
                     <Checkbox
                         checked={processingForm.processing[fieldKey] === true}
@@ -1361,7 +1361,7 @@ export function ProcessingDetailsPanel({
             return (
                 <div
                     key={slotKey}
-                    className="grid gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 sm:grid-cols-[1fr_auto] sm:items-center"
+                    className="grid gap-3 rounded-lg border border-border bg-muted/10 p-3 sm:grid-cols-[1fr_auto] sm:items-center"
                 >
                     <div className="flex flex-col justify-center">
                         <span className="text-sm font-medium">{label}</span>
@@ -1383,7 +1383,7 @@ export function ProcessingDetailsPanel({
         return (
             <div
                 key={slotKey}
-                className="grid gap-3 rounded-lg border border-border/40 bg-muted/10 p-3"
+                className="grid gap-3 rounded-lg border border-border bg-muted/10 p-3"
             >
                 <div className="flex flex-col justify-center">
                     <span className="text-sm font-medium">{label}</span>
@@ -1480,7 +1480,7 @@ export function ProcessingDetailsPanel({
             className={
                 canUpdateProcessing
                     ? actionCardClassName
-                    : 'border-border/30 bg-card/70 shadow-card'
+                    : 'border-border bg-card shadow-card'
             }
             headerAction={
                 canUpdateProcessing && !isEditing ? (
@@ -2232,7 +2232,7 @@ export function ProcessingDetailsPanel({
                                             institution
                                         </button>
                                     )}
-                                <label className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm sm:col-span-2">
+                                <label className="flex items-start gap-3 rounded-lg border border-border bg-muted/10 p-3 text-sm sm:col-span-2">
                                     <Checkbox
                                         checked={officersUnknown}
                                         onCheckedChange={(checked) => {

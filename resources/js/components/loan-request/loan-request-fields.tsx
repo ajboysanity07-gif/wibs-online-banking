@@ -85,8 +85,7 @@ const NATURE_OF_BUSINESS_OPTIONS = [
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
 ];
-const readOnlyInputClass =
-    'bg-muted/30 text-muted-foreground/80 border-border/40';
+const readOnlyInputClass = 'bg-muted/30 text-muted-foreground/80 border-border';
 
 const fieldName = (prefix: string, field: string) => `${prefix}[${field}]`;
 
@@ -110,7 +109,7 @@ const FieldLabel = ({
     <div className="flex items-center justify-between gap-2">
         <Label htmlFor={htmlFor}>{label}</Label>
         {isReadOnly ? (
-            <span className="rounded-full border border-border/40 bg-muted/30 px-2 py-0.5 text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+            <span className="rounded-full border border-border bg-muted/30 px-2 py-0.5 text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                 Verified
             </span>
         ) : null}
@@ -294,7 +293,7 @@ export function LoanRequestPersonalFields({
     return (
         <div className="space-y-7">
             {hasReadOnlyFields ? (
-                <div className="rounded-lg border border-border/40 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                <div className="rounded-lg border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
                     Verified profile fields are locked. To change this, visit
                     the office.
                 </div>

@@ -479,7 +479,7 @@ type LoanRequestCorrectedCopyPayload = {
 const SummaryStat = ({ label, value, className }: SummaryStatProps) => (
     <div
         className={cn(
-            'rounded-xl border border-border/20 bg-muted/10 p-3',
+            'rounded-xl border border-border bg-muted/10 p-3',
             className,
         )}
     >
@@ -519,7 +519,7 @@ export const LoanRequestSummaryHeader = ({
     accountNumber,
     hideLoanSummary = false,
 }: LoanRequestSummaryHeaderProps) => (
-    <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-card sm:p-7 lg:p-8">
+    <div className="rounded-xl border border-border bg-card p-6 shadow-card sm:p-7 lg:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-3">
                 <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
@@ -620,7 +620,7 @@ export const LoanRequestLoanInformationCard = ({
             description="Requested loan details from the request."
             icon={IdCard}
             headerAction={headerAction ?? null}
-            className="border-border/30 bg-card/60 shadow-card"
+            className="border-border bg-card shadow-card"
         >
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <SummaryStat label="Requested amount" value={amount} />
@@ -699,7 +699,7 @@ const PersonAccordionRow = ({
         person && name !== '--' ? name.charAt(0).toUpperCase() : '--';
 
     return (
-        <div className="rounded-xl border border-border/20 bg-muted/10">
+        <div className="rounded-xl border border-border bg-muted/10">
             <button
                 type="button"
                 className="flex w-full items-center gap-3 p-4 text-left"
@@ -957,7 +957,7 @@ export const LoanRequestApplicantCard = ({
             description="Primary borrower details from the request."
             icon={UserIcon}
             headerAction={headerAction ?? null}
-            className="border-border/30 bg-card/60 shadow-card"
+            className="border-border bg-card shadow-card"
             contentClassName="space-y-4"
         >
             {hasCategoryMismatch ? (
@@ -1091,7 +1091,7 @@ export const LoanRequestCoMakersCard = ({
         title="Co-makers"
         description="Supporting borrowers tied to this request."
         icon={Users}
-        className="border-border/30 bg-card/60 shadow-card"
+        className="border-border bg-card shadow-card"
         contentClassName="space-y-4"
     >
         <div className="space-y-2">
@@ -1613,7 +1613,7 @@ export function LoanRequestDetailPage({
                                 status={loanRequest.status}
                             />
                         }
-                        className="border-border/30 bg-card/50 shadow-card"
+                        className="border-border bg-card shadow-card"
                         contentClassName="space-y-4"
                     >
                         <div className="relative">
@@ -1644,7 +1644,7 @@ export function LoanRequestDetailPage({
                                                             ? 'h-2.5 w-2.5 border-primary/70 bg-primary/60'
                                                             : isCurrent
                                                               ? 'h-3.5 w-3.5 border-primary bg-primary shadow-sm ring-4 shadow-primary/40 ring-primary/20'
-                                                              : 'h-2 w-2 border-border/50 bg-card',
+                                                              : 'h-2 w-2 border-border bg-card',
                                                     )}
                                                 />
                                             </div>
@@ -1676,7 +1676,7 @@ export function LoanRequestDetailPage({
                                 })}
                             </div>
                         </div>
-                        <div className="rounded-lg border border-border/30 bg-muted/10 p-3 text-xs text-muted-foreground">
+                        <div className="rounded-lg border border-border bg-muted/10 p-3 text-xs text-muted-foreground">
                             Workflow actions stay in sync with the current
                             request status and your server-side access.
                         </div>
@@ -1686,7 +1686,7 @@ export function LoanRequestDetailPage({
                         <LoanRequestSectionCard
                             title="Decision"
                             description="Approve or decline this request. Past decisions and remarks are recorded in the audit trail below."
-                            className="border-border/30 bg-card/50 shadow-card"
+                            className="border-border bg-card shadow-card"
                             contentClassName="space-y-4"
                         >
                             <div className="space-y-2">
@@ -1767,7 +1767,7 @@ export function LoanRequestDetailPage({
                     <LoanRequestSectionCard
                         title="Actions"
                         icon={Zap}
-                        className="border-border/30 bg-card/50 shadow-card"
+                        className="border-border bg-card shadow-card"
                         contentClassName="space-y-4"
                     >
                         {showCorrectionAction ? (
@@ -1853,7 +1853,7 @@ export function LoanRequestDetailPage({
                                                     <span className="min-w-0 flex-1 truncate text-left text-sm">
                                                         {document.label}
                                                     </span>
-                                                    <span className="shrink-0 rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                                                    <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
                                                         {document.format}
                                                     </span>
                                                 </a>
@@ -1974,7 +1974,7 @@ export function LoanRequestDetailPage({
 
                     <LoanRequestSectionCard
                         title="What happens next"
-                        className="border-border/20 bg-card/30"
+                        className="border-border bg-card/30"
                         contentClassName="text-sm text-muted-foreground"
                     >
                         {statusValue === 'draft'
@@ -2030,7 +2030,7 @@ export function LoanRequestDetailPage({
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                        <div className="rounded-xl border border-border/30 bg-muted/10 p-4">
+                        <div className="rounded-xl border border-border bg-muted/10 p-4">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <DetailRow
                                     label="Approved amount"
@@ -2046,7 +2046,7 @@ export function LoanRequestDetailPage({
                                 />
                             </div>
                         </div>
-                        <div className="rounded-xl border border-border/30 bg-card/60 p-4">
+                        <div className="rounded-xl border border-border bg-card p-4">
                             <div className="space-y-1">
                                 <p className="text-sm font-semibold text-foreground">
                                     Approving admin
@@ -2055,14 +2055,14 @@ export function LoanRequestDetailPage({
                                     {approvalSignerName}
                                 </p>
                             </div>
-                            <div className="mt-4 rounded-xl border border-dashed border-border/60 bg-muted/10 p-4">
+                            <div className="mt-4 rounded-xl border border-dashed border-border bg-muted/10 p-4">
                                 <p className="text-sm text-muted-foreground">
                                     Signatures will be collected physically upon
                                     loan release.
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-start gap-3 rounded-xl border border-border/30 bg-muted/10 p-4">
+                        <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/10 p-4">
                             <Checkbox
                                 id="confirm_approval"
                                 checked={approvalConfirmed}
@@ -2279,7 +2279,7 @@ export function LoanRequestDetailPage({
                     <div className="flex flex-1 flex-col gap-2 px-4 pb-4">
                         <iframe
                             src={previewUrl ?? ''}
-                            className="h-[70vh] w-full flex-1 rounded border border-border/30 max-[768px]:h-[calc(100vh-80px)]"
+                            className="h-[70vh] w-full flex-1 rounded border border-border max-[768px]:h-[calc(100vh-80px)]"
                             title="Document preview"
                         />
                         <div className="flex justify-end">

@@ -24,7 +24,7 @@ test('workflow health card renders as a summary bar plus fixed 2-column plain gr
 
     assert.ok(
         !cardBlock.includes(
-            'rounded-xl border border-border/40 bg-muted/10',
+            'rounded-xl border border-border bg-muted/10',
         ),
     );
     assert.ok(cardBlock.includes('grid grid-cols-2 gap-x-6 gap-y-4'));

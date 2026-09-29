@@ -21,7 +21,10 @@ import {
     TableSkeleton,
     type TableSkeletonColumn,
 } from '@/components/ui/table-skeleton';
-import type { MemberRecentAccountAction, MemberRecentAccountActionSource } from '@/features/member-accounts/types';
+import type {
+    MemberRecentAccountAction,
+    MemberRecentAccountActionSource,
+} from '@/features/member-accounts/types';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import type { PaginationMeta } from '@/types/pagination';
 
@@ -53,9 +56,7 @@ const accountActionsSkeletonColumns = (
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
-    ...(showActions
-        ? [accountActionSkeletonColumn]
-        : []),
+    ...(showActions ? [accountActionSkeletonColumn] : []),
 ];
 
 const sourceVariant = (source?: MemberRecentAccountActionSource | null) => {
@@ -91,7 +92,7 @@ const MobileAccountActionSkeleton = () => (
             </div>
             <Skeleton className="h-5 w-12" />
         </div>
-        <div className="mt-3 space-y-2 rounded-xl border border-border/30 bg-muted/30 p-3">
+        <div className="mt-3 space-y-2 rounded-xl border border-border bg-muted/30 p-3">
             {Array.from({ length: 3 }).map((_, index) => (
                 <div
                     key={`action-meta-${index}`}
@@ -139,7 +140,7 @@ const MobileAccountActionCard = ({
                 {sourceLabel(action.source)}
             </Badge>
         </div>
-        <div className="mt-3 rounded-xl border border-border/30 bg-muted/30 p-3">
+        <div className="mt-3 rounded-xl border border-border bg-muted/30 p-3">
             <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Control ID</span>
                 <span className="text-sm font-medium tabular-nums">
@@ -203,7 +204,7 @@ export function MemberRecentAccountActionsCard({
                     loading ? (
                         <Badge
                             variant="outline"
-                            className="text-[0.65rem] uppercase tracking-[0.2em]"
+                            className="text-[0.65rem] tracking-[0.2em] uppercase"
                         >
                             Updating
                         </Badge>
@@ -250,7 +251,7 @@ export function MemberRecentAccountActionsCard({
                                     showActions,
                                 )}
                                 rows={meta.perPage}
-                                className="rounded-xl border border-border/40 bg-card/60"
+                                className="rounded-xl border border-border bg-card"
                                 tableClassName="min-w-240"
                             />
                         </div>
@@ -259,7 +260,7 @@ export function MemberRecentAccountActionsCard({
                     <>
                         <div className="md:hidden">
                             {actionsEmpty ? (
-                                <div className="rounded-xl border border-border/40 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+                                <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                                     No account activity available yet.
                                 </div>
                             ) : (
@@ -280,9 +281,9 @@ export function MemberRecentAccountActionsCard({
                                 </div>
                             )}
                         </div>
-                        <div className="hidden rounded-xl border border-border/40 bg-card/60 md:block">
+                        <div className="hidden rounded-xl border border-border bg-card md:block">
                             <Table className="min-w-240">
-                                <TableHeader className="border-b border-border/40 text-muted-foreground">
+                                <TableHeader className="border-b border-border text-muted-foreground">
                                     <TableRow>
                                         <TableHead>Number</TableHead>
                                         <TableHead>Date</TableHead>

@@ -118,7 +118,7 @@ const MobileMemberLookupCard = ({ member }: { member: MemberSummary }) => (
                 {getRegistrationStatusLabel(member.registration_status)}
             </Badge>
         </div>
-        <div className="mt-3 space-y-2 rounded-xl border border-border/30 bg-muted/30 p-3 text-xs">
+        <div className="mt-3 space-y-2 rounded-xl border border-border bg-muted/30 p-3 text-xs">
             <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Account No</span>
                 <span className="text-sm font-medium">
@@ -329,7 +329,7 @@ export default function AdminDashboard({
                 ) : null}
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                    <Card className="rounded-xl border-border bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Registered members
@@ -344,7 +344,7 @@ export default function AdminDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                    <Card className="rounded-xl border-border bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Unregistered members
@@ -359,7 +359,7 @@ export default function AdminDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                    <Card className="rounded-xl border-border bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>Total members</CardDescription>
                             <CardTitle className="text-3xl">
@@ -372,7 +372,7 @@ export default function AdminDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                    <Card className="rounded-xl border-border bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Requests awaiting review
@@ -387,7 +387,7 @@ export default function AdminDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                    <Card className="rounded-xl border-border bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>WIBS Desktop sync</CardDescription>
                             <CardTitle className="text-2xl">
@@ -457,7 +457,7 @@ export default function AdminDashboard({
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                            <Card className="rounded-xl border-border bg-card shadow-card">
                                 <CardHeader>
                                     <CardDescription>
                                         Pending applications
@@ -472,7 +472,7 @@ export default function AdminDashboard({
                                     </p>
                                 </CardContent>
                             </Card>
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                            <Card className="rounded-xl border-border bg-card shadow-card">
                                 <CardHeader>
                                     <CardDescription>Approved</CardDescription>
                                     <CardTitle className="text-3xl">
@@ -486,7 +486,7 @@ export default function AdminDashboard({
                                     </p>
                                 </CardContent>
                             </Card>
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                            <Card className="rounded-xl border-border bg-card shadow-card">
                                 <CardHeader>
                                     <CardDescription>
                                         Avg processing days
@@ -502,7 +502,7 @@ export default function AdminDashboard({
                                     </p>
                                 </CardContent>
                             </Card>
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                            <Card className="rounded-xl border-border bg-card shadow-card">
                                 <CardHeader>
                                     <CardDescription>
                                         Portfolio total
@@ -523,7 +523,7 @@ export default function AdminDashboard({
 
                         {applicationVolume &&
                         Object.keys(applicationVolume).length > 0 ? (
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                            <Card className="rounded-xl border-border bg-card shadow-card">
                                 <CardHeader>
                                     <CardTitle>Application volume</CardTitle>
                                     <CardDescription>
@@ -539,7 +539,7 @@ export default function AdminDashboard({
                         ) : null}
 
                         {staffPerformance && staffPerformance.length > 0 ? (
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                            <Card className="rounded-xl border-border bg-card shadow-card">
                                 <CardHeader>
                                     <CardTitle>Staff workload</CardTitle>
                                     <CardDescription>
@@ -605,7 +605,7 @@ export default function AdminDashboard({
                 <div className="grid gap-4 lg:grid-cols-2">
                     <Card
                         id="requests"
-                        className="rounded-2xl border-border/40 bg-card/70 shadow-card"
+                        className="rounded-xl border-border bg-card shadow-card"
                     >
                         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -634,7 +634,7 @@ export default function AdminDashboard({
                             ) : (
                                 <div className="overflow-x-auto">
                                     <Table>
-                                        <TableHeader className="border-b border-border/60 text-muted-foreground">
+                                        <TableHeader className="border-b border-border text-muted-foreground">
                                             <TableRow>
                                                 <TableHead className="px-6">
                                                     Member
@@ -691,7 +691,7 @@ export default function AdminDashboard({
 
                     <Card
                         id="member-lookup"
-                        className="rounded-2xl border-border/40 bg-card/70 shadow-card"
+                        className="rounded-xl border-border bg-card shadow-card"
                     >
                         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -747,7 +747,7 @@ export default function AdminDashboard({
                                                 memberLookupSkeletonColumns
                                             }
                                             rows={5}
-                                            className="rounded-xl border border-border/40 bg-card/60"
+                                            className="rounded-xl border border-border bg-card"
                                         />
                                     </div>
                                 </>
@@ -755,7 +755,7 @@ export default function AdminDashboard({
                                 <>
                                     <div className="space-y-3 md:hidden">
                                         {lookupRows.length === 0 ? (
-                                            <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+                                            <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                                                 {lookupEmptyMessage}
                                             </div>
                                         ) : (
@@ -767,7 +767,7 @@ export default function AdminDashboard({
                                             ))
                                         )}
                                     </div>
-                                    <div className="hidden rounded-xl border border-border/40 bg-card/60 md:block">
+                                    <div className="hidden rounded-xl border border-border bg-card md:block">
                                         <Table>
                                             <TableHeader className="text-muted-foreground">
                                                 <TableRow>

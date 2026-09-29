@@ -150,7 +150,7 @@ function NotificationStatePanel({
             role="status"
             aria-live="polite"
         >
-            <div className="flex size-11 items-center justify-center rounded-2xl border border-border/50 bg-muted/30 text-muted-foreground">
+            <div className="flex size-11 items-center justify-center rounded-xl border border-border bg-muted/30 text-muted-foreground">
                 <Icon className="size-5" />
             </div>
             <div className="space-y-1">
@@ -170,7 +170,7 @@ function NotificationsSkeletonList() {
             {[0, 1, 2, 3].map((item) => (
                 <div
                     key={item}
-                    className="flex items-start gap-3 rounded-xl border border-border/40 bg-card/50 px-3 py-3"
+                    className="flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3"
                 >
                     <Skeleton className="size-10 rounded-xl" />
                     <div className="min-w-0 flex-1 space-y-2">
@@ -218,12 +218,12 @@ function NotificationCard({
                 'hover:bg-muted/50',
                 isUnread
                     ? 'border-primary/15 bg-primary/[0.05]'
-                    : 'border-border/50 bg-background/70',
+                    : 'border-border bg-background/70',
             )}
             aria-label={`${isUnread ? 'Unread' : 'Read'} notification: ${payload.title}`}
         >
             <div className="flex items-start gap-3">
-                <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background/80">
+                <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background/80">
                     <span
                         className={cn(
                             'flex size-8 items-center justify-center rounded-lg ring-1 ring-inset',
@@ -291,7 +291,7 @@ function NotificationCard({
                     ) : null}
 
                     {supportingNote ? (
-                        <div className="rounded-lg border border-border/40 bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
+                        <div className="rounded-lg border border-border bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
                             <span className="mr-1 font-medium text-foreground/75">
                                 Supporting note:
                             </span>
@@ -302,7 +302,7 @@ function NotificationCard({
                     ) : null}
 
                     {notes ? (
-                        <div className="rounded-lg border border-border/40 bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
+                        <div className="rounded-lg border border-border bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
                             <span className="mr-1 font-medium text-foreground/75">
                                 Note:
                             </span>
@@ -487,7 +487,7 @@ export default function NotificationsPage() {
                     padding="none"
                     className="overflow-hidden"
                 >
-                    <div className="border-b border-border/50 px-4 py-3">
+                    <div className="border-b border-border px-4 py-3">
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
                                 <Filter className="size-3.5" />

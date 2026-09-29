@@ -102,7 +102,7 @@ export default function Reports({
                     description="Export loan workflow data for analysis."
                 />
 
-                <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                <Card className="rounded-xl border-border bg-card shadow-card">
                     <CardHeader>
                         <CardTitle>Date range filter</CardTitle>
                         <CardDescription>
@@ -139,7 +139,7 @@ export default function Reports({
                 </Card>
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                    <Card className="rounded-xl border-border bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>Pending</CardDescription>
                             <CardTitle className="text-3xl">
@@ -147,7 +147,7 @@ export default function Reports({
                             </CardTitle>
                         </CardHeader>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                    <Card className="rounded-xl border-border bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>Approved</CardDescription>
                             <CardTitle className="text-3xl">
@@ -155,7 +155,7 @@ export default function Reports({
                             </CardTitle>
                         </CardHeader>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                    <Card className="rounded-xl border-border bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>Approval rate</CardDescription>
                             <CardTitle className="text-3xl">
@@ -163,7 +163,7 @@ export default function Reports({
                             </CardTitle>
                         </CardHeader>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                    <Card className="rounded-xl border-border bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Avg processing days
@@ -180,7 +180,7 @@ export default function Reports({
                     {REPORT_DEFINITIONS.map((def) => (
                         <Card
                             key={def.type}
-                            className="rounded-2xl border-border/40 bg-card/70 shadow-card"
+                            className="rounded-xl border-border bg-card shadow-card"
                         >
                             <CardHeader>
                                 <CardTitle>{def.label}</CardTitle>

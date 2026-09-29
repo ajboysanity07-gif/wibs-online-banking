@@ -147,7 +147,7 @@ const MobileMemberCard = ({ member }: { member: MemberSummary }) => (
                 {getRegistrationStatusLabel(member.registration_status)}
             </Badge>
         </div>
-        <div className="mt-3 space-y-2 rounded-xl border border-border/30 bg-muted/30 p-3 text-xs">
+        <div className="mt-3 space-y-2 rounded-xl border border-border bg-muted/30 p-3 text-xs">
             <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Account No</span>
                 <span className="text-sm font-medium">
@@ -330,7 +330,7 @@ export default function MembersPage() {
                     padding="none"
                     className="overflow-hidden"
                 >
-                    <div className="border-b border-border/40 bg-card/70 px-6 py-4">
+                    <div className="border-b border-border bg-card px-6 py-4">
                         <SectionHeader
                             title="Results"
                             description={resultsLabel}
@@ -375,7 +375,7 @@ export default function MembersPage() {
                             <>
                                 <div className="space-y-3 px-2 pt-4 pb-3 md:hidden">
                                     {items.length === 0 ? (
-                                        <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+                                        <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                                             No members found.
                                         </div>
                                     ) : (

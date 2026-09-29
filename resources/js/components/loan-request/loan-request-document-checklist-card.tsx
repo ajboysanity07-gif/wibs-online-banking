@@ -310,7 +310,7 @@ export const LoanRequestDocumentChecklistCard = ({
         );
 
     return (
-        <Card className="border-border/30 bg-card/70 shadow-card">
+        <Card className="border-border bg-card shadow-card">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <ClipboardCheck className="size-4 text-muted-foreground" />
@@ -796,7 +796,7 @@ export const LoanRequestDocumentChecklistCard = ({
                     ))}
                 </div>
                 {packageZipDownload ? (
-                    <div className="mt-4 border-t border-border/40 pt-4">
+                    <div className="mt-4 border-t border-border pt-4">
                         {allDocumentsGenerated ? (
                             <div className="space-y-2">
                                 <Button
@@ -825,7 +825,7 @@ export const LoanRequestDocumentChecklistCard = ({
                                 ) : null}
                             </div>
                         ) : (
-                            <p className="rounded-lg border border-dashed border-border/60 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
+                            <p className="rounded-lg border border-dashed border-border bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
                                 Generate every applicable document above to
                                 enable the ZIP download.
                             </p>

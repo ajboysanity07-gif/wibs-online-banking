@@ -62,7 +62,7 @@ export function MemberAccountSummaryCard({
     const hasAction = Boolean(actionLabel);
 
     return (
-        <Card className="relative overflow-hidden rounded-2xl border-border/40 bg-card/70 shadow-card">
+        <Card className="relative overflow-hidden rounded-xl border-border bg-card shadow-card">
             <div
                 className={cn(
                     'absolute inset-x-0 top-0 h-1',
@@ -73,7 +73,7 @@ export function MemberAccountSummaryCard({
                 <div className="flex items-start gap-3">
                     <div
                         className={cn(
-                            'flex h-11 w-11 items-center justify-center rounded-2xl border',
+                            'flex h-11 w-11 items-center justify-center rounded-xl border',
                             accentClasses.iconWrap,
                         )}
                     >
@@ -126,8 +126,8 @@ export function MemberAccountSummaryCard({
                         </p>
                     )}
                 </div>
-                <div className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2">
-                    <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="rounded-lg border border-border bg-muted/20 px-3 py-2">
+                    <p className="text-[0.7rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
                         {secondaryLabel}
                     </p>
                     {loading ? (

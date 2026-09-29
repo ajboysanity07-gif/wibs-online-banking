@@ -809,7 +809,7 @@ export function LoanRequestQueuePage({
                     helperText={summaryHelperText}
                 />
 
-                <section className="rounded-2xl border border-border/40 bg-card/60 p-4 shadow-card sm:p-5">
+                <section className="rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
                     <div className="space-y-4">
                         <LoanRequestSearchBox
                             value={search}
@@ -1037,7 +1037,7 @@ export function LoanRequestQueuePage({
                 ) : null}
 
                 {selectedIds.length > 0 ? (
-                    <div className="flex animate-in flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/40 bg-card/60 p-4 shadow-card duration-150 fade-in slide-in-from-top-1">
+                    <div className="flex animate-in flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-card duration-150 fade-in slide-in-from-top-1">
                         <p className="text-sm font-medium">
                             {formatCountLabel(selectedIds.length, 'request')}{' '}
                             selected
@@ -1086,8 +1086,8 @@ export function LoanRequestQueuePage({
                     </div>
                 ) : null}
 
-                <section className="overflow-hidden rounded-2xl border border-border/40 bg-card/60 shadow-card">
-                    <div className="border-b border-border/40 bg-card/70 px-4 py-4 sm:px-6">
+                <section className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+                    <div className="border-b border-border bg-card px-4 py-4 sm:px-6">
                         <h2 className="text-lg font-semibold">
                             Request results
                         </h2>
@@ -1128,7 +1128,7 @@ export function LoanRequestQueuePage({
                                         (_, index) => (
                                             <div
                                                 key={`request-skeleton-${index}`}
-                                                className="rounded-xl border border-border/40 bg-card/50 p-4"
+                                                className="rounded-xl border border-border bg-card p-4"
                                             >
                                                 <div className="flex items-center justify-between gap-4">
                                                     <Skeleton className="h-4 w-32" />
@@ -1155,7 +1155,7 @@ export function LoanRequestQueuePage({
                                                 item.id ??
                                                 `${item.member_name ?? 'request'}-${index}`
                                             }
-                                            className="rounded-xl border border-border/40 bg-card/60 p-4 shadow-card"
+                                            className="rounded-xl border border-border bg-card p-4 shadow-card"
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>

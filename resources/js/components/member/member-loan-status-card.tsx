@@ -9,7 +9,10 @@ import {
 } from '@/components/ui/card';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import type { LoanStatusSummaryForMember, ProblemLoan } from '@/types/loan-requests';
+import type {
+    LoanStatusSummaryForMember,
+    ProblemLoan,
+} from '@/types/loan-requests';
 
 type MemberLoanStatusCardProps = {
     loanSummary: LoanStatusSummaryForMember;
@@ -39,7 +42,7 @@ export function MemberLoanStatusCard({
     return (
         <Card
             className={cn(
-                'rounded-2xl border-border/40 bg-card/70 shadow-card',
+                'rounded-xl border-border bg-card shadow-card',
                 className,
             )}
         >
@@ -53,8 +56,8 @@ export function MemberLoanStatusCard({
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col gap-4">
-                <div className="flex items-center justify-between rounded-lg border border-border/30 bg-muted/20 px-3 py-2">
-                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2">
+                    <span className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
                         Total balance
                     </span>
                     <span className="text-sm font-semibold">
@@ -69,7 +72,7 @@ export function MemberLoanStatusCard({
                 ) : (
                     <>
                         <div className="grid grid-cols-3 gap-2">
-                            <div className="rounded-xl border border-border/30 bg-muted/10 p-3 text-center">
+                            <div className="rounded-xl border border-border bg-muted/10 p-3 text-center">
                                 <p className="text-2xl font-semibold">
                                     {loanSummary.active_count}
                                 </p>
@@ -85,7 +88,7 @@ export function MemberLoanStatusCard({
                                     'rounded-xl border p-3 text-center',
                                     loanSummary.past_due_count > 0
                                         ? 'border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-200'
-                                        : 'border-border/30 bg-muted/10',
+                                        : 'border-border bg-muted/10',
                                 )}
                             >
                                 <p className="text-2xl font-semibold">
@@ -95,7 +98,9 @@ export function MemberLoanStatusCard({
                                     Past Due
                                 </p>
                                 <p className="mt-1 text-[11px] text-muted-foreground">
-                                    {formatCurrency(loanSummary.past_due_balance)}
+                                    {formatCurrency(
+                                        loanSummary.past_due_balance,
+                                    )}
                                 </p>
                             </div>
                             <div
@@ -103,7 +108,7 @@ export function MemberLoanStatusCard({
                                     'rounded-xl border p-3 text-center',
                                     loanSummary.litigation_count > 0
                                         ? 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-200'
-                                        : 'border-border/30 bg-muted/10',
+                                        : 'border-border bg-muted/10',
                                 )}
                             >
                                 <p className="text-2xl font-semibold">
@@ -113,7 +118,9 @@ export function MemberLoanStatusCard({
                                     In Litigation
                                 </p>
                                 <p className="mt-1 text-[11px] text-muted-foreground">
-                                    {formatCurrency(loanSummary.litigation_balance)}
+                                    {formatCurrency(
+                                        loanSummary.litigation_balance,
+                                    )}
                                 </p>
                             </div>
                         </div>
@@ -122,7 +129,7 @@ export function MemberLoanStatusCard({
                             {loanSummary.loans.map((loan) => (
                                 <li
                                     key={loan.lnnumber}
-                                    className="rounded-xl border border-border/40 bg-muted/10 p-3"
+                                    className="rounded-xl border border-border bg-muted/10 p-3"
                                 >
                                     <div className="flex flex-wrap items-center justify-between gap-3">
                                         <div className="space-y-0.5">
@@ -134,7 +141,7 @@ export function MemberLoanStatusCard({
                                                     variant={loanStatusBadgeVariant(
                                                         loan,
                                                     )}
-                                                    className="text-[0.65rem] uppercase tracking-[0.14em]"
+                                                    className="text-[0.65rem] tracking-[0.14em] uppercase"
                                                 >
                                                     {loan.lnstatus_label}
                                                 </Badge>
@@ -151,7 +158,9 @@ export function MemberLoanStatusCard({
                                             <p className="text-muted-foreground">
                                                 Balance:{' '}
                                                 <span className="font-medium text-foreground">
-                                                    {formatCurrency(loan.balance)}
+                                                    {formatCurrency(
+                                                        loan.balance,
+                                                    )}
                                                 </span>
                                             </p>
                                         </div>

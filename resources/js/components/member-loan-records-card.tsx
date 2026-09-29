@@ -274,7 +274,7 @@ export function MemberLoanRecordsCard({
             mobileWrapperClassName="space-y-3"
             mobileContent={
                 items.length === 0 ? (
-                    <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+                    <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                         {loanEmptyMessage}
                     </div>
                 ) : (

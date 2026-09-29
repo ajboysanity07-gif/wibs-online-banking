@@ -39,7 +39,7 @@ export function MemberProfileDetailsCard({
                 <div
                     key={item.label}
                     className={cn(
-                        'rounded-lg border border-border/30 bg-muted/20 p-3',
+                        'rounded-lg border border-border bg-muted/20 p-3',
                         itemClassName,
                     )}
                 >

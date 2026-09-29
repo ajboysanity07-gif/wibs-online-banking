@@ -232,7 +232,7 @@ export default function ReportedRequestsPage() {
                     helperText="Admins should review each report from the request detail page before cancelling or dismissing."
                 />
 
-                <section className="rounded-2xl border border-border/40 bg-card/60 p-4 shadow-card sm:p-5">
+                <section className="rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
                     <LoanRequestSearchBox
                         value={search}
                         onChange={(nextSearch) => {
@@ -260,8 +260,8 @@ export default function ReportedRequestsPage() {
                     </Alert>
                 ) : null}
 
-                <section className="overflow-hidden rounded-2xl border border-border/40 bg-card/60 shadow-card">
-                    <div className="border-b border-border/40 bg-card/70 px-4 py-4 sm:px-6">
+                <section className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+                    <div className="border-b border-border bg-card px-4 py-4 sm:px-6">
                         <h2 className="text-lg font-semibold">
                             Reported request queue
                         </h2>
@@ -298,7 +298,7 @@ export default function ReportedRequestsPage() {
                                         (_, index) => (
                                             <div
                                                 key={`reported-request-skeleton-${index}`}
-                                                className="rounded-xl border border-border/40 bg-card/50 p-4"
+                                                className="rounded-xl border border-border bg-card p-4"
                                             >
                                                 <div className="flex items-center justify-between gap-4">
                                                     <Skeleton className="h-4 w-32" />
@@ -324,7 +324,7 @@ export default function ReportedRequestsPage() {
                                                 item.id ??
                                                 `${item.reference ?? 'reported-request'}-${index}`
                                             }
-                                            className="rounded-xl border border-border/40 bg-card/60 p-4 shadow-card"
+                                            className="rounded-xl border border-border bg-card p-4 shadow-card"
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>

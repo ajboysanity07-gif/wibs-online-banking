@@ -101,7 +101,7 @@ export function MemberLoanPaymentsFiltersCard({
                             disabled={filters.range !== 'custom'}
                         />
                     </div>
-                    <div className="rounded-xl border border-border/30 bg-muted/30 p-3">
+                    <div className="rounded-xl border border-border bg-muted/30 p-3">
                         <p className="text-xs text-muted-foreground">
                             Opening / Closing
                         </p>

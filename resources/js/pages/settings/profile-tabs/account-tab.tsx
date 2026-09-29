@@ -69,7 +69,7 @@ export function AccountTab({
                                 htmlFor="profile_photo"
                                 className="group relative flex h-24 w-24 cursor-pointer items-center justify-center rounded-full"
                             >
-                                <Avatar className="h-24 w-24 overflow-hidden rounded-full border border-border/70 shadow-sm">
+                                <Avatar className="h-24 w-24 overflow-hidden rounded-full border border-border shadow-sm">
                                     <AvatarImage
                                         src={profilePhotoUrl}
                                         alt={displayName}

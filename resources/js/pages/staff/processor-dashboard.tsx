@@ -73,7 +73,7 @@ export default function ProcessorDashboard({
                 />
 
                 <div className="grid gap-4 sm:grid-cols-3">
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                    <Card className="rounded-xl border-border bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>{queueLabel}</CardDescription>
                             <CardTitle className="text-3xl">
@@ -86,7 +86,7 @@ export default function ProcessorDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                    <Card className="rounded-xl border-border bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 {approvedLabel} — {thisMonth.month_label}
@@ -96,7 +96,7 @@ export default function ProcessorDashboard({
                             </CardTitle>
                         </CardHeader>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                    <Card className="rounded-xl border-border bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Rejected — {thisMonth.month_label}
@@ -124,7 +124,7 @@ export default function ProcessorDashboard({
                     </Alert>
                 ) : null}
 
-                <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
+                <Card className="rounded-xl border-border bg-card shadow-card">
                     <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <CardTitle>{queueLabel}</CardTitle>

@@ -646,7 +646,7 @@ const CorrectionReportContextCard = ({
     return (
         <section
             className={cn(
-                'rounded-2xl border border-amber-500/30 bg-amber-500/[0.08] shadow-[0_18px_44px_-36px_rgba(245,158,11,0.65)] dark:border-amber-400/25 dark:bg-amber-400/[0.08]',
+                'rounded-xl border border-amber-500/30 bg-amber-500/[0.08] shadow-[0_18px_44px_-36px_rgba(245,158,11,0.65)] dark:border-amber-400/25 dark:bg-amber-400/[0.08]',
                 compact ? 'space-y-3 p-4' : 'space-y-4 p-4 sm:p-5',
             )}
         >
@@ -1494,9 +1494,9 @@ function CorrectionDialogForm({
     };
 
     return (
-        <DialogContent className="grid max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-border/60 bg-card/95 p-0 shadow-2xl backdrop-blur-sm sm:max-w-6xl">
+        <DialogContent className="grid max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-border bg-card/95 p-0 shadow-2xl backdrop-blur-sm sm:max-w-6xl">
             <DialogHeader>
-                <div className="space-y-6 border-b border-border/40 px-6 pt-6 pb-5 sm:px-7">
+                <div className="space-y-6 border-b border-border px-6 pt-6 pb-5 sm:px-7">
                     <div className="space-y-2">
                         <DialogTitle className="text-2xl font-semibold tracking-tight">
                             Edit request details
@@ -1508,15 +1508,15 @@ function CorrectionDialogForm({
                         </DialogDescription>
                     </div>
 
-                    <Alert className="border-border/50 bg-muted/10">
+                    <Alert className="border-border bg-muted/10">
                         <Info className="size-4" />
                         <AlertTitle>What you can correct here</AlertTitle>
                         <AlertDescription>
                             This covers loan terms, applicant/co-maker profiles,
-                            insurance beneficiaries, banking, and
-                            dependents. The health questionnaire and the
-                            member&apos;s declarations are the member&apos;s own
-                            sworn statements — they can only be corrected by the
+                            insurance beneficiaries, banking, and dependents.
+                            The health questionnaire and the member&apos;s
+                            declarations are the member&apos;s own sworn
+                            statements — they can only be corrected by the
                             member directly, not here.
                         </AlertDescription>
                     </Alert>
@@ -1805,7 +1805,7 @@ function CorrectionDialogForm({
                                         {changeGroups.map((group) => (
                                             <section
                                                 key={group.id}
-                                                className="rounded-2xl border border-border/45 bg-muted/10 p-4"
+                                                className="rounded-xl border border-border/45 bg-muted/10 p-4"
                                             >
                                                 <div className="space-y-1">
                                                     <h3 className="text-sm font-semibold text-foreground">
@@ -1829,7 +1829,7 @@ function CorrectionDialogForm({
                                                                     key={
                                                                         change.field
                                                                     }
-                                                                    className="rounded-xl border border-border/45 bg-card/70 p-3"
+                                                                    className="rounded-xl border border-border/45 bg-card p-3"
                                                                 >
                                                                     <p className="text-xs font-semibold text-foreground">
                                                                         {
@@ -1837,7 +1837,7 @@ function CorrectionDialogForm({
                                                                         }
                                                                     </p>
                                                                     <div className="mt-2 grid gap-2 text-xs sm:grid-cols-2">
-                                                                        <div className="rounded-lg border border-border/40 bg-muted/20 p-2">
+                                                                        <div className="rounded-lg border border-border bg-muted/20 p-2">
                                                                             <p className="text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                                                                                 Before
                                                                             </p>
@@ -1985,7 +1985,7 @@ function CorrectionDialogForm({
                     </LoanRequestWizardShell>
                 </div>
 
-                <div className="sticky bottom-0 z-20 border-t border-border/60 bg-background/90 px-6 py-4 shadow-[0_-12px_24px_-24px_rgba(0,0,0,0.35)] backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:px-7 sm:py-5">
+                <div className="sticky bottom-0 z-20 border-t border-border bg-background/90 px-6 py-4 shadow-[0_-12px_24px_-24px_rgba(0,0,0,0.35)] backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:px-7 sm:py-5">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <Button
                             type="button"

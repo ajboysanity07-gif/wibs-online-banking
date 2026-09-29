@@ -123,7 +123,8 @@ const LoanRequestMobileCard = ({
         ? loanRequestCreate().url
         : loanRequestShow(request.id).url;
     const actionLabel = isEditableRequest ? 'Resume draft' : 'View request';
-    const timestampLabel = request.status === 'draft' ? 'Last saved' : 'Submitted';
+    const timestampLabel =
+        request.status === 'draft' ? 'Last saved' : 'Submitted';
 
     return (
         <MemberMobileCard
@@ -262,13 +263,13 @@ export function LoanRequestRecordsCard({
                 <TableSkeleton
                     columns={requestTableSkeletonColumns}
                     rows={4}
-                    className="rounded-xl border border-border/40 bg-card/60"
+                    className="rounded-xl border border-border bg-card"
                     tableClassName="min-w-[1040px]"
                 />
             }
             body={
                 showEmptyState ? (
-                    <div className="rounded-xl border border-dashed border-border/50 bg-muted/20 px-6 py-8 text-center">
+                    <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-8 text-center">
                         <p className="text-sm font-medium">
                             No loan requests yet.
                         </p>

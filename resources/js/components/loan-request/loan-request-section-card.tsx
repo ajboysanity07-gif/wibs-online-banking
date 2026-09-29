@@ -43,7 +43,7 @@ export function LoanRequestSectionCard({
     return (
         <Card
             className={cn(
-                'animate-in border-border/50 bg-card/70 duration-200 fade-in slide-in-from-top-2',
+                'animate-in border-border bg-card duration-200 fade-in slide-in-from-top-2',
                 className,
             )}
         >
