@@ -150,7 +150,7 @@ function NotificationStatePanel({
             role="status"
             aria-live="polite"
         >
-            <div className="flex size-11 items-center justify-center rounded-xl border border-border bg-muted/30 text-muted-foreground">
+            <div className="flex size-11 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground">
                 <Icon className="size-5" />
             </div>
             <div className="space-y-1">
@@ -218,12 +218,12 @@ function NotificationCard({
                 'hover:bg-muted/50',
                 isUnread
                     ? 'border-primary/15 bg-primary/[0.05]'
-                    : 'border-border bg-background/70',
+                    : 'border-border bg-background',
             )}
             aria-label={`${isUnread ? 'Unread' : 'Read'} notification: ${payload.title}`}
         >
             <div className="flex items-start gap-3">
-                <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background/80">
+                <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background">
                     <span
                         className={cn(
                             'flex size-8 items-center justify-center rounded-lg ring-1 ring-inset',
@@ -291,7 +291,7 @@ function NotificationCard({
                     ) : null}
 
                     {supportingNote ? (
-                        <div className="rounded-lg border border-border bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
+                        <div className="rounded-lg border border-border bg-background px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
                             <span className="mr-1 font-medium text-foreground/75">
                                 Supporting note:
                             </span>
@@ -302,7 +302,7 @@ function NotificationCard({
                     ) : null}
 
                     {notes ? (
-                        <div className="rounded-lg border border-border bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
+                        <div className="rounded-lg border border-border bg-background px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
                             <span className="mr-1 font-medium text-foreground/75">
                                 Note:
                             </span>
