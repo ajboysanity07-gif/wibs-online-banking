@@ -35,7 +35,7 @@ export function MemberStatusCard({
     return (
         <Card
             className={cn(
-                'rounded-2xl border-border/40 bg-card/70 shadow-sm',
+                'rounded-2xl border-border/40 bg-card/70 shadow-card',
                 className,
             )}
         >

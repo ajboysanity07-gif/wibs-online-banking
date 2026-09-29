@@ -329,7 +329,7 @@ export default function AdminDashboard({
                 ) : null}
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Registered members
@@ -344,7 +344,7 @@ export default function AdminDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Unregistered members
@@ -359,7 +359,7 @@ export default function AdminDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
                         <CardHeader>
                             <CardDescription>Total members</CardDescription>
                             <CardTitle className="text-3xl">
@@ -372,7 +372,7 @@ export default function AdminDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Requests awaiting review
@@ -387,7 +387,7 @@ export default function AdminDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
                         <CardHeader>
                             <CardDescription>WIBS Desktop sync</CardDescription>
                             <CardTitle className="text-2xl">
@@ -457,7 +457,7 @@ export default function AdminDashboard({
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
                                 <CardHeader>
                                     <CardDescription>
                                         Pending applications
@@ -472,7 +472,7 @@ export default function AdminDashboard({
                                     </p>
                                 </CardContent>
                             </Card>
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
                                 <CardHeader>
                                     <CardDescription>Approved</CardDescription>
                                     <CardTitle className="text-3xl">
@@ -486,7 +486,7 @@ export default function AdminDashboard({
                                     </p>
                                 </CardContent>
                             </Card>
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
                                 <CardHeader>
                                     <CardDescription>
                                         Avg processing days
@@ -502,7 +502,7 @@ export default function AdminDashboard({
                                     </p>
                                 </CardContent>
                             </Card>
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
                                 <CardHeader>
                                     <CardDescription>
                                         Portfolio total
@@ -523,7 +523,7 @@ export default function AdminDashboard({
 
                         {applicationVolume &&
                         Object.keys(applicationVolume).length > 0 ? (
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
                                 <CardHeader>
                                     <CardTitle>Application volume</CardTitle>
                                     <CardDescription>
@@ -539,7 +539,7 @@ export default function AdminDashboard({
                         ) : null}
 
                         {staffPerformance && staffPerformance.length > 0 ? (
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-card">
                                 <CardHeader>
                                     <CardTitle>Staff workload</CardTitle>
                                     <CardDescription>
@@ -605,7 +605,7 @@ export default function AdminDashboard({
                 <div className="grid gap-4 lg:grid-cols-2">
                     <Card
                         id="requests"
-                        className="rounded-2xl border-border/40 bg-card/70 shadow-sm"
+                        className="rounded-2xl border-border/40 bg-card/70 shadow-card"
                     >
                         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -691,7 +691,7 @@ export default function AdminDashboard({
 
                     <Card
                         id="member-lookup"
-                        className="rounded-2xl border-border/40 bg-card/70 shadow-sm"
+                        className="rounded-2xl border-border/40 bg-card/70 shadow-card"
                     >
                         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>

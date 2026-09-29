@@ -80,7 +80,7 @@ export function AccountTab({
                                     </AvatarFallback>
                                 </Avatar>
                                 <span className="absolute inset-0 rounded-full bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-                                <span className="absolute right-1 bottom-1 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-transform duration-200 group-hover:scale-105">
+                                <span className="absolute right-1 bottom-1 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-card transition-transform duration-200 group-hover:scale-105">
                                     <Camera className="h-4 w-4" />
                                 </span>
                             </label>

@@ -148,7 +148,7 @@ type Props = {
     workflowHealth: LoanRequestWorkflowHealth;
 };
 
-const readOnlyCardClassName = 'border-border/20 bg-card/40 shadow-sm';
+const readOnlyCardClassName = 'border-border/20 bg-card/40 shadow-card';
 
 const sectionEditButtonClassName =
     'transition-all duration-150 ease-out active:scale-90 active:duration-75 hover:-translate-y-0.5 hover:shadow-md [&_svg]:transition-transform [&_svg]:duration-150 active:[&_svg]:rotate-12';
@@ -1973,7 +1973,7 @@ export default function StaffLoanRequestShow({
                                 title="WIBS Tracking"
                                 description="Official loan tracking in the WIBS system."
                                 icon={Truck}
-                                className="border-border/30 bg-card/70 shadow-sm"
+                                className="border-border/30 bg-card/70 shadow-card"
                                 contentClassName="space-y-4"
                             >
                                 <div className="flex items-center gap-2">

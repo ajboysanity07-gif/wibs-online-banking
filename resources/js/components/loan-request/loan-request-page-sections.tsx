@@ -54,7 +54,7 @@ export function LoanRequestPageHero({
     badges,
 }: LoanRequestPageHeroProps) {
     return (
-        <section className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7">
+        <section className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-card sm:p-7">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                 <div className="space-y-2">
                     <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">

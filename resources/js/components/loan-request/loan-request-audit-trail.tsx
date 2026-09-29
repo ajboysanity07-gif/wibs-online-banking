@@ -134,7 +134,7 @@ export function LoanRequestAuditTrail({
     );
 
     return (
-        <Card className="border-border/30 bg-card/60 shadow-sm">
+        <Card className="border-border/30 bg-card/60 shadow-card">
             <Collapsible open={open} onOpenChange={setOpen}>
                 <CollapsibleTrigger asChild disabled={!hasOlderEntries}>
                     <CardHeader

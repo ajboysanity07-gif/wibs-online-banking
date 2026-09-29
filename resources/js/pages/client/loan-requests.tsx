@@ -246,7 +246,7 @@ export default function LoanRequestsPage({
                     ]}
                 />
 
-                <section className="rounded-2xl border border-border/40 bg-card/60 p-4 shadow-sm sm:p-5">
+                <section className="rounded-2xl border border-border/40 bg-card/60 p-4 shadow-card sm:p-5">
                     <div className="flex flex-col gap-3">
                         <LoanRequestStatusFilters
                             options={statusFilters}

@@ -53,6 +53,8 @@
     --color-chart-4: var(--chart-4);
     --color-chart-5: var(--chart-5);
 
+    --shadow-card: var(--card-shadow);
+
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar-primary: var(--sidebar-primary);
@@ -97,6 +99,8 @@
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
     --radius: 0.625rem;
+    --card-shadow:
+        0 2px 4px rgba(20, 23, 15, 0.1), 0 10px 28px rgba(20, 23, 15, 0.16);
 }
 
 .dark {
@@ -132,6 +136,8 @@
     --chart-3: oklch(0.769 0.188 70.08);
     --chart-4: oklch(0.627 0.265 303.9);
     --chart-5: oklch(0.645 0.246 16.439);
+    --card-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.22), 0 10px 28px rgba(0, 0, 0, 0.35);
 }
 
 @layer base {

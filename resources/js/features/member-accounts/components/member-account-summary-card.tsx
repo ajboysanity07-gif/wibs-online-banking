@@ -62,7 +62,7 @@ export function MemberAccountSummaryCard({
     const hasAction = Boolean(actionLabel);
 
     return (
-        <Card className="relative overflow-hidden rounded-2xl border-border/40 bg-card/70 shadow-sm">
+        <Card className="relative overflow-hidden rounded-2xl border-border/40 bg-card/70 shadow-card">
             <div
                 className={cn(
                     'absolute inset-x-0 top-0 h-1',

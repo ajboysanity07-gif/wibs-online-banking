@@ -237,7 +237,7 @@ export function MemberLoanScheduleSections({
                             />
                         )}
                         {selectedEntry ? (
-                            <div className="rounded-2xl border border-border/40 bg-card/70 p-4 shadow-sm">
+                            <div className="rounded-2xl border border-border/40 bg-card/70 p-4 shadow-card">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="space-y-1">
                                         <p className="text-sm font-semibold">

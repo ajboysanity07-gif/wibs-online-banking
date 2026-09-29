@@ -45,10 +45,7 @@ export default function AuthSplitLayout({
                     >
                         <AppLogo variant="stacked" />
                     </Link>
-                    <SurfaceCard
-                        padding="lg"
-                        className="shadow-md dark:shadow-[0_6px_14px_rgba(0,0,0,0.3)]"
-                    >
+                    <SurfaceCard padding="lg">
                         <div className="flex flex-col gap-6">
                             <div className="space-y-1">
                                 <h1 className="text-2xl font-bold tracking-tight">

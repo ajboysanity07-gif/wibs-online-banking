@@ -26,7 +26,7 @@ import { Spinner } from './ui/spinner';
 
 function GridScanIcon() {
     return (
-        <div className="mb-3 rounded-full border border-border bg-card p-0.5 shadow-sm">
+        <div className="mb-3 rounded-full border border-border bg-card p-0.5 shadow-card">
             <div className="relative overflow-hidden rounded-full border border-border bg-muted p-2.5">
                 <div className="absolute inset-0 grid grid-cols-5 opacity-50">
                     {Array.from({ length: 5 }, (_, i) => (

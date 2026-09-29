@@ -232,7 +232,7 @@ export default function ReportedRequestsPage() {
                     helperText="Admins should review each report from the request detail page before cancelling or dismissing."
                 />
 
-                <section className="rounded-2xl border border-border/40 bg-card/60 p-4 shadow-sm sm:p-5">
+                <section className="rounded-2xl border border-border/40 bg-card/60 p-4 shadow-card sm:p-5">
                     <LoanRequestSearchBox
                         value={search}
                         onChange={(nextSearch) => {
@@ -260,7 +260,7 @@ export default function ReportedRequestsPage() {
                     </Alert>
                 ) : null}
 
-                <section className="overflow-hidden rounded-2xl border border-border/40 bg-card/60 shadow-sm">
+                <section className="overflow-hidden rounded-2xl border border-border/40 bg-card/60 shadow-card">
                     <div className="border-b border-border/40 bg-card/70 px-4 py-4 sm:px-6">
                         <h2 className="text-lg font-semibold">
                             Reported request queue
@@ -324,7 +324,7 @@ export default function ReportedRequestsPage() {
                                                 item.id ??
                                                 `${item.reference ?? 'reported-request'}-${index}`
                                             }
-                                            className="rounded-xl border border-border/40 bg-card/60 p-4 shadow-sm"
+                                            className="rounded-xl border border-border/40 bg-card/60 p-4 shadow-card"
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>

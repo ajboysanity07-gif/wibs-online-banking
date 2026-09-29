@@ -79,7 +79,7 @@ const PDC_SCHEDULE_TEMPORARILY_DISABLED = true;
 const INSTITUTIONAL_EMPLOYER_CATEGORY_UNSET_VALUE = 'unset';
 
 const actionCardClassName =
-    'border-primary/25 bg-card/80 shadow-sm ring-1 ring-primary/10';
+    'border-primary/25 bg-card/80 shadow-card ring-1 ring-primary/10';
 const sectionEditButtonClassName =
     'transition-all duration-150 ease-out active:scale-90 active:duration-75 hover:-translate-y-0.5 hover:shadow-md [&_svg]:transition-transform [&_svg]:duration-150 active:[&_svg]:rotate-12';
 const readOnlyProcessingFieldClassName =
@@ -1480,7 +1480,7 @@ export function ProcessingDetailsPanel({
             className={
                 canUpdateProcessing
                     ? actionCardClassName
-                    : 'border-border/30 bg-card/70 shadow-sm'
+                    : 'border-border/30 bg-card/70 shadow-card'
             }
             headerAction={
                 canUpdateProcessing && !isEditing ? (

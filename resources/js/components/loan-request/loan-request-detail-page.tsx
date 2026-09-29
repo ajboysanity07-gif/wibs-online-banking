@@ -519,7 +519,7 @@ export const LoanRequestSummaryHeader = ({
     accountNumber,
     hideLoanSummary = false,
 }: LoanRequestSummaryHeaderProps) => (
-    <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
+    <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-card sm:p-7 lg:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-3">
                 <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
@@ -620,7 +620,7 @@ export const LoanRequestLoanInformationCard = ({
             description="Requested loan details from the request."
             icon={IdCard}
             headerAction={headerAction ?? null}
-            className="border-border/30 bg-card/60 shadow-sm"
+            className="border-border/30 bg-card/60 shadow-card"
         >
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <SummaryStat label="Requested amount" value={amount} />
@@ -957,7 +957,7 @@ export const LoanRequestApplicantCard = ({
             description="Primary borrower details from the request."
             icon={UserIcon}
             headerAction={headerAction ?? null}
-            className="border-border/30 bg-card/60 shadow-sm"
+            className="border-border/30 bg-card/60 shadow-card"
             contentClassName="space-y-4"
         >
             {hasCategoryMismatch ? (
@@ -1091,7 +1091,7 @@ export const LoanRequestCoMakersCard = ({
         title="Co-makers"
         description="Supporting borrowers tied to this request."
         icon={Users}
-        className="border-border/30 bg-card/60 shadow-sm"
+        className="border-border/30 bg-card/60 shadow-card"
         contentClassName="space-y-4"
     >
         <div className="space-y-2">
@@ -1613,7 +1613,7 @@ export function LoanRequestDetailPage({
                                 status={loanRequest.status}
                             />
                         }
-                        className="border-border/30 bg-card/50 shadow-sm"
+                        className="border-border/30 bg-card/50 shadow-card"
                         contentClassName="space-y-4"
                     >
                         <div className="relative">
@@ -1686,7 +1686,7 @@ export function LoanRequestDetailPage({
                         <LoanRequestSectionCard
                             title="Decision"
                             description="Approve or decline this request. Past decisions and remarks are recorded in the audit trail below."
-                            className="border-border/30 bg-card/50 shadow-sm"
+                            className="border-border/30 bg-card/50 shadow-card"
                             contentClassName="space-y-4"
                         >
                             <div className="space-y-2">
@@ -1767,7 +1767,7 @@ export function LoanRequestDetailPage({
                     <LoanRequestSectionCard
                         title="Actions"
                         icon={Zap}
-                        className="border-border/30 bg-card/50 shadow-sm"
+                        className="border-border/30 bg-card/50 shadow-card"
                         contentClassName="space-y-4"
                     >
                         {showCorrectionAction ? (

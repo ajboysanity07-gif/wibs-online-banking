@@ -937,7 +937,7 @@ export default function LoanRequestPage({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
             <PageShell size="wide" className="gap-9 pt-8">
-                <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
+                <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-card sm:p-7 lg:p-8">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                         <div className="space-y-2">
                             <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
@@ -1030,7 +1030,7 @@ export default function LoanRequestPage({
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-2xl border border-border/40 bg-card/60 shadow-sm">
+                <div className="overflow-hidden rounded-2xl border border-border/40 bg-card/60 shadow-card">
                     <LoanRequestWizardShell
                         currentStep={currentStep}
                         onStepClick={handleSidebarStepClick}

@@ -12,9 +12,9 @@ const variantClasses: Record<
     NonNullable<SurfaceCardProps['variant']>,
     string
 > = {
-    default: 'border-border bg-card shadow-none',
-    hero: 'border-border bg-card shadow-none',
-    muted: 'border-border bg-muted shadow-none',
+    default: 'border-border bg-card shadow-card',
+    hero: 'border-border bg-card shadow-card',
+    muted: 'border-border bg-muted shadow-card',
 };
 
 const paddingClasses: Record<

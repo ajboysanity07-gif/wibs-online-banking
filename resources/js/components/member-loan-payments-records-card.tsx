@@ -32,7 +32,7 @@ const paymentTableSkeletonColumns = [
 ];
 
 const MobilePaymentCardSkeleton = () => (
-    <div className="rounded-2xl border border-border/40 bg-card/70 p-4 shadow-sm">
+    <div className="rounded-2xl border border-border/40 bg-card/70 p-4 shadow-card">
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-2">
                 <Skeleton className="h-4 w-28" />
@@ -66,7 +66,7 @@ const MobilePaymentCardSkeletonList = ({ rows = 4 }: { rows?: number }) => (
 );
 
 const MobilePaymentCard = ({ payment }: { payment: MemberLoanPayment }) => (
-    <div className="rounded-2xl border border-border/40 bg-card/70 p-4 shadow-sm">
+    <div className="rounded-2xl border border-border/40 bg-card/70 p-4 shadow-card">
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
                 <p className="text-sm font-semibold">

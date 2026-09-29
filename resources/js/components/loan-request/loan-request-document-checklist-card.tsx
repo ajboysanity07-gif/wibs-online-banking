@@ -310,7 +310,7 @@ export const LoanRequestDocumentChecklistCard = ({
         );
 
     return (
-        <Card className="border-border/30 bg-card/70 shadow-sm">
+        <Card className="border-border/30 bg-card/70 shadow-card">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <ClipboardCheck className="size-4 text-muted-foreground" />
