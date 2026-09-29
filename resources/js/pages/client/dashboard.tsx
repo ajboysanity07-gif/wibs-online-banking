@@ -12,7 +12,7 @@ import { SurfaceCard } from '@/components/surface-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MemberAccountsSummarySection } from '@/features/member-accounts/components/member-accounts-summary-section';
+import { MemberBalanceCards } from '@/features/member-accounts/components/member-balance-cards';
 import { MemberRecentAccountActionsCard } from '@/features/member-accounts/components/member-recent-account-actions-card';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
@@ -125,7 +125,7 @@ export default function MemberProfile({
     const handleRetry = () => {
         reloadWithActionsPage(actionsMeta.page);
     };
-    const canNavigate = Boolean(currentMember.acctno);
+    const firstName = currentMember.name.trim().split(' ')[0] || 'there';
     const statusLabel = getMemberStatusLabel(currentMember.status);
     const statusVariant = getMemberStatusVariant(currentMember.status);
 
@@ -134,8 +134,15 @@ export default function MemberProfile({
             <Head title="Member profile" />
             <PageShell>
                 <MemberProfileHeader
-                    name={currentMember.name}
-                    subtitle="Account status and profile details."
+                    name={`Hi, ${firstName}`}
+                    subtitle="Here's where your loans stand today."
+                    accessory={
+                        <Button asChild className="rounded-full">
+                            <Link href={LoanRequestController.create().url}>
+                                Apply for a loan
+                            </Link>
+                        </Button>
+                    }
                     avatarUrl={currentMember.avatar_url}
                     avatarFallback={getInitials(currentMember.name) || 'U'}
                     statusBadge={
@@ -215,22 +222,14 @@ export default function MemberProfile({
                     </div>
                 </SurfaceCard>
 
-                <MemberAccountsSummarySection
+                <MemberBalanceCards
                     acctno={currentMember.acctno}
                     summary={summaryValue}
                     loading={summaryLoading}
                     error={summaryError}
                     onRetry={handleRetry}
-                    loansAction={{
-                        label: 'View all',
-                        href: clientLoans().url,
-                        disabled: !canNavigate,
-                    }}
-                    loanSecurityAction={{
-                        label: 'View all',
-                        href: clientSavings().url,
-                        disabled: !canNavigate,
-                    }}
+                    loansHref={clientLoans().url}
+                    loanSecurityHref={clientSavings().url}
                 />
 
                 {activeDraft ? (
@@ -249,7 +248,7 @@ export default function MemberProfile({
                                     : ''}
                                 .
                             </p>
-                            <Button asChild size="sm">
+                            <Button asChild size="sm" className="rounded-full">
                                 <Link href={LoanRequestController.create().url}>
                                     Resume
                                 </Link>
