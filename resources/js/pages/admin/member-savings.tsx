@@ -116,7 +116,7 @@ export default function MemberSavings({ member, summary, savings }: Props) {
                         </span>
                     }
                     actions={
-                        <Button asChild variant="ghost" size="sm">
+                        <Button asChild variant="outline">
                             <Link href={showMember(member.member_id).url}>
                                 Back to profile
                             </Link>

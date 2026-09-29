@@ -79,8 +79,8 @@ export default function MemberLoans({ member, summary, loans }: Props) {
                     subtitle={`Loan portfolio for ${member.member_name ?? 'this member'}.`}
                     meta={`Account No: ${member.acctno ?? '--'}`}
                     actions={
-                        <Button asChild variant="ghost" size="sm">
-                        <Link href={showMember(member.member_id).url}>
+                        <Button asChild variant="outline">
+                            <Link href={showMember(member.member_id).url}>
                                 Back to profile
                             </Link>
                         </Button>

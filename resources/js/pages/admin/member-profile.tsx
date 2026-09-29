@@ -444,7 +444,7 @@ export default function MemberProfile({
                                     All members
                                 </Link>
                             </Button>
-                            <Button asChild variant="ghost" size="sm">
+                            <Button asChild variant="outline">
                                 <Link href={dashboard().url}>
                                     Back to dashboard
                                 </Link>
