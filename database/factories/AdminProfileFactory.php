@@ -44,7 +44,7 @@ class AdminProfileFactory extends Factory
     }
 
     /**
-     * Non-superadmin profile (the admin_profiles.access_level column default),
+     * Non-superadmin profile with the retired legacy 'admin' level (new rows now default to 'staff'),
      * kept so tests can simulate staff profiles with no implicit superadmin. Also the factory's
      * default state -- tests that don't care about tier and sync their
      * own RBAC role afterward must NOT get an implicit `isLegacySuperadmin()`
