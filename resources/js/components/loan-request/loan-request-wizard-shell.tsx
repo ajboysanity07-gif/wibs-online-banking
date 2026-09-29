@@ -45,7 +45,7 @@ export function LoanRequestWizardShell({
         <div className="flex flex-col lg:flex-row">
             <div
                 className={cn(
-                    'w-full border-b border-border bg-muted/15 lg:w-60 lg:shrink-0 lg:border-r lg:border-b-0',
+                    'w-full border-b border-border bg-muted lg:w-64 lg:shrink-0 lg:border-r lg:border-b-0',
                     sidebarClassName,
                 )}
             >

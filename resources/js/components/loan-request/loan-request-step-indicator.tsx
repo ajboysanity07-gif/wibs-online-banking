@@ -134,8 +134,8 @@ export function LoanRequestStepIndicator({
                                 className={cn(
                                     'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors',
                                     isActive
-                                        ? 'bg-primary/10 text-primary'
-                                        : 'hover:bg-muted/50',
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'hover:bg-secondary',
                                 )}
                                 onClick={() => onStepClick?.(group.steps[0])}
                                 aria-current={isActive ? 'step' : undefined}
@@ -144,9 +144,9 @@ export function LoanRequestStepIndicator({
                                     className={cn(
                                         'flex h-5.5 w-5.5 shrink-0 items-center justify-center',
                                         isDone
-                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                            ? 'text-primary'
                                             : isActive
-                                              ? 'text-primary'
+                                              ? 'text-primary-foreground'
                                               : 'text-muted-foreground',
                                     )}
                                 >
@@ -161,11 +161,11 @@ export function LoanRequestStepIndicator({
                                 </span>
                                 <span
                                     className={cn(
-                                        'text-[13px] leading-tight font-medium',
+                                        'text-[13px] leading-tight font-semibold',
                                         isDone
-                                            ? 'text-foreground/60'
+                                            ? 'text-muted-foreground'
                                             : isActive
-                                              ? 'text-primary'
+                                              ? 'text-primary-foreground'
                                               : 'text-foreground',
                                     )}
                                 >
@@ -188,8 +188,8 @@ export function LoanRequestStepIndicator({
                                                 className={cn(
                                                     'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
                                                     isSubActive
-                                                        ? 'bg-primary/10'
-                                                        : 'hover:bg-muted/40',
+                                                        ? 'bg-card shadow-card'
+                                                        : 'hover:bg-secondary',
                                                 )}
                                                 onClick={() =>
                                                     onStepClick?.(stepIndex)
@@ -204,7 +204,7 @@ export function LoanRequestStepIndicator({
                                                     className={cn(
                                                         'h-1.5 w-1.5 shrink-0 rounded-full',
                                                         isSubDone
-                                                            ? 'bg-emerald-500 dark:bg-emerald-400'
+                                                            ? 'bg-primary'
                                                             : isSubActive
                                                               ? 'bg-primary'
                                                               : 'bg-muted-foreground/40',
@@ -214,9 +214,9 @@ export function LoanRequestStepIndicator({
                                                     className={cn(
                                                         'text-[12px] leading-tight',
                                                         isSubActive
-                                                            ? 'font-medium text-primary'
+                                                            ? 'font-semibold text-foreground'
                                                             : isSubDone
-                                                              ? 'text-foreground/60'
+                                                              ? 'text-muted-foreground'
                                                               : 'text-muted-foreground',
                                                     )}
                                                 >
@@ -239,9 +239,9 @@ export function LoanRequestStepIndicator({
                         Step {currentVisiblePosition + 1} of {totalSteps}
                     </span>
                 </div>
-                <div className="h-0.5 w-full overflow-hidden rounded-full bg-border/50">
+                <div className="h-1 w-full overflow-hidden rounded-full bg-border">
                     <div
-                        className="h-full bg-primary/50 transition-all duration-300 motion-reduce:transition-none"
+                        className="h-full bg-primary transition-all duration-300 motion-reduce:transition-none"
                         style={{
                             width: `${((currentVisiblePosition + 1) / totalSteps) * 100}%`,
                         }}

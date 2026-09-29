@@ -25,7 +25,7 @@ export function LoanRequestWizardActions({
     disablePrimary = false,
 }: Props) {
     return (
-        <div className="rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
+        <div className="rounded-xl border border-border bg-muted p-4 shadow-card sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="order-3 flex sm:order-1">
                     <Button

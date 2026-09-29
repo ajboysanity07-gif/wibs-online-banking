@@ -952,7 +952,7 @@ export default function LoanRequestPage({
                                 physically upon loan release.
                             </p>
                             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                <span className="rounded-full bg-muted/30 px-2 py-1">
+                                <span className="rounded-md border border-input bg-card px-2.5 py-0.5 font-medium text-foreground">
                                     Account No: {member.acctno ?? '--'}
                                 </span>
                                 {draftState ? (
