@@ -18,7 +18,7 @@ export default function AuthSplitLayout({
                     className="relative z-20 flex items-center gap-2 text-lg font-medium"
                 >
                     <AppLogo
-                        iconClassName="h-8 w-auto object-contain"
+                        iconClassName="bg-sidebar-foreground box-content h-8 w-auto rounded-md object-contain p-1"
                         titleClassName="text-lg font-medium text-white"
                         subtitleClassName="text-sm text-white/70"
                     />

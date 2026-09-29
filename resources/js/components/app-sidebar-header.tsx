@@ -16,16 +16,20 @@ export function AppSidebarHeader({
     const { auth } = usePage<PageProps>().props;
 
     return (
-        <header className="bg-background border-border flex h-14 shrink-0 items-center gap-2 border-b px-6 md:px-4">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-6 md:px-4">
             <div className="flex items-center gap-2">
                 <SidebarTrigger className="-ml-1" />
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
-            {auth.isAdmin || auth.hasMemberAccess ? (
-                <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-3">
+                <span className="hidden items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground sm:flex">
+                    <span className="size-2 rounded-full bg-primary" />
+                    Secure session
+                </span>
+                {auth.isAdmin || auth.hasMemberAccess ? (
                     <NotificationBell />
-                </div>
-            ) : null}
+                ) : null}
+            </div>
         </header>
     );
 }

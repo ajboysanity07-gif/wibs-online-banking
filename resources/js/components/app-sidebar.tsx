@@ -201,6 +201,7 @@ export function AppSidebar() {
                         <SidebarMenuButton size="lg" asChild>
                             <Link href={homeLink} prefetch>
                                 <AppLogo
+                                    iconClassName="bg-sidebar-foreground box-content rounded-md p-1"
                                     titleClassName="text-sidebar-foreground"
                                     subtitleClassName="text-sidebar-foreground/75"
                                 />
