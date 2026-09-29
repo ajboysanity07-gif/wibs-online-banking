@@ -166,6 +166,6 @@ test('data table uses the modern rounded shell', async () => {
         'utf8',
     );
 
-    assert.match(file, /rounded-2xl/);
-    assert.match(file, /bg-card\/60/);
+    assert.match(file, /rounded-xl/);
+    assert.match(file, /bg-card/);
 });

@@ -83,7 +83,7 @@ const TableHead = React.forwardRef<
     ref={ref}
     data-slot="table-head"
     className={cn(
-      "text-muted-foreground h-10 px-4 text-left align-middle text-xs font-medium uppercase",
+      "bg-muted text-muted-foreground h-10 px-4 text-left align-middle text-xs font-bold tracking-wider uppercase",
       className
     )}
     {...props}

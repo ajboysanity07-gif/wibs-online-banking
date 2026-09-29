@@ -267,7 +267,7 @@ export function MemberLoanRecordsCard({
                 <TableSkeleton
                     columns={loanTableSkeletonColumns}
                     rows={meta.perPage}
-                    className="rounded-xl border border-border/40 bg-card/60"
+                    className="rounded-xl border border-border bg-card"
                     tableClassName="min-w-[980px]"
                 />
             }

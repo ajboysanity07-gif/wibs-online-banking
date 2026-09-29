@@ -58,7 +58,7 @@ export function MemberRecordsCard({
                 title={title}
                 description={description}
                 actions={headerRight}
-                titleClassName="text-base font-semibold"
+                titleClassName="text-lg font-semibold"
             />
             <div className="space-y-4">
                 {error ? (

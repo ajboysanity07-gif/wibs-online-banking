@@ -8,6 +8,7 @@ import {
 } from '@/components/member-detail-summary-cards';
 import { MemberLoanRecordsCard } from '@/components/member-loan-records-card';
 import { PageShell } from '@/components/page-shell';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import AppLayout from '@/layouts/app-layout';
@@ -101,9 +102,13 @@ export default function MemberLoans({
                 <MemberDetailPageHeader
                     title="Loans"
                     subtitle="Track your active loans and payment history."
-                    meta={`Account No: ${member.acctno ?? '--'}`}
+                    meta={
+                        <Badge variant="outline" className="bg-card">
+                            Account No: {member.acctno ?? '--'}
+                        </Badge>
+                    }
                     actions={
-                        <Button asChild variant="ghost" size="sm">
+                        <Button asChild variant="outline">
                             <Link href={clientDashboard().url}>
                                 Back to profile
                             </Link>

@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { SurfaceCard } from '@/components/surface-card';
 
 type MemberDetailPageHeaderProps = {
     title: string;
@@ -15,29 +14,25 @@ export function MemberDetailPageHeader({
     actions,
 }: MemberDetailPageHeaderProps) {
     return (
-        <SurfaceCard variant="hero" padding="lg">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="space-y-2">
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        {title}
-                    </h1>
-                    {subtitle ? (
-                        <p className="text-sm text-muted-foreground">
-                            {subtitle}
-                        </p>
-                    ) : null}
-                    {meta ? (
-                        <div className="text-xs text-muted-foreground">
-                            {meta}
-                        </div>
-                    ) : null}
-                </div>
-                {actions ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                        {actions}
-                    </div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-2">
+                <h1 className="text-[2rem] leading-tight font-bold tracking-tight">
+                    {title}
+                </h1>
+                {subtitle ? (
+                    <p className="text-[15px] text-muted-foreground">
+                        {subtitle}
+                    </p>
+                ) : null}
+                {meta ? (
+                    <div className="pt-1 text-xs text-foreground">{meta}</div>
                 ) : null}
             </div>
-        </SurfaceCard>
+            {actions ? (
+                <div className="flex flex-wrap items-center gap-2">
+                    {actions}
+                </div>
+            ) : null}
+        </div>
     );
 }

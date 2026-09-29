@@ -29,9 +29,9 @@ const accentStyles: Record<
     }
 > = {
     primary: {
-        border: 'border-primary/20',
-        bg: 'bg-primary/5',
-        icon: 'text-primary',
+        border: 'border-primary',
+        bg: 'bg-primary text-primary-foreground',
+        icon: 'text-primary-foreground/80',
     },
     accent: {
         border: 'border-accent/20',
@@ -57,20 +57,16 @@ export function MemberDetailPrimaryCard({
         >
             <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                        {title}
-                    </p>
+                    <p className="text-[13px] font-semibold">{title}</p>
                     <Icon
                         className={cn('h-5 w-5', styles.icon)}
                         aria-hidden="true"
                     />
                 </div>
-                <p className="text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
+                <p className="text-4xl font-bold tracking-tight tabular-nums">
                     {value}
                 </p>
-                {helper ? (
-                    <p className="text-xs text-muted-foreground">{helper}</p>
-                ) : null}
+                {helper ? <p className="text-[13px]">{helper}</p> : null}
             </div>
         </SurfaceCard>
     );
@@ -89,11 +85,11 @@ export function MemberDetailSupportingCard({
         <SurfaceCard
             variant="default"
             padding="md"
-            className="border-border/40 bg-card/60"
+            className="border-border bg-card"
         >
             <div className="flex h-full flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    <p className="text-[13px] font-semibold text-muted-foreground">
                         {title}
                     </p>
                     <Icon
@@ -101,9 +97,9 @@ export function MemberDetailSupportingCard({
                         aria-hidden="true"
                     />
                 </div>
-                <p className="text-lg font-semibold tabular-nums">{value}</p>
+                <p className="text-4xl font-bold tabular-nums">{value}</p>
                 {description ? (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[13px] text-muted-foreground">
                         {description}
                     </p>
                 ) : null}
