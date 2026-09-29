@@ -10,6 +10,7 @@ import {
     PaymentMethodIcon,
     type PaymentMethodOption,
 } from '@/components/loan-request/payment-account-picker-sheet';
+import { PageHero } from '@/components/page-hero';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -568,30 +569,31 @@ export default function LoanRequestShow({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
             <section className="mx-auto mt-6 mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="rounded-xl border border-border bg-card p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="space-y-1">
-                            <p className="text-sm font-semibold text-foreground">
-                                Your application has been received
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                Request {currentLoanRequest.reference} is
-                                currently under review by our team. We'll notify
-                                you once a decision has been made.
-                            </p>
-                        </div>
+                <PageHero
+                    kicker="Loan request"
+                    title={currentLoanRequest.reference}
+                    description={
+                        <>
+                            Your application has been received. It is currently
+                            under review by our team, and we'll notify you once
+                            a decision has been made.
+                            {currentLoanRequest.submitted_at ? (
+                                <>
+                                    {' '}
+                                    Submitted{' '}
+                                    {formatDate(currentLoanRequest.submitted_at)}
+                                    .
+                                </>
+                            ) : null}
+                        </>
+                    }
+                    badges={
                         <LoanRequestStatusBadge
                             status={currentLoanRequest.status}
                             className="text-xs"
                         />
-                    </div>
-                    {currentLoanRequest.submitted_at ? (
-                        <p className="mt-3 text-xs text-muted-foreground">
-                            Submitted{' '}
-                            {formatDate(currentLoanRequest.submitted_at)}
-                        </p>
-                    ) : null}
-                </div>
+                    }
+                />
             </section>
             {currentLoanRequest.status === 'approved' ? (
                 <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -790,7 +792,7 @@ export default function LoanRequestShow({
                         </CardHeader>
                         <CardContent className="space-y-5">
                             <div className="grid gap-4 md:grid-cols-2">
-                                <div className="rounded-lg border border-border bg-muted/20 p-4">
+                                <div className="rounded-lg border border-border bg-muted p-4">
                                     <p className="text-xs text-muted-foreground">
                                         Revised amount
                                     </p>
@@ -800,7 +802,7 @@ export default function LoanRequestShow({
                                         )}
                                     </p>
                                 </div>
-                                <div className="rounded-lg border border-border bg-muted/20 p-4">
+                                <div className="rounded-lg border border-border bg-muted p-4">
                                     <p className="text-xs text-muted-foreground">
                                         Revised term
                                     </p>
@@ -811,7 +813,7 @@ export default function LoanRequestShow({
                                         months
                                     </p>
                                 </div>
-                                <div className="rounded-lg border border-border bg-muted/20 p-4">
+                                <div className="rounded-lg border border-border bg-muted p-4">
                                     <p className="text-xs text-muted-foreground">
                                         Revised interest rate
                                     </p>
@@ -821,7 +823,7 @@ export default function LoanRequestShow({
                                         )}
                                     </p>
                                 </div>
-                                <div className="rounded-lg border border-border bg-muted/20 p-4">
+                                <div className="rounded-lg border border-border bg-muted p-4">
                                     <p className="text-xs text-muted-foreground">
                                         Payment frequency
                                     </p>
