@@ -1,11 +1,24 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
+    BadgeCheck,
+    Banknote,
     BellRing,
     Check,
+    ClipboardList,
+    Crosshair,
+    Eye,
+    FilePlus2,
     FileStack,
+    HeartHandshake,
+    LayoutDashboard,
+    ListChecks,
+    LockKeyhole,
+    LogIn,
+    PhoneOff,
     PiggyBank,
     ReceiptText,
     ShieldCheck,
+    UserPlus,
     Wallet,
 } from 'lucide-react';
 import { useEffect } from 'react';
@@ -107,19 +120,36 @@ const navLinks = [
 ];
 
 const values = [
-    { title: 'Transparent', detail: 'Clear balances and terms' },
-    { title: 'Accurate', detail: 'Same records as staff' },
-    { title: 'Supportive', detail: 'Help when you need it' },
+    { title: 'Transparent', detail: 'Clear balances and terms', icon: Eye },
+    { title: 'Accurate', detail: 'Same records as staff', icon: Crosshair },
+    {
+        title: 'Supportive',
+        detail: 'Help when you need it',
+        icon: HeartHandshake,
+    },
 ];
 
 const securityTiles = [
-    { title: 'Verified access', detail: 'Members are matched to records' },
+    {
+        title: 'Verified access',
+        detail: 'Members are matched to records',
+        icon: BadgeCheck,
+    },
     {
         title: 'Protected sessions',
         detail: 'Secure login with optional two-factor',
+        icon: LockKeyhole,
     },
-    { title: 'Audit trail', detail: 'Every staff action is logged' },
-    { title: 'No password requests', detail: 'We never ask by phone or email' },
+    {
+        title: 'Audit trail',
+        detail: 'Every staff action is logged',
+        icon: ClipboardList,
+    },
+    {
+        title: 'No password requests',
+        detail: 'We never ask by phone or email',
+        icon: PhoneOff,
+    },
 ];
 
 type Faq = {
@@ -225,30 +255,35 @@ export default function Welcome() {
         {
             title: 'Log in',
             detail: 'Access your account',
+            icon: LogIn,
             href: login(),
             show: !isAuthenticated,
         },
         {
             title: 'Create login',
             detail: 'For verified members',
+            icon: UserPlus,
             href: register(),
             show: !isAuthenticated && Boolean(canRegister),
         },
         {
             title: 'Go to dashboard',
             detail: 'Your account overview',
+            icon: LayoutDashboard,
             href: dashboard(),
             show: isAuthenticated,
         },
         {
             title: 'Request a loan',
             detail: 'Guided online form',
+            icon: FilePlus2,
             href: requestHref(),
             show: true,
         },
         {
             title: 'Track a request',
             detail: 'See every stage',
+            icon: ListChecks,
             href: trackHref,
             show: true,
         },
@@ -540,11 +575,18 @@ export default function Welcome() {
                             <Link
                                 key={link.title}
                                 href={link.href}
-                                className="flex flex-col px-6 py-5 transition-colors hover:bg-muted"
+                                className="flex items-center gap-4 px-6 py-5 transition-colors hover:bg-muted"
                             >
-                                <span className="font-bold">{link.title}</span>
-                                <span className="text-sm text-muted-foreground">
-                                    {link.detail}
+                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary text-secondary-foreground">
+                                    <link.icon className="h-5 w-5" />
+                                </span>
+                                <span className="flex flex-col">
+                                    <span className="font-bold">
+                                        {link.title}
+                                    </span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {link.detail}
+                                    </span>
                                 </span>
                             </Link>
                         ))}
@@ -606,9 +648,20 @@ export default function Welcome() {
                                                 : 'justify-between p-6'
                                         }
                                     >
-                                        <p className="text-xl font-bold">
-                                            {type.label.trim()}
-                                        </p>
+                                        <div className="space-y-3">
+                                            <div
+                                                className={
+                                                    highlighted
+                                                        ? 'flex h-11 w-11 items-center justify-center rounded-xl bg-primary-foreground/15 text-primary-foreground'
+                                                        : 'flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-secondary text-secondary-foreground'
+                                                }
+                                            >
+                                                <Banknote className="h-5 w-5" />
+                                            </div>
+                                            <p className="text-xl font-bold">
+                                                {type.label.trim()}
+                                            </p>
+                                        </div>
                                         <div>
                                             <Button
                                                 asChild
@@ -700,6 +753,7 @@ export default function Welcome() {
                                         key={value.title}
                                         className="rounded-lg border border-border bg-muted p-4"
                                     >
+                                        <value.icon className="mb-2 h-5 w-5 text-primary" />
                                         <p className="font-bold">
                                             {value.title}
                                         </p>
@@ -741,6 +795,7 @@ export default function Welcome() {
                                     key={tile.title}
                                     className="rounded-lg border border-sidebar-border bg-sidebar-foreground/10 p-4"
                                 >
+                                    <tile.icon className="mb-2 h-5 w-5 text-sidebar-primary" />
                                     <p className="font-bold">{tile.title}</p>
                                     <p className="text-sm text-sidebar-foreground/85">
                                         {tile.detail}
