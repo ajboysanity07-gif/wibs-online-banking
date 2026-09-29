@@ -20,6 +20,13 @@ type Props = {
     canRegister: boolean;
 };
 
+/** Honours ?redirect= only for the member loan request page (welcome page links). */
+function memberRequestRedirect(): string | null {
+    const target = new URLSearchParams(window.location.search).get('redirect');
+
+    return target?.startsWith('/client/loans/request') ? target : null;
+}
+
 export default function Login({
     status,
     canResetPassword,
@@ -65,7 +72,7 @@ export default function Login({
             }
 
             if (redirectTo) {
-                router.visit(redirectTo);
+                router.visit(memberRequestRedirect() ?? redirectTo);
             }
         } catch (error) {
             if (axios.isAxiosError(error) && error.response?.status === 422) {

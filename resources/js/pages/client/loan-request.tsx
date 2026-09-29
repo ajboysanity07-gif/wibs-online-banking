@@ -372,6 +372,17 @@ const resolveStepFromErrors = (
     return stepMatches.length > 0 ? Math.min(...stepMatches) : null;
 };
 
+/** Preselects the loan type linked from the welcome page (?typecode=). */
+function queryTypecode(loanTypes: LoanTypeOption[]): string | undefined {
+    if (typeof window === 'undefined') {
+        return undefined;
+    }
+
+    const value = new URLSearchParams(window.location.search).get('typecode');
+
+    return loanTypes.find((type) => type.typecode === value)?.typecode;
+}
+
 export default function LoanRequestPage({
     loanTypes,
     applicant,
@@ -427,7 +438,11 @@ export default function LoanRequestPage({
     >(null);
 
     const initialFormData: LoanRequestFormData = {
-        typecode: draft?.typecode ?? loanTypes[0]?.typecode ?? '',
+        typecode:
+            draft?.typecode ??
+            queryTypecode(loanTypes) ??
+            loanTypes[0]?.typecode ??
+            '',
         requested_amount: toStringValue(draft?.requested_amount),
         requested_term: toStringValue(draft?.requested_term),
         loan_purpose: draft?.loan_purpose ?? '',
