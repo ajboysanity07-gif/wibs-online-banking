@@ -1283,7 +1283,7 @@ export default function OrganizationSettings() {
                                                                     address
                                                                     preview
                                                                 </Label>
-                                                                <div className="rounded-lg border border-border bg-background/70 px-3 py-2 text-sm text-muted-foreground">
+                                                                <div className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
                                                                     {businessAddressPreview ||
                                                                         '--'}
                                                                 </div>
@@ -1293,7 +1293,7 @@ export default function OrganizationSettings() {
                                                                     App title
                                                                     preview
                                                                 </Label>
-                                                                <div className="rounded-lg border border-border bg-background/70 px-3 py-2 text-sm text-muted-foreground">
+                                                                <div className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
                                                                     {appTitlePreview ||
                                                                         '--'}
                                                                 </div>
@@ -1314,7 +1314,7 @@ export default function OrganizationSettings() {
                                                         contentClassName="space-y-6"
                                                     >
                                                         <div className="grid gap-6">
-                                                            <div className="space-y-4 rounded-xl border border-border bg-background/60 p-4">
+                                                            <div className="space-y-4 rounded-xl border border-border bg-background p-4">
                                                                 <Label className="text-sm font-semibold">
                                                                     Primary logo
                                                                 </Label>
@@ -1363,7 +1363,7 @@ export default function OrganizationSettings() {
                                                                                     className={`group flex flex-col gap-4 rounded-xl border p-5 transition-colors focus-within:ring-2 focus-within:ring-primary/40 focus-within:outline-none ${
                                                                                         isSelected
                                                                                             ? 'border-primary/60 bg-primary/5 shadow-sm shadow-primary/10'
-                                                                                            : 'border-border bg-card hover:border-primary/40 hover:bg-muted/30'
+                                                                                            : 'border-border bg-card hover:border-primary/40 hover:bg-muted'
                                                                                     }`}
                                                                                 >
                                                                                     <input
@@ -1423,7 +1423,7 @@ export default function OrganizationSettings() {
                                                                                                 </Badge>
                                                                                             )}
                                                                                         </div>
-                                                                                        <div className="flex h-20 items-center justify-center rounded-xl border border-border bg-muted/30">
+                                                                                        <div className="flex h-20 items-center justify-center rounded-xl border border-border bg-muted">
                                                                                             <img
                                                                                                 src={
                                                                                                     previewUrl
@@ -1612,7 +1612,7 @@ export default function OrganizationSettings() {
                                                                 />
                                                             </div>
 
-                                                            <div className="space-y-4 rounded-xl border border-border bg-background/60 p-4">
+                                                            <div className="space-y-4 rounded-xl border border-border bg-background p-4">
                                                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                                                     <div className="space-y-1">
                                                                         <Label htmlFor="favicon">
@@ -1647,7 +1647,7 @@ export default function OrganizationSettings() {
                                                                         </Badge>
                                                                     ) : null}
                                                                 </div>
-                                                                <div className="rounded-xl border border-border bg-muted/20 p-4">
+                                                                <div className="rounded-xl border border-border bg-muted p-4">
                                                                     <div className="flex flex-wrap items-center justify-between gap-4">
                                                                         <div className="flex flex-wrap items-center gap-4">
                                                                             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-background">
@@ -1800,7 +1800,7 @@ export default function OrganizationSettings() {
                                                             </p>
                                                         </div>
 
-                                                        <div className="space-y-6 rounded-xl border border-border bg-background/60 p-4">
+                                                        <div className="space-y-6 rounded-xl border border-border bg-background p-4">
                                                             <div className="space-y-1">
                                                                 <p className="text-sm font-semibold">
                                                                     Uploaded
@@ -1818,7 +1818,7 @@ export default function OrganizationSettings() {
                                                                 </p>
                                                             </div>
 
-                                                            <div className="flex h-28 items-center justify-center rounded-xl border border-border bg-muted/20 p-3">
+                                                            <div className="flex h-28 items-center justify-center rounded-xl border border-border bg-muted p-3">
                                                                 {reportHeaderDesignPreviewUrl ? (
                                                                     <img
                                                                         src={
@@ -1930,7 +1930,7 @@ export default function OrganizationSettings() {
                                                         </div>
 
                                                         <div className="grid gap-6 lg:grid-cols-2">
-                                                            <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4">
+                                                            <div className="space-y-4 rounded-xl border border-border bg-muted p-4">
                                                                 <div className="space-y-1">
                                                                     <p className="text-sm font-semibold">
                                                                         Label
@@ -2121,7 +2121,7 @@ export default function OrganizationSettings() {
                                                                 />
                                                             </div>
 
-                                                            <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4">
+                                                            <div className="space-y-4 rounded-xl border border-border bg-muted p-4">
                                                                 <div className="space-y-1">
                                                                     <p className="text-sm font-semibold">
                                                                         Value
@@ -2953,7 +2953,7 @@ export default function OrganizationSettings() {
                                                         contentClassName="space-y-6"
                                                     >
                                                         <div className="grid gap-6">
-                                                            <div className="rounded-xl border border-border bg-background/60 p-4">
+                                                            <div className="rounded-xl border border-border bg-background p-4">
                                                                 <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                                     Available
                                                                     placeholders
@@ -3069,7 +3069,7 @@ export default function OrganizationSettings() {
                                                                 </div>
                                                             </div>
 
-                                                            <div className="rounded-xl border border-border bg-background/60 p-4">
+                                                            <div className="rounded-xl border border-border bg-background p-4">
                                                                 <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                                     Preview
                                                                 </p>
@@ -3162,7 +3162,7 @@ export default function OrganizationSettings() {
                                         <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                             Portal header
                                         </p>
-                                        <div className="rounded-xl border border-border bg-muted/20 p-4">
+                                        <div className="rounded-xl border border-border bg-muted p-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-background">
                                                     <img
@@ -3194,7 +3194,7 @@ export default function OrganizationSettings() {
                                         <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                             Official place of signing
                                         </p>
-                                        <div className="rounded-xl border border-border bg-muted/20 p-4">
+                                        <div className="rounded-xl border border-border bg-muted p-4">
                                             <p className="text-sm text-foreground">
                                                 {businessAddressPreview || '--'}
                                             </p>
@@ -3205,7 +3205,7 @@ export default function OrganizationSettings() {
                                         <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                             Portal icon
                                         </p>
-                                        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/20 p-4">
+                                        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted p-4">
                                             {ICON_PREVIEW_SIZES.map((size) => (
                                                 <div
                                                     key={size}
@@ -3232,7 +3232,7 @@ export default function OrganizationSettings() {
                                         <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                             Report header
                                         </p>
-                                        <div className="rounded-xl border border-border bg-muted/20 p-4">
+                                        <div className="rounded-xl border border-border bg-muted p-4">
                                             <div className="rounded-xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm">
                                                 {reportHeaderDesignPreviewUrl ? (
                                                     <img
