@@ -68,9 +68,7 @@ const rgbToHsl = ({ r, g, b }: RgbColor): HslColor => {
     }
 
     const saturation =
-        lightness > 0.5
-            ? delta / (2 - max - min)
-            : delta / (max + min);
+        lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
 
     let hue = 0;
 
@@ -129,8 +127,7 @@ export const resolveBrandingTheme = (
     baseTheme: ClientTheme,
     branding?: Branding,
 ): ClientTheme => {
-    const primaryHex =
-        normalizeHexColor(branding?.brandPrimaryColor) ?? null;
+    const primaryHex = normalizeHexColor(branding?.brandPrimaryColor) ?? null;
     const accentHex = normalizeHexColor(branding?.brandAccentColor) ?? null;
     const lightPrimary =
         primaryHex !== null
@@ -157,7 +154,7 @@ export const resolveBrandingTheme = (
               )
             : baseTheme.hsl.light['accent-foreground'];
     const darkPrimarySource = accentHex ?? primaryHex;
-    const darkAccentSource = primaryHex ?? accentHex;
+    const darkAccentSource = accentHex ?? primaryHex;
     const darkPrimary =
         darkPrimarySource !== null
             ? formatHsl(rgbToHsl(hexToRgb(darkPrimarySource)))
@@ -198,11 +195,10 @@ export const resolveBrandingTheme = (
                 accent: lightAccent,
                 'accent-foreground': lightAccentForeground,
                 ring: lightPrimary,
-                'sidebar-primary': lightPrimary,
-                'sidebar-primary-foreground': lightPrimaryForeground,
+                // sidebar-primary / sidebar-ring stay CSS-owned: the sidebar is
+                // deep green in light mode, so a green brand color would vanish.
                 'sidebar-accent': lightAccent,
                 'sidebar-accent-foreground': lightAccentForeground,
-                'sidebar-ring': lightPrimary,
             },
             dark: {
                 ...baseTheme.hsl.dark,

@@ -75,12 +75,12 @@ export function AccountTab({
                                         alt={displayName}
                                         className="object-cover"
                                     />
-                                    <AvatarFallback className="rounded-full bg-neutral-200 text-sm text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+                                    <AvatarFallback className="rounded-full bg-muted text-sm text-foreground">
                                         {getInitials(displayName)}
                                     </AvatarFallback>
                                 </Avatar>
                                 <span className="absolute inset-0 rounded-full bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-                                <span className="absolute right-1 bottom-1 flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/90 text-neutral-900 shadow-sm transition-transform duration-200 group-hover:scale-105 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100">
+                                <span className="absolute right-1 bottom-1 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-transform duration-200 group-hover:scale-105">
                                     <Camera className="h-4 w-4" />
                                 </span>
                             </label>
