@@ -27,12 +27,15 @@ export function MemberProfileHeader({
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                         <Avatar className="size-16 ring-1 ring-border/60">
-                        <AvatarImage src={avatarUrl ?? undefined} alt={name} />
-                        <AvatarFallback>{avatarFallback}</AvatarFallback>
-                    </Avatar>
+                            <AvatarImage
+                                src={avatarUrl ?? undefined}
+                                alt={name}
+                            />
+                            <AvatarFallback>{avatarFallback}</AvatarFallback>
+                        </Avatar>
                         <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
-                                <h1 className="text-2xl font-semibold tracking-tight">
+                                <h1 className="text-[2rem] leading-tight font-bold tracking-tight">
                                     {name}
                                 </h1>
                                 {statusBadge ? (

@@ -137,7 +137,7 @@ export default function MemberProfile({
                     name={`Hi, ${firstName}`}
                     subtitle="Here's where your loans stand today."
                     accessory={
-                        <Button asChild className="rounded-full">
+                        <Button asChild variant="accent" className="font-bold">
                             <Link href={LoanRequestController.create().url}>
                                 Apply for a loan
                             </Link>
@@ -155,16 +155,10 @@ export default function MemberProfile({
                     }
                     meta={
                         <>
-                            <Badge
-                                variant="outline"
-                                className="bg-background/60"
-                            >
+                            <Badge variant="outline" className="bg-card">
                                 Account No: {currentMember.acctno ?? '--'}
                             </Badge>
-                            <Badge
-                                variant="outline"
-                                className="bg-background/60"
-                            >
+                            <Badge variant="outline" className="bg-card">
                                 Username: {currentMember.username}
                             </Badge>
                         </>
@@ -185,8 +179,8 @@ export default function MemberProfile({
                         <MemberProfileDetailsCard
                             title="Member details"
                             description="Portal profile information and contact details."
-                            className="border-border/30 bg-background/60 shadow-none"
-                            itemClassName="border-border/20 bg-muted/15"
+                            className="border-border bg-card shadow-none"
+                            itemClassName="border-border bg-muted"
                             items={[
                                 {
                                     label: 'Member name',
@@ -215,7 +209,7 @@ export default function MemberProfile({
                             ]}
                         />
                         <MemberStatusCard
-                            className="h-full border-border/30 bg-background/60 shadow-none"
+                            className="h-full border-border bg-card shadow-none"
                             statusLabel={statusLabel}
                             statusVariant={statusVariant}
                         />
@@ -233,7 +227,7 @@ export default function MemberProfile({
                 />
 
                 {activeDraft ? (
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                    <Card className="rounded-xl shadow-none">
                         <CardHeader className="space-y-2 pb-4">
                             <CardTitle className="flex items-center gap-2 text-lg">
                                 <FileClock className="size-4 text-muted-foreground" />
@@ -248,7 +242,7 @@ export default function MemberProfile({
                                     : ''}
                                 .
                             </p>
-                            <Button asChild size="sm" className="rounded-full">
+                            <Button asChild size="sm">
                                 <Link href={LoanRequestController.create().url}>
                                     Resume
                                 </Link>

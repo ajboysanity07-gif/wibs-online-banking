@@ -12,9 +12,9 @@ const variantClasses: Record<
     NonNullable<SurfaceCardProps['variant']>,
     string
 > = {
-    default: 'border-border/40 bg-card/60 shadow-sm',
-    hero: 'border-border/40 bg-card/70 shadow-sm',
-    muted: 'border-border/30 bg-card/50 shadow-none',
+    default: 'border-border bg-card shadow-none',
+    hero: 'border-border bg-card shadow-none',
+    muted: 'border-border bg-muted shadow-none',
 };
 
 const paddingClasses: Record<
@@ -37,7 +37,7 @@ export function SurfaceCard({
     return (
         <div
             className={cn(
-                'rounded-2xl border',
+                'rounded-xl border',
                 variantClasses[variant],
                 paddingClasses[padding],
                 className,

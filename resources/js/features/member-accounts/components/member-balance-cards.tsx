@@ -79,14 +79,14 @@ export function MemberBalanceCards({
                 </Alert>
             ) : null}
             <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex flex-col gap-4 rounded-3xl bg-primary p-6 text-primary-foreground">
+                <div className="flex flex-col gap-4 rounded-xl bg-primary p-6 text-primary-foreground">
                     <span className="text-sm font-semibold">
                         Outstanding balance
                     </span>
                     {loading ? (
                         <Skeleton className="h-10 w-48 bg-primary-foreground/25" />
                     ) : (
-                        <p className="text-4xl font-bold tracking-tight tabular-nums">
+                        <p className="text-[2.5rem] leading-none font-bold tracking-tight tabular-nums">
                             {formatCurrency(summary?.loanBalanceLeft)}
                         </p>
                     )}
@@ -117,8 +117,8 @@ export function MemberBalanceCards({
                         <Button
                             asChild={!disabled}
                             disabled={disabled}
-                            variant="secondary"
-                            className="rounded-full bg-accent text-accent-foreground hover:bg-accent/90"
+                            variant="accent"
+                            className="font-bold"
                         >
                             {disabled ? (
                                 'View loans'
@@ -128,14 +128,14 @@ export function MemberBalanceCards({
                         </Button>
                     </div>
                 </div>
-                <div className="flex flex-col gap-4 rounded-3xl border bg-card p-6 text-card-foreground">
+                <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6 text-card-foreground">
                     <span className="text-sm font-semibold text-muted-foreground">
                         Loan security
                     </span>
                     {loading ? (
                         <Skeleton className="h-10 w-48" />
                     ) : (
-                        <p className="text-4xl font-bold tracking-tight tabular-nums">
+                        <p className="text-[2.5rem] leading-none font-bold tracking-tight tabular-nums">
                             {formatCurrency(
                                 summary?.currentLoanSecurityBalance,
                             )}
@@ -149,7 +149,7 @@ export function MemberBalanceCards({
                         <Button
                             asChild={!disabled}
                             disabled={disabled}
-                            className="rounded-full"
+                            className="font-bold"
                         >
                             {disabled ? (
                                 'View loan security'
