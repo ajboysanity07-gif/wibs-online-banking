@@ -8,6 +8,7 @@ import {
     ShieldCheck,
     Wallet,
 } from 'lucide-react';
+import { useEffect } from 'react';
 import SupportContact from '@/components/support-contact';
 import {
     Accordion,
@@ -185,6 +186,22 @@ const onPrimary =
 export default function Welcome() {
     const { auth, canRegister, loanTypes = [] } = usePage<PageProps>().props;
     const branding = useBranding();
+
+    // Smooth in-page anchor scrolling, scoped to this page so Inertia
+    // navigations elsewhere still jump; skipped for reduced-motion users.
+    useEffect(() => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            return;
+        }
+
+        const root = document.documentElement;
+        root.style.scrollBehavior = 'smooth';
+
+        return () => {
+            root.style.scrollBehavior = '';
+        };
+    }, []);
+
     const isAuthenticated = Boolean(auth?.user);
     const showCompanyName = !branding.logoIsWordmark;
     const hasLoanTypes = loanTypes.length > 0;
