@@ -105,14 +105,14 @@ test('member profile links loan actions to the payments page', async () => {
     assert.match(file, /action\.source !== 'LOAN'/);
 });
 
-test('settings layout uses the shared shell and hero', async () => {
+test('settings layout uses the shared shell and menu', async () => {
     const file = await readFile(
         resolve('resources', 'js', 'layouts', 'settings', 'layout.tsx'),
         'utf8',
     );
 
     assert.match(file, /<PageShell/);
-    assert.match(file, /<PageHero/);
+    assert.match(file, /<SettingsNav/);
 });
 
 test('auth layout uses the shared surface card', async () => {
@@ -155,7 +155,7 @@ test('settings pages wrap content in the shared surface card', async () => {
     await Promise.all(
         pages.map(async (page) => {
             const file = await readFile(page, 'utf8');
-            assert.match(file, /<SurfaceCard/);
+            assert.match(file, /<SurfaceCard|<SettingsPanel/);
         }),
     );
 });
