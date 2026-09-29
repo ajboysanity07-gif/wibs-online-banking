@@ -241,8 +241,7 @@ export default function LoanRequestsPage({
                         {
                             label: 'Closed',
                             value: summaryCounts.closed,
-                            emphasisClassName:
-                                'text-slate-600 dark:text-slate-300',
+                            emphasisClassName: 'text-muted-foreground',
                         },
                     ]}
                 />
