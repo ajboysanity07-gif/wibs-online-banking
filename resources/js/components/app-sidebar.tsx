@@ -200,7 +200,10 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
                             <Link href={homeLink} prefetch>
-                                <AppLogo />
+                                <AppLogo
+                                    titleClassName="text-sidebar-foreground"
+                                    subtitleClassName="text-sidebar-foreground/75"
+                                />
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
