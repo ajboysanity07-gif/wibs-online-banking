@@ -206,7 +206,7 @@ export default function ReportedRequestsPage() {
                                 )}
                             </Badge>
                             {loading ? (
-                                <Badge variant="outline">Updating</Badge>
+                                <Badge variant="secondary">Updating</Badge>
                             ) : null}
                         </>
                     }

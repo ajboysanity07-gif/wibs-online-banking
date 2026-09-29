@@ -189,7 +189,11 @@ export default function LoanRequestsPage({
                     title="Loan Requests"
                     description="Track drafts, queued reviews, requests that need revision, and final loan decisions."
                     cta={
-                        <Button asChild>
+                        <Button
+                            asChild
+                            variant="accent"
+                            className="dark:bg-primary-foreground dark:text-primary dark:hover:bg-primary-foreground/90"
+                        >
                             <Link href={loanRequestCreate().url}>
                                 Request loan
                             </Link>
@@ -246,7 +250,7 @@ export default function LoanRequestsPage({
                     ]}
                 />
 
-                <section className="rounded-2xl border border-border/40 bg-card/60 p-4 shadow-card sm:p-5">
+                <section className="rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
                     <div className="flex flex-col gap-3">
                         <LoanRequestStatusFilters
                             options={statusFilters}
@@ -264,7 +268,7 @@ export default function LoanRequestsPage({
 
                 <section id="loan-requests" className="scroll-mt-24">
                     {hasNoFilterResults ? (
-                        <div className="rounded-xl border border-dashed border-border/50 bg-muted/20 px-6 py-8 text-center">
+                        <div className="rounded-xl border border-dashed border-border bg-muted px-6 py-8 text-center">
                             <p className="text-sm font-medium">
                                 No matching loan requests found.
                             </p>

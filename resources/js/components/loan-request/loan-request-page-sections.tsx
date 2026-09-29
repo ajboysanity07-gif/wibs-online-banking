@@ -54,16 +54,16 @@ export function LoanRequestPageHero({
     badges,
 }: LoanRequestPageHeroProps) {
     return (
-        <section className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-card sm:p-7">
+        <section className="rounded-xl bg-primary p-6 text-primary-foreground shadow-card sm:p-7">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                 <div className="space-y-2">
-                    <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
+                    <p className="text-xs font-bold tracking-[0.2em] text-primary-foreground/85 uppercase">
                         {kicker}
                     </p>
-                    <h1 className="text-3xl font-semibold tracking-tight">
+                    <h1 className="text-3xl font-bold tracking-tight">
                         {title}
                     </h1>
-                    <p className="max-w-3xl text-sm text-muted-foreground">
+                    <p className="max-w-3xl text-sm text-primary-foreground/90">
                         {description}
                     </p>
                     {badges ? (
@@ -88,14 +88,14 @@ export function LoanRequestSummaryCards({
                 {items.map((item) => (
                     <div
                         key={item.label}
-                        className="rounded-xl border border-border/40 bg-card/40 px-4 py-3"
+                        className="rounded-xl border border-t-4 border-border border-t-primary bg-card px-4 py-3 shadow-card"
                     >
                         <p className="text-xs font-medium text-muted-foreground">
                             {item.label}
                         </p>
                         <p
                             className={cn(
-                                'mt-1 text-2xl font-semibold text-foreground',
+                                'mt-1 text-3xl font-bold text-foreground tabular-nums',
                                 item.emphasisClassName,
                             )}
                         >

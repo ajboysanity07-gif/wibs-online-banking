@@ -790,7 +790,7 @@ export function LoanRequestQueuePage({
                                 {formatCountLabel(totalResults, 'request')}
                             </Badge>
                             {filterCount > 0 ? (
-                                <Badge variant="outline">
+                                <Badge variant="secondary">
                                     {formatCountLabel(
                                         filterCount,
                                         'active filter',
@@ -798,7 +798,7 @@ export function LoanRequestQueuePage({
                                 </Badge>
                             ) : null}
                             {loading ? (
-                                <Badge variant="outline">Updating</Badge>
+                                <Badge variant="secondary">Updating</Badge>
                             ) : null}
                         </>
                     }
