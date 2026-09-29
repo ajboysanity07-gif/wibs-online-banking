@@ -183,6 +183,7 @@ export default function AuditLog() {
             <Head title="Audit Log" />
             <PageShell>
                 <PageHero
+                    kicker="Superadmin"
                     title="Audit Log"
                     description="System-wide record of role changes, loan workflow actions, and document access."
                     rightSlot={
@@ -200,7 +201,7 @@ export default function AuditLog() {
                 <SurfaceCard>
                     <form
                         onSubmit={handleFilterSubmit}
-                        className="flex flex-wrap gap-3 p-4"
+                        className="flex flex-wrap gap-3 border-b border-border p-4"
                     >
                         <div className="flex flex-col gap-1">
                             <Label htmlFor="filter-type">Event type</Label>
@@ -365,7 +366,7 @@ export default function AuditLog() {
                     </div>
 
                     {meta && meta.last_page > 1 && (
-                        <div className="flex items-center justify-between px-4 py-3">
+                        <div className="flex items-center justify-between border-t border-border px-4 py-3">
                             <span className="text-sm text-muted-foreground">
                                 Page {meta.page} of {meta.last_page} (
                                 {meta.total} records)
