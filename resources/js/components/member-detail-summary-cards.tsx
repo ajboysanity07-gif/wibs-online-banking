@@ -34,9 +34,9 @@ const accentStyles: Record<
         icon: 'text-primary-foreground/80',
     },
     accent: {
-        border: 'border-accent/20',
-        bg: 'bg-accent/5',
-        icon: 'text-accent',
+        border: 'border-accent',
+        bg: 'bg-accent text-accent-foreground',
+        icon: 'text-accent-foreground/80',
     },
 };
 
@@ -77,10 +77,7 @@ export function MemberDetailSupportingCard({
     value,
     description,
     icon: Icon,
-    accent,
 }: MemberDetailSupportingCardProps) {
-    const styles = accentStyles[accent];
-
     return (
         <SurfaceCard
             variant="default"
@@ -93,7 +90,7 @@ export function MemberDetailSupportingCard({
                         {title}
                     </p>
                     <Icon
-                        className={cn('h-4 w-4', styles.icon)}
+                        className="h-4 w-4 text-muted-foreground"
                         aria-hidden="true"
                     />
                 </div>

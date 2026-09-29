@@ -130,8 +130,9 @@ export default function MemberSavings({
                     subtitle="Your loan security ledger activity."
                     meta={
                         <span className="inline-flex flex-wrap items-center gap-2">
-                            <span>Account No: {member.acctno ?? '--'}</span>
-                            <span aria-hidden="true">|</span>
+                            <Badge variant="outline" className="bg-card">
+                                Account No: {member.acctno ?? '--'}
+                            </Badge>
                             <span className="inline-flex flex-wrap items-center gap-2">
                                 <span>Loan Security No:</span>
                                 {savingsNumberMeta}
@@ -139,7 +140,7 @@ export default function MemberSavings({
                         </span>
                     }
                     actions={
-                        <Button asChild variant="ghost" size="sm">
+                        <Button asChild variant="outline">
                             <Link href={clientDashboard().url}>
                                 Back to profile
                             </Link>
