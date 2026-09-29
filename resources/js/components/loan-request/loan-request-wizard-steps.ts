@@ -2,7 +2,6 @@ export type LoanRequestWizardGroupId =
     | 'loan-details'
     | 'about-you'
     | 'co-makers'
-    | 'insurance-health'
     | 'bank-payout'
     | 'declarations-review';
 
@@ -112,13 +111,6 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
         title: 'Co-maker 2: income & details',
         description: 'Income and business details for your second co-maker.',
         group: 'co-makers',
-    },
-    {
-        id: 'dependents',
-        title: 'Dependents',
-        description:
-            'Add your dependents and name a primary beneficiary for your loan insurance (required). Check a dependent, or your spouse, to designate them as an insurance beneficiary (optional).',
-        group: 'insurance-health',
     },
     {
         id: 'banking',

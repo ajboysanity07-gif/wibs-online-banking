@@ -21,7 +21,6 @@ test('client wizard blocks Next and shows why for unchecked confirm checkboxes',
     for (const message of [
         'Confirmation that your details are correct',
         'Confirmation of your work & income details',
-        'Confirmation of your dependents',
         'Confirmation of your bank details',
     ]) {
         assert.ok(pageFile.includes(message), `missing blocker: ${message}`);
@@ -34,6 +33,19 @@ test('client wizard blocks Next and shows why for unchecked confirm checkboxes',
     );
 });
 
-test('dependents step does not require a dependent or beneficiary yet', () => {
-    assert.doesNotMatch(pageFile, /countSelectedBeneficiaries/);
+test('dependents step is not part of the member wizard', async () => {
+    const stepsFile = await readFile(
+        resolve(
+            'resources',
+            'js',
+            'components',
+            'loan-request',
+            'loan-request-wizard-steps.ts',
+        ),
+        'utf8',
+    );
+
+    assert.doesNotMatch(stepsFile, /id: 'dependents'/);
+    assert.doesNotMatch(pageFile, /STEP_INDEX\['dependents'\]/);
+    assert.doesNotMatch(pageFile, /LoanRequestDependentsStep/);
 });

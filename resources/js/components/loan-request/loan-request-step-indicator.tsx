@@ -3,7 +3,6 @@ import {
     Check,
     ClipboardCheck,
     FileText,
-    HeartPulse,
     User,
     Users,
     type LucideIcon,
@@ -37,7 +36,6 @@ const GROUP_META: Record<LoanRequestWizardGroupId, GroupMeta> = {
     'loan-details': { label: 'Loan details', icon: FileText },
     'about-you': { label: 'About you', icon: User },
     'co-makers': { label: 'Co-makers', icon: Users },
-    'insurance-health': { label: 'Dependents & insurance', icon: HeartPulse },
     'bank-payout': {
         label: 'Disbursement & Repayment',
         icon: Building2,
