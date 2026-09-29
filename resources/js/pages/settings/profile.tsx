@@ -6,19 +6,18 @@ import { useEffect, useRef, useState } from 'react';
 import LinkMembershipController from '@/actions/App/Http/Controllers/Settings/LinkMembershipController';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import type { DependentValues } from '@/components/dependents/dependent-category-section';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import ProfileImageCropModal, {
     type ProfileImageCropResult,
 } from '@/components/profile/profile-image-crop-modal';
 import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs } from '@/components/ui/tabs';
 import { useInitials } from '@/hooks/use-initials';
 import { useLocationSearch } from '@/hooks/use-location-search';
 import AppLayout from '@/layouts/app-layout';
@@ -60,9 +59,6 @@ import { BankTab } from './profile-tabs/bank-tab';
 import { DependentsTab } from './profile-tabs/dependents-tab';
 import { PersonalTab } from './profile-tabs/personal-tab';
 import { WorkTab } from './profile-tabs/work-tab';
-
-const navTriggerClassName =
-    'h-auto flex-col items-start justify-start gap-0.5 whitespace-normal px-3 py-2.5 text-left data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none';
 
 export default function Profile({
     mustVerifyEmail,
@@ -633,822 +629,644 @@ export default function Profile({
 
             <h1 className="sr-only">Profile Settings</h1>
 
-            <SettingsLayout>
+            <SettingsLayout
+                profileSection={{
+                    active: resolvedActiveTab,
+                    onSelect: setActiveTab,
+                }}
+            >
                 <SurfaceCard
-                    variant="default"
-                    padding="lg"
+                    padding="none"
+                    className="flex flex-wrap items-center gap-4 p-6"
+                >
+                    <Avatar className="size-16 overflow-hidden rounded-full border border-border">
+                        <AvatarImage
+                            src={profilePhotoUrl}
+                            alt={displayName}
+                            className="object-cover"
+                        />
+                        <AvatarFallback className="rounded-full bg-muted text-foreground">
+                            {getInitials(displayName)}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1 space-y-1">
+                        <p className="truncate text-lg font-bold">
+                            {displayName}
+                        </p>
+                        <p className="truncate text-sm text-muted-foreground">
+                            {typeof auth.user.acctno === 'string' &&
+                            auth.user.acctno.trim() !== ''
+                                ? `Account No: ${auth.user.acctno.trim()} · `
+                                : ''}
+                            {auth.user.username ?? auth.user.name}
+                        </p>
+                    </div>
+                    {hasMemberAccess && (
+                        <Badge
+                            variant={
+                                isProfileComplete ? 'default' : 'secondary'
+                            }
+                        >
+                            {isProfileComplete
+                                ? 'Profile complete'
+                                : 'Profile incomplete'}
+                        </Badge>
+                    )}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => profilePhotoInputRef.current?.click()}
+                    >
+                        Change photo
+                    </Button>
+                </SurfaceCard>
+
+                <div className="space-y-6 empty:hidden">
+                    {showOnboardingAlert && (
+                        <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100">
+                            <AlertTitle>
+                                Complete your profile to continue
+                            </AlertTitle>
+                            <AlertDescription>
+                                Add the personal and work details below to
+                                unlock your client dashboard.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
+                    {showMissingProfileFields ? (
+                        <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100">
+                            <AlertTitle>Finish your profile</AlertTitle>
+                            <AlertDescription className="text-amber-900 dark:text-amber-100">
+                                <p>
+                                    A few required fields still need your input
+                                    to finish onboarding:
+                                </p>
+                                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                                    {missingProfileFields.map(
+                                        (label, index) => {
+                                            const fieldKey =
+                                                missingFieldKeys[index];
+
+                                            if (!fieldKey) {
+                                                return (
+                                                    <li key={label}>{label}</li>
+                                                );
+                                            }
+
+                                            return (
+                                                <li key={fieldKey}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            jumpToField(
+                                                                fieldKey,
+                                                            )
+                                                        }
+                                                        className="underline decoration-amber-500/60 underline-offset-2 hover:text-amber-950 dark:hover:text-white"
+                                                    >
+                                                        {label}
+                                                    </button>
+                                                </li>
+                                            );
+                                        },
+                                    )}
+                                </ul>
+                            </AlertDescription>
+                        </Alert>
+                    ) : null}
+
+                    {status === 'membership-linked' && (
+                        <Alert className="border-green-200 bg-green-50 text-green-950 dark:border-green-800/50 dark:bg-green-950/40 dark:text-green-100">
+                            <AlertTitle>Membership linked</AlertTitle>
+                            <AlertDescription>
+                                You now have member portal access.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
+                    {status === 'loan-prerequisites-incomplete' && (
+                        <Alert variant="destructive">
+                            <AlertTitle>
+                                Finish your Work details first
+                            </AlertTitle>
+                            <AlertDescription>
+                                Select your Institutional Employer Category
+                                below before starting a loan request.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </div>
+
+                <Form
+                    {...ProfileController.update.form()}
+                    options={{
+                        preserveScroll: true,
+                    }}
+                    onSuccess={() => {
+                        showSuccessToast(
+                            adminToastCopy.success.updated('Profile'),
+                            { id: 'profile-update' },
+                        );
+                    }}
+                    onError={(formErrors) => {
+                        showErrorToast(
+                            formErrors,
+                            adminToastCopy.error.updated('Profile'),
+                            { id: 'profile-update' },
+                        );
+                        const nextTabWithErrors =
+                            findFirstTabWithErrors(formErrors);
+                        const firstInvalidField =
+                            findFirstInvalidField(formErrors);
+
+                        if (
+                            nextTabWithErrors &&
+                            (hasMemberAccess || nextTabWithErrors === 'account')
+                        ) {
+                            setActiveTab(nextTabWithErrors);
+                        }
+
+                        focusInvalidField(firstInvalidField);
+                    }}
+                    encType="multipart/form-data"
+                    noValidate
                     className="space-y-6"
                 >
-                    <section className="max-w-5xl space-y-12">
-                        <div className="space-y-6">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                <Heading
-                                    variant="small"
-                                    title="Profile information"
-                                    description="Update your profile details, photo, and contact information"
+                    {({
+                        processing,
+                        recentlySuccessful,
+                        errors: formErrors,
+                    }) => (
+                        <>
+                            {showOnboardingSteps && (
+                                <Badge variant="secondary" className="w-fit">
+                                    Step {activeTabIndex + 1} of{' '}
+                                    {availableTabs.length}
+                                </Badge>
+                            )}
+                            <Tabs
+                                value={resolvedActiveTab}
+                                onValueChange={(value) => {
+                                    setActiveTab(value as ProfileTab);
+                                }}
+                                className="w-full"
+                            >
+                                <AccountTab
+                                    formErrors={formErrors}
+                                    adminProfile={adminProfile}
+                                    auth={auth}
+                                    displayName={displayName}
+                                    getInitials={getInitials}
+                                    profilePhotoUrl={profilePhotoUrl}
+                                    profilePhotoInputRef={profilePhotoInputRef}
+                                    handleProfilePhotoChange={
+                                        handleProfilePhotoChange
+                                    }
+                                    mustVerifyEmail={mustVerifyEmail}
+                                    status={status}
+                                    memberRecord={
+                                        hasMemberAccess ? memberRecord : null
+                                    }
                                 />
+
                                 {hasMemberAccess && (
-                                    <Badge
+                                    <PersonalTab
+                                        formErrors={formErrors}
+                                        memberRecord={memberRecord}
+                                        memberApplicationProfile={
+                                            memberApplicationProfile
+                                        }
+                                        isFieldMissing={isFieldMissing}
+                                        hasStructuredName={hasStructuredName}
+                                        memberFirstName={memberFirstName}
+                                        memberLastName={memberLastName}
+                                        memberMiddleName={memberMiddleName}
+                                        memberDisplayName={memberDisplayName}
+                                        memberAge={memberAge}
+                                        memberCivilStatus={memberCivilStatus}
+                                        isCivilStatusLocked={
+                                            isCivilStatusLocked
+                                        }
+                                        memberSex={memberSex}
+                                        isSexLocked={isSexLocked}
+                                        sexValue={sexValue}
+                                        setSexValue={setSexValue}
+                                        isHousingStatusLocked={
+                                            isHousingStatusLocked
+                                        }
+                                        isSpouseNameLocked={isSpouseNameLocked}
+                                        spouseNameValue={spouseNameValue}
+                                        setSpouseNameValue={setSpouseNameValue}
+                                        spouseFieldsHidden={spouseFieldsHidden}
+                                        numberOfChildrenValue={
+                                            numberOfChildrenValue
+                                        }
+                                        birthplaceProvinceSearch={
+                                            birthplaceProvinceSearch
+                                        }
+                                        birthplaceCitySearch={
+                                            birthplaceCitySearch
+                                        }
+                                        birthplaceBarangaySearch={
+                                            birthplaceBarangaySearch
+                                        }
+                                        homeProvinceSearch={homeProvinceSearch}
+                                        homeCitySearch={homeCitySearch}
+                                        homeBarangaySearch={homeBarangaySearch}
+                                        homeAddress1={homeAddress1}
+                                        homeAddress2RawHint={
+                                            homeAddress2RawHint
+                                        }
+                                        homeAddress3RawHint={
+                                            homeAddress3RawHint
+                                        }
+                                        homeAddressBarangayRawHint={
+                                            homeAddressBarangayRawHint
+                                        }
+                                        homeAddressZipValue={
+                                            homeAddressZipValue
+                                        }
+                                        setHomeAddressZipValue={
+                                            setHomeAddressZipValue
+                                        }
+                                        handleHomeCitySelect={
+                                            handleHomeCitySelect
+                                        }
+                                        civilStatusValue={civilStatusValue}
+                                        setCivilStatusValue={
+                                            setCivilStatusValue
+                                        }
+                                        housingStatusValue={housingStatusValue}
+                                        setHousingStatusValue={
+                                            setHousingStatusValue
+                                        }
+                                        lengthOfStay={lengthOfStay}
+                                        setLengthOfStay={setLengthOfStay}
+                                        lengthOfStaySinceBirth={
+                                            lengthOfStaySinceBirth
+                                        }
+                                        setLengthOfStaySinceBirth={
+                                            setLengthOfStaySinceBirth
+                                        }
+                                        spouseBirthdateValue={
+                                            spouseBirthdateValue
+                                        }
+                                        setSpouseBirthdateValue={
+                                            setSpouseBirthdateValue
+                                        }
+                                        spouseAge={spouseAge}
+                                        educationalAttainment={
+                                            educationalAttainment
+                                        }
+                                        setEducationalAttainment={
+                                            setEducationalAttainment
+                                        }
+                                        educationalAttainmentOptions={
+                                            educationalAttainmentOptions
+                                        }
+                                    />
+                                )}
+
+                                {hasMemberAccess && (
+                                    <WorkTab
+                                        formErrors={formErrors}
+                                        memberApplicationProfile={
+                                            memberApplicationProfile
+                                        }
+                                        isFieldMissing={isFieldMissing}
+                                        employmentType={employmentType}
+                                        setEmploymentType={setEmploymentType}
+                                        employmentTypeOptions={
+                                            employmentTypeOptions
+                                        }
+                                        isPensioner={isPensioner}
+                                        showDateEmployed={showDateEmployed}
+                                        employerDateEmployed={
+                                            employerDateEmployed
+                                        }
+                                        setEmployerDateEmployed={
+                                            setEmployerDateEmployed
+                                        }
+                                        isCurrentPositionFromWmaster={
+                                            isCurrentPositionFromWmaster
+                                        }
+                                        resolvedCurrentPosition={
+                                            resolvedCurrentPosition
+                                        }
+                                        employerBusinessAddress1={
+                                            employerBusinessAddress1
+                                        }
+                                        employerBusinessProvinceSearch={
+                                            employerBusinessProvinceSearch
+                                        }
+                                        employerBusinessCitySearch={
+                                            employerBusinessCitySearch
+                                        }
+                                        employerBusinessBarangaySearch={
+                                            employerBusinessBarangaySearch
+                                        }
+                                        employerBusinessAddressZipValue={
+                                            employerBusinessAddressZipValue
+                                        }
+                                        setEmployerBusinessAddressZipValue={
+                                            setEmployerBusinessAddressZipValue
+                                        }
+                                        handleEmployerCitySelect={
+                                            handleEmployerCitySelect
+                                        }
+                                        natureOfBusinessSelection={
+                                            natureOfBusinessSelection
+                                        }
+                                        setNatureOfBusinessSelection={
+                                            setNatureOfBusinessSelection
+                                        }
+                                        natureOfBusinessOther={
+                                            natureOfBusinessOther
+                                        }
+                                        setNatureOfBusinessOther={
+                                            setNatureOfBusinessOther
+                                        }
+                                        resolvedNatureOfBusiness={
+                                            resolvedNatureOfBusiness
+                                        }
+                                        yearsInWorkBusiness={
+                                            yearsInWorkBusiness
+                                        }
+                                        setYearsInWorkBusiness={
+                                            setYearsInWorkBusiness
+                                        }
+                                        grossMonthlyIncome={grossMonthlyIncome}
+                                        setGrossMonthlyIncome={
+                                            setGrossMonthlyIncome
+                                        }
+                                        paydaySelection={paydaySelection}
+                                        setPaydaySelection={setPaydaySelection}
+                                        idTypeSelection={idTypeSelection}
+                                        setIdTypeSelection={setIdTypeSelection}
+                                        idTypeOther={idTypeOther}
+                                        setIdTypeOther={setIdTypeOther}
+                                        sourceOfFundSelection={
+                                            sourceOfFundSelection
+                                        }
+                                        setSourceOfFundSelection={
+                                            setSourceOfFundSelection
+                                        }
+                                        sourceOfFundOther={sourceOfFundOther}
+                                        setSourceOfFundOther={
+                                            setSourceOfFundOther
+                                        }
+                                        resolvedSourceOfFund={
+                                            resolvedSourceOfFund
+                                        }
+                                    />
+                                )}
+
+                                {hasMemberAccess && (
+                                    <BankTab
+                                        formErrors={formErrors}
+                                        isFieldMissing={isFieldMissing}
+                                        releaseMethod={releaseMethod}
+                                        setReleaseMethod={setReleaseMethod}
+                                        releaseAccountId={releaseAccountId}
+                                        setReleaseAccountId={
+                                            setReleaseAccountId
+                                        }
+                                        paymentOption={paymentOption}
+                                        setPaymentOption={setPaymentOption}
+                                        paymentAccountId={paymentAccountId}
+                                        setPaymentAccountId={
+                                            setPaymentAccountId
+                                        }
+                                    />
+                                )}
+
+                                {hasMemberAccess && (
+                                    <DependentsTab
+                                        formErrors={formErrors}
+                                        memberCivilStatus={memberCivilStatus}
+                                        dependentsValues={dependentsValues}
+                                        handleDependentsChange={
+                                            handleDependentsChange
+                                        }
+                                        spouseName={spouseNameValue}
+                                        spouseBirthdate={spouseBirthdateValue}
+                                    />
+                                )}
+                            </Tabs>
+
+                            <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-end">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    {showStepperNav && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            disabled={
+                                                processing || !previousTab
+                                            }
+                                            onClick={() => {
+                                                if (!previousTab) {
+                                                    return;
+                                                }
+
+                                                setActiveTab(previousTab);
+                                            }}
+                                        >
+                                            Previous
+                                        </Button>
+                                    )}
+
+                                    {showStepperNav && nextTab && (
+                                        <Button
+                                            type="button"
+                                            variant={
+                                                onboarding
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                            disabled={processing}
+                                            onClick={() => {
+                                                setActiveTab(nextTab);
+                                            }}
+                                        >
+                                            Next
+                                        </Button>
+                                    )}
+
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                        data-test="update-profile-button"
                                         variant={
-                                            isProfileComplete
-                                                ? 'default'
-                                                : 'secondary'
+                                            onboarding && nextTab
+                                                ? 'secondary'
+                                                : 'default'
                                         }
                                     >
-                                        {isProfileComplete
-                                            ? 'Profile complete'
-                                            : 'Profile incomplete'}
-                                    </Badge>
-                                )}
-                            </div>
+                                        {processing ? (
+                                            <>
+                                                <Loader2 className="size-4 animate-spin" />
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            'Save'
+                                        )}
+                                    </Button>
 
-                            {showOnboardingAlert && (
-                                <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100">
-                                    <AlertTitle>
-                                        Complete your profile to continue
-                                    </AlertTitle>
-                                    <AlertDescription>
-                                        Add the personal and work details below
-                                        to unlock your client dashboard.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-
-                            {showMissingProfileFields ? (
-                                <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100">
-                                    <AlertTitle>Finish your profile</AlertTitle>
-                                    <AlertDescription className="text-amber-900 dark:text-amber-100">
-                                        <p>
-                                            A few required fields still need
-                                            your input to finish onboarding:
+                                    <Transition
+                                        show={recentlySuccessful}
+                                        enter="transition ease-in-out"
+                                        enterFrom="opacity-0"
+                                        leave="transition ease-in-out"
+                                        leaveTo="opacity-0"
+                                    >
+                                        <p className="text-sm text-muted-foreground">
+                                            Saved
                                         </p>
-                                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                                            {missingProfileFields.map(
-                                                (label, index) => {
-                                                    const fieldKey =
-                                                        missingFieldKeys[index];
+                                    </Transition>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </Form>
 
-                                                    if (!fieldKey) {
-                                                        return (
-                                                            <li key={label}>
-                                                                {label}
-                                                            </li>
-                                                        );
-                                                    }
-
-                                                    return (
-                                                        <li key={fieldKey}>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    jumpToField(
-                                                                        fieldKey,
-                                                                    )
-                                                                }
-                                                                className="underline decoration-amber-500/60 underline-offset-2 hover:text-amber-950 dark:hover:text-white"
-                                                            >
-                                                                {label}
-                                                            </button>
-                                                        </li>
-                                                    );
-                                                },
-                                            )}
-                                        </ul>
-                                    </AlertDescription>
-                                </Alert>
-                            ) : null}
-
-                            {status === 'membership-linked' && (
-                                <Alert className="border-green-200 bg-green-50 text-green-950 dark:border-green-800/50 dark:bg-green-950/40 dark:text-green-100">
-                                    <AlertTitle>Membership linked</AlertTitle>
-                                    <AlertDescription>
-                                        You now have member portal access.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-
-                            {status === 'loan-prerequisites-incomplete' && (
-                                <Alert variant="destructive">
-                                    <AlertTitle>
-                                        Finish your Work details first
-                                    </AlertTitle>
-                                    <AlertDescription>
-                                        Select your Institutional Employer
-                                        Category below before starting a loan
-                                        request.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-
-                            <Form
-                                {...ProfileController.update.form()}
-                                options={{
-                                    preserveScroll: true,
-                                }}
-                                onSuccess={() => {
-                                    showSuccessToast(
-                                        adminToastCopy.success.updated(
-                                            'Profile',
-                                        ),
-                                        { id: 'profile-update' },
-                                    );
-                                }}
-                                onError={(formErrors) => {
-                                    showErrorToast(
-                                        formErrors,
-                                        adminToastCopy.error.updated('Profile'),
-                                        { id: 'profile-update' },
-                                    );
-                                    const nextTabWithErrors =
-                                        findFirstTabWithErrors(formErrors);
-                                    const firstInvalidField =
-                                        findFirstInvalidField(formErrors);
-
-                                    if (
-                                        nextTabWithErrors &&
-                                        (hasMemberAccess ||
-                                            nextTabWithErrors === 'account')
-                                    ) {
-                                        setActiveTab(nextTabWithErrors);
-                                    }
-
-                                    focusInvalidField(firstInvalidField);
-                                }}
-                                encType="multipart/form-data"
-                                noValidate
-                                className="space-y-6"
-                            >
-                                {({
-                                    processing,
-                                    recentlySuccessful,
-                                    errors: formErrors,
-                                }) => (
-                                    <>
-                                        <Tabs
-                                            value={resolvedActiveTab}
-                                            onValueChange={(value) => {
-                                                setActiveTab(
-                                                    value as ProfileTab,
-                                                );
-                                            }}
-                                            orientation="vertical"
-                                            className="grid w-full gap-6 lg:grid-cols-[minmax(190px,250px)_minmax(0,1fr)] lg:items-start"
-                                        >
-                                            <div className="flex flex-col gap-3">
-                                                <TabsList
-                                                    aria-orientation="vertical"
-                                                    className="h-auto w-full flex-col items-stretch justify-start gap-1 rounded-lg border border-border bg-muted p-2"
-                                                >
-                                                    <TabsTrigger
-                                                        value="account"
-                                                        className={
-                                                            navTriggerClassName
-                                                        }
-                                                    >
-                                                        <span className="text-sm font-bold">
-                                                            Account
-                                                        </span>
-                                                        <span className="text-xs font-medium opacity-90">
-                                                            Sign-in, photo and
-                                                            contact
-                                                        </span>
-                                                    </TabsTrigger>
-                                                    {hasMemberAccess && (
-                                                        <>
-                                                            <TabsTrigger
-                                                                value="personal"
-                                                                className={
-                                                                    navTriggerClassName
-                                                                }
-                                                            >
-                                                                <span className="text-sm font-bold">
-                                                                    Personal
-                                                                </span>
-                                                                <span className="text-xs font-medium opacity-90">
-                                                                    Name,
-                                                                    birthdate
-                                                                    and civil
-                                                                    status
-                                                                </span>
-                                                            </TabsTrigger>
-                                                            <TabsTrigger
-                                                                value="work"
-                                                                className={
-                                                                    navTriggerClassName
-                                                                }
-                                                            >
-                                                                <span className="text-sm font-bold">
-                                                                    Work &amp;
-                                                                    Finances
-                                                                </span>
-                                                                <span className="text-xs font-medium opacity-90">
-                                                                    Employment
-                                                                    and income
-                                                                </span>
-                                                            </TabsTrigger>
-                                                            <TabsTrigger
-                                                                value="bank"
-                                                                className={
-                                                                    navTriggerClassName
-                                                                }
-                                                            >
-                                                                <span className="text-sm font-bold">
-                                                                    Release
-                                                                    Method
-                                                                </span>
-                                                                <span className="text-xs font-medium opacity-90">
-                                                                    Bank and
-                                                                    payout
-                                                                    details
-                                                                </span>
-                                                            </TabsTrigger>
-                                                            <TabsTrigger
-                                                                value="dependents"
-                                                                className={
-                                                                    navTriggerClassName
-                                                                }
-                                                            >
-                                                                <span className="text-sm font-bold">
-                                                                    Dependents
-                                                                </span>
-                                                                <span className="text-xs font-medium opacity-90">
-                                                                    Spouse and
-                                                                    family
-                                                                </span>
-                                                            </TabsTrigger>
-                                                        </>
-                                                    )}
-                                                </TabsList>
-                                                {showOnboardingSteps && (
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className="w-fit"
-                                                    >
-                                                        Step{' '}
-                                                        {activeTabIndex + 1} of{' '}
-                                                        {availableTabs.length}
-                                                    </Badge>
-                                                )}
-                                            </div>
-
-                                            <AccountTab
-                                                formErrors={formErrors}
-                                                adminProfile={adminProfile}
-                                                auth={auth}
-                                                displayName={displayName}
-                                                getInitials={getInitials}
-                                                profilePhotoUrl={
-                                                    profilePhotoUrl
-                                                }
-                                                profilePhotoInputRef={
-                                                    profilePhotoInputRef
-                                                }
-                                                handleProfilePhotoChange={
-                                                    handleProfilePhotoChange
-                                                }
-                                                mustVerifyEmail={
-                                                    mustVerifyEmail
-                                                }
-                                                status={status}
-                                                memberRecord={
-                                                    hasMemberAccess
-                                                        ? memberRecord
-                                                        : null
-                                                }
-                                            />
-
-                                            {hasMemberAccess && (
-                                                <PersonalTab
-                                                    formErrors={formErrors}
-                                                    memberRecord={memberRecord}
-                                                    memberApplicationProfile={
-                                                        memberApplicationProfile
-                                                    }
-                                                    isFieldMissing={
-                                                        isFieldMissing
-                                                    }
-                                                    hasStructuredName={
-                                                        hasStructuredName
-                                                    }
-                                                    memberFirstName={
-                                                        memberFirstName
-                                                    }
-                                                    memberLastName={
-                                                        memberLastName
-                                                    }
-                                                    memberMiddleName={
-                                                        memberMiddleName
-                                                    }
-                                                    memberDisplayName={
-                                                        memberDisplayName
-                                                    }
-                                                    memberAge={memberAge}
-                                                    memberCivilStatus={
-                                                        memberCivilStatus
-                                                    }
-                                                    isCivilStatusLocked={
-                                                        isCivilStatusLocked
-                                                    }
-                                                    memberSex={memberSex}
-                                                    isSexLocked={isSexLocked}
-                                                    sexValue={sexValue}
-                                                    setSexValue={setSexValue}
-                                                    isHousingStatusLocked={
-                                                        isHousingStatusLocked
-                                                    }
-                                                    isSpouseNameLocked={
-                                                        isSpouseNameLocked
-                                                    }
-                                                    spouseNameValue={
-                                                        spouseNameValue
-                                                    }
-                                                    setSpouseNameValue={
-                                                        setSpouseNameValue
-                                                    }
-                                                    spouseFieldsHidden={
-                                                        spouseFieldsHidden
-                                                    }
-                                                    numberOfChildrenValue={
-                                                        numberOfChildrenValue
-                                                    }
-                                                    birthplaceProvinceSearch={
-                                                        birthplaceProvinceSearch
-                                                    }
-                                                    birthplaceCitySearch={
-                                                        birthplaceCitySearch
-                                                    }
-                                                    birthplaceBarangaySearch={
-                                                        birthplaceBarangaySearch
-                                                    }
-                                                    homeProvinceSearch={
-                                                        homeProvinceSearch
-                                                    }
-                                                    homeCitySearch={
-                                                        homeCitySearch
-                                                    }
-                                                    homeBarangaySearch={
-                                                        homeBarangaySearch
-                                                    }
-                                                    homeAddress1={homeAddress1}
-                                                    homeAddress2RawHint={
-                                                        homeAddress2RawHint
-                                                    }
-                                                    homeAddress3RawHint={
-                                                        homeAddress3RawHint
-                                                    }
-                                                    homeAddressBarangayRawHint={
-                                                        homeAddressBarangayRawHint
-                                                    }
-                                                    homeAddressZipValue={
-                                                        homeAddressZipValue
-                                                    }
-                                                    setHomeAddressZipValue={
-                                                        setHomeAddressZipValue
-                                                    }
-                                                    handleHomeCitySelect={
-                                                        handleHomeCitySelect
-                                                    }
-                                                    civilStatusValue={
-                                                        civilStatusValue
-                                                    }
-                                                    setCivilStatusValue={
-                                                        setCivilStatusValue
-                                                    }
-                                                    housingStatusValue={
-                                                        housingStatusValue
-                                                    }
-                                                    setHousingStatusValue={
-                                                        setHousingStatusValue
-                                                    }
-                                                    lengthOfStay={lengthOfStay}
-                                                    setLengthOfStay={
-                                                        setLengthOfStay
-                                                    }
-                                                    lengthOfStaySinceBirth={
-                                                        lengthOfStaySinceBirth
-                                                    }
-                                                    setLengthOfStaySinceBirth={
-                                                        setLengthOfStaySinceBirth
-                                                    }
-                                                    spouseBirthdateValue={
-                                                        spouseBirthdateValue
-                                                    }
-                                                    setSpouseBirthdateValue={
-                                                        setSpouseBirthdateValue
-                                                    }
-                                                    spouseAge={spouseAge}
-                                                    educationalAttainment={
-                                                        educationalAttainment
-                                                    }
-                                                    setEducationalAttainment={
-                                                        setEducationalAttainment
-                                                    }
-                                                    educationalAttainmentOptions={
-                                                        educationalAttainmentOptions
-                                                    }
-                                                />
-                                            )}
-
-                                            {hasMemberAccess && (
-                                                <WorkTab
-                                                    formErrors={formErrors}
-                                                    memberApplicationProfile={
-                                                        memberApplicationProfile
-                                                    }
-                                                    isFieldMissing={
-                                                        isFieldMissing
-                                                    }
-                                                    employmentType={
-                                                        employmentType
-                                                    }
-                                                    setEmploymentType={
-                                                        setEmploymentType
-                                                    }
-                                                    employmentTypeOptions={
-                                                        employmentTypeOptions
-                                                    }
-                                                    isPensioner={isPensioner}
-                                                    showDateEmployed={
-                                                        showDateEmployed
-                                                    }
-                                                    employerDateEmployed={
-                                                        employerDateEmployed
-                                                    }
-                                                    setEmployerDateEmployed={
-                                                        setEmployerDateEmployed
-                                                    }
-                                                    isCurrentPositionFromWmaster={
-                                                        isCurrentPositionFromWmaster
-                                                    }
-                                                    resolvedCurrentPosition={
-                                                        resolvedCurrentPosition
-                                                    }
-                                                    employerBusinessAddress1={
-                                                        employerBusinessAddress1
-                                                    }
-                                                    employerBusinessProvinceSearch={
-                                                        employerBusinessProvinceSearch
-                                                    }
-                                                    employerBusinessCitySearch={
-                                                        employerBusinessCitySearch
-                                                    }
-                                                    employerBusinessBarangaySearch={
-                                                        employerBusinessBarangaySearch
-                                                    }
-                                                    employerBusinessAddressZipValue={
-                                                        employerBusinessAddressZipValue
-                                                    }
-                                                    setEmployerBusinessAddressZipValue={
-                                                        setEmployerBusinessAddressZipValue
-                                                    }
-                                                    handleEmployerCitySelect={
-                                                        handleEmployerCitySelect
-                                                    }
-                                                    natureOfBusinessSelection={
-                                                        natureOfBusinessSelection
-                                                    }
-                                                    setNatureOfBusinessSelection={
-                                                        setNatureOfBusinessSelection
-                                                    }
-                                                    natureOfBusinessOther={
-                                                        natureOfBusinessOther
-                                                    }
-                                                    setNatureOfBusinessOther={
-                                                        setNatureOfBusinessOther
-                                                    }
-                                                    resolvedNatureOfBusiness={
-                                                        resolvedNatureOfBusiness
-                                                    }
-                                                    yearsInWorkBusiness={
-                                                        yearsInWorkBusiness
-                                                    }
-                                                    setYearsInWorkBusiness={
-                                                        setYearsInWorkBusiness
-                                                    }
-                                                    grossMonthlyIncome={
-                                                        grossMonthlyIncome
-                                                    }
-                                                    setGrossMonthlyIncome={
-                                                        setGrossMonthlyIncome
-                                                    }
-                                                    paydaySelection={
-                                                        paydaySelection
-                                                    }
-                                                    setPaydaySelection={
-                                                        setPaydaySelection
-                                                    }
-                                                    idTypeSelection={
-                                                        idTypeSelection
-                                                    }
-                                                    setIdTypeSelection={
-                                                        setIdTypeSelection
-                                                    }
-                                                    idTypeOther={idTypeOther}
-                                                    setIdTypeOther={
-                                                        setIdTypeOther
-                                                    }
-                                                    sourceOfFundSelection={
-                                                        sourceOfFundSelection
-                                                    }
-                                                    setSourceOfFundSelection={
-                                                        setSourceOfFundSelection
-                                                    }
-                                                    sourceOfFundOther={
-                                                        sourceOfFundOther
-                                                    }
-                                                    setSourceOfFundOther={
-                                                        setSourceOfFundOther
-                                                    }
-                                                    resolvedSourceOfFund={
-                                                        resolvedSourceOfFund
-                                                    }
-                                                />
-                                            )}
-
-                                            {hasMemberAccess && (
-                                                <BankTab
-                                                    formErrors={formErrors}
-                                                    isFieldMissing={
-                                                        isFieldMissing
-                                                    }
-                                                    releaseMethod={
-                                                        releaseMethod
-                                                    }
-                                                    setReleaseMethod={
-                                                        setReleaseMethod
-                                                    }
-                                                    releaseAccountId={
-                                                        releaseAccountId
-                                                    }
-                                                    setReleaseAccountId={
-                                                        setReleaseAccountId
-                                                    }
-                                                    paymentOption={
-                                                        paymentOption
-                                                    }
-                                                    setPaymentOption={
-                                                        setPaymentOption
-                                                    }
-                                                    paymentAccountId={
-                                                        paymentAccountId
-                                                    }
-                                                    setPaymentAccountId={
-                                                        setPaymentAccountId
-                                                    }
-                                                />
-                                            )}
-
-                                            {hasMemberAccess && (
-                                                <DependentsTab
-                                                    formErrors={formErrors}
-                                                    memberCivilStatus={
-                                                        memberCivilStatus
-                                                    }
-                                                    dependentsValues={
-                                                        dependentsValues
-                                                    }
-                                                    handleDependentsChange={
-                                                        handleDependentsChange
-                                                    }
-                                                    spouseName={spouseNameValue}
-                                                    spouseBirthdate={
-                                                        spouseBirthdateValue
-                                                    }
-                                                />
-                                            )}
-                                        </Tabs>
-
-                                        <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-end">
-                                            <div className="flex flex-wrap items-center gap-3">
-                                                {showStepperNav && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        disabled={
-                                                            processing ||
-                                                            !previousTab
-                                                        }
-                                                        onClick={() => {
-                                                            if (!previousTab) {
-                                                                return;
-                                                            }
-
-                                                            setActiveTab(
-                                                                previousTab,
-                                                            );
-                                                        }}
-                                                    >
-                                                        Previous
-                                                    </Button>
-                                                )}
-
-                                                {showStepperNav && nextTab && (
-                                                    <Button
-                                                        type="button"
-                                                        variant={
-                                                            onboarding
-                                                                ? 'default'
-                                                                : 'secondary'
-                                                        }
-                                                        disabled={processing}
-                                                        onClick={() => {
-                                                            setActiveTab(
-                                                                nextTab,
-                                                            );
-                                                        }}
-                                                    >
-                                                        Next
-                                                    </Button>
-                                                )}
-
-                                                <Button
-                                                    type="submit"
-                                                    disabled={processing}
-                                                    data-test="update-profile-button"
-                                                    variant={
-                                                        onboarding && nextTab
-                                                            ? 'secondary'
-                                                            : 'default'
-                                                    }
-                                                >
-                                                    {processing ? (
-                                                        <>
-                                                            <Loader2 className="size-4 animate-spin" />
-                                                            Saving...
-                                                        </>
-                                                    ) : (
-                                                        'Save'
-                                                    )}
-                                                </Button>
-
-                                                <Transition
-                                                    show={recentlySuccessful}
-                                                    enter="transition ease-in-out"
-                                                    enterFrom="opacity-0"
-                                                    leave="transition ease-in-out"
-                                                    leaveTo="opacity-0"
-                                                >
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Saved
-                                                    </p>
-                                                </Transition>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                            </Form>
+                {!hasMemberAccess && (
+                    <SurfaceCard padding="lg" className="space-y-6">
+                        <div className="space-y-1">
+                            <h3 className="text-base font-semibold tracking-tight">
+                                Link your WIBS membership
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                                Already a WIBS member? Enter your WIBS account
+                                number to link your membership and gain member
+                                portal access. Your account number is created
+                                when you register as a member at the WIBS office
+                                — if you don&apos;t have one yet, set up your
+                                membership there first.
+                            </p>
                         </div>
 
-                        {!hasMemberAccess && (
-                            <div className="space-y-6">
-                                <Separator />
+                        <Form
+                            {...LinkMembershipController.store.form()}
+                            options={{ preserveScroll: true }}
+                            onSuccess={() => {
+                                showSuccessToast(
+                                    'Membership linked — you now have member portal access.',
+                                    { id: 'link-membership' },
+                                );
+                            }}
+                            onError={(formErrors) => {
+                                showErrorToast(
+                                    formErrors,
+                                    adminToastCopy.error.updated(
+                                        'Membership link',
+                                    ),
+                                    { id: 'link-membership' },
+                                );
+                            }}
+                            className="space-y-4"
+                        >
+                            {({ processing, errors: linkErrors }) => (
+                                <>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="grid gap-2 md:col-span-2">
+                                            <Label htmlFor="link_accntno">
+                                                WIBS account number
+                                            </Label>
+                                            <Input
+                                                id="link_accntno"
+                                                name="accntno"
+                                                className="mt-1 block w-full"
+                                                placeholder="e.g. 003001"
+                                                autoComplete="off"
+                                            />
+                                            <InputError
+                                                className="mt-2"
+                                                message={linkErrors.accntno}
+                                            />
+                                        </div>
 
-                                <div className="space-y-1">
-                                    <h3 className="text-base font-semibold tracking-tight">
-                                        Link your WIBS membership
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Already a WIBS member? Enter your WIBS
-                                        account number to link your membership
-                                        and gain member portal access. Your
-                                        account number is created when you
-                                        register as a member at the WIBS office
-                                        — if you don&apos;t have one yet, set up
-                                        your membership there first.
-                                    </p>
-                                </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="link_last_name">
+                                                Last name
+                                            </Label>
+                                            <Input
+                                                id="link_last_name"
+                                                name="last_name"
+                                                className="mt-1 block w-full"
+                                                placeholder="Last name"
+                                                autoComplete="family-name"
+                                            />
+                                            <InputError
+                                                className="mt-2"
+                                                message={linkErrors.last_name}
+                                            />
+                                        </div>
 
-                                <Form
-                                    {...LinkMembershipController.store.form()}
-                                    options={{ preserveScroll: true }}
-                                    onSuccess={() => {
-                                        showSuccessToast(
-                                            'Membership linked — you now have member portal access.',
-                                            { id: 'link-membership' },
-                                        );
-                                    }}
-                                    onError={(formErrors) => {
-                                        showErrorToast(
-                                            formErrors,
-                                            adminToastCopy.error.updated(
-                                                'Membership link',
-                                            ),
-                                            { id: 'link-membership' },
-                                        );
-                                    }}
-                                    className="space-y-4"
-                                >
-                                    {({ processing, errors: linkErrors }) => (
-                                        <>
-                                            <div className="grid gap-4 md:grid-cols-2">
-                                                <div className="grid gap-2 md:col-span-2">
-                                                    <Label htmlFor="link_accntno">
-                                                        WIBS account number
-                                                    </Label>
-                                                    <Input
-                                                        id="link_accntno"
-                                                        name="accntno"
-                                                        className="mt-1 block w-full"
-                                                        placeholder="e.g. 003001"
-                                                        autoComplete="off"
-                                                    />
-                                                    <InputError
-                                                        className="mt-2"
-                                                        message={
-                                                            linkErrors.accntno
-                                                        }
-                                                    />
-                                                </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="link_first_name">
+                                                First name
+                                            </Label>
+                                            <Input
+                                                id="link_first_name"
+                                                name="first_name"
+                                                className="mt-1 block w-full"
+                                                placeholder="First name"
+                                                autoComplete="given-name"
+                                            />
+                                            <InputError
+                                                className="mt-2"
+                                                message={linkErrors.first_name}
+                                            />
+                                        </div>
 
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="link_last_name">
-                                                        Last name
-                                                    </Label>
-                                                    <Input
-                                                        id="link_last_name"
-                                                        name="last_name"
-                                                        className="mt-1 block w-full"
-                                                        placeholder="Last name"
-                                                        autoComplete="family-name"
-                                                    />
-                                                    <InputError
-                                                        className="mt-2"
-                                                        message={
-                                                            linkErrors.last_name
-                                                        }
-                                                    />
-                                                </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="link_middle_initial">
+                                                Middle initial{' '}
+                                                <span className="text-muted-foreground">
+                                                    (optional)
+                                                </span>
+                                            </Label>
+                                            <Input
+                                                id="link_middle_initial"
+                                                name="middle_initial"
+                                                className="mt-1 block w-full"
+                                                placeholder="M"
+                                                maxLength={1}
+                                                autoComplete="off"
+                                            />
+                                            <InputError
+                                                className="mt-2"
+                                                message={
+                                                    linkErrors.middle_initial
+                                                }
+                                            />
+                                        </div>
+                                    </div>
 
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="link_first_name">
-                                                        First name
-                                                    </Label>
-                                                    <Input
-                                                        id="link_first_name"
-                                                        name="first_name"
-                                                        className="mt-1 block w-full"
-                                                        placeholder="First name"
-                                                        autoComplete="given-name"
-                                                    />
-                                                    <InputError
-                                                        className="mt-2"
-                                                        message={
-                                                            linkErrors.first_name
-                                                        }
-                                                    />
-                                                </div>
+                                    <Button type="submit" disabled={processing}>
+                                        {processing ? (
+                                            <>
+                                                <Loader2 className="size-4 animate-spin" />
+                                                Linking...
+                                            </>
+                                        ) : (
+                                            'Link membership'
+                                        )}
+                                    </Button>
+                                </>
+                            )}
+                        </Form>
+                    </SurfaceCard>
+                )}
 
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="link_middle_initial">
-                                                        Middle initial{' '}
-                                                        <span className="text-muted-foreground">
-                                                            (optional)
-                                                        </span>
-                                                    </Label>
-                                                    <Input
-                                                        id="link_middle_initial"
-                                                        name="middle_initial"
-                                                        className="mt-1 block w-full"
-                                                        placeholder="M"
-                                                        maxLength={1}
-                                                        autoComplete="off"
-                                                    />
-                                                    <InputError
-                                                        className="mt-2"
-                                                        message={
-                                                            linkErrors.middle_initial
-                                                        }
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <Button
-                                                type="submit"
-                                                disabled={processing}
-                                            >
-                                                {processing ? (
-                                                    <>
-                                                        <Loader2 className="size-4 animate-spin" />
-                                                        Linking...
-                                                    </>
-                                                ) : (
-                                                    'Link membership'
-                                                )}
-                                            </Button>
-                                        </>
-                                    )}
-                                </Form>
-                            </div>
-                        )}
-
-                        <ProfileImageCropModal
-                            isOpen={showProfilePhotoCropModal}
-                            onClose={handleProfilePhotoCropClose}
-                            onSave={handleProfilePhotoCropSave}
-                            imagePreviewUrl={profilePhotoDraftPreview}
-                        />
-                    </section>
-                </SurfaceCard>
+                <ProfileImageCropModal
+                    isOpen={showProfilePhotoCropModal}
+                    onClose={handleProfilePhotoCropClose}
+                    onSave={handleProfilePhotoCropSave}
+                    imagePreviewUrl={profilePhotoDraftPreview}
+                />
             </SettingsLayout>
         </AppLayout>
     );

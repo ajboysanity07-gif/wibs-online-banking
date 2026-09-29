@@ -151,10 +151,10 @@ export function BankTab({
 
     return (
         <TabsContent value="bank" forceMount className="mt-0">
-            <SurfaceCard variant="muted" padding="md" className="space-y-6">
-                <div className="space-y-6">
-                    <div className="space-y-1">
-                        <h3 className="text-base font-semibold">
+            <SurfaceCard padding="none" className="overflow-hidden">
+                <div>
+                    <div className="space-y-1 px-6 pt-6 pb-5">
+                        <h3 className="text-xl font-bold tracking-tight">
                             Release Method
                         </h3>
                         <p className="text-sm text-muted-foreground">
@@ -164,6 +164,7 @@ export function BankTab({
                     </div>
 
                     <LoanRequestSectionCard
+                        flat
                         title="Loan Disbursement"
                         description="Bank account details are required for ATM and Bank Transfer."
                         icon={Landmark}
@@ -232,6 +233,7 @@ export function BankTab({
                     </LoanRequestSectionCard>
 
                     <LoanRequestSectionCard
+                        flat
                         title="Repayment Method"
                         description="This becomes the default for new loan requests -- you can still change it per request."
                         icon={Wallet}

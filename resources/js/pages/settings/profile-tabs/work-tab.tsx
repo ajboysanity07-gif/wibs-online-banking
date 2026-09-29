@@ -129,10 +129,10 @@ export function WorkTab({
 }: Props) {
     return (
         <TabsContent value="work" forceMount className="mt-0">
-            <SurfaceCard variant="muted" padding="md" className="space-y-6">
-                <div className="space-y-6">
-                    <div className="space-y-1">
-                        <h3 className="text-base font-semibold">
+            <SurfaceCard padding="none" className="overflow-hidden">
+                <div>
+                    <div className="space-y-1 px-6 pt-6 pb-5">
+                        <h3 className="text-xl font-bold tracking-tight">
                             Work &amp; Finances
                         </h3>
                         <p className="text-sm text-muted-foreground">
@@ -140,7 +140,11 @@ export function WorkTab({
                         </p>
                     </div>
 
-                    <LoanRequestSectionCard title="Employment" icon={Briefcase}>
+                    <LoanRequestSectionCard
+                        flat
+                        title="Employment"
+                        icon={Briefcase}
+                    >
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="employment_type">
@@ -566,6 +570,7 @@ export function WorkTab({
                     </LoanRequestSectionCard>
 
                     <LoanRequestSectionCard
+                        flat
                         title="Income & payday"
                         icon={Wallet}
                     >
@@ -645,6 +650,7 @@ export function WorkTab({
                     </LoanRequestSectionCard>
 
                     <LoanRequestSectionCard
+                        flat
                         title="Source of Funds & Government ID"
                         description="Required before you can start a loan request."
                         icon={IdCard}

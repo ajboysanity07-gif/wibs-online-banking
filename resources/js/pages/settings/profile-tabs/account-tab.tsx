@@ -49,9 +49,9 @@ export function AccountTab({
 }: Props) {
     return (
         <TabsContent value="account" forceMount className="mt-0">
-            <SurfaceCard variant="muted" padding="md" className="space-y-6">
-                <div className="space-y-1">
-                    <h3 className="text-base font-semibold tracking-tight">
+            <SurfaceCard padding="none" className="overflow-hidden">
+                <div className="space-y-1 px-6 pt-6 pb-5">
+                    <h3 className="text-xl font-bold tracking-tight">
                         Account
                     </h3>
                     <p className="text-sm text-muted-foreground">
@@ -60,7 +60,7 @@ export function AccountTab({
                     </p>
                 </div>
 
-                <LoanRequestSectionCard title="Profile" icon={UserCog}>
+                <LoanRequestSectionCard flat title="Profile" icon={UserCog}>
                     <div className="grid gap-3">
                         <Label htmlFor="profile_photo">Profile picture</Label>
 
@@ -140,6 +140,7 @@ export function AccountTab({
                 </LoanRequestSectionCard>
 
                 <LoanRequestSectionCard
+                    flat
                     title="Basic Account Information"
                     description="Update your login and contact details."
                     icon={IdCard}

@@ -138,10 +138,12 @@ export function PersonalTab({
 }: Props) {
     return (
         <TabsContent value="personal" forceMount className="mt-0">
-            <SurfaceCard variant="muted" padding="md" className="space-y-6">
-                <div className="space-y-6">
-                    <div className="space-y-1">
-                        <h3 className="text-base font-semibold">Personal</h3>
+            <SurfaceCard padding="none" className="overflow-hidden">
+                <div>
+                    <div className="space-y-1 px-6 pt-6 pb-5">
+                        <h3 className="text-xl font-bold tracking-tight">
+                            Personal
+                        </h3>
                         <p className="text-sm text-muted-foreground">
                             Review your verified member details and keep your
                             application profile updated.
@@ -153,12 +155,12 @@ export function PersonalTab({
                     </div>
 
                     {!memberRecord && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="px-6 pb-5 text-sm text-muted-foreground">
                             No member record was found for this account.
                         </p>
                     )}
 
-                    <LoanRequestSectionCard title="Basic info" icon={User}>
+                    <LoanRequestSectionCard flat title="Basic info" icon={User}>
                         <div className="grid gap-4 md:grid-cols-3">
                             <div className="grid gap-2 md:col-span-3">
                                 <Label htmlFor="member_full_name">
@@ -298,7 +300,11 @@ export function PersonalTab({
                         </div>
                     </LoanRequestSectionCard>
 
-                    <LoanRequestSectionCard title="Birthplace" icon={MapPin}>
+                    <LoanRequestSectionCard
+                        flat
+                        title="Birthplace"
+                        icon={MapPin}
+                    >
                         <div className="grid gap-4 md:grid-cols-3">
                             <div className="grid gap-2">
                                 <Label htmlFor="birthplace_province">
@@ -418,7 +424,11 @@ export function PersonalTab({
                         </div>
                     </LoanRequestSectionCard>
 
-                    <LoanRequestSectionCard title="Home address" icon={Home}>
+                    <LoanRequestSectionCard
+                        flat
+                        title="Home address"
+                        icon={Home}
+                    >
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="home_address3">Province</Label>
@@ -719,6 +729,7 @@ export function PersonalTab({
                     </LoanRequestSectionCard>
 
                     <LoanRequestSectionCard
+                        flat
                         title="Civil status & family"
                         icon={Users}
                     >
@@ -1076,6 +1087,7 @@ export function PersonalTab({
                     </LoanRequestSectionCard>
 
                     <LoanRequestSectionCard
+                        flat
                         title="Physical details"
                         description="Required for the Generali Health Statement."
                         icon={Ruler}

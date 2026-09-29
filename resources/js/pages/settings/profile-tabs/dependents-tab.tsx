@@ -43,8 +43,10 @@ export function DependentsTab({
 
     return (
         <TabsContent value="dependents" forceMount className="mt-0">
-            <SurfaceCard variant="muted" padding="md" className="space-y-6">
+            <SurfaceCard padding="none" className="overflow-hidden">
                 <LoanRequestSectionCard
+                    flat
+                    className="border-t-0"
                     title="Dependents"
                     description="Keep your dependents' names and birthdates up to date. These are used to pre-fill future loan requests. Changes here save immediately."
                     icon={Users}
