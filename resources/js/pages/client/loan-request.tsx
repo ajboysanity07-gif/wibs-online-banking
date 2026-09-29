@@ -2,6 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
+import { countSelectedBeneficiaries } from '@/components/dependents/dependent-category-section';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
@@ -607,12 +608,91 @@ export default function LoanRequestPage({
         ],
     );
 
+    // Everything that must be satisfied before leaving the current step:
+    // missing required fields plus the "confirm pre-filled data" checkboxes
+    // and completeness flags. Drives the footer alert, the Next button, and
+    // the sidebar step navigation so none of them can bypass a gate.
+    const currentStepId = steps[currentStep]?.id;
+    const currentStepBlockers = [...currentStepMissingFields];
+
+    if (
+        currentStepId === 'personal-basic' &&
+        applicantPrefilledFromProfile &&
+        !applicantPersonalConfirmed
+    ) {
+        currentStepBlockers.push('Confirmation that your details are correct');
+    }
+
+    if (
+        currentStepId === 'work-employment' &&
+        applicantWorkIncomePrefilledFromProfile &&
+        !applicantWorkIncomeConfirmed
+    ) {
+        currentStepBlockers.push('Confirmation of your work & income details');
+    }
+
+    if (currentStepId === 'dependents') {
+        // Mirrors LoanRequestStoreRequest: a blank dependents step fails
+        // because at least one dependent (or spouse) must be flagged as the
+        // insurance beneficiary.
+        if (countSelectedBeneficiaries(form.data.dependents) === 0) {
+            currentStepBlockers.push(
+                'At least one dependent (or spouse) as insurance beneficiary',
+            );
+        }
+
+        if (dependentsPrefilledFromProfile && !dependentsConfirmed) {
+            currentStepBlockers.push('Confirmation of your dependents');
+        }
+    }
+
+    if (currentStepId === 'banking') {
+        if (!isBankingComplete) {
+            currentStepBlockers.push(
+                'Release method, payment option, and saved accounts',
+            );
+        }
+
+        if (
+            bankingPrefilledFromProfile &&
+            (form.data.banking.release_method === 'Bank Transfer' ||
+                form.data.banking.release_method === 'ATM') &&
+            !bankAccountConfirmed
+        ) {
+            currentStepBlockers.push('Confirmation of your bank details');
+        }
+    }
+
+    if (currentStepId === 'declarations') {
+        if (form.data.declarations.declaration_truth_confirmation !== true) {
+            currentStepBlockers.push('Truthfulness declaration');
+        }
+
+        if (form.data.declarations.declaration_data_privacy_consent !== true) {
+            currentStepBlockers.push('Data privacy consent');
+        }
+    }
+
+    // Sidebar clicks: going back is always free; going forward requires the
+    // current step to be clear and the target to be a step already reached
+    // (later steps must be unlocked via Next).
+    const handleSidebarStepClick = (step: number) => {
+        if (
+            step > currentStep &&
+            (currentStepBlockers.length > 0 || step > highestStepReached)
+        ) {
+            return;
+        }
+
+        handleStepChange(step);
+    };
+
     const handleNextStep = () => {
         if (currentStep >= steps.length - 1) {
             return;
         }
 
-        if (currentStepMissingFields.length > 0) {
+        if (currentStepBlockers.length > 0) {
             return;
         }
 
@@ -988,22 +1068,20 @@ export default function LoanRequestPage({
                 <div className="overflow-hidden rounded-2xl border border-border/40 bg-card/60 shadow-sm">
                     <LoanRequestWizardShell
                         currentStep={currentStep}
-                        onStepClick={handleStepChange}
+                        onStepClick={handleSidebarStepClick}
                         steps={steps}
                         hiddenStepIds={skippedStepIds}
                         contentClassName="p-6 sm:p-7 lg:p-8"
                         footer={
                             <div className="mt-8 space-y-3">
-                                {currentStepMissingFields.length > 0 ? (
+                                {currentStepBlockers.length > 0 ? (
                                     <Alert variant="destructive">
                                         <AlertTitle>
-                                            Please complete the required fields
+                                            Complete this step to continue
                                         </AlertTitle>
                                         <AlertDescription>
-                                            Missing:{' '}
-                                            {currentStepMissingFields.join(
-                                                ', ',
-                                            )}
+                                            Required:{' '}
+                                            {currentStepBlockers.join(', ')}
                                         </AlertDescription>
                                     </Alert>
                                 ) : null}
@@ -1018,44 +1096,11 @@ export default function LoanRequestPage({
                                     isSubmitting={isSubmitting}
                                     disablePrimary={
                                         !hasLoanTypes ||
-                                        currentStepMissingFields.length > 0 ||
-                                        (currentStep ===
-                                            STEP_INDEX['banking'] &&
-                                            !isBankingComplete) ||
-                                        (currentStep ===
-                                            STEP_INDEX['banking'] &&
-                                            bankingPrefilledFromProfile &&
-                                            (form.data.banking
-                                                .release_method ===
-                                                'Bank Transfer' ||
-                                                form.data.banking
-                                                    .release_method ===
-                                                    'ATM') &&
-                                            !bankAccountConfirmed) ||
-                                        (currentStep ===
-                                            STEP_INDEX['dependents'] &&
-                                            dependentsPrefilledFromProfile &&
-                                            !dependentsConfirmed) ||
-                                        (currentStep ===
-                                            STEP_INDEX['personal-basic'] &&
-                                            applicantPrefilledFromProfile &&
-                                            !applicantPersonalConfirmed) ||
+                                        currentStepBlockers.length > 0 ||
                                         (currentStep ===
                                             STEP_INDEX['personal-basic'] &&
                                             missingIdentityPrerequisites.length >
                                                 0) ||
-                                        (currentStep ===
-                                            STEP_INDEX['work-employment'] &&
-                                            applicantWorkIncomePrefilledFromProfile &&
-                                            !applicantWorkIncomeConfirmed) ||
-                                        (currentStep ===
-                                            STEP_INDEX['declarations'] &&
-                                            (form.data.declarations
-                                                .declaration_truth_confirmation !==
-                                                true ||
-                                                form.data.declarations
-                                                    .declaration_data_privacy_consent !==
-                                                    true)) ||
                                         (isLastStep &&
                                             (!isBankingComplete ||
                                                 !isDependentsComplete ||
