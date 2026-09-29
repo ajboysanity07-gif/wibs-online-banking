@@ -73,10 +73,10 @@ export default function ProcessorDashboard({
                 />
 
                 <div className="grid gap-4 sm:grid-cols-3">
-                    <Card className="rounded-xl border-border bg-card shadow-card">
+                    <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>{queueLabel}</CardDescription>
-                            <CardTitle className="text-3xl">
+                            <CardTitle className="text-3xl tabular-nums">
                                 {queueData.queue_count}
                             </CardTitle>
                         </CardHeader>
@@ -86,22 +86,22 @@ export default function ProcessorDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-xl border-border bg-card shadow-card">
+                    <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 {approvedLabel} — {thisMonth.month_label}
                             </CardDescription>
-                            <CardTitle className="text-3xl">
+                            <CardTitle className="text-3xl tabular-nums">
                                 {thisMonth.approved}
                             </CardTitle>
                         </CardHeader>
                     </Card>
-                    <Card className="rounded-xl border-border bg-card shadow-card">
+                    <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Rejected — {thisMonth.month_label}
                             </CardDescription>
-                            <CardTitle className="text-3xl">
+                            <CardTitle className="text-3xl tabular-nums">
                                 {thisMonth.rejected}
                             </CardTitle>
                         </CardHeader>

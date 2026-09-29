@@ -479,7 +479,7 @@ type LoanRequestCorrectedCopyPayload = {
 const SummaryStat = ({ label, value, className }: SummaryStatProps) => (
     <div
         className={cn(
-            'rounded-xl border border-border bg-muted/10 p-3',
+            'rounded-xl border border-border bg-muted p-3',
             className,
         )}
     >
@@ -522,11 +522,11 @@ export const LoanRequestSummaryHeader = ({
     <div className="rounded-xl border border-border bg-card p-6 shadow-card sm:p-7 lg:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-3">
-                <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
+                <p className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">
                     Loan request
                 </p>
                 <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="text-3xl font-semibold tracking-tight">
+                    <h1 className="text-3xl font-bold tracking-tight">
                         Request {reference}
                     </h1>
                     <LoanRequestStatusBadge
@@ -546,7 +546,11 @@ export const LoanRequestSummaryHeader = ({
             </div>
             {!hideLoanSummary ? (
                 <div className="grid w-full grid-cols-1 gap-3 sm:max-w-md sm:grid-cols-2">
-                    <SummaryStat label="Requested amount" value={amount} />
+                    <SummaryStat
+                        label="Requested amount"
+                        value={amount}
+                        className="border-primary bg-primary sm:col-span-2 [&_p]:text-primary-foreground [&_p:last-child]:text-xl [&_p:last-child]:tabular-nums"
+                    />
                     <SummaryStat label="Loan type" value={loanTypeLabel} />
                     <SummaryStat label="Requested term" value={requestedTerm} />
                     <SummaryStat
@@ -623,7 +627,11 @@ export const LoanRequestLoanInformationCard = ({
             className="border-border bg-card shadow-card"
         >
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <SummaryStat label="Requested amount" value={amount} />
+                <SummaryStat
+                    label="Requested amount"
+                    value={amount}
+                    className="border-primary bg-primary sm:col-span-2 [&_p]:text-primary-foreground [&_p:last-child]:text-xl [&_p:last-child]:tabular-nums"
+                />
                 <SummaryStat label="Loan type" value={loanTypeLabel} />
                 <SummaryStat label="Requested term" value={requestedTerm} />
                 <SummaryStat label="Availment status" value={availmentStatus} />
