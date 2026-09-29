@@ -1818,10 +1818,32 @@ class LoanRequestDataService
         $missing = [];
         $skipsInsurance = (int) $loanRequest->requested_term < 2;
 
+        // A dependent (or spouse) flagged via the Dependents step's "Add as
+        // insurance beneficiary" checkbox satisfies the primary-beneficiary
+        // requirement on its own -- see ApprovedLoanDocumentDataBuilder::
+        // flaggedBeneficiaryDependents(), which already gives that checkbox
+        // priority over these free-text fields when building documents.
+        $hasFlaggedBeneficiaryDependent = false;
+
+        foreach ($flatValues as $fieldKey => $value) {
+            if (str_ends_with((string) $fieldKey, '_is_beneficiary') && $value === true) {
+                $hasFlaggedBeneficiaryDependent = true;
+
+                break;
+            }
+        }
+
         foreach (self::FIELD_DEFINITIONS as $fieldKey => $definition) {
             if (
                 $definition['owner'] !== self::OWNER_MEMBER
                 || ! $definition['required_on_submit']
+            ) {
+                continue;
+            }
+
+            if (
+                $hasFlaggedBeneficiaryDependent
+                && str_starts_with($fieldKey, 'beneficiary_primary_')
             ) {
                 continue;
             }

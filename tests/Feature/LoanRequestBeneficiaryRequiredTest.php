@@ -261,3 +261,28 @@ test('submitting a loan request succeeds once a primary beneficiary is on file',
     expect($loanRequest)->not->toBeNull();
     expect($loanRequest->status)->toBe(LoanRequestStatus::PendingReview);
 });
+
+test('submitting a loan request succeeds when a dependent is flagged as insurance beneficiary instead of filling the free-text fields', function (): void {
+    $member = beneficiaryRequiredTestMember('700022');
+
+    $payload = beneficiaryRequiredTestPayload($member->memberApplicationProfile, [
+        'beneficiary_primary_name' => '',
+        'beneficiary_primary_relationship' => '',
+        'beneficiary_primary_birthdate' => '',
+    ]);
+    $payload['dependents']['dependent_spouse_is_beneficiary'] = true;
+
+    $response = $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $loanRequest = LoanRequest::query()->first();
+
+    $response->assertSessionDoesntHaveErrors([
+        'insurance.beneficiary_primary_name',
+        'insurance.beneficiary_primary_relationship',
+        'insurance.beneficiary_primary_birthdate',
+    ]);
+    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
+    expect($loanRequest)->not->toBeNull();
+});
