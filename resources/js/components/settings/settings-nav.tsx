@@ -52,8 +52,8 @@ export function SettingsNav() {
                         className={cn(
                             'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                             isActive
-                                ? 'bg-muted text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                         )}
                     >
                         {item.label}

@@ -61,6 +61,9 @@ import { DependentsTab } from './profile-tabs/dependents-tab';
 import { PersonalTab } from './profile-tabs/personal-tab';
 import { WorkTab } from './profile-tabs/work-tab';
 
+const navTriggerClassName =
+    'h-auto flex-col items-start justify-start gap-0.5 whitespace-normal px-3 py-2.5 text-left data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none';
+
 export default function Profile({
     mustVerifyEmail,
     status,
@@ -636,7 +639,7 @@ export default function Profile({
                     padding="lg"
                     className="space-y-6"
                 >
-                    <section className="max-w-3xl space-y-12">
+                    <section className="max-w-5xl space-y-12">
                         <div className="space-y-6">
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <Heading
@@ -788,27 +791,90 @@ export default function Profile({
                                                     value as ProfileTab,
                                                 );
                                             }}
-                                            className="flex w-full flex-col gap-6"
+                                            orientation="vertical"
+                                            className="grid w-full gap-6 lg:grid-cols-[minmax(190px,250px)_minmax(0,1fr)] lg:items-start"
                                         >
-                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                                <TabsList className="w-full flex-wrap justify-start gap-2">
-                                                    <TabsTrigger value="account">
-                                                        Account
+                                            <div className="flex flex-col gap-3">
+                                                <TabsList
+                                                    aria-orientation="vertical"
+                                                    className="h-auto w-full flex-col items-stretch justify-start gap-1 rounded-lg border border-border bg-muted p-2"
+                                                >
+                                                    <TabsTrigger
+                                                        value="account"
+                                                        className={
+                                                            navTriggerClassName
+                                                        }
+                                                    >
+                                                        <span className="text-sm font-bold">
+                                                            Account
+                                                        </span>
+                                                        <span className="text-xs font-medium opacity-90">
+                                                            Sign-in, photo and
+                                                            contact
+                                                        </span>
                                                     </TabsTrigger>
                                                     {hasMemberAccess && (
                                                         <>
-                                                            <TabsTrigger value="personal">
-                                                                Personal
+                                                            <TabsTrigger
+                                                                value="personal"
+                                                                className={
+                                                                    navTriggerClassName
+                                                                }
+                                                            >
+                                                                <span className="text-sm font-bold">
+                                                                    Personal
+                                                                </span>
+                                                                <span className="text-xs font-medium opacity-90">
+                                                                    Name,
+                                                                    birthdate
+                                                                    and civil
+                                                                    status
+                                                                </span>
                                                             </TabsTrigger>
-                                                            <TabsTrigger value="work">
-                                                                Work &amp;
-                                                                Finances
+                                                            <TabsTrigger
+                                                                value="work"
+                                                                className={
+                                                                    navTriggerClassName
+                                                                }
+                                                            >
+                                                                <span className="text-sm font-bold">
+                                                                    Work &amp;
+                                                                    Finances
+                                                                </span>
+                                                                <span className="text-xs font-medium opacity-90">
+                                                                    Employment
+                                                                    and income
+                                                                </span>
                                                             </TabsTrigger>
-                                                            <TabsTrigger value="bank">
-                                                                Release Method
+                                                            <TabsTrigger
+                                                                value="bank"
+                                                                className={
+                                                                    navTriggerClassName
+                                                                }
+                                                            >
+                                                                <span className="text-sm font-bold">
+                                                                    Release
+                                                                    Method
+                                                                </span>
+                                                                <span className="text-xs font-medium opacity-90">
+                                                                    Bank and
+                                                                    payout
+                                                                    details
+                                                                </span>
                                                             </TabsTrigger>
-                                                            <TabsTrigger value="dependents">
-                                                                Dependents
+                                                            <TabsTrigger
+                                                                value="dependents"
+                                                                className={
+                                                                    navTriggerClassName
+                                                                }
+                                                            >
+                                                                <span className="text-sm font-bold">
+                                                                    Dependents
+                                                                </span>
+                                                                <span className="text-xs font-medium opacity-90">
+                                                                    Spouse and
+                                                                    family
+                                                                </span>
                                                             </TabsTrigger>
                                                         </>
                                                     )}
@@ -816,7 +882,7 @@ export default function Profile({
                                                 {showOnboardingSteps && (
                                                     <Badge
                                                         variant="secondary"
-                                                        className="shrink-0"
+                                                        className="w-fit"
                                                     >
                                                         Step{' '}
                                                         {activeTabIndex + 1} of{' '}
@@ -1152,7 +1218,7 @@ export default function Profile({
                                             )}
                                         </Tabs>
 
-                                        <div className="flex flex-col gap-3 border-t border-border/40 pt-6 sm:flex-row sm:items-center sm:justify-end">
+                                        <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-end">
                                             <div className="flex flex-wrap items-center gap-3">
                                                 {showStepperNav && (
                                                     <Button
