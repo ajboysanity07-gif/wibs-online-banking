@@ -118,7 +118,7 @@ const MobileMemberLookupCard = ({ member }: { member: MemberSummary }) => (
                 {getRegistrationStatusLabel(member.registration_status)}
             </Badge>
         </div>
-        <div className="mt-3 space-y-2 rounded-xl border border-border bg-muted/30 p-3 text-xs">
+        <div className="mt-3 space-y-2 rounded-xl border border-border bg-muted p-3 text-xs">
             <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Account No</span>
                 <span className="text-sm font-medium">
@@ -329,12 +329,12 @@ export default function AdminDashboard({
                 ) : null}
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                    <Card className="rounded-xl border-border bg-card shadow-card">
+                    <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Registered members
                             </CardDescription>
-                            <CardTitle className="text-3xl">
+                            <CardTitle className="text-3xl tabular-nums">
                                 {summaryState.metrics.registeredCount}
                             </CardTitle>
                         </CardHeader>
@@ -344,12 +344,12 @@ export default function AdminDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-xl border-border bg-card shadow-card">
+                    <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Unregistered members
                             </CardDescription>
-                            <CardTitle className="text-3xl">
+                            <CardTitle className="text-3xl tabular-nums">
                                 {summaryState.metrics.unregisteredCount}
                             </CardTitle>
                         </CardHeader>
@@ -359,10 +359,10 @@ export default function AdminDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-xl border-border bg-card shadow-card">
+                    <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>Total members</CardDescription>
-                            <CardTitle className="text-3xl">
+                            <CardTitle className="text-3xl tabular-nums">
                                 {summaryState.metrics.totalCount}
                             </CardTitle>
                         </CardHeader>
@@ -372,12 +372,12 @@ export default function AdminDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-xl border-border bg-card shadow-card">
+                    <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>
                                 Requests awaiting review
                             </CardDescription>
-                            <CardTitle className="text-3xl">
+                            <CardTitle className="text-3xl tabular-nums">
                                 {summaryState.metrics.requestsCount ?? '--'}
                             </CardTitle>
                         </CardHeader>
@@ -387,10 +387,10 @@ export default function AdminDashboard({
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-xl border-border bg-card shadow-card">
+                    <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                         <CardHeader>
                             <CardDescription>WIBS Desktop sync</CardDescription>
-                            <CardTitle className="text-2xl">
+                            <CardTitle className="text-2xl tabular-nums">
                                 {summaryState.metrics.lastSync ?? '--'}
                             </CardTitle>
                         </CardHeader>
@@ -457,12 +457,12 @@ export default function AdminDashboard({
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                            <Card className="rounded-xl border-border bg-card shadow-card">
+                            <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                                 <CardHeader>
                                     <CardDescription>
                                         Pending applications
                                     </CardDescription>
-                                    <CardTitle className="text-3xl">
+                                    <CardTitle className="text-3xl tabular-nums">
                                         {reportingMetrics.pending_count}
                                     </CardTitle>
                                 </CardHeader>
@@ -472,10 +472,10 @@ export default function AdminDashboard({
                                     </p>
                                 </CardContent>
                             </Card>
-                            <Card className="rounded-xl border-border bg-card shadow-card">
+                            <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                                 <CardHeader>
                                     <CardDescription>Approved</CardDescription>
-                                    <CardTitle className="text-3xl">
+                                    <CardTitle className="text-3xl tabular-nums">
                                         {reportingMetrics.approved_count}
                                     </CardTitle>
                                 </CardHeader>
@@ -486,12 +486,12 @@ export default function AdminDashboard({
                                     </p>
                                 </CardContent>
                             </Card>
-                            <Card className="rounded-xl border-border bg-card shadow-card">
+                            <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                                 <CardHeader>
                                     <CardDescription>
                                         Avg processing days
                                     </CardDescription>
-                                    <CardTitle className="text-3xl">
+                                    <CardTitle className="text-3xl tabular-nums">
                                         {reportingMetrics.average_processing_days ??
                                             '--'}
                                     </CardTitle>
@@ -502,12 +502,12 @@ export default function AdminDashboard({
                                     </p>
                                 </CardContent>
                             </Card>
-                            <Card className="rounded-xl border-border bg-card shadow-card">
+                            <Card className="rounded-xl border-t-4 border-border border-t-primary bg-card shadow-card">
                                 <CardHeader>
                                     <CardDescription>
                                         Portfolio total
                                     </CardDescription>
-                                    <CardTitle className="text-2xl">
+                                    <CardTitle className="text-2xl tabular-nums">
                                         {formatCurrency(
                                             reportingMetrics.portfolio_total,
                                         )}
@@ -755,7 +755,7 @@ export default function AdminDashboard({
                                 <>
                                     <div className="space-y-3 md:hidden">
                                         {lookupRows.length === 0 ? (
-                                            <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+                                            <div className="rounded-xl border border-border bg-muted px-4 py-6 text-center text-sm text-muted-foreground">
                                                 {lookupEmptyMessage}
                                             </div>
                                         ) : (
