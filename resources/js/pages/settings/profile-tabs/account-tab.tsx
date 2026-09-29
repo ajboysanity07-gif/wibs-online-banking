@@ -252,7 +252,7 @@ export function AccountTab({
                                 </p>
 
                                 {status === 'verification-link-sent' && (
-                                    <div className="mt-2 text-sm font-medium text-green-600">
+                                    <div className="mt-2 text-sm font-medium text-primary">
                                         A new verification link has been sent to
                                         your email address.
                                     </div>

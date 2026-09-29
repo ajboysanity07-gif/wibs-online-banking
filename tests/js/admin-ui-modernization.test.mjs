@@ -117,7 +117,7 @@ test('settings layout uses the shared shell and hero', async () => {
 
 test('auth layout uses the shared surface card', async () => {
     const file = await readFile(
-        resolve('resources', 'js', 'layouts', 'auth', 'auth-simple-layout.tsx'),
+        resolve('resources', 'js', 'layouts', 'auth', 'auth-split-layout.tsx'),
         'utf8',
     );
 

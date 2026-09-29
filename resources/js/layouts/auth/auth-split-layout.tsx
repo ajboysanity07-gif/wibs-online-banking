@@ -1,6 +1,8 @@
 import { Link } from '@inertiajs/react';
 import AppLogo from '@/components/app-logo';
 import SupportContact from '@/components/support-contact';
+import { SurfaceCard } from '@/components/surface-card';
+import { useBranding } from '@/hooks/use-branding';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
 
@@ -9,40 +11,57 @@ export default function AuthSplitLayout({
     title,
     description,
 }: AuthLayoutProps) {
+    const branding = useBranding();
+
     return (
-        <div className="relative grid h-dvh flex-col items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0">
-            <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
-                <div className="absolute inset-0 bg-sidebar" />
-                <Link
-                    href={home()}
-                    className="relative z-20 flex items-center gap-2 text-lg font-medium"
-                >
+        <div className="grid min-h-svh lg:grid-cols-2">
+            <div className="relative hidden flex-col justify-between bg-sidebar p-12 text-sidebar-foreground lg:flex">
+                <Link href={home()} className="flex items-center gap-2">
                     <AppLogo
                         iconClassName="bg-sidebar-foreground box-content h-8 w-auto rounded-md object-contain p-1"
-                        titleClassName="text-lg font-medium text-white"
-                        subtitleClassName="text-sm text-white/70"
+                        titleClassName="text-lg font-bold text-sidebar-foreground"
+                        subtitleClassName="text-sm text-sidebar-foreground/75"
                     />
                 </Link>
+                <div className="space-y-4">
+                    <p className="max-w-md text-4xl leading-tight font-bold tracking-tight">
+                        Your loans and loan security, in one place.
+                    </p>
+                    <p className="max-w-sm text-base text-sidebar-foreground/75">
+                        Check balances, payment schedules and loan requests
+                        anytime.
+                    </p>
+                </div>
+                <p className="text-sm text-sidebar-foreground/75">
+                    © {branding.companyName}
+                    {branding.portalLabel ? ` · ${branding.portalLabel}` : ''}
+                </p>
             </div>
-            <div className="w-full lg:p-8">
-                <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+            <div className="flex items-center justify-center bg-background p-6 sm:p-8">
+                <div className="w-full max-w-md space-y-6">
                     <Link
                         href={home()}
-                        className="relative z-20 flex items-center justify-center gap-2 lg:hidden"
+                        className="flex justify-center lg:hidden"
                     >
-                        <AppLogo iconClassName="h-10 w-auto object-contain sm:h-12" />
+                        <AppLogo variant="stacked" />
                     </Link>
-                    <div className="flex flex-col items-start gap-2 text-left sm:items-center sm:text-center">
-                        <h1 className="text-xl font-medium">{title}</h1>
-                        <p className="text-sm text-balance text-muted-foreground">
-                            {description}
-                        </p>
-                    </div>
-                    {children}
-                    <SupportContact
-                        variant="stacked"
-                        className="text-center sm:text-left"
-                    />
+                    <SurfaceCard
+                        padding="lg"
+                        className="shadow-md dark:shadow-[0_6px_14px_rgba(0,0,0,0.3)]"
+                    >
+                        <div className="flex flex-col gap-6">
+                            <div className="space-y-1">
+                                <h1 className="text-2xl font-bold tracking-tight">
+                                    {title}
+                                </h1>
+                                <p className="text-sm text-muted-foreground">
+                                    {description}
+                                </p>
+                            </div>
+                            {children}
+                        </div>
+                    </SurfaceCard>
+                    <SupportContact variant="stacked" className="text-center" />
                 </div>
             </div>
         </div>
