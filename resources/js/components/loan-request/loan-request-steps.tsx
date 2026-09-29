@@ -43,7 +43,6 @@ import {
     PaymentMethodIcon,
     type PaymentMethodOption,
 } from '@/components/loan-request/payment-account-picker-sheet';
-import { SmokingStatusField } from '@/components/loan-request/smoking-status-field';
 import {
     Accordion,
     AccordionContent,
@@ -1247,7 +1246,7 @@ const SummaryCard = ({ title, description, children }: SummaryCardProps) => (
 type AccordionSummaryCardProps = SummaryCardProps & { value: string };
 
 // Same visual shell as SummaryCard, but as a standalone collapsible
-// AccordionItem so long sections (co-makers, health questionnaire,
+// AccordionItem so long sections (co-makers,
 // declarations) don't force the member to scroll past everything to reach
 // submit. Overrides the default AccordionItem's shared-container border
 // styling so each card still reads as its own bordered panel.
@@ -1283,8 +1282,7 @@ type QaEntry = {
 };
 
 // Renders question/details pairs (identified via each field's `detail_of`
-// metadata -- see LoanRequestHealthQuestionnaireStep above for the same
-// parent/child derivation used during data entry) as a numbered Q&A list
+// metadata) as a numbered Q&A list
 // instead of a flat label/value grid, so a question stays visually attached
 // to the answer and any conditional follow-up the member gave for it.
 const QuestionAnswerList = ({
@@ -1324,10 +1322,7 @@ const QuestionAnswerList = ({
 );
 
 type DataSectionStepProps = {
-    sectionKey: keyof Pick<
-        LoanRequestFormData,
-        'insurance' | 'health' | 'health_glapi' | 'banking' | 'declarations'
-    >;
+    sectionKey: 'insurance' | 'health_glapi' | 'banking' | 'declarations';
     title: string;
     description: string;
     values: LoanRequestDataSectionValues;
@@ -1889,665 +1884,6 @@ export function LoanRequestDataSectionStep({
     );
 }
 
-type LoanRequestHealthStepProps = {
-    healthValues: LoanRequestDataSectionValues;
-    healthDefinition: LoanRequestDataSectionDefinition;
-    glapiValues: LoanRequestDataSectionValues;
-    glapiDefinition: LoanRequestDataSectionDefinition;
-    glapiTitle: string;
-    glapiDescription: string;
-    glapiItemNumbers: string[];
-    errors: Record<string, string | undefined>;
-    crossSectionValues: Record<string, LoanRequestDataFieldValue>;
-    onHealthChange: (
-        field: string,
-        value: string | number | boolean | null,
-    ) => void;
-    onGlapiChange: (
-        field: string,
-        value: string | number | boolean | null,
-    ) => void;
-};
-
-/**
- * Thin wrapper around `LoanRequestHealthQuestionnaireStep` for the GLAPI
- * sub-step that also carries the smoking status/hypertension questions
- * (which live in the separate `health` section). Those two items are
- * spliced into the questionnaire's own numbered sequence at their thematic
- * position (see `GLAPI_VIRTUAL_ITEMS`), not rendered as a separate cluster.
- */
-export function LoanRequestHealthStep({
-    healthValues,
-    healthDefinition,
-    glapiValues,
-    glapiDefinition,
-    glapiTitle,
-    glapiDescription,
-    glapiItemNumbers,
-    errors,
-    crossSectionValues,
-    onHealthChange,
-    onGlapiChange,
-}: LoanRequestHealthStepProps) {
-    return (
-        <LoanRequestHealthQuestionnaireStep
-            sectionKey="health_glapi"
-            title={glapiTitle}
-            description={glapiDescription}
-            values={glapiValues}
-            definition={glapiDefinition}
-            errors={errors}
-            crossSectionValues={crossSectionValues}
-            onChange={onGlapiChange}
-            itemNumbers={glapiItemNumbers}
-            healthValues={healthValues}
-            healthDefinition={healthDefinition}
-            onHealthChange={onHealthChange}
-        />
-    );
-}
-
-type HealthQuestionnaireStepProps = {
-    sectionKey: 'health_glapi';
-    title: string;
-    description: string;
-    values: LoanRequestDataSectionValues;
-    definition: LoanRequestDataSectionDefinition;
-    errors: Record<string, string | undefined>;
-    crossSectionValues: Record<string, LoanRequestDataFieldValue>;
-    onChange: (field: string, value: string | number | boolean | null) => void;
-    // Restricts rendering to the given source-form item numbers (as returned
-    // by `parseGlapiItem().number`). The GLAPI questionnaire is split across
-    // several wizard sub-steps (see GLAPI_GROUPS_PER_STEP / chunkGlapiItemGroups
-    // in loan-request.tsx), each passing the item numbers it owns.
-    itemNumbers: string[];
-    // The smoking status/hypertension questions live in the separate `health`
-    // section but are spliced into this questionnaire's numbered sequence at
-    // their thematic position (see GLAPI_VIRTUAL_ITEMS), so this component
-    // reads/writes across both sections rather than being scoped to one.
-    healthValues: LoanRequestDataSectionValues;
-    healthDefinition: LoanRequestDataSectionDefinition;
-    onHealthChange: (
-        field: string,
-        value: string | number | boolean | null,
-    ) => void;
-};
-
-/**
- * Renders a slice of the GLAPI health questionnaire generically from field
- * metadata: each field's `detail_of` links it to its parent, so a "Yes"
- * answer reveals its children (a details textarea, or -- for item 17's
- * nested "With GLAPI / With other companies" breakdown -- further booleans
- * with their own amount fields). No item is hardcoded; the nesting comes
- * entirely from the field definitions.
- *
- * Root fields are additionally clustered into the source form's own
- * item/sub-item groups (e.g. "2a"-"2j") by parsing the `gl_health_qNN[letter]_`
- * naming convention on each field key -- this is a display grouping only, it
- * doesn't change which fields exist or how detail_of/visible_when behave.
- */
-export const GLAPI_ITEM_KEY_PATTERN = /^gl_health_q(\d+)([a-z])?_/;
-
-// Instruction copy for the one item that groups several sub-questions under
-// a shared prompt (source form item 2). Purely display text, keyed by the
-// item number parsed from the field key -- not item-specific branching logic.
-const GLAPI_GROUP_HEADINGS: Record<string, string> = {
-    '2': 'Have you ever suffered from or sought medical treatment for:',
-};
-
-export type GlapiItemGroup = {
-    number: string;
-    fieldKeys: string[];
-};
-
-// The GLAPI questionnaire is split across several wizard sub-steps so a
-// member isn't faced with all its items at once. Sub-step boundaries fall
-// between item groups only, so an expanded parent and its revealed children
-// -- always rendered within the same group -- can never be split across two
-// sub-steps. Chunk size is configurable, not tied to any specific item,
-// consistent with the "no item is hardcoded" design.
-export const GLAPI_GROUPS_PER_STEP = 4;
-
-export function chunkGlapiItemGroups(
-    groups: GlapiItemGroup[],
-    chunkSize: number,
-): GlapiItemGroup[][] {
-    const chunks: GlapiItemGroup[][] = [];
-
-    for (let index = 0; index < groups.length; index += chunkSize) {
-        chunks.push(groups.slice(index, index + chunkSize));
-    }
-
-    return chunks.length > 0 ? chunks : [[]];
-}
-
-// Groups a GLAPI section's fields into the source form's own item numbering
-// (e.g. "1", "2", "4", ... "17"), in field-definition order. Derived purely
-// from field metadata -- no item numbers are hardcoded here.
-export function getGlapiItemGroups(
-    definition: LoanRequestDataSectionDefinition,
-): GlapiItemGroup[] {
-    const rootFieldKeys = Object.keys(definition.fields).filter(
-        (fieldKey) => !definition.fields[fieldKey].detail_of,
-    );
-
-    const groups: GlapiItemGroup[] = [];
-
-    rootFieldKeys.forEach((fieldKey) => {
-        const groupNumber = parseGlapiItem(fieldKey)?.number ?? fieldKey;
-        const lastGroup = groups[groups.length - 1];
-
-        if (lastGroup && lastGroup.number === groupNumber) {
-            lastGroup.fieldKeys.push(fieldKey);
-        } else {
-            groups.push({ number: groupNumber, fieldKeys: [fieldKey] });
-        }
-    });
-
-    return groups;
-}
-
-export function parseGlapiItem(
-    fieldKey: string,
-): { number: string; letter: string | null } | null {
-    const match = GLAPI_ITEM_KEY_PATTERN.exec(fieldKey);
-
-    if (!match) {
-        return null;
-    }
-
-    return { number: String(parseInt(match[1], 10)), letter: match[2] ?? null };
-}
-
-// Cross-section fields that thematically belong inside the GLAPI item
-// sequence but are stored in the separate `health` section (so their values
-// survive independently of which GLAPI chunk happens to be on screen).
-// `afterNumber` is the GLAPI item number (as produced by getGlapiItemGroups)
-// each virtual item is spliced immediately after -- their position in the
-// sequence, and therefore their displayed badge number and wizard sub-step,
-// is derived the same way as any real item, not hardcoded.
-type GlapiVirtualItem = {
-    key: 'health_hypertension' | 'health_smoking_status';
-    afterNumber: string;
-};
-
-export const GLAPI_VIRTUAL_ITEMS: GlapiVirtualItem[] = [
-    { key: 'health_hypertension', afterNumber: '2' },
-    { key: 'health_smoking_status', afterNumber: '10' },
-];
-
-export type GlapiSequenceEntry =
-    | { kind: 'group'; number: string; group: GlapiItemGroup }
-    | {
-          kind: 'virtual';
-          number: string;
-          key: GlapiVirtualItem['key'];
-          afterNumber: string;
-      };
-
-// Combines the real GLAPI item groups with the virtual cross-section items
-// into a single ordered sequence, each virtual item placed immediately after
-// its anchor group. Sequence position (1-based) is what drives the displayed
-// badge number and, in loan-request.tsx, which wizard sub-step an item lands
-// in -- so this is the single source of truth for "where does item X live."
-export function buildGlapiSequence(
-    definition: LoanRequestDataSectionDefinition,
-): GlapiSequenceEntry[] {
-    const sequence: GlapiSequenceEntry[] = [];
-
-    getGlapiItemGroups(definition).forEach((group) => {
-        sequence.push({ kind: 'group', number: group.number, group });
-
-        GLAPI_VIRTUAL_ITEMS.filter(
-            (virtual) => virtual.afterNumber === group.number,
-        ).forEach((virtual) => {
-            sequence.push({
-                kind: 'virtual',
-                number: virtual.key,
-                key: virtual.key,
-                afterNumber: virtual.afterNumber,
-            });
-        });
-    });
-
-    return sequence;
-}
-
-function childWrapperClassName(depth: number): string {
-    if (depth >= 2) {
-        return 'ml-6 space-y-3 rounded-md border-l-4 border-primary/50 bg-muted/20 py-3 pl-4';
-    }
-
-    return 'ml-4 space-y-3 rounded-md border-l-4 border-primary/25 bg-muted/10 py-3 pl-4';
-}
-
-export function LoanRequestHealthQuestionnaireStep({
-    sectionKey,
-    title,
-    description,
-    values,
-    definition,
-    errors,
-    crossSectionValues,
-    onChange,
-    itemNumbers,
-    healthValues,
-    healthDefinition,
-    onHealthChange,
-}: HealthQuestionnaireStepProps) {
-    const childrenByParent: Record<string, string[]> = {};
-
-    Object.entries(definition.fields).forEach(([fieldKey, field]) => {
-        if (!field.detail_of) {
-            return;
-        }
-
-        const parents = Array.isArray(field.detail_of)
-            ? field.detail_of
-            : [field.detail_of];
-
-        parents.forEach((parentKey) => {
-            if (!childrenByParent[parentKey]) {
-                childrenByParent[parentKey] = [];
-            }
-
-            childrenByParent[parentKey].push(fieldKey);
-        });
-    });
-
-    const parentsByChild: Record<string, string[]> = {};
-
-    Object.entries(definition.fields).forEach(([fieldKey, field]) => {
-        if (!field.detail_of) {
-            return;
-        }
-
-        parentsByChild[fieldKey] = Array.isArray(field.detail_of)
-            ? field.detail_of
-            : [field.detail_of];
-    });
-
-    const renderedChildren = new Set<string>();
-
-    const isVisible = (field: LoanRequestDataFieldDefinition): boolean => {
-        if (!field.visible_when) {
-            return true;
-        }
-
-        return (
-            crossSectionValues[field.visible_when.field] ===
-            field.visible_when.equals
-        );
-    };
-
-    const clearDescendants = (fieldKey: string) => {
-        (childrenByParent[fieldKey] ?? []).forEach((childKey) => {
-            const otherParents = (parentsByChild[childKey] ?? []).filter(
-                (parentKey) => parentKey !== fieldKey,
-            );
-            const stillHasTrueParent = otherParents.some(
-                (parentKey) => values[parentKey] === true,
-            );
-
-            if (stillHasTrueParent) {
-                return;
-            }
-
-            onChange(childKey, null);
-            clearDescendants(childKey);
-        });
-    };
-
-    const renderField = (fieldKey: string, depth = 0): ReactNode => {
-        const field = definition.fields[fieldKey];
-
-        if (!field || !isVisible(field)) {
-            return null;
-        }
-
-        const errorKey = `${sectionKey}.${fieldKey}`;
-        const value = values[fieldKey];
-
-        if (field.type === 'boolean') {
-            const children =
-                value === true
-                    ? (childrenByParent[fieldKey] ?? []).filter(
-                          (childKey) => !renderedChildren.has(childKey),
-                      )
-                    : [];
-            children.forEach((childKey) => renderedChildren.add(childKey));
-
-            return (
-                <div key={fieldKey} className="space-y-3">
-                    <div className="grid gap-2 sm:max-w-sm">
-                        <Label htmlFor={`${sectionKey}_${fieldKey}`}>
-                            {field.label}
-                        </Label>
-                        <BooleanYesNoField
-                            id={`${sectionKey}_${fieldKey}`}
-                            value={value}
-                            aria-label={field.label}
-                            fullWidth
-                            onChange={(nextBoolean) => {
-                                onChange(fieldKey, nextBoolean);
-
-                                if (nextBoolean !== true) {
-                                    clearDescendants(fieldKey);
-                                }
-                            }}
-                            aria-invalid={Boolean(errors[errorKey])}
-                        />
-                    </div>
-                    {children.length > 0 ? (
-                        <div className={childWrapperClassName(depth + 1)}>
-                            {children.map((childKey) =>
-                                renderField(childKey, depth + 1),
-                            )}
-                        </div>
-                    ) : null}
-                </div>
-            );
-        }
-
-        if (field.type === 'number') {
-            return (
-                <div key={fieldKey} className="grid gap-2 sm:max-w-xs">
-                    <Label htmlFor={`${sectionKey}_${fieldKey}`}>
-                        {field.label}
-                    </Label>
-                    <Input
-                        id={`${sectionKey}_${fieldKey}`}
-                        type="number"
-                        step="0.01"
-                        value={value ? `${value}` : ''}
-                        onChange={(event) =>
-                            onChange(fieldKey, event.target.value)
-                        }
-                        aria-invalid={Boolean(errors[errorKey])}
-                    />
-                </div>
-            );
-        }
-
-        return (
-            <div key={fieldKey} className="grid gap-2">
-                <Label htmlFor={`${sectionKey}_${fieldKey}`}>
-                    {field.label}
-                </Label>
-                <textarea
-                    id={`${sectionKey}_${fieldKey}`}
-                    aria-label={field.label}
-                    className={textareaClassName}
-                    value={value ? `${value}` : ''}
-                    maxLength={1000}
-                    onChange={(event) => onChange(fieldKey, event.target.value)}
-                    aria-invalid={Boolean(errors[errorKey])}
-                />
-            </div>
-        );
-    };
-
-    // The full sequence (real groups + virtual cross-section items) drives
-    // the displayed badge number, so a virtual item's number reflects its
-    // actual position among everything that comes before it -- not the
-    // literal source-form item number it was thematically anchored to.
-    const sequence = buildGlapiSequence(definition);
-
-    const badgeNumbers: Record<string, string> = {};
-
-    sequence.forEach((entry, index) => {
-        badgeNumbers[entry.number] = String(index + 1);
-    });
-
-    const renderedItemNumberSet = new Set(itemNumbers);
-
-    const renderedEntries = sequence.filter((entry) =>
-        entry.kind === 'group'
-            ? renderedItemNumberSet.has(entry.number)
-            : renderedItemNumberSet.has(entry.afterNumber),
-    );
-
-    const renderCard = (
-        key: string,
-        badgeLabel: string | null,
-        content: ReactNode,
-    ): ReactNode => (
-        <div
-            key={key}
-            className="rounded-lg border border-border/50 bg-card/60 p-4"
-        >
-            <div className="flex items-start gap-3">
-                {badgeLabel ? (
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
-                        {badgeLabel}
-                    </span>
-                ) : null}
-                <div className="flex-1 space-y-4">{content}</div>
-            </div>
-        </div>
-    );
-
-    const renderItemGroup = (group: GlapiItemGroup): ReactNode => {
-        const isCluster = group.fieldKeys.length > 1;
-        const heading = isCluster
-            ? GLAPI_GROUP_HEADINGS[group.number]
-            : undefined;
-
-        const items = group.fieldKeys
-            .map((fieldKey) => ({
-                fieldKey,
-                letter: isCluster ? parseGlapiItem(fieldKey)?.letter : null,
-                node: renderField(fieldKey),
-            }))
-            .filter((item) => item.node !== null);
-
-        if (items.length === 0) {
-            return null;
-        }
-
-        return renderCard(
-            group.fieldKeys[0],
-            badgeNumbers[group.number] ?? null,
-            <>
-                {heading ? (
-                    <p className="text-sm font-medium text-foreground">
-                        {heading}
-                    </p>
-                ) : null}
-                <div className="space-y-4">
-                    {items.map(({ fieldKey, letter, node }) =>
-                        letter ? (
-                            <div
-                                key={fieldKey}
-                                className="flex items-start gap-2"
-                            >
-                                <span className="mt-0.5 text-xs font-semibold text-muted-foreground">
-                                    {letter}.
-                                </span>
-                                <div className="flex-1">{node}</div>
-                            </div>
-                        ) : (
-                            <div key={fieldKey}>{node}</div>
-                        ),
-                    )}
-                </div>
-            </>,
-        );
-    };
-
-    const renderSmokingStatusItem = (): ReactNode => {
-        const field = healthDefinition.fields.health_smoking_status;
-
-        if (!field) {
-            return null;
-        }
-
-        const value = healthValues.health_smoking_status;
-        const detailsField = definition.fields.health_smoking_status_details;
-
-        return (
-            <div className="space-y-3">
-                <div className="grid gap-2">
-                    <Label htmlFor="health_health_smoking_status">
-                        {field.label}
-                    </Label>
-                    <SmokingStatusField
-                        id="health_health_smoking_status"
-                        value={value}
-                        aria-label={field.label}
-                        onChange={(nextValue) => {
-                            onHealthChange('health_smoking_status', nextValue);
-
-                            if (nextValue === null || nextValue === 'none') {
-                                onChange('health_smoking_status_details', null);
-                            }
-                        }}
-                        aria-invalid={Boolean(
-                            errors['health.health_smoking_status'],
-                        )}
-                    />
-                </div>
-                {detailsField && value && value !== 'none' ? (
-                    <div className={childWrapperClassName(1)}>
-                        <div className="grid gap-2">
-                            <Label htmlFor="health_glapi_health_smoking_status_details">
-                                {detailsField.label}
-                            </Label>
-                            <textarea
-                                id="health_glapi_health_smoking_status_details"
-                                aria-label={detailsField.label}
-                                className={textareaClassName}
-                                value={
-                                    values.health_smoking_status_details
-                                        ? `${values.health_smoking_status_details}`
-                                        : ''
-                                }
-                                maxLength={1000}
-                                onChange={(event) =>
-                                    onChange(
-                                        'health_smoking_status_details',
-                                        event.target.value,
-                                    )
-                                }
-                                aria-invalid={Boolean(
-                                    errors[
-                                        'health_glapi.health_smoking_status_details'
-                                    ],
-                                )}
-                            />
-                        </div>
-                    </div>
-                ) : null}
-            </div>
-        );
-    };
-
-    const renderHypertensionItem = (): ReactNode => {
-        const field = healthDefinition.fields.health_hypertension;
-
-        if (!field) {
-            return null;
-        }
-
-        const value = healthValues.health_hypertension;
-        const detailsField = definition.fields.health_hypertension_details;
-
-        return (
-            <div className="space-y-3">
-                <div className="grid gap-2 sm:max-w-sm">
-                    <Label htmlFor="health_health_hypertension">
-                        {field.label}
-                    </Label>
-                    <BooleanYesNoField
-                        id="health_health_hypertension"
-                        value={value}
-                        aria-label={field.label}
-                        fullWidth
-                        onChange={(nextValue) => {
-                            onHealthChange('health_hypertension', nextValue);
-
-                            if (nextValue !== true) {
-                                onChange('health_hypertension_details', null);
-                            }
-                        }}
-                        aria-invalid={Boolean(
-                            errors['health.health_hypertension'],
-                        )}
-                    />
-                </div>
-                {detailsField && value === true ? (
-                    <div className={childWrapperClassName(1)}>
-                        <div className="grid gap-2">
-                            <Label htmlFor="health_glapi_health_hypertension_details">
-                                {detailsField.label}
-                            </Label>
-                            <textarea
-                                id="health_glapi_health_hypertension_details"
-                                aria-label={detailsField.label}
-                                className={textareaClassName}
-                                value={
-                                    values.health_hypertension_details
-                                        ? `${values.health_hypertension_details}`
-                                        : ''
-                                }
-                                maxLength={1000}
-                                onChange={(event) =>
-                                    onChange(
-                                        'health_hypertension_details',
-                                        event.target.value,
-                                    )
-                                }
-                                aria-invalid={Boolean(
-                                    errors[
-                                        'health_glapi.health_hypertension_details'
-                                    ],
-                                )}
-                            />
-                        </div>
-                    </div>
-                ) : null}
-            </div>
-        );
-    };
-
-    const renderVirtualItem = (key: GlapiVirtualItem['key']): ReactNode => {
-        const content =
-            key === 'health_hypertension'
-                ? renderHypertensionItem()
-                : renderSmokingStatusItem();
-
-        if (!content) {
-            return null;
-        }
-
-        return renderCard(key, badgeNumbers[key] ?? null, content);
-    };
-
-    return (
-        <LoanRequestSectionCard
-            title={title}
-            description={description}
-            contentClassName="space-y-5"
-            errors={errors}
-        >
-            <div className="space-y-4">
-                {renderedEntries.map((entry) =>
-                    entry.kind === 'group'
-                        ? renderItemGroup(entry.group)
-                        : renderVirtualItem(entry.key),
-                )}
-            </div>
-            <Alert className="border-border/50 bg-muted/10">
-                <AlertTitle>Member-provided details</AlertTitle>
-                <AlertDescription>
-                    Answer each item honestly. If you answer "Yes," a details
-                    field will appear below it -- please fill it in.
-                </AlertDescription>
-            </Alert>
-        </LoanRequestSectionCard>
-    );
-}
-
 const PRIMARY_BENEFICIARY_KEYS = [
     'beneficiary_primary_name',
     'beneficiary_primary_relationship',
@@ -2685,6 +2021,8 @@ type DependentsStepProps = {
     crossSectionValues: Record<string, LoanRequestDataFieldValue>;
     onChange: (field: string, value: string | number | boolean | null) => void;
     hasExistingProfileData: boolean;
+    // Cycle status/number are staff-owned: the member wizard passes false.
+    showCycleFields?: boolean;
 };
 
 function isDependentCategoryVisible(
@@ -2726,8 +2064,7 @@ function isDependentSpouseVisible(
  * UX so members aren't shown every slot at once. Child/Sibling/Parent/
  * Extended are all shown regardless of civil status (a single mother still
  * has children, a married member still has parents) -- only the Spouse
- * singleton remains gated by civil_status via visible_when, same mechanism
- * as the GLAPI pregnancy question -- see LoanRequestHealthQuestionnaireStep.
+ * singleton remains gated by civil_status via visible_when.
  *
  * Members with existing profile data (dependentsPrefilledFromProfile) get a
  * compact read-only summary instead of the full form -- editing happens in
@@ -2742,6 +2079,7 @@ export function LoanRequestDependentsStep({
     crossSectionValues,
     onChange,
     hasExistingProfileData,
+    showCycleFields = true,
 }: DependentsStepProps) {
     // Categories (and Spouse) that already have data on file render as a
     // locked, read-only summary -- clicking "Edit" here unlocks just that
@@ -2790,19 +2128,24 @@ export function LoanRequestDependentsStep({
     // stuck on a silent submit failure.
     const missingCycleStatusNames: string[] = [];
 
-    if (spouseVisible && !spouseCycleStatus) {
-        missingCycleStatusNames.push('Spouse');
+    if (showCycleFields) {
+        if (spouseVisible && !spouseCycleStatus) {
+            missingCycleStatusNames.push('Spouse');
+        }
+
+        summaries.forEach(({ rows }) => {
+            rows.forEach((row) => {
+                if (!row.cycleStatus) {
+                    missingCycleStatusNames.push(row.name);
+                }
+            });
+        });
     }
 
-    summaries.forEach(({ rows }) => {
-        rows.forEach((row) => {
-            if (!row.cycleStatus) {
-                missingCycleStatusNames.push(row.name);
-            }
-        });
-    });
-
+    // Without cycle fields the spouse card is just identity + the
+    // beneficiary checkbox, so there's nothing worth locking.
     const spouseLocked =
+        showCycleFields &&
         hasExistingProfileData &&
         hasSpouseCycleData &&
         !unlockedKeys.has('spouse');
@@ -2891,6 +2234,7 @@ export function LoanRequestDependentsStep({
                         errorKeyPrefix="dependents"
                         onChange={onChange}
                         identity={spouseSuggestion}
+                        showCycleFields={showCycleFields}
                     />
                 )
             ) : null}
@@ -2926,7 +2270,8 @@ export function LoanRequestDependentsStep({
                                                     </span>
                                                 ) : null}
                                             </span>
-                                            {row.cycleStatus ? (
+                                            {showCycleFields &&
+                                            row.cycleStatus ? (
                                                 <Badge
                                                     variant="outline"
                                                     className="font-normal"
@@ -2957,6 +2302,7 @@ export function LoanRequestDependentsStep({
                         values={values}
                         errors={errors}
                         errorKeyPrefix="dependents"
+                        showCycleFields={showCycleFields}
                         onChange={onChange}
                     />
                 );
@@ -3229,12 +2575,7 @@ export function LoanRequestReviewStep({
         return true;
     };
 
-    type ReviewSectionKey =
-        | 'insurance'
-        | 'health'
-        | 'health_glapi'
-        | 'banking'
-        | 'declarations';
+    type ReviewSectionKey = 'insurance' | 'banking' | 'declarations';
 
     // Splits a section's fields into a numbered Q&A list (a question paired
     // with its conditional follow-up, identified the same way as the entry
@@ -3242,7 +2583,7 @@ export function LoanRequestReviewStep({
     // question/answer shape (beneficiary info, bank account numbers, rate
     // settings, etc). Merges field definitions/values across sectionKeys
     // first so a question and a details field stored in different sections
-    // (e.g. health / health_glapi) still pair up.
+    // still pair up.
     const buildSectionData = (sectionKeys: ReviewSectionKey[]) => {
         const fields: Record<string, LoanRequestDataFieldDefinition> = {};
         const values: Record<string, LoanRequestDataFieldValue> = {};
@@ -3340,15 +2681,8 @@ export function LoanRequestReviewStep({
         return { questions, plainItems };
     };
 
-    // 'health' and 'health_glapi' render as a single merged "Health Insurance
-    // Questionnaire" card — there is no separate "Health declarations" concept.
     const dataSectionSummaries = (
-        [
-            ['insurance'],
-            ['health', 'health_glapi'],
-            ['banking'],
-            ['declarations'],
-        ] as ReviewSectionKey[][]
+        [['insurance'], ['banking'], ['declarations']] as ReviewSectionKey[][]
     ).map((sectionKeys) => ({
         key: sectionKeys[0],
         title: sectionDefinitions[sectionKeys[0]]?.label ?? sectionKeys[0],

@@ -301,6 +301,33 @@ test('processor can save dependent cycle data without it being clobbered by late
         ->and($flatValues['dependent_child_1_cycle_status'])->toBe('New');
 });
 
+test('a member cannot set dependent cycle status or number through the processing endpoint', function (): void {
+    $member = createCycleStateActor([Role::MEMBER], '970014');
+    MemberApplicationProfile::factory()->create(['user_id' => $member->user_id]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($member)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => '',
+            'loan_request' => [],
+            'processing' => [
+                'dependent_child_1_cycle_status' => 'Old',
+                'dependent_child_1_cycle_number' => 3,
+            ],
+        ])
+        ->assertForbidden();
+
+    expect(app(\App\Services\LoanRequests\LoanRequestDataService::class)
+        ->loadFlatValues($loanRequest->refresh()))
+        ->not->toHaveKey('dependent_child_1_cycle_number');
+});
+
 /**
  * Dependent/spouse cycle_number is optional metadata: a null number
  * alongside status 'Old' is accepted, unlike the applicant's number which

@@ -69,10 +69,6 @@ class LoanRequestDocumentCatalog
                 'beneficiary_primary_name',
                 'beneficiary_primary_relationship',
                 'beneficiary_primary_birthdate',
-                'health_smoking_status',
-                'health_hypertension',
-                'gl_health_q02e_diabetes',
-                'health_recent_hospitalization',
             ],
             'source_fields' => [
                 'beneficiary_primary_name',

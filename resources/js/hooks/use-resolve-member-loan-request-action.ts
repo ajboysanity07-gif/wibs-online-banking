@@ -13,7 +13,6 @@ type ResolveMemberActionPayload = {
     decision?: 'accept' | 'decline';
     reason?: string | null;
     insurance?: Record<string, unknown>;
-    health?: Record<string, unknown>;
     authorization?: Record<string, unknown>;
     banking?: Record<string, unknown>;
     barangay?: Record<string, unknown>;

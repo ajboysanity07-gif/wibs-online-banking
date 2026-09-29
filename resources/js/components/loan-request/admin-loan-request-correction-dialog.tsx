@@ -67,6 +67,9 @@ import type {
 } from '@/types/loan-requests';
 
 type CorrectionFormData = LoanRequestFormData & {
+    // Only the applicant's PEP self-attestation lives here; the health
+    // questionnaire itself is completed in person, not in the app.
+    health_glapi: LoanRequestDataSectionValues;
     change_reason: string;
 };
 
@@ -168,8 +171,9 @@ const WIZARD_STEPS: Array<LoanRequestWizardStep & { id: WizardStepId }> = [
     },
     {
         id: 'health',
-        title: 'Health basic info',
-        description: 'Review smoking status and hypertension declaration.',
+        title: 'PEP declaration',
+        description:
+            "Review the applicant's Politically Exposed Person status.",
         group: 'health',
     },
     {
@@ -195,7 +199,7 @@ const WIZARD_STEP_GROUP_META = {
     co_maker_2: { label: 'Co-maker 2', icon: Users },
     insurance: { label: 'Insurance & beneficiaries', icon: Shield },
     dependents: { label: 'Dependents', icon: Baby },
-    health: { label: 'Health basic info', icon: HeartPulse },
+    health: { label: 'PEP declaration', icon: HeartPulse },
     banking: { label: 'Disbursement & Repayment', icon: Building2 },
     review: { label: 'Review & reason', icon: ClipboardCheck },
 };
@@ -283,10 +287,6 @@ const dataSectionFieldLabels: Record<string, Record<string, string>> = {
         beneficiary_secondary_relationship:
             'Secondary beneficiary relationship',
         beneficiary_secondary_birthdate: 'Secondary beneficiary birthdate',
-    },
-    health: {
-        health_smoking_status: 'Smoking status',
-        health_hypertension: 'Hypertension',
     },
     health_glapi: {
         applicant_pep_status: 'Applicant is a Politically Exposed Person (PEP)',
@@ -589,7 +589,6 @@ const buildInitialFormData = (
     co_maker_1: toPersonForm(coMakerOne),
     co_maker_2: toPersonForm(coMakerTwo),
     insurance: dataSections.insurance ?? {},
-    health: dataSections.health ?? {},
     health_glapi: dataSections.health_glapi ?? {},
     banking: dataSections.banking ?? {},
     declarations: dataSections.declarations ?? {},
@@ -1285,13 +1284,6 @@ function CorrectionDialogForm({
             dataSectionFieldLabels.insurance,
         );
 
-        const healthChanges = buildDataSectionChanges(
-            'health',
-            initialFormData.health ?? {},
-            formData.health,
-            dataSectionFieldLabels.health,
-        );
-
         const healthGlapiChanges = buildDataSectionChanges(
             'health_glapi',
             initialFormData.health_glapi ?? {},
@@ -1370,9 +1362,9 @@ function CorrectionDialogForm({
             },
             {
                 id: 'health',
-                title: 'Health basic info',
-                description: 'Smoking status and hypertension.',
-                changes: [...healthChanges, ...healthGlapiChanges],
+                title: 'PEP declaration',
+                description: 'Politically Exposed Person status.',
+                changes: healthGlapiChanges,
             },
             {
                 id: 'banking',
@@ -1401,9 +1393,7 @@ function CorrectionDialogForm({
 
     // Correction is scoped to just the applicant's own PEP self-attestation --
     // the other ~66 GLAPI health-questionnaire fields are member-only and have
-    // no editing surface here, mirroring how the 'health' section above is
-    // narrowed to smoking status/hypertension rather than exposing the full
-    // health questionnaire.
+    // no editing surface here (the questionnaire is completed in person).
     const pepDefinition = {
         label: dataSectionDefinitions.health_glapi?.label ?? 'GLAPI',
         fields: {
@@ -1455,14 +1445,7 @@ function CorrectionDialogForm({
         };
 
     const updateDataSection =
-        (
-            sectionKey:
-                | 'insurance'
-                | 'health'
-                | 'health_glapi'
-                | 'banking'
-                | 'dependents',
-        ) =>
+        (sectionKey: 'insurance' | 'health_glapi' | 'banking' | 'dependents') =>
         (field: string, value: string | number | boolean | null) => {
             const key = `${sectionKey}.${field}`;
             setFormData((current) => ({
@@ -1551,7 +1534,6 @@ function CorrectionDialogForm({
             co_maker_2: formData.co_maker_2,
             insurance: formData.insurance,
             dependents: formData.dependents,
-            health: formData.health,
             health_glapi: {
                 applicant_pep_status:
                     formData.health_glapi.applicant_pep_status,
@@ -1583,11 +1565,11 @@ function CorrectionDialogForm({
                         <AlertTitle>What you can correct here</AlertTitle>
                         <AlertDescription>
                             This covers loan terms, applicant/co-maker profiles,
-                            insurance beneficiaries, basic health info, banking,
-                            and dependents. The full health questionnaire and
-                            the member&apos;s declarations are the member&apos;s
-                            own sworn statements — they can only be corrected by
-                            the member directly, not here.
+                            insurance beneficiaries, PEP status, banking, and
+                            dependents. The health questionnaire and the
+                            member&apos;s declarations are the member&apos;s own
+                            sworn statements — they can only be corrected by the
+                            member directly, not here.
                         </AlertDescription>
                     </Alert>
 
@@ -1819,21 +1801,12 @@ function CorrectionDialogForm({
                             </div>
                         </LoanRequestAnimatedStep>
 
-                        {/* Health basic info */}
+                        {/* PEP declaration */}
                         <LoanRequestAnimatedStep
                             show={currentStep === stepIndexOf('health')}
                             direction={stepDirection}
                         >
                             <div className="space-y-5">
-                                <LoanRequestDataSectionStep
-                                    sectionKey="health"
-                                    title="Health basic information"
-                                    description="Review smoking status and hypertension declaration. Full health questionnaire is completed by the member during application."
-                                    values={formData.health}
-                                    definition={dataSectionDefinitions.health}
-                                    errors={mergedErrors}
-                                    onChange={updateDataSection('health')}
-                                />
                                 <LoanRequestDataSectionStep
                                     sectionKey="health_glapi"
                                     title="Politically Exposed Person (PEP) status"

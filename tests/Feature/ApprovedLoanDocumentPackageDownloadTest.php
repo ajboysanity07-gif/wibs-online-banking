@@ -886,7 +886,8 @@ test('grepalife pdf includes structured applicant fields when available', functi
     expect($content)
         ->toStartWith('%PDF');
     expect($pdfText)
-        ->toContain('BIRTH CITY, BIRTH PROVINCE')
+        // LocationComposer title-cases shouting-case birthplace parts.
+        ->toContain('Birth City, Birth Province')
         ->toContain('18 SAMPLE STREET')
         ->toContain('SAMPLE CITY')
         ->toContain('SAMPLE PROVINCE')
@@ -2183,9 +2184,11 @@ test('generali field map resolves applicant, beneficiary, and health data into t
     expect(data_get($documentData, 'applicant.last_name'))->toBe('Member');
     expect(data_get($documentData, 'beneficiaries.0.name'))->toBe('Juan Dela Cruz');
     expect(data_get($documentData, 'beneficiaries.0.relationship'))->toBe('Spouse');
-    expect(data_get($documentData, 'health.health_hypertension'))->toBeTrue();
-    expect(data_get($documentData, 'health_glapi.health_hypertension_details'))->toBe('Controlled with medication');
-    expect(data_get($documentData, 'health.health_smoking_status'))->toBe('none');
+    // The health questionnaire is completed in person: stored answers never
+    // reach the document data, so every Yes/No box prints blank.
+    expect(data_get($documentData, 'health.health_hypertension'))->toBeNull();
+    expect(data_get($documentData, 'health_glapi.health_hypertension_details'))->toBeNull();
+    expect(data_get($documentData, 'health.health_smoking_status'))->toBeNull();
 
     expect(data_get($documentData, 'applicant.employer_date_employed'))->toBe('06/01/2019');
 

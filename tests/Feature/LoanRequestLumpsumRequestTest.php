@@ -9,7 +9,6 @@ use App\Models\LoanRequest;
 use App\Models\MemberApplicationProfile;
 use App\Models\Role;
 use App\Models\UserProfile;
-use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
@@ -230,8 +229,8 @@ test('member cannot submit a 1-month Lumpsum Other Loan request without insuranc
 
     $response->assertSessionHasErrors([
         'insurance.beneficiary_primary_name',
-        'health.health_smoking_status',
     ]);
+    $response->assertSessionDoesntHaveErrors(['health.health_smoking_status']);
     expect(LoanRequest::query()->count())->toBe(0);
 });
 
@@ -281,8 +280,8 @@ test('member cannot submit a 1-month Lumpsum Other Loan request with null insura
 
     $response->assertSessionHasErrors([
         'insurance.beneficiary_primary_name',
-        'health.health_smoking_status',
     ]);
+    $response->assertSessionDoesntHaveErrors(['health.health_smoking_status']);
     expect(LoanRequest::query()->count())->toBe(0);
 });
 
@@ -360,8 +359,8 @@ test('member requesting 2-month Lumpsum still requires insurance and health data
 
     $response->assertSessionHasErrors([
         'insurance.beneficiary_primary_name',
-        'health.health_smoking_status',
     ]);
+    $response->assertSessionDoesntHaveErrors(['health.health_smoking_status']);
     expect(LoanRequest::query()->count())->toBe(0);
 });
 
@@ -436,12 +435,12 @@ test('member requesting a 2-month Emergency loan still requires insurance and he
 
     $response->assertSessionHasErrors([
         'insurance.beneficiary_primary_name',
-        'health.health_smoking_status',
     ]);
+    $response->assertSessionDoesntHaveErrors(['health.health_smoking_status']);
     expect(LoanRequest::query()->count())->toBe(0);
 });
 
-test('staff cannot approve a recommended term of 2+ months when insurance data is missing', function () {
+test('staff can approve a recommended term of 2+ months with no insurance/health data on file', function () {
     Queue::fake();
 
     $admin = User::factory()->create(['acctno' => '000804']);
@@ -468,14 +467,10 @@ test('staff cannot approve a recommended term of 2+ months when insurance data i
             'approved_amount' => 15000,
             'approved_term' => 12,
         ])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors('approval');
+        ->assertOk();
 
     $loanRequest->refresh();
-    expect($loanRequest->status)->toBe(LoanRequestStatus::RecommendedForApproval);
-
-    $service = app(LoanRequestDecisionService::class);
-    expect($service->requiresInsuranceDataBeforeApproval($loanRequest))->toBeTrue();
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
 });
 
 test('a request submitted with health data can still be approved after a processor recommends 2+ months', function () {
@@ -514,9 +509,6 @@ test('a request submitted with health data can still be approved after a process
 
     $loanRequest = LoanRequest::query()->firstOrFail();
 
-    $service = app(LoanRequestDecisionService::class);
-    expect($service->hasInsuranceDataOnFile($loanRequest))->toBeTrue();
-
     // Simulate a loan processor later recommending a longer term than the
     // member originally requested (the exact scenario that used to leave a
     // request with no health data on file -- now impossible, since the
@@ -526,8 +518,6 @@ test('a request submitted with health data can still be approved after a process
         'recommended_payment_frequency' => 'Monthly',
         'recommended_term' => 12,
     ])->save();
-
-    expect($service->requiresInsuranceDataBeforeApproval($loanRequest))->toBeFalse();
 
     $admin = User::factory()->create(['acctno' => '000809']);
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -547,7 +537,7 @@ test('a request submitted with health data can still be approved after a process
     expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
 });
 
-test('health questionnaire answers are written back to the profile and reused on the next loan request', function () {
+test('member can submit without any health questionnaire data and none is stored or prefilled', function () {
     Storage::fake('public');
 
     $user = setUpLumpsumMember('000810');
@@ -560,49 +550,35 @@ test('health questionnaire answers are written back to the profile and reused on
     $payload = [
         'typecode' => '01',
         'requested_amount' => 15000,
-        'requested_term' => 1,
+        'requested_term' => 12,
         'loan_purpose' => 'Emergency expenses',
         'other_loan_type_name' => 'Emergency Loan',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
-        'requested_payment_frequency' => 'Due date',
-        ...lumpsumMemberSectionPayload((int) $user->memberApplicationProfile->release_saved_account_id, [
-            'health' => [
-                'health_smoking_status' => 'light',
-                'health_hypertension' => true,
-            ],
-            'health_glapi' => [
-                'health_recent_hospitalization' => true,
-            ],
-            'dependents' => [],
-        ]),
+        ...lumpsumMemberSectionPayload((int) $user->memberApplicationProfile->release_saved_account_id),
         'applicant' => lumpsumApplicantPayload(),
         'co_maker_1' => lumpsumCoMakerPayload('CoOne'),
         'co_maker_2' => lumpsumCoMakerPayload('CoTwo'),
     ];
-    unset($payload['dependents']);
+    // The health questionnaire is completed in person, not by the member.
+    unset($payload['health'], $payload['health_glapi'], $payload['dependents']);
 
     $this
         ->actingAs($user)
         ->post(route('client.loan-requests.store'), $payload)
         ->assertRedirect();
 
-    $profile = $user->memberApplicationProfile()->firstOrFail();
-    expect($profile->health_smoking_status)->toBe('light');
-    expect($profile->health_hypertension)->toBeTrue();
-    expect($profile->health_recent_hospitalization)->toBeTrue();
+    $loanRequest = LoanRequest::query()->firstOrFail();
 
-    // Members can now edit/resubmit a request while it's still pending
-    // processing, so getFormData() would otherwise resume this same
-    // request. Finalize it first to simulate a genuinely new, separate
-    // "next loan request" for this prefill-from-profile assertion.
-    LoanRequest::query()->latest('id')->firstOrFail()->update([
-        'status' => LoanRequestStatus::Cancelled,
-    ]);
+    expect($loanRequest->dataEntries()->whereIn('section_key', ['health', 'health_glapi'])->exists())->toBeFalse();
+
+    $profile = $user->memberApplicationProfile()->firstOrFail();
+    expect($profile->health_smoking_status)->toBeNull();
+    expect($profile->health_hypertension)->toBeNull();
+
+    $loanRequest->update(['status' => LoanRequestStatus::Cancelled]);
 
     $formData = app(LoanRequestService::class)->getFormData($user->fresh());
 
-    expect($formData['healthPrefilledFromProfile'])->toBeTrue();
-    expect($formData['dataSections']['health']['health_smoking_status'])->toBe('light');
-    expect($formData['dataSections']['health_glapi']['health_recent_hospitalization'])->toBeTrue();
+    expect($formData)->not->toHaveKey('healthPrefilledFromProfile');
 });

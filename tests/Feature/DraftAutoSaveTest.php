@@ -326,7 +326,7 @@ test('save draft rejects wizard_step above 23 with 422', function (): void {
         ->assertUnprocessable();
 });
 
-test('create page resumes initialStep 19', function (): void {
+test('create page clamps a saved wizard step to the last step (17)', function (): void {
     $member = createDraftMember('002015');
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
@@ -349,7 +349,7 @@ test('create page resumes initialStep 19', function (): void {
         ->get(route('client.loan-requests.create'))
         ->assertInertia(fn ($page) => $page
             ->component('client/loan-request')
-            ->where('initialStep', 19),
+            ->where('initialStep', 17),
         );
 });
 

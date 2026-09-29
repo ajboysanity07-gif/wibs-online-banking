@@ -632,8 +632,6 @@ export type LoanRequestFormData = {
     co_maker_1: LoanRequestPersonFormData;
     co_maker_2: LoanRequestPersonFormData;
     insurance: LoanRequestDataSectionValues;
-    health: LoanRequestDataSectionValues;
-    health_glapi: LoanRequestDataSectionValues;
     banking: LoanRequestDataSectionValues;
     declarations: LoanRequestDataSectionValues;
     dependents: LoanRequestDataSectionValues;
@@ -655,14 +653,10 @@ export type LoanRequestCorrectionPayload = Pick<
     Partial<
         Pick<
             LoanRequestFormData,
-            | 'insurance'
-            | 'health'
-            | 'health_glapi'
-            | 'banking'
-            | 'declarations'
-            | 'dependents'
+            'insurance' | 'banking' | 'declarations' | 'dependents'
         >
     > & {
+        health_glapi?: LoanRequestDataSectionValues;
         change_reason: string;
     };
 

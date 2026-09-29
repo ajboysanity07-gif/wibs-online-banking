@@ -10,15 +10,13 @@ import type {
  * actually marks required -- see personRules()/rules() there. Steps whose
  * required-ness already has a dedicated completeness flag (banking,
  * declarations) or a "confirm pre-filled data" checkbox gate
- * (applicant personal/work, dependents, health when prefilled from profile)
+ * (applicant personal/work, dependents)
  * are NOT re-checked here -- the existing checkbox/`isXComplete` gates in
  * loan-request.tsx already cover them, and duplicating the logic here would
  * only risk drifting out of sync.
  *
  * Left deliberately ungated (never returns missing fields for these):
- * dependents' cycle-status fields (conditional on name/civil-status in a way
- * that's easy to mismatch), the 5 health_glapi questionnaire steps (all
- * `sometimes`/`nullable` server-side, nothing to require), and loan-details'
+ * dependents' cycle fields (staff-owned, not shown to members), and loan-details'
  * other_loan_type_name / kind_of_loan (their required-ness depends on a
  * wlntype label lookup not reliably available client-side).
  */
@@ -109,7 +107,6 @@ function checkWorkFields(
 type StepValidationContext = {
     applicantPrefilledFromProfile: boolean;
     applicantWorkIncomePrefilledFromProfile: boolean;
-    healthPrefilledFromProfile: boolean;
 };
 
 /**
@@ -168,22 +165,6 @@ export function getStepMissingFields(
             return checkPersonFields(data.co_maker_2, CONTACT_FIELDS_COMAKER);
         case 'co-maker-2-employment':
             return checkWorkFields(data.co_maker_2, false);
-
-        case 'health': {
-            if (context.healthPrefilledFromProfile) return [];
-            const missing: string[] = [];
-            if (blank(String(data.health.health_smoking_status ?? ''))) {
-                missing.push('Smoking status');
-            }
-            if (
-                data.health.health_hypertension === null ||
-                data.health.health_hypertension === undefined ||
-                data.health.health_hypertension === ''
-            ) {
-                missing.push('Hypertension');
-            }
-            return missing;
-        }
 
         // banking/declarations already have dedicated isBankingComplete /
         // isDeclarationsComplete checks wired into disablePrimary in

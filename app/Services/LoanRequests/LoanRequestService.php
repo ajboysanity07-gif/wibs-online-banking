@@ -68,7 +68,6 @@ class LoanRequestService
      *     dataSections: array<string, array<string, mixed>>,
      *     dataSectionDefinitions: array<string, mixed>,
      *     insurancePrefilledFromProfile: bool,
-     *     healthPrefilledFromProfile: bool,
      *     initialStep: int,
      *     autoFilledDeclarations: array<string, bool|string|float|null>,
      *     draft: array{
@@ -135,7 +134,7 @@ class LoanRequestService
             $stepValue = $flatValues['wizard_current_step'] ?? null;
 
             if (is_numeric($stepValue)) {
-                $initialStep = max(0, min(23, (int) $stepValue));
+                $initialStep = max(0, min(17, (int) $stepValue));
             }
         }
 
@@ -158,19 +157,6 @@ class LoanRequestService
             $user->memberApplicationProfile,
         );
 
-        [$dataSections['health'], $healthPrefilledFromHealth] = $this->applyProfileSectionDefaults(
-            $dataSections['health'],
-            $user->memberApplicationProfile,
-            MemberApplicationProfile::healthFields(),
-        );
-
-        [$dataSections['health_glapi'], $healthPrefilledFromGlapi] = $this->applyProfileSectionDefaults(
-            $dataSections['health_glapi'],
-            $user->memberApplicationProfile,
-            MemberApplicationProfile::healthGlapiFields(),
-        );
-
-        $healthPrefilledFromProfile = $healthPrefilledFromHealth || $healthPrefilledFromGlapi;
         $applicantPrefilledFromProfile = $this->isApplicantPersonalPrefilledFromProfile($applicantReadOnly);
         $applicantWorkIncomePrefilledFromProfile = $this->isApplicantWorkIncomePrefilledFromProfile($applicant);
         $missingIdentityPrerequisites = $this->missingIdentityPrerequisiteLabels($user->memberApplicationProfile);
@@ -197,7 +183,6 @@ class LoanRequestService
             'bankingPrefilledFromProfile' => $bankingPrefilledFromProfile,
             'insurancePrefilledFromProfile' => $insurancePrefilledFromProfile,
             'dependentsPrefilledFromProfile' => $dependentsPrefilledFromProfile,
-            'healthPrefilledFromProfile' => $healthPrefilledFromProfile,
             'applicantPrefilledFromProfile' => $applicantPrefilledFromProfile,
             'applicantWorkIncomePrefilledFromProfile' => $applicantWorkIncomePrefilledFromProfile,
             'missingIdentityPrerequisites' => $missingIdentityPrerequisites,
@@ -228,51 +213,6 @@ class LoanRequestService
             ], $bankFields);
 
         return array_map(fn (string $field): string => $labels[$field] ?? $field, $missing);
-    }
-
-    /**
-     * Fill missing health-questionnaire wizard values (both the 'health' and
-     * 'health_glapi' sections) from the member's saved application profile --
-     * only null fields are overwritten so a member's own in-progress draft
-     * edits are never clobbered. Booleans and decimals pass through as-is
-     * (already normalized by MemberApplicationProfile's casts); only strings
-     * need blank-string normalization.
-     *
-     * @param  array<string, mixed>  $sectionValues
-     * @param  list<string>  $fields
-     * @return array{0: array<string, mixed>, 1: bool}
-     */
-    private function applyProfileSectionDefaults(
-        array $sectionValues,
-        ?MemberApplicationProfile $profile,
-        array $fields,
-    ): array {
-        if ($profile === null) {
-            return [$sectionValues, false];
-        }
-
-        $prefilled = false;
-
-        foreach ($fields as $field) {
-            if (($sectionValues[$field] ?? null) !== null) {
-                continue;
-            }
-
-            $rawValue = $profile->getAttribute($field);
-
-            $profileValue = is_string($rawValue)
-                ? $this->normalizeOptionalString($rawValue)
-                : $rawValue;
-
-            if ($profileValue === null) {
-                continue;
-            }
-
-            $sectionValues[$field] = $profileValue;
-            $prefilled = true;
-        }
-
-        return [$sectionValues, $prefilled];
     }
 
     /**
@@ -502,10 +442,16 @@ class LoanRequestService
 
         $user->setRelation('memberApplicationProfile', $profile);
 
-        $this->dependentsSync->sync(
-            $profile,
-            is_array($payload['dependents'] ?? null) ? $payload['dependents'] : [],
+        // Cycle status/number are staff-owned: never let a member submission
+        // write them to the profile (sync() keeps existing values when absent).
+        $dependentsPayload = is_array($payload['dependents'] ?? null) ? $payload['dependents'] : [];
+        $dependentsPayload = array_filter(
+            $dependentsPayload,
+            static fn (string $key): bool => preg_match('/_cycle_(status|number)$/', $key) !== 1,
+            ARRAY_FILTER_USE_KEY,
         );
+
+        $this->dependentsSync->sync($profile, $dependentsPayload);
     }
 
     /**

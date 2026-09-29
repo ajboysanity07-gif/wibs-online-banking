@@ -6,21 +6,14 @@ import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import {
-    chunkGlapiItemGroups,
-    getGlapiItemGroups,
-    GLAPI_GROUPS_PER_STEP,
-    GLAPI_VIRTUAL_ITEMS,
     LoanRequestApplicantConfirmStep,
     LoanRequestApplicantPersonalStep,
     LoanRequestApplicantWorkStep,
     LoanRequestCoMakerStep,
     LoanRequestDataSectionStep,
     LoanRequestDependentsStep,
-    LoanRequestHealthQuestionnaireStep,
-    LoanRequestHealthStep,
     LoanRequestLoanDetailsStep,
     LoanRequestReviewStep,
-    parseGlapiItem,
 } from '@/components/loan-request/loan-request-steps';
 import { LoanRequestSummaryPanel } from '@/components/loan-request/loan-request-summary-panel';
 import { LoanRequestWizardActions } from '@/components/loan-request/loan-request-wizard-footer';
@@ -73,11 +66,8 @@ import type {
 const loanRequestsIndexHref = loanRequestsIndex().url;
 
 /**
- * No wizard steps are currently skipped -- the insurance/health questionnaire
- * is always required regardless of requested term (a loan processor may
- * later recommend a longer term than the member requested, and this data
- * must already be on file when that happens). Kept as infrastructure in case
- * a future step needs conditional skipping again.
+ * No wizard steps are currently skipped. Kept as infrastructure in case a
+ * future step needs conditional skipping again.
  */
 const EMPTY_SKIPPED_STEP_IDS: ReadonlySet<string> = new Set();
 
@@ -96,7 +86,6 @@ type Props = {
     autoFilledDeclarations: AutoFilledDeclarations;
     bankingPrefilledFromProfile: boolean;
     dependentsPrefilledFromProfile: boolean;
-    healthPrefilledFromProfile: boolean;
     applicantPrefilledFromProfile: boolean;
     applicantWorkIncomePrefilledFromProfile: boolean;
     missingIdentityPrerequisites: string[];
@@ -302,7 +291,6 @@ const classifyApplicantField = (field: string): ApplicantConfirmSectionKey => {
 
 const resolveStepForErrorKey = (
     key: string,
-    glapiItemNumberToStepOffset: Record<string, number>,
     stepIndex: Record<string, number>,
 ): number | null => {
     if (
@@ -363,25 +351,6 @@ const resolveStepForErrorKey = (
         return stepIndex['dependents'];
     }
 
-    if (key.startsWith('health.')) {
-        const field = key.replace('health.', '');
-        const chunkIndex = glapiItemNumberToStepOffset[field];
-        const glapiStepStart = stepIndex['health'];
-
-        return chunkIndex !== undefined
-            ? glapiStepStart + chunkIndex
-            : stepIndex['health'];
-    }
-
-    if (key.startsWith('health_glapi.')) {
-        const field = key.replace('health_glapi.', '');
-        const itemNumber = parseGlapiItem(field)?.number ?? field;
-        const chunkIndex = glapiItemNumberToStepOffset[itemNumber];
-        const glapiStepStart = stepIndex['health'];
-
-        return glapiStepStart + (chunkIndex ?? 0);
-    }
-
     if (key.startsWith('banking.')) {
         return stepIndex['banking'];
     }
@@ -403,14 +372,11 @@ const resolveStepForErrorKey = (
 
 const resolveStepFromErrors = (
     errors: Record<string, string | undefined>,
-    glapiItemNumberToStepOffset: Record<string, number>,
     stepIndex: Record<string, number>,
 ): number | null => {
     const stepMatches = Object.keys(errors)
         .filter((key) => Boolean(errors[key]))
-        .map((key) =>
-            resolveStepForErrorKey(key, glapiItemNumberToStepOffset, stepIndex),
-        )
+        .map((key) => resolveStepForErrorKey(key, stepIndex))
         .filter((step): step is number => step !== null);
 
     return stepMatches.length > 0 ? Math.min(...stepMatches) : null;
@@ -431,7 +397,6 @@ export default function LoanRequestPage({
     autoFilledDeclarations,
     bankingPrefilledFromProfile,
     dependentsPrefilledFromProfile,
-    healthPrefilledFromProfile,
     applicantPrefilledFromProfile,
     applicantWorkIncomePrefilledFromProfile,
     missingIdentityPrerequisites,
@@ -441,10 +406,6 @@ export default function LoanRequestPage({
         [applicantPrefilledFromProfile],
     );
     const STEP_INDEX = useMemo(() => buildStepIndex(steps), [steps]);
-    // The GLAPI questionnaire's first sub-step (chunk 0) renders inside the
-    // 'health' wizard step itself; the remaining chunks occupy the step
-    // indices immediately after it.
-    const GLAPI_STEP_START = STEP_INDEX['health'];
 
     const [currentStep, setCurrentStep] = useState(initialStep);
     const [highestStepReached, setHighestStepReached] = useState(initialStep);
@@ -456,9 +417,6 @@ export default function LoanRequestPage({
     );
     const [dependentsConfirmed, setDependentsConfirmed] = useState(
         !dependentsPrefilledFromProfile,
-    );
-    const [healthAnswersConfirmed, setHealthAnswersConfirmed] = useState(
-        !healthPrefilledFromProfile,
     );
     const [applicantPersonalConfirmed, setApplicantPersonalConfirmed] =
         useState(!applicantPrefilledFromProfile);
@@ -482,26 +440,6 @@ export default function LoanRequestPage({
         'co_maker_1' | 'co_maker_2' | null
     >(null);
 
-    const glapiChunks = chunkGlapiItemGroups(
-        getGlapiItemGroups(dataSectionDefinitions.health_glapi),
-        GLAPI_GROUPS_PER_STEP,
-    );
-
-    const glapiItemNumberToStepOffset: Record<string, number> = {};
-
-    glapiChunks.forEach((chunk, chunkIndex) => {
-        chunk.forEach((group) => {
-            glapiItemNumberToStepOffset[group.number] = chunkIndex;
-        });
-    });
-
-    GLAPI_VIRTUAL_ITEMS.forEach((virtual) => {
-        if (virtual.afterNumber in glapiItemNumberToStepOffset) {
-            glapiItemNumberToStepOffset[virtual.key] =
-                glapiItemNumberToStepOffset[virtual.afterNumber];
-        }
-    });
-
     const initialFormData: LoanRequestFormData = {
         typecode: draft?.typecode ?? loanTypes[0]?.typecode ?? '',
         requested_amount: toStringValue(draft?.requested_amount),
@@ -517,12 +455,6 @@ export default function LoanRequestPage({
         co_maker_2: toPersonForm(coMakerTwo),
         insurance: {
             ...dataSections.insurance,
-        },
-        health: {
-            ...dataSections.health,
-        },
-        health_glapi: {
-            ...dataSections.health_glapi,
         },
         banking: {
             ...dataSections.banking,
@@ -577,11 +509,6 @@ export default function LoanRequestPage({
         if (!dependentsPrefilledFromProfile) return true;
         return dependentsConfirmed;
     }, [dependentsPrefilledFromProfile, dependentsConfirmed]);
-
-    const isHealthComplete = useMemo(() => {
-        if (!healthPrefilledFromProfile) return true;
-        return healthAnswersConfirmed;
-    }, [healthPrefilledFromProfile, healthAnswersConfirmed]);
 
     const isApplicantPersonalComplete = useMemo(() => {
         if (!applicantPrefilledFromProfile) return true;
@@ -641,11 +568,7 @@ export default function LoanRequestPage({
     // step's content as soon as `currentStep` changes, so a short delay
     // after navigating is enough for the field to be focusable.
     const handleErrorClick = (key: string) => {
-        const step = resolveStepForErrorKey(
-            key,
-            glapiItemNumberToStepOffset,
-            STEP_INDEX,
-        );
+        const step = resolveStepForErrorKey(key, STEP_INDEX);
 
         if (key.startsWith('applicant.')) {
             const field = key.replace('applicant.', '');
@@ -674,7 +597,6 @@ export default function LoanRequestPage({
             getStepMissingFields(steps[currentStep]?.id, form.data, {
                 applicantPrefilledFromProfile,
                 applicantWorkIncomePrefilledFromProfile,
-                healthPrefilledFromProfile,
             }),
         [
             steps,
@@ -682,7 +604,6 @@ export default function LoanRequestPage({
             form.data,
             applicantPrefilledFromProfile,
             applicantWorkIncomePrefilledFromProfile,
-            healthPrefilledFromProfile,
         ],
     );
 
@@ -834,12 +755,7 @@ export default function LoanRequestPage({
         (
             sectionKey: keyof Pick<
                 LoanRequestFormData,
-                | 'insurance'
-                | 'health'
-                | 'health_glapi'
-                | 'banking'
-                | 'declarations'
-                | 'dependents'
+                'insurance' | 'banking' | 'declarations' | 'dependents'
             >,
         ) =>
         (field: string, value: string | number | boolean | null) => {
@@ -900,11 +816,7 @@ export default function LoanRequestPage({
                     return;
                 }
 
-                const step = resolveStepFromErrors(
-                    errors,
-                    glapiItemNumberToStepOffset,
-                    STEP_INDEX,
-                );
+                const step = resolveStepFromErrors(errors, STEP_INDEX);
 
                 const basicSections = new Set<'basic' | 'contact' | 'family'>();
                 let incomeSection = false;
@@ -1124,9 +1036,6 @@ export default function LoanRequestPage({
                                             STEP_INDEX['dependents'] &&
                                             dependentsPrefilledFromProfile &&
                                             !dependentsConfirmed) ||
-                                        (currentStep === STEP_INDEX['health'] &&
-                                            healthPrefilledFromProfile &&
-                                            !healthAnswersConfirmed) ||
                                         (currentStep ===
                                             STEP_INDEX['personal-basic'] &&
                                             applicantPrefilledFromProfile &&
@@ -1150,7 +1059,6 @@ export default function LoanRequestPage({
                                         (isLastStep &&
                                             (!isBankingComplete ||
                                                 !isDependentsComplete ||
-                                                !isHealthComplete ||
                                                 !isDeclarationsComplete ||
                                                 !isApplicantPersonalComplete ||
                                                 !isApplicantWorkIncomeComplete ||
@@ -1330,6 +1238,7 @@ export default function LoanRequestPage({
                                 >
                                     <div className="space-y-5">
                                         <LoanRequestDependentsStep
+                                            showCycleFields={false}
                                             sectionKey="dependents"
                                             title="Dependents"
                                             description="Add any dependents applicable to you. This section is optional."
@@ -1592,119 +1501,6 @@ export default function LoanRequestPage({
                                         }
                                     />
                                 </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={currentStep === STEP_INDEX['health']}
-                                    direction={stepDirection}
-                                >
-                                    <div className="space-y-5">
-                                        {healthPrefilledFromProfile ? (
-                                            <LoanRequestSectionCard
-                                                title="Confirm your health questionnaire answers"
-                                                description="These answers were pre-filled from your last loan request. Please review and update anything that has changed since then."
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <Checkbox
-                                                        id="health_answers_confirmed"
-                                                        checked={
-                                                            healthAnswersConfirmed
-                                                        }
-                                                        onCheckedChange={(
-                                                            checked,
-                                                        ) =>
-                                                            setHealthAnswersConfirmed(
-                                                                checked ===
-                                                                    true,
-                                                            )
-                                                        }
-                                                    />
-                                                    <Label htmlFor="health_answers_confirmed">
-                                                        Confirm these answers
-                                                        are still accurate
-                                                    </Label>
-                                                </div>
-                                            </LoanRequestSectionCard>
-                                        ) : null}
-
-                                        <LoanRequestHealthStep
-                                            healthValues={form.data.health}
-                                            healthDefinition={
-                                                dataSectionDefinitions.health
-                                            }
-                                            glapiValues={form.data.health_glapi}
-                                            glapiDefinition={
-                                                dataSectionDefinitions.health_glapi
-                                            }
-                                            glapiTitle={`Health Insurance Questionnaire (1 of ${glapiChunks.length})`}
-                                            glapiDescription="Answer each item honestly -- this is required for insurance coverage on this loan."
-                                            glapiItemNumbers={(
-                                                glapiChunks[0] ?? []
-                                            ).map((group) => group.number)}
-                                            errors={form.errors}
-                                            crossSectionValues={{
-                                                'applicant.sex':
-                                                    form.data.applicant.sex,
-                                            }}
-                                            onHealthChange={updateDataSection(
-                                                'health',
-                                            )}
-                                            onGlapiChange={updateDataSection(
-                                                'health_glapi',
-                                            )}
-                                        />
-                                    </div>
-                                </LoanRequestAnimatedStep>
-
-                                {glapiChunks
-                                    .slice(1)
-                                    .map((chunk, offsetIndex) => {
-                                        const chunkIndex = offsetIndex + 1;
-
-                                        return (
-                                            <LoanRequestAnimatedStep
-                                                key={`health-glapi-${chunkIndex}`}
-                                                show={
-                                                    currentStep ===
-                                                    GLAPI_STEP_START +
-                                                        chunkIndex
-                                                }
-                                                direction={stepDirection}
-                                            >
-                                                <LoanRequestHealthQuestionnaireStep
-                                                    sectionKey="health_glapi"
-                                                    title={`Health Insurance Questionnaire (${chunkIndex + 1} of ${glapiChunks.length})`}
-                                                    description="Answer each item honestly -- this is required for insurance coverage on this loan."
-                                                    values={
-                                                        form.data.health_glapi
-                                                    }
-                                                    definition={
-                                                        dataSectionDefinitions.health_glapi
-                                                    }
-                                                    errors={form.errors}
-                                                    crossSectionValues={{
-                                                        'applicant.sex':
-                                                            form.data.applicant
-                                                                .sex,
-                                                    }}
-                                                    onChange={updateDataSection(
-                                                        'health_glapi',
-                                                    )}
-                                                    itemNumbers={chunk.map(
-                                                        (group) => group.number,
-                                                    )}
-                                                    healthValues={
-                                                        form.data.health
-                                                    }
-                                                    healthDefinition={
-                                                        dataSectionDefinitions.health
-                                                    }
-                                                    onHealthChange={updateDataSection(
-                                                        'health',
-                                                    )}
-                                                />
-                                            </LoanRequestAnimatedStep>
-                                        );
-                                    })}
 
                                 <LoanRequestAnimatedStep
                                     show={currentStep === STEP_INDEX['banking']}

@@ -1115,7 +1115,7 @@ test('a co-maker employer/business address already on record survives a later dr
     expect($coMaker()->employer_business_address1)->toBe('Old Co-Maker Plaza');
 });
 
-test('clients can save applicant PEP status and cycle status via the loan request draft', function () {
+test('clients can save applicant PEP status via the loan request draft and cycle fields are ignored', function () {
     $user = User::factory()->create([
         'acctno' => '000713',
     ]);
@@ -1194,8 +1194,8 @@ test('clients can save applicant PEP status and cycle status via the loan reques
 
     expect($flatValues['applicant_pep_status'])->toBeTrue()
         ->and($flatValues['applicant_pep_status_details'])->toBe('Barangay Councilor, since 2020')
-        ->and($flatValues['applicant_cycle_status'])->toBe('Old')
-        ->and((int) $flatValues['applicant_cycle_number'])->toBe(3);
+        ->and($flatValues)->not->toHaveKey('applicant_cycle_status')
+        ->and($flatValues)->not->toHaveKey('applicant_cycle_number');
 });
 
 test('loan request form resumes existing draft', function () {
@@ -1716,7 +1716,7 @@ test('loan request submission does not require a co-maker employer/business addr
     expect(LoanRequest::query()->count())->toBe(1);
 });
 
-test('an Emergency (Micro Business Loan) submission with a 1-month term still requires insurance/health data', function () {
+test('an Emergency (Micro Business Loan) submission with a 1-month term does not require health questionnaire data', function () {
     Storage::fake('public');
 
     $user = User::factory()->create([
@@ -1854,10 +1854,11 @@ test('an Emergency (Micro Business Loan) submission with a 1-month term still re
         ->actingAs($user)
         ->post(route('client.loan-requests.store'), $payload);
 
-    $response->assertSessionHasErrors([
+    // The health questionnaire is completed in person, never required from the member.
+    $response->assertSessionDoesntHaveErrors([
+        'health',
         'health.health_smoking_status',
     ]);
-    expect(LoanRequest::query()->count())->toBe(0);
 });
 
 test('Other Loan submission requires a loan name', function () {

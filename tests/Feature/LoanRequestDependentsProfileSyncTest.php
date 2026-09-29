@@ -245,11 +245,12 @@ test('submit writes back validated dependent fields to normalized profile tables
     expect($child)->not->toBeNull();
     expect($child->name)->toBe('Submitted Child');
     expect($child->birthdate->toDateString())->toBe('2015-06-07');
-    expect($child->cycle_status)->toBe('Old');
-    expect($child->cycle_number)->toBe(1);
+    // Cycle status/number are staff-owned: a member submission never writes them.
+    expect($child->cycle_status)->toBeNull();
+    expect($child->cycle_number)->toBeNull();
     expect($child->is_beneficiary)->toBeTrue();
 
-    expect($dependentProfile->spouse_cycle_status)->toBe('New');
+    expect($dependentProfile->spouse_cycle_status)->toBeNull();
     expect($dependentProfile->spouse_is_beneficiary)->toBeTrue();
 
     $parent = MemberDependent::query()

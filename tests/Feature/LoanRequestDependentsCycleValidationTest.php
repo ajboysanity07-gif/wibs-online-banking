@@ -95,7 +95,7 @@ test('sectionDefinitions no longer exposes relationship or occupation for any de
     }
 });
 
-test('draft endpoint accepts New/Old cycle status and cycle number for a dependent slot', function (): void {
+test('draft endpoint ignores member-sent cycle status and cycle number (staff-owned)', function (): void {
     $member = createDependentsCycleTestMember('002200');
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
@@ -116,8 +116,9 @@ test('draft endpoint accepts New/Old cycle status and cycle number for a depende
     $values = collect($loanRequest->fresh()->dataEntries)
         ->mapWithKeys(fn ($entry) => [$entry->field_key => $entry->value_json['value'] ?? null]);
 
-    expect($values->get('dependent_extended_1_cycle_status'))->toBe('Old');
-    expect($values->get('dependent_extended_1_cycle_number'))->toBe('2');
+    expect($values->get('dependent_extended_1_name'))->toBe('Aunt Extended');
+    expect($values->has('dependent_extended_1_cycle_status'))->toBeFalse();
+    expect($values->has('dependent_extended_1_cycle_number'))->toBeFalse();
 });
 
 test('draft endpoint rejects a cycle status outside New/Old', function (): void {
@@ -316,22 +317,22 @@ test('store endpoint does not require applicant cycle status (auto-computed serv
     $response->assertSessionDoesntHaveErrors(['dependents.applicant_cycle_status']);
 });
 
-test('store endpoint requires cycle status for a dependent slot with a name', function (): void {
+test('store endpoint does not require cycle status for a named dependent (staff-owned)', function (): void {
     $member = createDependentsCycleTestMember('002204');
 
     $response = submitLoanRequestForCycleStatusTest($member, [
         'dependent_sibling_1_name' => 'Sibling Without Cycle Status',
     ]);
 
-    $response->assertSessionHasErrors(['dependents.dependent_sibling_1_cycle_status']);
+    $response->assertSessionDoesntHaveErrors(['dependents.dependent_sibling_1_cycle_status']);
 });
 
-test('store endpoint requires spouse cycle status when applicant is married', function (): void {
+test('store endpoint does not require spouse cycle status when applicant is married (staff-owned)', function (): void {
     $member = createDependentsCycleTestMember('002205');
 
     $response = submitLoanRequestForCycleStatusTest($member, [], 'Married');
 
-    $response->assertSessionHasErrors(['dependents.dependent_spouse_cycle_status']);
+    $response->assertSessionDoesntHaveErrors(['dependents.dependent_spouse_cycle_status']);
 });
 
 test('store endpoint does not require spouse cycle status when applicant is single', function (): void {

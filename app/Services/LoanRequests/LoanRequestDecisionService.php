@@ -6,7 +6,6 @@ use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
-use App\Models\LoanRequestDataEntry;
 use App\Models\Permission;
 use App\Notifications\LoanRequestCancelledNotification;
 use App\Notifications\LoanRequestDecisionNotification;
@@ -24,8 +23,6 @@ class LoanRequestDecisionService
     private const CORRECTION_REQUIRED_MESSAGE = 'Please review and save the correction before approving this admin-corrected request.';
 
     private const CORRECTION_AUDIT_UNAVAILABLE_MESSAGE = 'Correction audit history is unavailable. Please save the correction before approving this admin-corrected request.';
-
-    private const INSURANCE_DATA_REQUIRED_MESSAGE = 'This request has no insurance/health questionnaire data on file (it was submitted before the questionnaire became always-required). Run an admin correction to collect it before approving a recommended term of 2+ months.';
 
     public function __construct(
         private LoanRequestCorrectionReportService $correctionReports,
@@ -50,7 +47,6 @@ class LoanRequestDecisionService
     ): LoanRequest {
         Gate::forUser($actor)->authorize('approve', $loanRequest);
         $this->ensureCorrectedRequestReadyForApproval($loanRequest);
-        $this->ensureInsuranceDataReadyForApproval($loanRequest);
 
         $loanRequest->fill([
             'status' => LoanRequestStatus::Approved,
@@ -246,37 +242,6 @@ class LoanRequestDecisionService
         return ! $this->hasSavedCorrectionAfterCreation($loanRequest);
     }
 
-    /**
-     * True when staff have recommended a term of 2+ months, but the member's
-     * submission has no insurance/health data on file -- this can only
-     * happen for a request submitted before the questionnaire became
-     * always-required (see LoanRequestStoreRequest), since every new
-     * submission now collects it regardless of term. See
-     * LoanRequestCorrectionService for how staff backfill it.
-     */
-    public function requiresInsuranceDataBeforeApproval(
-        LoanRequest $loanRequest,
-    ): bool {
-        if ($this->isDueDateNoInsurance($loanRequest->recommended_term)) {
-            return false;
-        }
-
-        return ! $this->hasInsuranceDataOnFile($loanRequest);
-    }
-
-    public function hasInsuranceDataOnFile(LoanRequest $loanRequest): bool
-    {
-        return LoanRequestDataEntry::query()
-            ->where('loan_request_id', $loanRequest->id)
-            ->whereIn('section_key', ['insurance', 'health', 'health_glapi'])
-            ->exists();
-    }
-
-    private function isDueDateNoInsurance(int|string|null $term): bool
-    {
-        return (int) $term < 2;
-    }
-
     public function approvalBlockedMessage(
         LoanRequest $loanRequest,
         AppUser $actor,
@@ -290,13 +255,6 @@ class LoanRequestDecisionService
             && $this->requiresSavedCorrectionBeforeApproval($loanRequest)
         ) {
             return self::CORRECTION_REQUIRED_MESSAGE;
-        }
-
-        if (
-            Gate::forUser($actor)->allows('approve', $loanRequest)
-            && $this->requiresInsuranceDataBeforeApproval($loanRequest)
-        ) {
-            return self::INSURANCE_DATA_REQUIRED_MESSAGE;
         }
 
         return null;
@@ -360,16 +318,6 @@ class LoanRequestDecisionService
         if (! $this->hasSavedCorrectionAfterCreation($loanRequest)) {
             throw ValidationException::withMessages([
                 'approval' => self::CORRECTION_REQUIRED_MESSAGE,
-            ]);
-        }
-    }
-
-    private function ensureInsuranceDataReadyForApproval(
-        LoanRequest $loanRequest,
-    ): void {
-        if ($this->requiresInsuranceDataBeforeApproval($loanRequest)) {
-            throw ValidationException::withMessages([
-                'approval' => self::INSURANCE_DATA_REQUIRED_MESSAGE,
             ]);
         }
     }

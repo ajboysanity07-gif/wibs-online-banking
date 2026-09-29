@@ -268,10 +268,9 @@ export function DependentCategorySection({
         );
     };
 
-    // New/Old + conditional cycle number, same reveal-on-selection pattern
-    // as GLAPI item 17 (LoanRequestHealthQuestionnaireStep): the cycle
-    // number field only appears once "Old" is selected, and is cleared if
-    // the selection changes back to "New".
+    // New/Old + conditional cycle number (staff-entered): the cycle number
+    // field only appears once "Old" is selected, and is cleared if the
+    // selection changes back to "New".
     const renderCycleFields = (slot: number) => {
         const statusKey = slotFieldKey(category.key, slot, 'cycle_status');
         const numberKey = slotFieldKey(category.key, slot, 'cycle_number');
@@ -485,6 +484,7 @@ export function SingletonCycleSection({
     errors,
     errorKeyPrefix = '',
     withNameAttribute = false,
+    showCycleFields = true,
     onChange,
     identity = null,
 }: {
@@ -498,6 +498,8 @@ export function SingletonCycleSection({
     errors: Record<string, string | undefined>;
     errorKeyPrefix?: string;
     withNameAttribute?: boolean;
+    // Cycle status/number are staff-owned; the member wizard hides them.
+    showCycleFields?: boolean;
     onChange: (field: string, value: string | number | boolean | null) => void;
     // Read-only name/birthdate to display above the cycle fields, sourced
     // from the member's profile (e.g. spouse info on the Personal tab) --
@@ -559,73 +561,102 @@ export function SingletonCycleSection({
                                     onChange(beneficiaryKey, next)
                                 }
                             />
-                            <Separator />
+                            {showCycleFields ? <Separator /> : null}
                         </>
                     ) : null}
-                    <div className="grid gap-1.5">
-                        <Label htmlFor={statusKey}>{statusLabel}</Label>
-                        <p className="text-xs text-muted-foreground">
-                            {CYCLE_STATUS_HELP_TEXT}
-                        </p>
-                    </div>
-                    <RadioGroup
-                        id={statusKey}
-                        value={statusValue ? `${statusValue}` : ''}
-                        onValueChange={(nextValue: string) => {
-                            onChange(
-                                statusKey,
-                                nextValue === '' ? null : nextValue,
-                            );
+                    {showCycleFields ? (
+                        <>
+                            <div className="grid gap-1.5">
+                                <Label htmlFor={statusKey}>{statusLabel}</Label>
+                                <p className="text-xs text-muted-foreground">
+                                    {CYCLE_STATUS_HELP_TEXT}
+                                </p>
+                            </div>
+                            <RadioGroup
+                                id={statusKey}
+                                value={statusValue ? `${statusValue}` : ''}
+                                onValueChange={(nextValue: string) => {
+                                    onChange(
+                                        statusKey,
+                                        nextValue === '' ? null : nextValue,
+                                    );
 
-                            if (nextValue !== 'Old') {
-                                onChange(numberKey, null);
-                            }
-                        }}
-                        aria-label={statusLabel}
-                        className="flex flex-row gap-6"
-                    >
-                        <div className="flex items-center gap-2">
-                            <RadioGroupItem
-                                value="New"
-                                id={`${statusKey}-new`}
-                                aria-invalid={Boolean(errors[statusErrorKey])}
-                            />
-                            <Label htmlFor={`${statusKey}-new`}>New</Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <RadioGroupItem
-                                value="Old"
-                                id={`${statusKey}-old`}
-                                aria-invalid={Boolean(errors[statusErrorKey])}
-                            />
-                            <Label htmlFor={`${statusKey}-old`}>Old</Label>
-                        </div>
-                    </RadioGroup>
-                    {withNameAttribute ? (
-                        <input
-                            type="hidden"
-                            name={statusKey}
-                            value={statusValue ? `${statusValue}` : ''}
-                        />
-                    ) : null}
+                                    if (nextValue !== 'Old') {
+                                        onChange(numberKey, null);
+                                    }
+                                }}
+                                aria-label={statusLabel}
+                                className="flex flex-row gap-6"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <RadioGroupItem
+                                        value="New"
+                                        id={`${statusKey}-new`}
+                                        aria-invalid={Boolean(
+                                            errors[statusErrorKey],
+                                        )}
+                                    />
+                                    <Label htmlFor={`${statusKey}-new`}>
+                                        New
+                                    </Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <RadioGroupItem
+                                        value="Old"
+                                        id={`${statusKey}-old`}
+                                        aria-invalid={Boolean(
+                                            errors[statusErrorKey],
+                                        )}
+                                    />
+                                    <Label htmlFor={`${statusKey}-old`}>
+                                        Old
+                                    </Label>
+                                </div>
+                            </RadioGroup>
+                            {withNameAttribute ? (
+                                <input
+                                    type="hidden"
+                                    name={statusKey}
+                                    value={statusValue ? `${statusValue}` : ''}
+                                />
+                            ) : null}
 
-                    {statusValue === 'Old' ? (
-                        <div className="grid animate-in gap-2 duration-150 fade-in slide-in-from-top-1">
-                            <Label htmlFor={numberKey}>{numberLabel}</Label>
-                            <Input
-                                id={numberKey}
-                                name={withNameAttribute ? numberKey : undefined}
-                                type="number"
-                                min={1}
-                                value={numberValue ? `${numberValue}` : ''}
-                                onChange={(event) =>
-                                    onChange(numberKey, event.target.value)
-                                }
-                                aria-invalid={Boolean(errors[numberErrorKey])}
-                            />
-                        </div>
-                    ) : withNameAttribute ? (
-                        <input type="hidden" name={numberKey} value="" />
+                            {statusValue === 'Old' ? (
+                                <div className="grid animate-in gap-2 duration-150 fade-in slide-in-from-top-1">
+                                    <Label htmlFor={numberKey}>
+                                        {numberLabel}
+                                    </Label>
+                                    <Input
+                                        id={numberKey}
+                                        name={
+                                            withNameAttribute
+                                                ? numberKey
+                                                : undefined
+                                        }
+                                        type="number"
+                                        min={1}
+                                        value={
+                                            numberValue ? `${numberValue}` : ''
+                                        }
+                                        onChange={(event) =>
+                                            onChange(
+                                                numberKey,
+                                                event.target.value,
+                                            )
+                                        }
+                                        aria-invalid={Boolean(
+                                            errors[numberErrorKey],
+                                        )}
+                                    />
+                                </div>
+                            ) : withNameAttribute ? (
+                                <input
+                                    type="hidden"
+                                    name={numberKey}
+                                    value=""
+                                />
+                            ) : null}
+                        </>
                     ) : null}
                 </CardContent>
             </Card>
@@ -642,6 +673,7 @@ export function DependentSpouseCycleSection(props: {
     errors: Record<string, string | undefined>;
     errorKeyPrefix?: string;
     withNameAttribute?: boolean;
+    showCycleFields?: boolean;
     onChange: (field: string, value: string | number | boolean | null) => void;
     identity?: { name: string; birthdate: string } | null;
 }) {

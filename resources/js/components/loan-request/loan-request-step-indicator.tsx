@@ -26,7 +26,7 @@ type GroupMeta = { label: string; icon: LucideIcon };
 
 /**
  * Steps present in the full step list but currently skipped (e.g. insurance
- * & health steps when the member requested a 1-month Due date repayment).
+ * steps when the member requested a 1-month Due date repayment).
  * Hidden from the sidebar entirely, but their index in `steps` is preserved
  * so it keeps lining up with the wizard's `currentStep` -- callers must not
  * pass a pre-filtered `steps` array.
@@ -37,7 +37,7 @@ const GROUP_META: Record<LoanRequestWizardGroupId, GroupMeta> = {
     'loan-details': { label: 'Loan details', icon: FileText },
     'about-you': { label: 'About you', icon: User },
     'co-makers': { label: 'Co-makers', icon: Users },
-    'insurance-health': { label: 'Insurance & health', icon: HeartPulse },
+    'insurance-health': { label: 'Dependents & insurance', icon: HeartPulse },
     'bank-payout': {
         label: 'Disbursement & Repayment',
         icon: Building2,

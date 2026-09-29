@@ -77,7 +77,7 @@ class LoanRequestDataService
             'label' => 'Do you currently smoke cigarettes?',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
-            'required_on_submit' => true,
+            'required_on_submit' => false,
             'section' => 'health',
             'type' => 'string',
             'options' => ['none', 'light', 'heavy'],
@@ -95,7 +95,7 @@ class LoanRequestDataService
             'label' => 'Have you ever been diagnosed with or treated for hypertension (high blood pressure)?',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
-            'required_on_submit' => true,
+            'required_on_submit' => false,
             'section' => 'health',
             'type' => 'boolean',
         ],
@@ -373,7 +373,7 @@ class LoanRequestDataService
             'label' => 'Have you been confined in a hospital or undergone surgery recently?',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
-            'required_on_submit' => true,
+            'required_on_submit' => false,
             'section' => 'health_glapi',
             'type' => 'boolean',
         ],
@@ -1045,14 +1045,11 @@ class LoanRequestDataService
         // Dependents (Form B). Fixed slots per category rather than a truly
         // dynamic array because this EAV field system needs stable field
         // keys -- caps (child x3, sibling x3, parent x2, extended x3) are
-        // provisional. cycle_status ('New'|'Old') is required once the slot
-        // it belongs to is actually in use (name filled in, or married for
-        // Spouse, or unconditionally for Applicant) and cycle_number is
-        // required only when 'Old' -- both enforced by
-        // LoanRequestStoreRequest, not reflected in required_on_submit below
-        // since that flag can't express "conditional". Mirrors the physical
-        // form's per-entity cycle field, including for Spouse (a singleton,
-        // not a repeatable slot). Relationship and Occupation were removed:
+        // provisional. cycle_status ('New'|'Old') and cycle_number are
+        // staff-owned (entered in the processing panel, never by the member
+        // -- see syncMemberSections). Mirrors the physical form's per-entity
+        // cycle field, including for Spouse (a singleton, not a repeatable
+        // slot). Relationship and Occupation were removed:
         // the physical form has no such columns for any
         // dependent category.
         'dependent_child_1_name' => [
@@ -1724,6 +1721,12 @@ class LoanRequestDataService
                 $fieldDefinition = self::FIELD_DEFINITIONS[$fieldKey] ?? null;
 
                 if ($fieldDefinition === null) {
+                    continue;
+                }
+
+                // Cycle status/number live in the member-owned dependents
+                // section but are staff-owned: never accept them from a member.
+                if (preg_match('/_cycle_(status|number)$/', $fieldKey) === 1) {
                     continue;
                 }
 

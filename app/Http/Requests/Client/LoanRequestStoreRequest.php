@@ -156,9 +156,8 @@ class LoanRequestStoreRequest extends FormRequest
 
     /**
      * Dependents (Form B) fixed slots: child x3, sibling x3, parent x2,
-     * extended x3. Names/birthdates/cycle numbers are never required on
-     * submit -- see LoanRequestDataService. Cycle status is conditionally
-     * required -- see cycleStatusRequiredRule().
+     * extended x3. Names/birthdates are never required on submit -- see
+     * LoanRequestDataService. Cycle status/number are staff-owned.
      *
      * @var list<string>
      */
@@ -368,23 +367,19 @@ class LoanRequestStoreRequest extends FormRequest
             }
 
             if (in_array($key, self::DEPENDENT_CYCLE_STATUS_KEYS, true)) {
+                // Staff-owned (processing panel); member-sent values are
+                // ignored by LoanRequestDataService::syncMemberSections.
                 $rules["dependents.{$key}"] = [
                     'nullable',
                     'string',
                     Rule::in(['New', 'Old']),
-                    ...$this->cycleStatusRequiredRule($key),
                 ];
 
                 continue;
             }
 
             if (in_array($key, self::DEPENDENT_CYCLE_NUMBER_KEYS, true)) {
-                $statusKey = str_replace('_cycle_number', '_cycle_status', $key);
-
-                // Cycle number is auto-computed server-side by
-                // LoanRequestCycleComputeService and locked, so client
-                // submissions treat it as optional (the backend always
-                // overwrites).
+                // Staff-owned; ignored on member submit.
                 $rules["dependents.{$key}"] = [
                     'nullable',
                     'integer',
@@ -398,31 +393,6 @@ class LoanRequestStoreRequest extends FormRequest
         }
 
         return $rules;
-    }
-
-    /**
-     * Cycle status becomes required once the thing it describes is actually
-     * on the request: a dependent slot with a name filled in, or a spouse
-     * when married. Left optional otherwise so an empty/inapplicable slot
-     * doesn't block submission. The applicant's cycle is auto-computed
-     * server-side (LoanRequestCycleStateService) and never submitted by the
-     * wizard, so it carries no required rule here.
-     *
-     * @return array<int, ValidationRule|string>
-     */
-    private function cycleStatusRequiredRule(string $key): array
-    {
-        if ($key === 'applicant_cycle_status') {
-            return [];
-        }
-
-        if ($key === 'dependent_spouse_cycle_status') {
-            return [Rule::requiredIf($this->input('applicant.civil_status') === 'Married')];
-        }
-
-        $nameKey = str_replace('_cycle_status', '_name', $key);
-
-        return [Rule::requiredIf(filled($this->input("dependents.{$nameKey}")))];
     }
 
     /**
@@ -510,12 +480,6 @@ class LoanRequestStoreRequest extends FormRequest
             }
         }
 
-        // Insurance/health questionnaire data is always collected at
-        // submission, regardless of requested term -- a loan processor may
-        // later recommend a longer term than the member requested, and this
-        // data must already be on file when that happens.
-        $insuranceRequired = 'required';
-
         // The free-text primary beneficiary fields are only required when
         // the member hasn't already designated one via the Dependents step's
         // "Add as insurance beneficiary" checkbox (the active mechanism --
@@ -559,9 +523,10 @@ class LoanRequestStoreRequest extends FormRequest
             'insurance.beneficiary_secondary_name' => ['nullable', 'string', 'max:255'],
             'insurance.beneficiary_secondary_relationship' => ['nullable', 'string', 'max:255'],
             'insurance.beneficiary_secondary_birthdate' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
-            'health' => [$insuranceRequired, 'array:health_smoking_status,health_hypertension'],
-            'health.health_smoking_status' => [$insuranceRequired, 'nullable', 'string', Rule::in(['none', 'light', 'heavy'])],
-            'health.health_hypertension' => [$insuranceRequired, 'nullable', 'boolean'],
+            // The health questionnaire is completed in person, not by the member.
+            'health' => ['sometimes', 'array:health_smoking_status,health_hypertension'],
+            'health.health_smoking_status' => ['sometimes', 'nullable', 'string', Rule::in(['none', 'light', 'heavy'])],
+            'health.health_hypertension' => ['sometimes', 'nullable', 'boolean'],
             ...$this->healthGlapiRules(),
             'banking' => ['required', 'array'],
             'banking.release_saved_account_id' => [

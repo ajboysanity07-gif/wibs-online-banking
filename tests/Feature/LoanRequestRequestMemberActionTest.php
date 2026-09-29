@@ -17,7 +17,7 @@ beforeEach(function (): void {
  * clear the "member confirmation required" block on the Generali form via
  * this endpoint.
  */
-test('request member action accepts GLAPI PEP, cycle, and dependent field keys', function (): void {
+test('request member action accepts GLAPI PEP and dependent field keys', function (): void {
     $processor = createMemberActionActor([Role::LOAN_PROCESSOR]);
     $member = createMemberActionActor([Role::MEMBER], '960001');
 
@@ -34,7 +34,6 @@ test('request member action accepts GLAPI PEP, cycle, and dependent field keys',
         'reason' => 'Needed to clear GLAPI document blockers.',
         'field_keys' => [
             'applicant_pep_status',
-            'applicant_cycle_status',
             'dependent_child_1_name',
             'dependent_child_1_birthdate',
         ],
@@ -50,6 +49,28 @@ test('request member action accepts GLAPI PEP, cycle, and dependent field keys',
 
     expect($loanRequest->status)->toBe(LoanRequestStatus::AwaitingMemberInformation)
         ->and($loanRequest->member_action_fields_json)->toBe($payload['field_keys']);
+});
+
+test('request member action rejects staff-owned cycle field keys', function (): void {
+    $processor = createMemberActionActor([Role::LOAN_PROCESSOR]);
+    $member = createMemberActionActor([Role::MEMBER], '960002');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.request-member-action', $loanRequest), [
+            'action_type' => 'awaiting_member_information',
+            'message' => 'Please confirm.',
+            'reason' => 'Needed.',
+            'field_keys' => ['dependent_child_1_cycle_number'],
+        ])
+        ->assertUnprocessable();
 });
 
 function createMemberActionActor(array $roles, ?string $acctno = null): AppUser

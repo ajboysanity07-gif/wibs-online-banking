@@ -121,37 +121,6 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
         group: 'insurance-health',
     },
     {
-        id: 'health',
-        title: 'Health Insurance Questionnaire (1 of 5)',
-        description: 'Answer the Health Insurance Questionnaire questions.',
-        group: 'insurance-health',
-        sidebarLabel: 'Health Insurance Questionnaire',
-    },
-    {
-        id: 'health-glapi-2',
-        title: 'Health Insurance Questionnaire (2 of 5)',
-        description: 'Answer the Health Insurance Questionnaire questions.',
-        group: 'insurance-health',
-    },
-    {
-        id: 'health-glapi-3',
-        title: 'Health Insurance Questionnaire (3 of 5)',
-        description: 'Answer the Health Insurance Questionnaire questions.',
-        group: 'insurance-health',
-    },
-    {
-        id: 'health-glapi-4',
-        title: 'Health Insurance Questionnaire (4 of 5)',
-        description: 'Answer the Health Insurance Questionnaire questions.',
-        group: 'insurance-health',
-    },
-    {
-        id: 'health-glapi-5',
-        title: 'Health Insurance Questionnaire (5 of 5)',
-        description: 'Answer the Health Insurance Questionnaire questions.',
-        group: 'insurance-health',
-    },
-    {
         id: 'banking',
         title: 'Loan Disbursement & Repayment',
         description:

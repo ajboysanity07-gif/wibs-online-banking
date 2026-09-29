@@ -577,9 +577,11 @@ class ApprovedLoanDocumentDataBuilder
                 'signing_place' => $this->normalizeText($branding['businessAddress'] ?? null),
                 'series_year' => $documentDate?->format('Y'),
             ],
+            // The health questionnaire is completed on paper, in person -- always
+            // blank on generated documents, even when answers are on file.
             'health' => [
-                'health_smoking_status' => $overrideProcessing['health_smoking_status'] ?? $flatValues['health_smoking_status'] ?? null,
-                'health_hypertension' => $overrideProcessing['health_hypertension'] ?? $flatValues['health_hypertension'] ?? null,
+                'health_smoking_status' => null,
+                'health_hypertension' => null,
             ],
             'declarations' => [
                 'declaration_existing_loans' => $overrideProcessing['declaration_existing_loans']
@@ -1135,6 +1137,10 @@ class ApprovedLoanDocumentDataBuilder
      */
     private function healthGlapiDocumentData(array $flatValues): array
     {
+        // Completed on paper, in person: ignore any stored answers so every
+        // Yes/No box and detail line prints blank.
+        $flatValues = [];
+
         $booleanFields = [
             'gl_health_q01_weight_change',
             'gl_health_q02a_neuro',
