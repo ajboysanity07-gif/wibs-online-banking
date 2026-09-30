@@ -87,11 +87,10 @@
             }
 
             .report-header-design {
-                display: block;
-                width: 100%;
+                display: inline-block;
+                width: auto;
+                max-width: 100%;
                 max-height: 56pt;
-                margin: 0 auto;
-                object-fit: contain;
             }
 
             .report-header--fallback { text-align: center; }
