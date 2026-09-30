@@ -37,7 +37,7 @@ test('workflow health card renders as a summary bar plus fixed 2-column plain gr
     assert.ok(pageFile.includes('PROCESSING_AGE_ISSUE_THRESHOLD_DAYS'));
 });
 
-test('staff page composes Audit trail, Workflow health, and Notification history into the sidebar footer in that order', async () => {
+test('staff page keeps Workflow health in the sidebar footer and moves Audit trail and Notification history to the Activity tab', async () => {
     const pageFile = await readSource([
         'resources',
         'js',
@@ -48,23 +48,22 @@ test('staff page composes Audit trail, Workflow health, and Notification history
 
     const footerStart = pageFile.indexOf('const sidebarFooterContent');
     assert.ok(footerStart !== -1);
-
-    const auditTrailIndex = pageFile.indexOf('LoanRequestAuditTrail', footerStart);
-    const workflowHealthIndex = pageFile.indexOf('Workflow health', footerStart);
-    const notificationHistoryIndex = pageFile.indexOf(
-        'Notification history',
+    const footerBlock = pageFile.slice(
         footerStart,
+        pageFile.indexOf('return (', footerStart),
     );
 
-    assert.ok(auditTrailIndex !== -1);
-    assert.ok(workflowHealthIndex !== -1);
-    assert.ok(notificationHistoryIndex !== -1);
-    assert.ok(auditTrailIndex < workflowHealthIndex);
-    assert.ok(workflowHealthIndex < notificationHistoryIndex);
+    assert.ok(footerBlock.includes('Workflow health'));
+    assert.ok(!footerBlock.includes('LoanRequestAuditTrail'));
+    assert.ok(!footerBlock.includes('Notification history'));
 
     assert.match(
         pageFile,
         /<LoanRequestDetailPage[\s\S]*?sidebarFooter=\{sidebarFooterContent\}/,
+    );
+    assert.match(
+        pageFile,
+        /<LoanRequestActivityTab[\s\S]*?notifications=\{currentNotificationHistory\}/,
     );
 
     const sectionWrapperMatches = [
@@ -75,39 +74,27 @@ test('staff page composes Audit trail, Workflow health, and Notification history
     assert.equal(
         sectionWrapperMatches.length,
         2,
-        'expected only the summary header section and the consolidated main section, no standalone Applicant/Co-makers section',
+        'expected only the progress section and the consolidated tabbed main section',
     );
 
+    // Inside the main section the tab panels appear in tab order.
     const mainSectionStart = sectionWrapperMatches[1].index;
-    const mainColumnStart = pageFile.indexOf(
-        '<div className="min-w-0 space-y-6">',
-        mainSectionStart,
-    );
-    const applicantCardIndex = pageFile.indexOf(
-        '<LoanRequestApplicantCard',
-        mainSectionStart,
-    );
-    const coMakersCardIndex = pageFile.indexOf(
-        '<LoanRequestCoMakersCard',
-        mainSectionStart,
-    );
-    const inlineProcessingPanelIndex = pageFile.indexOf(
+    const order = [
+        '<ReviewTabPanel id="overview"',
         '<ProcessingDetailsPanel',
-        mainSectionStart,
-    );
-    const documentChecklistIndex = pageFile.indexOf(
+        '<ReviewTabPanel id="applicant"',
+        '<LoanRequestApplicantPanel',
+        '<ReviewTabPanel id="co-makers"',
+        '<LoanRequestCoMakerCard',
+        '<ReviewTabPanel id="documents"',
         '<LoanRequestDocumentChecklistCard',
-        mainSectionStart,
-    );
+        '<ReviewTabPanel id="activity"',
+    ].map((marker) => pageFile.indexOf(marker, mainSectionStart));
 
-    assert.ok(mainColumnStart !== -1);
-    assert.ok(applicantCardIndex !== -1);
-    assert.ok(coMakersCardIndex !== -1);
-    assert.ok(inlineProcessingPanelIndex !== -1);
-    assert.ok(documentChecklistIndex !== -1);
-
-    assert.ok(mainColumnStart < applicantCardIndex);
-    assert.ok(applicantCardIndex < coMakersCardIndex);
-    assert.ok(coMakersCardIndex < inlineProcessingPanelIndex);
-    assert.ok(inlineProcessingPanelIndex < documentChecklistIndex);
+    order.forEach((index) => assert.ok(index !== -1));
+    order.forEach((index, position) => {
+        if (position > 0) {
+            assert.ok(order[position - 1] < index);
+        }
+    });
 });

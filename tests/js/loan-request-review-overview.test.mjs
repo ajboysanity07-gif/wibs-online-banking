@@ -168,7 +168,8 @@ test('staff review Overview top is wired into the page', async () => {
     assert.doesNotMatch(page, /<LoanStatusWarning/);
     assert.doesNotMatch(page, /Pending member action<\/AlertTitle>/);
     assert.doesNotMatch(page, /managerStageAlert\.tone === 'ready'/);
-    assert.match(page, /showCategoryMismatch=\{false\}/);
+    // The Applicant tab panel never repeats the category mismatch alert.
+    assert.match(page, /<LoanRequestApplicantPanel/);
     // Phase 4 reads this as gate 2.
     assert.match(page, /attention\.blockingCount/);
     // Net proceeds come from the panel's existing preview, not a second call.

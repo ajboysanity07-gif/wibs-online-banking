@@ -74,51 +74,82 @@ const DOCUMENT_GROUP_ORDER: LoanRequestDocumentGroup[] = [
     'repayment_authorization',
 ];
 
+const circle = {
+    muted: 'bg-muted',
+    amber: 'bg-amber-500/10',
+    violet: 'bg-violet-500/10',
+    sky: 'bg-sky-500/10',
+    emerald: 'bg-emerald-500/10',
+    rose: 'bg-rose-500/10',
+};
+
 const checklistStatusIcon = (status: LoanRequestDocumentReadinessStatus) => {
     switch (status) {
-        case 'not_started':
-            return { Icon: Circle, className: 'text-muted-foreground' };
         case 'incomplete':
+        case 'legacy_data_incomplete':
             return {
                 Icon: AlertCircle,
                 className: 'text-amber-700 dark:text-amber-300',
+                circle: circle.amber,
             };
         case 'awaiting_member_confirmation':
             return {
                 Icon: Clock,
                 className: 'text-violet-600 dark:text-violet-300',
+                circle: circle.violet,
             };
         case 'ready_to_generate':
             return {
                 Icon: PlayCircle,
                 className: 'text-sky-700 dark:text-sky-300',
+                circle: circle.sky,
             };
         case 'generated_current':
             return {
                 Icon: CheckCircle2,
                 className: 'text-emerald-700 dark:text-emerald-300',
+                circle: circle.emerald,
             };
         case 'generated_stale':
             return {
                 Icon: RefreshCw,
                 className: 'text-amber-700 dark:text-amber-300',
+                circle: circle.amber,
             };
         case 'generation_failed':
             return {
                 Icon: XCircle,
                 className: 'text-rose-600 dark:text-rose-300',
+                circle: circle.rose,
             };
         case 'not_applicable':
-            return { Icon: MinusCircle, className: 'text-muted-foreground' };
-        case 'legacy_data_incomplete':
             return {
-                Icon: AlertCircle,
-                className: 'text-amber-700 dark:text-amber-300',
+                Icon: MinusCircle,
+                className: 'text-muted-foreground',
+                circle: circle.muted,
             };
         default:
-            return { Icon: Circle, className: 'text-muted-foreground' };
+            return {
+                Icon: Circle,
+                className: 'text-muted-foreground',
+                circle: circle.muted,
+            };
     }
 };
+
+export const displayChecklistStatusTone = (status: string): string =>
+    ({
+        generated_current:
+            'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+        generated_stale:
+            'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200',
+        ready_to_generate:
+            'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-200',
+        awaiting_member_confirmation:
+            'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-200',
+        generation_failed:
+            'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200',
+    })[status] ?? 'border-border bg-muted/20 text-muted-foreground';
 
 export type LoanRequestDocumentChecklistCardProps = {
     documentChecklist: LoanRequestDocumentChecklistItem[];
@@ -312,28 +343,21 @@ export const LoanRequestDocumentChecklistCard = ({
     return (
         <Card className="border-border bg-card shadow-card">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <ClipboardCheck className="size-4 text-muted-foreground" />
-                    Document checklist
-                </CardTitle>
-                <CardDescription>
-                    Every applicable document must be current before
-                    recommendation.
-                </CardDescription>
-                <div className="flex items-center justify-between gap-3 pt-1">
-                    <Label className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
-                        <Checkbox
-                            checked={hideNotApplicable}
-                            onCheckedChange={(checked) =>
-                                setHideNotApplicable(checked === true)
-                            }
-                        />
-                        Hide not applicable
-                    </Label>
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                    <div className="min-w-0 space-y-1.5">
+                        <CardTitle className="flex items-center gap-2 text-[17px]">
+                            <ClipboardCheck className="size-4 text-muted-foreground" />
+                            Document checklist
+                        </CardTitle>
+                        <CardDescription>
+                            Every applicable document must be current before
+                            recommendation.
+                        </CardDescription>
+                    </div>
                     {canGenerateDocuments ? (
                         <Button
                             type="button"
-                            size="sm"
+                            className="min-h-11 font-bold lg:min-h-9"
                             disabled={
                                 !processingDetailsSaved ||
                                 isProcessing ||
@@ -356,6 +380,29 @@ export const LoanRequestDocumentChecklistCard = ({
                             )}
                         </Button>
                     ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1">
+                    {canGenerateDocuments && selectableKeys.length > 0 ? (
+                        <Label className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
+                            <Checkbox
+                                checked={allSelected}
+                                disabled={!processingDetailsSaved}
+                                onCheckedChange={(checked) =>
+                                    toggleSelectAll(checked === true)
+                                }
+                            />
+                            Select all
+                        </Label>
+                    ) : null}
+                    <Label className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
+                        <Checkbox
+                            checked={hideNotApplicable}
+                            onCheckedChange={(checked) =>
+                                setHideNotApplicable(checked === true)
+                            }
+                        />
+                        Hide not applicable
+                    </Label>
                 </div>
             </CardHeader>
             <CardContent className="flex flex-col">
@@ -420,18 +467,6 @@ export const LoanRequestDocumentChecklistCard = ({
                         </AlertDescription>
                     </Alert>
                 ) : null}
-                {canGenerateDocuments && selectableKeys.length > 0 ? (
-                    <Label className="flex items-center gap-2 pb-2 text-xs font-normal text-muted-foreground">
-                        <Checkbox
-                            checked={allSelected}
-                            disabled={!processingDetailsSaved}
-                            onCheckedChange={(checked) =>
-                                toggleSelectAll(checked === true)
-                            }
-                        />
-                        Select all
-                    </Label>
-                ) : null}
                 <div className="flex flex-col">
                     {groupedChecklist.map((group) => (
                         <div key={group.group} className="flex flex-col">
@@ -457,6 +492,7 @@ export const LoanRequestDocumentChecklistCard = ({
                                     const {
                                         Icon: StatusIcon,
                                         className: statusIconClassName,
+                                        circle: statusCircleClassName,
                                     } = checklistStatusIcon(document.status);
                                     const subtitle =
                                         document.template_version ??
@@ -502,16 +538,23 @@ export const LoanRequestDocumentChecklistCard = ({
                                                             }
                                                         />
                                                     ) : null}
-                                                    {isPending ? (
-                                                        <Spinner className="size-4 shrink-0 text-muted-foreground" />
-                                                    ) : (
-                                                        <StatusIcon
-                                                            className={cn(
-                                                                'size-4 shrink-0',
-                                                                statusIconClassName,
-                                                            )}
-                                                        />
-                                                    )}
+                                                    <span
+                                                        className={cn(
+                                                            'grid size-7 shrink-0 place-items-center rounded-full',
+                                                            statusCircleClassName,
+                                                        )}
+                                                    >
+                                                        {isPending ? (
+                                                            <Spinner className="size-4 text-muted-foreground" />
+                                                        ) : (
+                                                            <StatusIcon
+                                                                className={cn(
+                                                                    'size-4',
+                                                                    statusIconClassName,
+                                                                )}
+                                                            />
+                                                        )}
+                                                    </span>
                                                     <div className="min-w-0">
                                                         <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
                                                             {document.label}
@@ -552,6 +595,16 @@ export const LoanRequestDocumentChecklistCard = ({
                                                     </div>
                                                 </div>
                                                 <div className="flex shrink-0 items-center gap-2">
+                                                    <span
+                                                        className={cn(
+                                                            'hidden rounded-md border px-2 py-0.5 text-xs font-bold sm:inline-block',
+                                                            displayChecklistStatusTone(
+                                                                document.status,
+                                                            ),
+                                                        )}
+                                                    >
+                                                        {document.status_label}
+                                                    </span>
                                                     {processingDetailsSaved &&
                                                     missingFieldCount > 0 ? (
                                                         <span className="text-xs text-destructive">

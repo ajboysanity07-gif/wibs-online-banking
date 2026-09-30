@@ -186,7 +186,9 @@ export const displayText = (value?: string | null): string => {
     return normalized !== '' ? normalized : '--';
 };
 
-const resolveAddress = (person?: LoanRequestPersonData | null): string => {
+export const resolveAddress = (
+    person?: LoanRequestPersonData | null,
+): string => {
     if (!person) {
         return '';
     }
@@ -201,7 +203,7 @@ const resolveAddress = (person?: LoanRequestPersonData | null): string => {
     return composed !== '' ? composed : (person.address ?? '');
 };
 
-const resolveEmployerBusinessAddress = (
+export const resolveEmployerBusinessAddress = (
     person?: LoanRequestPersonData | null,
 ): string => {
     if (!person) {
@@ -232,7 +234,7 @@ export const displayCurrency = (value?: string | number | null): string => {
         : formatCurrency(numericValue);
 };
 
-const displayDateValue = (value?: string | null): string =>
+export const displayDateValue = (value?: string | null): string =>
     value ? formatDate(value) : '--';
 
 const DetailRow = ({ label, value, className }: DetailRowProps) => (

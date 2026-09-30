@@ -5,6 +5,7 @@ import {
     useRef,
     useState,
     type FormEvent,
+    type ReactNode,
 } from 'react';
 import { DEPENDENT_CATEGORIES } from '@/components/dependents/dependent-category-section';
 import { PAYDAY_OPTIONS } from '@/components/loan-request/loan-request-fields';
@@ -142,16 +143,53 @@ export const SnapshotRow = ({
     label,
     value,
     className,
+    locked = false,
+    strong = false,
 }: {
     label: string;
     value: string;
     className?: string;
+    /** Set by policy, not editable per loan. */
+    locked?: boolean;
+    strong?: boolean;
 }) => (
-    <div className={cn('space-y-1', className)}>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm leading-relaxed font-medium">{value}</p>
+    <div className={cn('min-w-0', className)}>
+        <p className="text-xs text-muted-foreground">
+            {label}
+            {locked ? ' (locked)' : ''}
+        </p>
+        <p
+            className={cn(
+                'text-sm [overflow-wrap:anywhere] tabular-nums',
+                strong ? 'font-bold' : 'font-medium',
+            )}
+        >
+            {value}
+        </p>
     </div>
 );
+
+/** Uppercase label + divider + responsive auto-fill grid. */
+function SnapshotGroup({
+    title,
+    first = false,
+    children,
+}: {
+    title: string;
+    first?: boolean;
+    children: ReactNode;
+}) {
+    return (
+        <div className={first ? undefined : 'pt-4'}>
+            <p className="mb-2 border-b border-border pb-1.5 text-[11px] font-bold tracking-[0.14em] text-muted-foreground uppercase">
+                {title}
+            </p>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(200px,100%),1fr))] gap-x-4 gap-y-3">
+                {children}
+            </div>
+        </div>
+    );
+}
 
 const withWitnessOneAutoFill = (
     processing: Record<string, string | number | boolean | null>,
@@ -187,8 +225,6 @@ const withWitnessTwoAutoFill = (
     };
 };
 
-const SNAPSHOT_HIDDEN_FIELDS = new Set(['witness_two_id']);
-
 const SNAPSHOT_BARANGAY_FIELDS = [
     'barangay_official_name',
     'barangay_official_title',
@@ -219,14 +255,6 @@ const SNAPSHOT_PENSION_FIELDS = [
 ];
 
 const SNAPSHOT_PDC_FIELDS = ['pdc_drawee_bank'];
-
-const SNAPSHOT_GATED_FIELDS = new Set([
-    ...SNAPSHOT_BARANGAY_FIELDS,
-    ...SNAPSHOT_AUTHORITY_TO_DEDUCT_FIELDS,
-    ...SNAPSHOT_DEPED_FIELDS,
-    ...SNAPSHOT_PENSION_FIELDS,
-    ...SNAPSHOT_PDC_FIELDS,
-]);
 
 const BANKING_ACCOUNT_DETAIL_LABELS: {
     key: keyof SavedPaymentAccountSnapshotDetail;
@@ -1089,7 +1117,10 @@ export function ProcessingDetailsPanel({
             ? `${loanRequest.recommended_term} months`
             : '—';
 
-    const renderSnapshotField = (fieldKey: string) => {
+    const renderSnapshotField = (
+        fieldKey: string,
+        options?: { locked?: boolean },
+    ) => {
         const field = dataSectionDefinitions.processing.fields[fieldKey];
 
         if (!field) {
@@ -1112,7 +1143,12 @@ export function ProcessingDetailsPanel({
                     : snapshotDisplay(value as string | number | null);
 
         return (
-            <SnapshotRow key={fieldKey} label={field.label} value={display} />
+            <SnapshotRow
+                key={fieldKey}
+                label={field.label}
+                value={display}
+                locked={options?.locked}
+            />
         );
     };
 
@@ -2471,8 +2507,8 @@ export function ProcessingDetailsPanel({
                     </div>
                 </form>
             ) : (
-                <div className="animate-in space-y-4 duration-200 fade-in slide-in-from-top-2">
-                    <div className="grid gap-4 sm:grid-cols-2">
+                <div className="animate-in space-y-2 duration-200 fade-in slide-in-from-top-2">
+                    <SnapshotGroup title="Recommendation" first>
                         <SnapshotRow
                             label="Recommended amount"
                             value={snapshotCurrency(
@@ -2495,22 +2531,190 @@ export function ProcessingDetailsPanel({
                                 loanRequest.recommended_payment_frequency,
                             )}
                         />
-                    </div>
-                    <Separator className="bg-border/40" />
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        {Object.entries(
-                            dataSectionDefinitions.processing.fields,
-                        )
-                            .filter(
-                                ([fieldKey]) =>
-                                    !SNAPSHOT_HIDDEN_FIELDS.has(fieldKey) &&
-                                    !SNAPSHOT_GATED_FIELDS.has(fieldKey),
-                            )
-                            .map(([fieldKey]) => renderSnapshotField(fieldKey))}
-                    </div>
+                        <SnapshotRow
+                            label="Employer classification"
+                            value={snapshotDisplay(
+                                INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS[
+                                    processingForm
+                                        .institutional_employer_category
+                                ] ??
+                                    processingForm.institutional_employer_category,
+                            )}
+                        />
+                        {renderSnapshotField('employer_date_employed')}
+                    </SnapshotGroup>
 
-                    {renderProcessingSectionLabel('Bank & payout information')}
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <SnapshotGroup title="Charges">
+                        {renderSnapshotField('service_charge_rate')}
+                        {renderSnapshotField('loan_security_rate')}
+                        {renderSnapshotField('savings_rate')}
+                        {renderSnapshotField('documentary_stamp_rate', {
+                            locked: true,
+                        })}
+                        {renderSnapshotField('notarial_fee')}
+                        {renderSnapshotField('other_charges_amount')}
+                        {renderSnapshotField('other_charges_description')}
+                        {renderSnapshotField('penalty_rate_per_month', {
+                            locked: true,
+                        })}
+                        {renderSnapshotField('insurance_rate', {
+                            locked: true,
+                        })}
+                        {renderSnapshotField('insurance_term', {
+                            locked: isInsuranceSkipped,
+                        })}
+                    </SnapshotGroup>
+
+                    {recommendationPreview &&
+                    recommendationPreview.net_proceeds_raw !== null ? (
+                        <SnapshotGroup title="Computed preview">
+                            {(
+                                [
+                                    [
+                                        'Approved amount',
+                                        recommendationPreview.approved_amount_raw,
+                                    ],
+                                    [
+                                        'Service charge',
+                                        recommendationPreview.service_charge_amount_raw,
+                                    ],
+                                    [
+                                        'Interest not deducted',
+                                        recommendationPreview.interest_not_deducted_raw,
+                                    ],
+                                    [
+                                        'Finance charge total',
+                                        recommendationPreview.finance_charge_total_raw,
+                                    ],
+                                    [
+                                        'Insurance premium',
+                                        recommendationPreview.insurance_premium_raw,
+                                    ],
+                                    [
+                                        'Loan security',
+                                        recommendationPreview.loan_security_amount_raw,
+                                    ],
+                                    [
+                                        'Documentary stamp',
+                                        recommendationPreview.documentary_stamp_amount_raw,
+                                    ],
+                                    [
+                                        'Total deductions',
+                                        recommendationPreview.deductions_total_raw,
+                                    ],
+                                ] as const
+                            ).map(([label, value]) => (
+                                <SnapshotRow
+                                    key={label}
+                                    label={label}
+                                    value={snapshotCurrency(value)}
+                                />
+                            ))}
+                            <SnapshotRow
+                                label="Net proceeds"
+                                value={snapshotCurrency(
+                                    recommendationPreview.net_proceeds_raw,
+                                )}
+                                strong
+                            />
+                            <SnapshotRow
+                                label="Suggested GNTHP"
+                                value={snapshotCurrency(
+                                    recommendationPreview.suggested_gnthp_raw,
+                                )}
+                            />
+                            {renderSnapshotField(
+                                'guaranteed_net_take_home_pay',
+                            )}
+                        </SnapshotGroup>
+                    ) : (
+                        <SnapshotGroup title="Net take-home pay">
+                            {renderSnapshotField(
+                                'guaranteed_net_take_home_pay',
+                            )}
+                        </SnapshotGroup>
+                    )}
+
+                    <SnapshotGroup title="Signatories">
+                        {renderSnapshotField('witness_one_name', {
+                            locked: true,
+                        })}
+                        {renderSnapshotField('witness_two_name')}
+                        {loanRequest.authority_to_deduct_guidance?.category ===
+                            'blgu' &&
+                            SNAPSHOT_BARANGAY_FIELDS.map((fieldKey) =>
+                                renderSnapshotField(fieldKey),
+                            )}
+                    </SnapshotGroup>
+
+                    {loanRequest.authority_to_deduct_guidance?.applicable !==
+                        false && (
+                        <SnapshotGroup title="Authority to deduct">
+                            {SNAPSHOT_AUTHORITY_TO_DEDUCT_FIELDS.map(
+                                (fieldKey) => renderSnapshotField(fieldKey),
+                            )}
+                        </SnapshotGroup>
+                    )}
+
+                    {loanRequest.waiver_applicability?.deped.applicable && (
+                        <SnapshotGroup title="Salary deduction waiver (education sector)">
+                            {SNAPSHOT_DEPED_FIELDS.map((fieldKey) =>
+                                renderSnapshotField(fieldKey),
+                            )}
+                        </SnapshotGroup>
+                    )}
+
+                    {loanRequest.waiver_applicability?.pension.applicable && (
+                        <SnapshotGroup title="Waiver (pensioners)">
+                            {SNAPSHOT_PENSION_FIELDS.map((fieldKey) =>
+                                renderSnapshotField(fieldKey),
+                            )}
+                        </SnapshotGroup>
+                    )}
+
+                    {!PDC_SCHEDULE_TEMPORARILY_DISABLED &&
+                        dataSections.banking?.payment_option === 'Check' && (
+                            <SnapshotGroup title="Post-dated checks (PDC)">
+                                {SNAPSHOT_PDC_FIELDS.map((fieldKey) =>
+                                    renderSnapshotField(fieldKey),
+                                )}
+                            </SnapshotGroup>
+                        )}
+
+                    {cycleStateSlots.length > 0 && (
+                        <SnapshotGroup title="Cycle status">
+                            {cycleStateSlots.map(({ slotKey, label }) => {
+                                const [statusKey, numberKey] =
+                                    cycleSlotFieldKeys(slotKey);
+                                const status =
+                                    processingForm.processing[statusKey];
+                                const cycleNumber =
+                                    processingForm.processing[numberKey];
+
+                                return (
+                                    <SnapshotRow
+                                        key={slotKey}
+                                        label={label}
+                                        locked={cycleState[slotKey]?.locked}
+                                        value={snapshotDisplay(
+                                            [
+                                                cycleNumber !== null &&
+                                                cycleNumber !== undefined &&
+                                                `${cycleNumber}` !== ''
+                                                    ? `Cycle ${cycleNumber}`
+                                                    : null,
+                                                status ? `${status}` : null,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' · '),
+                                        )}
+                                    />
+                                );
+                            })}
+                        </SnapshotGroup>
+                    )}
+
+                    <SnapshotGroup title="Disbursement and repayment">
                         {renderBankingSnapshotField('release_method')}
                         {renderBankingSnapshotField('payment_option')}
                         {(dataSections.banking?.release_method === 'ATM' ||
@@ -2522,74 +2726,11 @@ export function ProcessingDetailsPanel({
                             dataSections.banking?.payment_option ===
                                 'Bank Transfer') &&
                             renderAccountDetailRows(paymentAccountDetail)}
-                    </div>
+                    </SnapshotGroup>
 
-                    {loanRequest.authority_to_deduct_guidance?.category ===
-                        'blgu' && (
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {SNAPSHOT_BARANGAY_FIELDS.map((fieldKey) =>
-                                renderSnapshotField(fieldKey),
-                            )}
-                        </div>
-                    )}
-
-                    {loanRequest.authority_to_deduct_guidance?.applicable !==
-                        false && (
-                        <>
-                            {renderProcessingSectionLabel(
-                                'Authority to Deduct (Salary Deduction)',
-                            )}
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {SNAPSHOT_AUTHORITY_TO_DEDUCT_FIELDS.map(
-                                    (fieldKey) => renderSnapshotField(fieldKey),
-                                )}
-                            </div>
-                        </>
-                    )}
-
-                    {loanRequest.waiver_applicability?.deped.applicable && (
-                        <>
-                            {renderProcessingSectionLabel(
-                                'Salary Deduction Authorization Waiver (Education Sector)',
-                            )}
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {SNAPSHOT_DEPED_FIELDS.map((fieldKey) =>
-                                    renderSnapshotField(fieldKey),
-                                )}
-                            </div>
-                        </>
-                    )}
-
-                    {loanRequest.waiver_applicability?.pension.applicable && (
-                        <>
-                            {renderProcessingSectionLabel(
-                                'Waiver (Pensioners)',
-                            )}
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {SNAPSHOT_PENSION_FIELDS.map((fieldKey) =>
-                                    renderSnapshotField(fieldKey),
-                                )}
-                            </div>
-                        </>
-                    )}
-
-                    {!PDC_SCHEDULE_TEMPORARILY_DISABLED &&
-                        dataSections.banking?.payment_option === 'Check' && (
-                            <>
-                                {renderProcessingSectionLabel(
-                                    'Post-Dated Checks (PDC)',
-                                )}
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {SNAPSHOT_PDC_FIELDS.map((fieldKey) =>
-                                        renderSnapshotField(fieldKey),
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                    <p className="text-xs text-muted-foreground">
+                    <p className="mt-4 rounded-[10px] border border-primary/30 bg-primary/10 px-3.5 py-2.5 text-[13px] text-foreground">
                         {canUpdateProcessing
-                            ? 'Click "Edit" above to update the recommendation and charges.'
+                            ? 'Editing requires remarks after the first save. Fields marked (locked) are set by policy; charges recalculate automatically when you edit.'
                             : 'Only the assigned loan processor can edit processing terms before approval, or the designated manager afterward.'}
                     </p>
                 </div>

@@ -30,7 +30,7 @@ test('document checklist renders as a flat row list with an overflow menu, not t
     assert.ok(pageFile.includes("document.status !== 'incomplete'"));
 });
 
-test('document checklist rows show missing-field count as plain text, not a badge', async () => {
+test('document checklist rows show a status badge and the missing-field count as plain text', async () => {
     const pageFile = await readSource([
         'resources',
         'js',
@@ -45,7 +45,12 @@ test('document checklist rows show missing-field count as plain text, not a badg
         pageFile.indexOf('<Dialog', rowsStart),
     );
 
+    // The redesigned rows carry a status icon circle and a status badge; the
+    // missing-field count itself stays plain destructive text.
     assert.ok(rowsBlock.includes('missing'));
-    assert.ok(!rowsBlock.includes('rounded-full'));
-    assert.ok(!rowsBlock.includes('displayChecklistStatusTone'));
+    assert.match(
+        rowsBlock,
+        /<span className="text-xs text-destructive">\s*\{missingFieldCount\}/,
+    );
+    assert.ok(rowsBlock.includes('displayChecklistStatusTone'));
 });

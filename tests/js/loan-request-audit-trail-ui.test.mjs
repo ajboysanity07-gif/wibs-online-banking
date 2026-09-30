@@ -108,7 +108,8 @@ test('loan request audit trail component supports a compact sidebar mode', async
     assert.match(detailFile, /sidebarFooter\?: ReactNode;/);
     assert.match(detailFile, /\{sidebarFooter \?\? null\}/);
 
-    assert.match(staffPageFile, /<LoanRequestAuditTrail[\s\S]*?compact[\s\S]*?\/>/);
+    // The staff page shows the trail as a timeline in its Activity tab.
+    assert.match(staffPageFile, /<LoanRequestActivityTab[\s\S]*?auditTrail=/);
     assert.match(staffPageFile, /sidebarFooter=\{sidebarFooterContent\}/);
 });
 
