@@ -15,6 +15,7 @@ use App\Services\LoanRequests\ApprovedLoanDocumentPackageJobService;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanManagerWitnessResolver;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
+use App\Services\LoanRequests\LoanRequestConditionService;
 use App\Services\LoanRequests\LoanRequestCycleStateService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
@@ -55,6 +56,7 @@ class LoanRequestController extends Controller
         LoanManagerWitnessResolver $loanManagerWitnessResolver,
         LoanRequestCycleStateService $cycleStateService,
         LoanRequestService $loanRequestService,
+        LoanRequestConditionService $conditionService,
     ): Response {
         if ($this->isDraft($loanRequest)) {
             abort(404);
@@ -106,6 +108,13 @@ class LoanRequestController extends Controller
             'documentChecklist' => $documentWorkflowService->serializeChecklist(
                 $loanRequest,
             ),
+            'conditions' => [
+                ...$conditionService->serialize($loanRequest),
+                'can_verify' => Gate::forUser($actor)->allows(
+                    'verifyConditions',
+                    $loanRequest,
+                ),
+            ],
             'memberAction' => [
                 'type' => $loanRequest->member_action_type,
                 'message' => $loanRequest->member_action_message,

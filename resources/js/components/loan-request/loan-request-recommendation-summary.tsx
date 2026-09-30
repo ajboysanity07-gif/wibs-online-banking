@@ -24,6 +24,8 @@ type Props = {
     processing: Record<string, unknown>;
     /** Computed preview mirrored from the Processing details panel. */
     preview: RecommendationPreviewState | null;
+    /** "Employer category confirmed with member" condition; null when it can't be tracked. */
+    categoryConfirmation?: { verified: boolean; by: string | null } | null;
 };
 
 type Rule = {
@@ -51,7 +53,12 @@ const num = (value: unknown): number | null =>
         ? null
         : Number(value);
 
-function buildRules({ loanRequest, applicant, processing }: Props): Rule[] {
+function buildRules({
+    loanRequest,
+    applicant,
+    processing,
+    categoryConfirmation,
+}: Props): Rule[] {
     const rules: Rule[] = [];
     const requested = num(loanRequest.requested_amount);
     const recommended = num(loanRequest.recommended_amount);
@@ -144,10 +151,18 @@ function buildRules({ loanRequest, applicant, processing }: Props): Rule[] {
                 "Declared category doesn't match the employer details; deduction documents depend on it.",
         });
     } else if (declared) {
+        const label =
+            INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS[declared] ?? declared;
+        const unconfirmed = categoryConfirmation?.verified === false;
+
         rules.push({
-            tone: 'ok',
+            tone: unconfirmed ? 'action' : 'ok',
             title: 'Employer category',
-            description: `${INSTITUTIONAL_EMPLOYER_CATEGORY_LABELS[declared] ?? declared}, consistent with employer details.`,
+            description: unconfirmed
+                ? `${label}, consistent with employer details but not yet confirmed with the member.`
+                : categoryConfirmation
+                  ? `${label}, confirmed with the member${categoryConfirmation.by ? ` by ${categoryConfirmation.by}` : ''}.`
+                  : `${label}, consistent with employer details.`,
         });
     } else if (detected) {
         rules.push({

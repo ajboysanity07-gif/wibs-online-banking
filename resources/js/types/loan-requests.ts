@@ -428,6 +428,26 @@ export type LoanRequestWorkflowHealth = {
     workflow_failed_job_count: number;
 };
 
+export type LoanRequestConditionItem = {
+    key: string;
+    label: string;
+    verified: boolean;
+    verified_by: string | null;
+    verified_at: string | null;
+};
+
+export type LoanRequestConditions = {
+    /** False until the conditions table is deployed; never gate on it then. */
+    available: boolean;
+    can_verify: boolean;
+    items: LoanRequestConditionItem[];
+};
+
+export type LoanRequestConditionUpdateResult = {
+    conditions: Omit<LoanRequestConditions, 'can_verify'>;
+    auditTrail: LoanRequestAuditEntry[];
+};
+
 export type LoanRequestCompleteness = {
     percentage: number;
     completed: string[];

@@ -266,7 +266,27 @@ const statusLabels: Record<LoanRequestStatusValue, string> = {
     cancelled: 'Cancelled',
 };
 
-const statusDescriptions: Record<LoanRequestStatusValue, string> = {
+/** "What happens next" copy shown beside the request status. */
+export const nextStepCopy = (status: LoanRequestStatusValue): string =>
+    status === 'draft'
+        ? 'Finish the application and submit to begin the review.'
+        : status === 'pending_review'
+          ? 'A loan processor can now pick this request up and start the review.'
+          : status === 'under_review'
+            ? 'The request is under active review by a loan processor.'
+            : status === 'needs_revision'
+              ? 'The member needs to update the request before it can continue.'
+              : status === 'recommended_for_approval'
+                ? 'A loan manager can now approve or decline this request.'
+                : status === 'approved'
+                  ? 'Approved - awaiting processing in WIBS.'
+                  : status === 'converted_to_loan'
+                    ? 'The request is already linked to a created loan record.'
+                    : status === 'declined' || status === 'rejected'
+                      ? 'Contact support if you need to discuss the final decision.'
+                      : 'This request remains available as read-only history.';
+
+export const statusDescriptions: Record<LoanRequestStatusValue, string> = {
     draft: 'Complete the form and submit when you are ready.',
     submitted: 'This legacy request has already been submitted for review.',
     pending_review:
@@ -1990,24 +2010,7 @@ export function LoanRequestDetailPage({
                         className="border-border bg-card/30"
                         contentClassName="text-sm text-muted-foreground"
                     >
-                        {statusValue === 'draft'
-                            ? 'Finish the application and submit to begin the review.'
-                            : statusValue === 'pending_review'
-                              ? 'A loan processor can now pick this request up and start the review.'
-                              : statusValue === 'under_review'
-                                ? 'The request is under active review by a loan processor.'
-                                : statusValue === 'needs_revision'
-                                  ? 'The member needs to update the request before it can continue.'
-                                  : statusValue === 'recommended_for_approval'
-                                    ? 'A loan manager can now approve or decline this request.'
-                                    : statusValue === 'approved'
-                                      ? 'Approved - awaiting processing in WIBS.'
-                                      : statusValue === 'converted_to_loan'
-                                        ? 'The request is already linked to a created loan record.'
-                                        : statusValue === 'declined' ||
-                                            statusValue === 'rejected'
-                                          ? 'Contact support if you need to discuss the final decision.'
-                                          : 'This request remains available as read-only history.'}
+                        {nextStepCopy(statusValue)}
                     </LoanRequestSectionCard>
 
                     {!hideMainColumn ? (

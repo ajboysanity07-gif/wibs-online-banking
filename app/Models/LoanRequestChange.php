@@ -89,6 +89,10 @@ class LoanRequestChange extends Model
 
     public const ACTION_REVERT_STATUS = 'revert_status';
 
+    public const ACTION_CONDITION_VERIFIED = 'condition_verified';
+
+    public const ACTION_CONDITION_UNVERIFIED = 'condition_unverified';
+
     /**
      * @var list<string>
      */

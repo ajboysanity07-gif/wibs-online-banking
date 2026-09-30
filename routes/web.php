@@ -158,6 +158,8 @@ Route::prefix('spa')->middleware('web')->group(function () {
                 ->name('processing-details.preview');
             Route::post('{loanRequest}/processing-details/checklist-preview', [SpaLoanRequestWorkflowController::class, 'previewDocumentChecklist'])
                 ->name('processing-details.checklist-preview');
+            Route::patch('{loanRequest}/conditions/{condition}', [SpaLoanRequestWorkflowController::class, 'updateCondition'])
+                ->name('conditions.update');
             Route::patch('{loanRequest}/request-member-action', [SpaLoanRequestWorkflowController::class, 'requestMemberAction'])
                 ->name('request-member-action');
             Route::patch('{loanRequest}/reject-during-processing', [SpaLoanRequestWorkflowController::class, 'rejectDuringProcessing'])

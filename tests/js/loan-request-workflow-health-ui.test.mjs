@@ -7,7 +7,14 @@ const readSource = (segments) => {
     return readFile(resolve(...segments), 'utf8');
 };
 
-test('workflow health card renders as a summary bar plus fixed 2-column plain grid, not the old bordered tiles', async () => {
+test('workflow health card is a rail card with a badge, processing age and pending member action', async () => {
+    const railFile = await readSource([
+        'resources',
+        'js',
+        'components',
+        'loan-request',
+        'loan-request-review-rail.tsx',
+    ]);
     const pageFile = await readSource([
         'resources',
         'js',
@@ -16,28 +23,22 @@ test('workflow health card renders as a summary bar plus fixed 2-column plain gr
         'loan-request-show.tsx',
     ]);
 
-    const cardStart = pageFile.indexOf('Workflow health');
-    const cardBlock = pageFile.slice(
-        cardStart,
-        pageFile.indexOf('Notification history', cardStart),
+    const cardStart = railFile.indexOf('export function LoanRequestHealthCard');
+    assert.ok(cardStart !== -1);
+    const cardBlock = railFile.slice(cardStart);
+
+    assert.ok(cardBlock.includes('All clear'));
+    assert.ok(cardBlock.includes("issue{issueCount === 1 ? '' : 's'}"));
+    assert.ok(cardBlock.includes('Processing age'));
+    assert.ok(cardBlock.includes('Member action'));
+    assert.match(
+        pageFile,
+        /<LoanRequestHealthCard[\s\S]*?issueCount=\{workflowHealthIssueCount\}/,
     );
-
-    assert.ok(
-        !cardBlock.includes(
-            'rounded-xl border border-border bg-muted/10',
-        ),
-    );
-    assert.ok(cardBlock.includes('grid grid-cols-2 gap-x-6 gap-y-4'));
-    assert.ok(!cardBlock.includes('sm:grid-cols-4'));
-    assert.ok(!cardBlock.includes('sm:col-span-4'));
-
-    assert.ok(cardBlock.includes('All clear — no issues detected'));
-    assert.ok(cardBlock.includes('issue${workflowHealthIssueCount === 1'));
-
     assert.ok(pageFile.includes('PROCESSING_AGE_ISSUE_THRESHOLD_DAYS'));
 });
 
-test('staff page keeps Workflow health in the sidebar footer and moves Audit trail and Notification history to the Activity tab', async () => {
+test('staff page moves Audit trail and Notification history to the Activity tab and keeps the rail out of the tab panels', async () => {
     const pageFile = await readSource([
         'resources',
         'js',
@@ -46,21 +47,8 @@ test('staff page keeps Workflow health in the sidebar footer and moves Audit tra
         'loan-request-show.tsx',
     ]);
 
-    const footerStart = pageFile.indexOf('const sidebarFooterContent');
-    assert.ok(footerStart !== -1);
-    const footerBlock = pageFile.slice(
-        footerStart,
-        pageFile.indexOf('return (', footerStart),
-    );
-
-    assert.ok(footerBlock.includes('Workflow health'));
-    assert.ok(!footerBlock.includes('LoanRequestAuditTrail'));
-    assert.ok(!footerBlock.includes('Notification history'));
-
-    assert.match(
-        pageFile,
-        /<LoanRequestDetailPage[\s\S]*?sidebarFooter=\{sidebarFooterContent\}/,
-    );
+    assert.doesNotMatch(pageFile, /sidebarFooterContent/);
+    assert.doesNotMatch(pageFile, /<LoanRequestDetailPage/);
     assert.match(
         pageFile,
         /<LoanRequestActivityTab[\s\S]*?notifications=\{currentNotificationHistory\}/,

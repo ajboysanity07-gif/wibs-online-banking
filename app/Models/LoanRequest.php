@@ -159,6 +159,11 @@ class LoanRequest extends Model
         return $this->hasMany(LoanRequestChange::class);
     }
 
+    public function conditions(): HasMany
+    {
+        return $this->hasMany(LoanRequestCondition::class);
+    }
+
     public function dataEntries(): HasMany
     {
         return $this->hasMany(LoanRequestDataEntry::class);

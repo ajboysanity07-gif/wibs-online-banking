@@ -1,13 +1,13 @@
 ﻿import { Head, router, usePage } from '@inertiajs/react';
-import { HeartPulse, Pencil, Truck } from 'lucide-react';
+import { Pencil, Truck } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import { LoanRequestActivityTab } from '@/components/loan-request/loan-request-activity-tab';
 import { LoanRequestApplicantSnapshot } from '@/components/loan-request/loan-request-applicant-snapshot';
 import { LoanRequestAttentionCard } from '@/components/loan-request/loan-request-attention-card';
+import { LoanRequestConditionsCard } from '@/components/loan-request/loan-request-conditions-card';
 import { LoanRequestDecisionHeader } from '@/components/loan-request/loan-request-decision-header';
 import {
-    LoanRequestDetailPage,
     LoanRequestLoanInformationCard,
     displayText,
     personName,
@@ -26,6 +26,11 @@ import {
     LoanRequestApplicantPanel,
     LoanRequestCoMakerCard,
 } from '@/components/loan-request/loan-request-review-people';
+import {
+    LoanRequestHealthCard,
+    LoanRequestReadyCard,
+    LoanRequestStatusRailCard,
+} from '@/components/loan-request/loan-request-review-rail';
 import {
     LoanRequestReviewTabs,
     ReviewTabPanel,
@@ -85,32 +90,15 @@ import { staffApprovedDocumentPackageApi } from '@/lib/api/approved-document-pac
 import { formatDate, formatDateTime } from '@/lib/formatters';
 import { institutionalEmployerCategoryMismatch } from '@/lib/institutional-employer-category';
 import { buildAttentionRows } from '@/lib/loan-request-attention';
+import { buildRecommendGates } from '@/lib/loan-request-gates';
 import type { ReviewTabId } from '@/lib/loan-request-review-tab';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import {
-    approvedDocuments as requestsApprovedDocuments,
     index as requestsIndex,
     pdf as requestsPdf,
     show as requestsShow,
 } from '@/routes/staff/loan-requests';
-import {
-    affidavitUndertaking as requestsAffidavitUndertakingDocument,
-    applicationForm as requestsApplicationFormDocument,
-    authorityToDeduct as requestsAuthorityToDeductDocument,
-    authorization as requestsAuthorizationDocument,
-    depedSalaryDeductionWaiver as requestsDepedSalaryDeductionWaiverDocument,
-    disclosureStatement as requestsDisclosureStatementDocument,
-    generali as requestsGeneraliDocument,
-    generaliApplicationForm as requestsGeneraliApplicationFormDocument,
-    grepalife as requestsGrepalifeDocument,
-    loanInformation as requestsLoanInformationDocument,
-    loanSecurityAgreement as requestsLoanSecurityAgreementDocument,
-    pensionDeductionWaiver as requestsPensionDeductionWaiverDocument,
-    planOfPayment as requestsPlanOfPaymentDocument,
-    promissoryNote as requestsPromissoryNoteDocument,
-    undertakingBarangay as requestsUndertakingBarangayDocument,
-} from '@/routes/staff/loan-requests/documents';
 import {
     confirmRelease as wibsConfirmRelease,
     markForEncoding as wibsMarkForEncoding,
@@ -124,6 +112,7 @@ import type {
     LoanRequestAuditEntry,
     LoanRequestAssignmentOfficerOption,
     LoanRequestBankingSectionValues,
+    LoanRequestConditions,
     LoanRequestCycleState,
     LoanRequestDataSectionDefinitions,
     LoanRequestDataSections,
@@ -153,14 +142,13 @@ type Props = {
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
     cycleState: LoanRequestCycleState;
     documentChecklist: LoanRequestDocumentChecklistItem[];
+    conditions: LoanRequestConditions;
     memberAction: LoanRequestMemberAction;
     notificationHistory: LoanRequestNotificationHistoryItem[];
     workflowPermissions: LoanRequestWorkflowPermission[];
     workflowContext: LoanRequestWorkflowContext;
     workflowHealth: LoanRequestWorkflowHealth;
 };
-
-const readOnlyCardClassName = 'border-border bg-card/40 shadow-card';
 
 const sectionEditButtonClassName =
     'transition-all duration-150 ease-out active:scale-90 active:duration-75 hover:-translate-y-0.5 hover:shadow-md [&_svg]:transition-transform [&_svg]:duration-150 active:[&_svg]:rotate-12';
@@ -302,28 +290,6 @@ const toLoanInfoForm = (request: LoanRequestDetail): LoanInfoFormState => ({
     availment_status: request.availment_status ?? '',
 });
 
-// Mirrors LoanRequestDocumentWorkflowService::blockersForRecommendation.
-// Phase 4 adds conditions and exceptions to the same reasons list.
-const recommendBlockedReason = (
-    documents: LoanRequestDocumentChecklistItem[],
-    enforced: boolean,
-): string | null => {
-    if (!enforced) {
-        return null;
-    }
-
-    const applicable = documents.filter((document) => document.is_applicable);
-    const current = applicable.filter(
-        (document) => document.status === 'generated_current',
-    ).length;
-
-    if (current === applicable.length) {
-        return null;
-    }
-
-    return `Documents not all current (${current}/${applicable.length}) to clear before you can recommend approval.`;
-};
-
 export default function StaffLoanRequestShow({
     loanRequest,
     applicant,
@@ -337,6 +303,7 @@ export default function StaffLoanRequestShow({
     dataSectionDefinitions,
     cycleState,
     documentChecklist,
+    conditions,
     notificationHistory,
     workflowPermissions,
     workflowContext,
@@ -357,6 +324,11 @@ export default function StaffLoanRequestShow({
         useState<LoanRequestPersonData | null>(coMakerTwo);
     const [currentAuditTrail, setCurrentAuditTrail] =
         useState<LoanRequestAuditEntry[]>(auditTrail);
+    const [currentConditions, setCurrentConditions] =
+        useState<LoanRequestConditions>(conditions);
+    const [conditionPendingKey, setConditionPendingKey] = useState<
+        string | null
+    >(null);
     const [currentEligibleOfficers, setCurrentEligibleOfficers] =
         useState<LoanRequestAssignmentOfficerOption[]>(eligibleOfficers);
     const [currentDataSections, setCurrentDataSections] =
@@ -491,56 +463,6 @@ export default function StaffLoanRequestShow({
     const pdfHref = requestsPdf(currentRequest.id, {
         query: { download: 1 },
     }).url;
-    const approvedDocumentHrefs =
-        currentRequest.status === 'approved' ||
-        currentRequest.status === 'converted_to_loan'
-            ? {
-                  applicationForm: requestsApplicationFormDocument(
-                      currentRequest.id,
-                  ).url,
-                  grepalife: requestsGrepalifeDocument(currentRequest.id).url,
-                  affidavitUndertaking: requestsAffidavitUndertakingDocument(
-                      currentRequest.id,
-                  ).url,
-                  loanInformation: requestsLoanInformationDocument(
-                      currentRequest.id,
-                  ).url,
-                  planOfPayment: requestsPlanOfPaymentDocument(
-                      currentRequest.id,
-                  ).url,
-                  disclosureStatement: requestsDisclosureStatementDocument(
-                      currentRequest.id,
-                  ).url,
-                  promissoryNote: requestsPromissoryNoteDocument(
-                      currentRequest.id,
-                  ).url,
-                  undertakingBarangay: requestsUndertakingBarangayDocument(
-                      currentRequest.id,
-                  ).url,
-                  loanSecurityAgreement: requestsLoanSecurityAgreementDocument(
-                      currentRequest.id,
-                  ).url,
-                  generali: requestsGeneraliDocument(currentRequest.id).url,
-                  authorityToDeduct: requestsAuthorityToDeductDocument(
-                      currentRequest.id,
-                  ).url,
-                  depedSalaryDeductionWaiver:
-                      requestsDepedSalaryDeductionWaiverDocument(
-                          currentRequest.id,
-                      ).url,
-                  pensionDeductionWaiver:
-                      requestsPensionDeductionWaiverDocument(currentRequest.id)
-                          .url,
-                  generaliApplicationForm:
-                      requestsGeneraliApplicationFormDocument(currentRequest.id)
-                          .url,
-                  authorization: requestsAuthorizationDocument(
-                      currentRequest.id,
-                  ).url,
-                  packageZip: requestsApprovedDocuments(currentRequest.id).url,
-              }
-            : null;
-
     const openSectionEdit = (section: Exclude<EditableSection, null>) => {
         if (section === 'loan_request') {
             setLoanInfoForm(toLoanInfoForm(currentRequest));
@@ -683,14 +605,6 @@ export default function StaffLoanRequestShow({
             'awaiting_member_information',
         ].includes(currentRequest.status ?? '');
     const canRequestMemberAction = canUpdateProcessing;
-    const isProcessingStage = [
-        'pending_review',
-        'under_review',
-        'needs_revision',
-        'awaiting_member_information',
-        'recommended_for_approval',
-        'awaiting_member_acceptance',
-    ].includes(currentRequest.status ?? '');
     const showProcessingSection = ![
         'draft',
         'pending_co_maker_signatures',
@@ -788,9 +702,6 @@ export default function StaffLoanRequestShow({
         ].includes(currentRequest.status ?? '');
     const isWorkflowProcessing =
         workflowProcessingIds[currentRequest.id] ?? false;
-    const blockedReason = canRecommendApproval
-        ? recommendBlockedReason(currentDocumentChecklist, isV2Workflow)
-        : null;
     const memberFieldDefinitions = Object.entries(
         dataSectionDefinitions,
     ).flatMap(([sectionKey, section]) =>
@@ -1187,6 +1098,64 @@ export default function StaffLoanRequestShow({
                 : null,
         managerStage: managerStageAlert,
     });
+    // Conditions only gate while they can be signed off; when the table is
+    // not deployed (or the viewer can't verify) approval is never blocked on them.
+    const conditionsGate =
+        currentConditions.available && currentConditions.can_verify
+            ? {
+                  done: currentConditions.items.filter((item) => item.verified)
+                      .length,
+                  total: currentConditions.items.length,
+              }
+            : null;
+    const gates = buildRecommendGates({
+        conditions: conditionsGate,
+        blockingCount: attention.blockingCount,
+        exceptionRowCount: attention.rows.filter((row) => row.tone !== 'info')
+            .length,
+        documents: currentDocumentChecklist,
+        // Same scope as the server's document rule (v2 only).
+        enforced: isV2Workflow,
+    });
+    const blockedReason = canRecommendApproval ? gates.blockedReason : null;
+    const toggleCondition = async (key: string, verified: boolean) => {
+        setConditionPendingKey(key);
+
+        try {
+            const result = await adminApi.updateLoanRequestCondition(
+                currentRequest.id,
+                key,
+                verified,
+            );
+
+            setCurrentConditions((current) => ({
+                ...current,
+                ...result.conditions,
+            }));
+            setCurrentAuditTrail(result.auditTrail);
+        } catch (error) {
+            showErrorToast(error, 'Could not update the condition.');
+        } finally {
+            setConditionPendingKey(null);
+        }
+    };
+    const categoryCondition = currentConditions.available
+        ? currentConditions.items.find(
+              (item) => item.key === 'employer_category',
+          )
+        : undefined;
+    const railStage = [
+        'pending_review',
+        'under_review',
+        'needs_revision',
+        'awaiting_member_information',
+    ].includes(currentRequest.status ?? '')
+        ? ('processing' as const)
+        : ['recommended_for_approval', 'awaiting_member_acceptance'].includes(
+                currentRequest.status ?? '',
+            )
+          ? ('handed-off' as const)
+          : ('other' as const);
     const scrollToSection = (id: string) =>
         document.getElementById(id)?.scrollIntoView({
             behavior: window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -1326,119 +1295,6 @@ export default function StaffLoanRequestShow({
             </Alert>
         ) : null;
 
-    const actionsHeaderContent = (
-        <>
-            <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">
-                    Workflow:{' '}
-                    {currentRequest.workflow_version === 'document_workflow_v2'
-                        ? 'Document Workflow v2'
-                        : 'Legacy v1'}
-                </Badge>
-                {assignedProcessorId !== null ? (
-                    <Badge variant="secondary">Assigned Loan Processor</Badge>
-                ) : null}
-            </div>
-        </>
-    );
-
-    const sidebarFooterContent = (
-        <>
-            <LoanRequestSectionCard
-                title="Workflow health"
-                icon={HeartPulse}
-                className={readOnlyCardClassName}
-                contentClassName="grid grid-cols-2 gap-x-6 gap-y-4"
-            >
-                <div
-                    className={`col-span-2 rounded-lg border px-3 py-2 text-sm font-medium ${
-                        workflowHealthIssueCount === 0
-                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200'
-                            : 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200'
-                    }`}
-                >
-                    {workflowHealthIssueCount === 0
-                        ? 'All clear — no issues detected'
-                        : `${workflowHealthIssueCount} issue${workflowHealthIssueCount === 1 ? '' : 's'} need${workflowHealthIssueCount === 1 ? 's' : ''} attention`}
-                </div>
-                <div>
-                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                        Processing age
-                    </p>
-                    <p
-                        className={`mt-2 text-2xl ${workflowHealthIssues.processingAge ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                    >
-                        {currentWorkflowHealth.processing_age_days === null
-                            ? '-'
-                            : `${currentWorkflowHealth.processing_age_days}d`}
-                    </p>
-                </div>
-                <div>
-                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                        Pending member action
-                    </p>
-                    <p
-                        className={`mt-2 text-2xl ${workflowHealthIssues.pendingMemberAction ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                    >
-                        {currentWorkflowHealth.pending_member_action
-                            ? 'Yes'
-                            : 'No'}
-                    </p>
-                </div>
-                <div>
-                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                        Stale documents
-                    </p>
-                    <p
-                        className={`mt-2 text-2xl ${workflowHealthIssues.staleDocuments ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                    >
-                        {currentWorkflowHealth.stale_document_count}
-                    </p>
-                </div>
-                <div>
-                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                        Failed documents
-                    </p>
-                    <p
-                        className={`mt-2 text-2xl ${workflowHealthIssues.failedDocuments ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                    >
-                        {currentWorkflowHealth.failed_document_count}
-                    </p>
-                </div>
-                <div>
-                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                        Legacy blockers
-                    </p>
-                    <p
-                        className={`mt-2 text-2xl ${workflowHealthIssues.legacyBlockers ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                    >
-                        {currentWorkflowHealth.legacy_blocker_count}
-                    </p>
-                </div>
-                <div>
-                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                        Notification failures
-                    </p>
-                    <p
-                        className={`mt-2 text-2xl ${workflowHealthIssues.notificationFailures ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                    >
-                        {currentWorkflowHealth.notification_failure_count}
-                    </p>
-                </div>
-                <div>
-                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                        Workflow failed jobs
-                    </p>
-                    <p
-                        className={`mt-2 text-2xl ${workflowHealthIssues.workflowFailedJobs ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
-                    >
-                        {currentWorkflowHealth.workflow_failed_job_count}
-                    </p>
-                </div>
-            </LoanRequestSectionCard>
-        </>
-    );
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
@@ -1527,6 +1383,15 @@ export default function StaffLoanRequestShow({
                                         currentDataSections.processing ?? {}
                                     }
                                     preview={processingPreview}
+                                    categoryConfirmation={
+                                        categoryCondition
+                                            ? {
+                                                  verified:
+                                                      categoryCondition.verified,
+                                                  by: categoryCondition.verified_by,
+                                              }
+                                            : null
+                                    }
                                 />
                             ) : null}
                             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] items-start gap-4">
@@ -1851,7 +1716,11 @@ export default function StaffLoanRequestShow({
                                     />
                                 </div>
                             ) : null}
-                            {/* Phase 4: "Conditions to clear" renders here. */}
+                            <LoanRequestConditionsCard
+                                conditions={currentConditions}
+                                pendingKey={conditionPendingKey}
+                                onToggle={toggleCondition}
+                            />
                         </ReviewTabPanel>
                         <ReviewTabPanel id="applicant" tab={tab}>
                             <div
@@ -2379,27 +2248,47 @@ export default function StaffLoanRequestShow({
                             />
                         </ReviewTabPanel>
                     </div>
-                    <div className="min-w-0">
-                        <LoanRequestDetailPage
-                            loanRequest={currentRequest}
-                            applicant={currentApplicant}
-                            coMakerOne={currentCoMakerOne}
-                            coMakerTwo={currentCoMakerTwo}
-                            backHref={requestsIndex().url}
-                            backLabel="Back to workflow queue"
-                            pdfHref={pdfHref}
-                            documentChecklistAvailable={isProcessingStage}
-                            showApprovedDocumentList={false}
-                            approvedDocumentHrefs={approvedDocumentHrefs}
-                            auditTrail={currentAuditTrail}
-                            auditTrailAudience="staff"
-                            actionsPanelHeader={actionsHeaderContent}
-                            hideSummaryHeader
-                            hideMainColumn
-                            wrapInShell={false}
-                            sidebarFooter={sidebarFooterContent}
+                    <aside className="min-w-0 space-y-4">
+                        <LoanRequestReadyCard
+                            stage={railStage}
+                            gated={isV2Workflow}
+                            gates={gates}
                         />
-                    </div>
+                        <LoanRequestStatusRailCard
+                            status={currentRequest.status}
+                            isV2={isV2Workflow}
+                            assignedTo={
+                                assignedProcessorId === null
+                                    ? null
+                                    : (currentRequest.assigned_processor
+                                          ?.name ??
+                                      currentRequest.assigned_officer?.name ??
+                                      'Assigned processor')
+                            }
+                            ageDays={currentWorkflowHealth.processing_age_days}
+                            ageTargetDays={PROCESSING_AGE_ISSUE_THRESHOLD_DAYS}
+                            notificationsSent={
+                                currentNotificationHistory.filter(
+                                    (event) => event.status === 'sent',
+                                ).length
+                            }
+                            pdfHref={
+                                ['submitted', 'declined', 'cancelled'].includes(
+                                    currentRequest.status ?? '',
+                                )
+                                    ? pdfHref
+                                    : null
+                            }
+                        />
+                        <LoanRequestHealthCard
+                            issueCount={workflowHealthIssueCount}
+                            ageDays={currentWorkflowHealth.processing_age_days}
+                            ageIssue={workflowHealthIssues.processingAge}
+                            pendingMemberAction={
+                                currentWorkflowHealth.pending_member_action
+                            }
+                        />
+                    </aside>
                 </div>
             </section>
 

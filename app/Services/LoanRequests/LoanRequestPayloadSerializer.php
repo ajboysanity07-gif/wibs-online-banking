@@ -57,6 +57,8 @@ class LoanRequestPayloadSerializer
         LoanRequestChange::ACTION_ADMIN_CREATE_CORRECTED_REQUEST => 'Admin-Corrected Request Created',
         LoanRequestChange::ACTION_ADMIN_UPDATE_CORRECTED_REQUEST_DETAILS => 'Corrected Request Updated',
         LoanRequestChange::ACTION_MEMBER_PROFILE_INCOME_SYNCED => 'Profile Income Synced',
+        LoanRequestChange::ACTION_CONDITION_VERIFIED => 'Condition Verified',
+        LoanRequestChange::ACTION_CONDITION_UNVERIFIED => 'Condition Unverified',
     ];
 
     private const AUDIT_STATUS_LABELS = [
@@ -113,6 +115,7 @@ class LoanRequestPayloadSerializer
         'approved_amount' => 'Approved amount',
         'approved_term' => 'Approved term',
         'approved_interest_rate' => 'Approved interest rate',
+        'condition' => 'Condition',
     ];
 
     private const AUDIT_METADATA_VALUE_FORMATTERS = [

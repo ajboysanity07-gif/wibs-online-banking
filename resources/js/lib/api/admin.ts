@@ -20,6 +20,7 @@ import {
     startReview as workflowStartReviewRoute,
 } from '@/routes/spa/workflow/loan-requests';
 import { update as workflowAssignmentUpdateRoute } from '@/routes/spa/workflow/loan-requests/assignment';
+import { update as workflowConditionUpdateRoute } from '@/routes/spa/workflow/loan-requests/conditions';
 import type {
     DashboardSummary,
     EditableStaffRoleName,
@@ -46,6 +47,7 @@ import type {
     LoanRequestCorrectionResult,
     LoanRequestDecisionResult,
     LoanRequestCancellationResult,
+    LoanRequestConditionUpdateResult,
     LoanRequestWorkflowResult,
 } from '@/types/loan-requests';
 
@@ -582,6 +584,19 @@ export const adminApi = {
         const response = await client.patch<
             ApiResponse<LoanRequestWorkflowResponse>
         >(workflowRecommendApprovalRoute(loanRequestId).url, payload);
+
+        return unwrap(response);
+    },
+    async updateLoanRequestCondition(
+        loanRequestId: number,
+        condition: string,
+        verified: boolean,
+    ): Promise<LoanRequestConditionUpdateResult> {
+        const response = await client.patch<
+            ApiResponse<LoanRequestConditionUpdateResult>
+        >(workflowConditionUpdateRoute([loanRequestId, condition]).url, {
+            verified,
+        });
 
         return unwrap(response);
     },

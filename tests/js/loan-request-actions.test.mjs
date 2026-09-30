@@ -83,14 +83,15 @@ test('loan request actions group document buttons and separate navigation', asyn
     assert.match(adminPageFile, /Not ready for your review yet/);
     assert.match(adminPageFile, /Ready for your decision/);
     assert.match(adminPageFile, /isManagerViewer/);
-    assert.match(staffPageFile, /LoanRequestDetailPage/);
+    // Phase 4: the sidebar is replaced by the review rail.
+    assert.match(staffPageFile, /LoanRequestReadyCard/);
+    assert.doesNotMatch(staffPageFile, /LoanRequestDetailPage/);
     assert.match(staffPageFile, /useLoanRequestWorkflow/);
     assert.match(staffPageFile, /claimLoanRequest/);
     assert.match(staffPageFile, /assignLoanRequest/);
     assert.match(staffPageFile, /returnLoanRequestToQueue/);
     assert.match(staffPageFile, /currentRequest\.can_claim/);
     assert.match(staffPageFile, /currentEligibleOfficers/);
-    assert.match(staffPageFile, /Back to workflow queue/);
     assert.match(staffPageFile, /Not ready for your review yet/);
     assert.match(staffPageFile, /Ready for your decision/);
     assert.match(staffPageFile, /isManagerViewer/);

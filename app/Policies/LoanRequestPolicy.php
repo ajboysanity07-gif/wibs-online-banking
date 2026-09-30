@@ -196,6 +196,26 @@ class LoanRequestPolicy
         return $this->updateProcessingDetails($user, $loanRequest);
     }
 
+    /**
+     * Sign-off of the recommendation conditions belongs to the assigned
+     * processor while the request is still being processed.
+     */
+    public function verifyConditions(
+        AppUser $user,
+        LoanRequest $loanRequest,
+    ): bool {
+        return $this->canActOnAssignedRequest(
+            $user,
+            $loanRequest,
+            Permission::LOAN_REVIEW,
+        ) && in_array($this->statusValue($loanRequest), [
+            LoanRequestStatus::PendingReview->value,
+            LoanRequestStatus::UnderReview->value,
+            LoanRequestStatus::NeedsRevision->value,
+            LoanRequestStatus::AwaitingMemberInformation->value,
+        ], true);
+    }
+
     public function rejectDuringProcessing(
         AppUser $user,
         LoanRequest $loanRequest,

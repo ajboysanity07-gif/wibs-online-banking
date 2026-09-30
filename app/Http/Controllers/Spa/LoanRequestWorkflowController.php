@@ -7,6 +7,7 @@ use App\Http\Requests\Workflow\LoanRequestAssignmentUpdateRequest;
 use App\Http\Requests\Workflow\LoanRequestBulkClaimRequest;
 use App\Http\Requests\Workflow\LoanRequestChecklistPreviewRequest;
 use App\Http\Requests\Workflow\LoanRequestClaimRequest;
+use App\Http\Requests\Workflow\LoanRequestConditionUpdateRequest;
 use App\Http\Requests\Workflow\LoanRequestGenerateDocumentsRequest;
 use App\Http\Requests\Workflow\LoanRequestProcessingUpdateRequest;
 use App\Http\Requests\Workflow\LoanRequestRecommendApprovalRequest;
@@ -27,6 +28,7 @@ use App\LoanRequestDocumentKey;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
+use App\Services\LoanRequests\LoanRequestConditionService;
 use App\Services\LoanRequests\LoanRequestCycleStateService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
@@ -410,6 +412,33 @@ class LoanRequestWorkflowController extends Controller
             $documentWorkflowService,
             $dataService,
         );
+    }
+
+    public function updateCondition(
+        LoanRequestConditionUpdateRequest $request,
+        LoanRequest $loanRequest,
+        string $condition,
+        LoanRequestConditionService $conditionService,
+        LoanRequestPayloadSerializer $serializer,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        $conditionService->set(
+            $loanRequest,
+            $actor,
+            $condition,
+            $request->boolean('verified'),
+        );
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'conditions' => $conditionService->serialize($loanRequest),
+                'auditTrail' => $serializer->serializeAuditTrail($loanRequest),
+            ],
+        ]);
     }
 
     public function rejectDuringProcessing(

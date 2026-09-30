@@ -70,7 +70,7 @@ test('loan request detail pages wire the audit trail for staff and member audien
     assert.match(detailFile, /LoanRequestAuditTrail/);
     assert.match(detailFile, /auditTrailAudience = 'staff'/);
     assert.match(adminPageFile, /auditTrailAudience="staff"/);
-    assert.match(staffPageFile, /auditTrailAudience="staff"/);
+    assert.match(staffPageFile, /<LoanRequestActivityTab[\s\S]*?auditTrail=/);
     assert.match(clientPageFile, /auditTrailAudience="member"/);
     assert.match(clientPageFile, /setCurrentAuditTrail/);
 });
@@ -110,7 +110,7 @@ test('loan request audit trail component supports a compact sidebar mode', async
 
     // The staff page shows the trail as a timeline in its Activity tab.
     assert.match(staffPageFile, /<LoanRequestActivityTab[\s\S]*?auditTrail=/);
-    assert.match(staffPageFile, /sidebarFooter=\{sidebarFooterContent\}/);
+    assert.doesNotMatch(staffPageFile, /sidebarFooter=/);
 });
 
 test('loan request audit trail component shows the most recent entry first and is collapsible', async () => {
