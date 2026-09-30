@@ -8,6 +8,11 @@ import {
 } from "@tanstack/react-table"
 
 import {
+  ResponsiveDataList,
+  type ResponsiveDataListColumn,
+  type ResponsiveDataListRow,
+} from "@/components/responsive-data-list"
+import {
   Table,
   TableBody,
   TableCell,
@@ -49,13 +54,46 @@ export function DataTable<TData, TValue>({
     enableRowSelection,
   })
 
-  return (
-    <div
-      className={cn(
-        "rounded-xl border border-border bg-card shadow-card",
-        className
-      )}
-    >
+  // Mobile list is opt-in: a column with `meta.priority: "title"` enables it.
+  const mobileColumns: ResponsiveDataListColumn[] = table
+    .getVisibleLeafColumns()
+    .map((column) => ({
+      key: column.id,
+      label:
+        column.columnDef.meta?.label ??
+        (typeof column.columnDef.header === "string"
+          ? column.columnDef.header
+          : column.id),
+      priority: column.columnDef.meta?.priority ?? "detail",
+    }))
+  const titleColumn = table
+    .getVisibleLeafColumns()
+    .find((column) => column.columnDef.meta?.priority === "title")
+  const mobileRows: ResponsiveDataListRow[] = titleColumn
+    ? table.getRowModel().rows.map((row) => {
+        const titleText = titleColumn.columnDef.meta?.text?.(row.original)
+        const titleValue = row.getValue(titleColumn.id)
+
+        return {
+          id: row.id,
+          initials:
+            titleText ?? (typeof titleValue === "string" ? titleValue : ""),
+          cells: Object.fromEntries(
+            row
+              .getVisibleCells()
+              .map((cell) => [
+                cell.column.id,
+                // The mobile title is one truncated line, so use plain text.
+                cell.column.id === titleColumn.id && titleText
+                  ? titleText
+                  : flexRender(cell.column.columnDef.cell, cell.getContext()),
+              ])
+          ),
+        }
+      })
+    : []
+
+  const desktopTable = (
       <div className="overflow-x-auto">
       <Table>
         <TableHeader>
@@ -98,6 +136,26 @@ export function DataTable<TData, TValue>({
         </TableBody>
       </Table>
       </div>
+  )
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-card shadow-card",
+        className
+      )}
+    >
+      {titleColumn ? (
+        <ResponsiveDataList
+          columns={mobileColumns}
+          rows={mobileRows}
+          emptyMessage={emptyMessage}
+        >
+          {desktopTable}
+        </ResponsiveDataList>
+      ) : (
+        desktopTable
+      )}
     </div>
   )
 }

@@ -3,7 +3,6 @@ import type { ColumnDef } from '@tanstack/react-table';
 import axios from 'axios';
 import {
     Copy,
-    History,
     MoreHorizontal,
     Search,
     ShieldCheck,
@@ -312,197 +311,6 @@ const initialPromoteDialogState: PromoteDialogState = {
     processing: false,
     errors: {},
 };
-
-function MobileStaffCard({
-    staff,
-    onOpenHistory,
-    onOpenRoleMutation,
-    onOpenAccessMutation,
-    onOpenResetPassword,
-}: {
-    staff: StaffAccount;
-    onOpenHistory: (staff: StaffAccount) => void;
-    onOpenRoleMutation: (
-        staff: StaffAccount,
-        role: EditableStaffRoleName,
-        operation: 'assign' | 'remove',
-    ) => void;
-    onOpenAccessMutation: (
-        staff: StaffAccount,
-        action: 'suspend' | 'reactivate',
-    ) => void;
-    onOpenResetPassword: (staff: StaffAccount) => void;
-}) {
-    const assignedEditableRoles = staff.roles.filter((role) => role.editable);
-    const assignableRoles = getAssignableRoleOptions(assignedEditableRoles);
-
-    return (
-        <SurfaceCard variant="default" padding="sm">
-            <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                    <p className="text-sm font-semibold">
-                        {staff.display_name}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <span>{staff.display_code}</span>
-                        {staff.username ? <span>{staff.username}</span> : null}
-                    </div>
-                </div>
-                <Badge variant={staffAccessVariant(staff.staff_access_status)}>
-                    {staffAccessLabel(staff.staff_access_status)}
-                </Badge>
-            </div>
-
-            <div className="mt-3 space-y-3 rounded-xl border border-border bg-muted p-3 text-xs">
-                <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Member access</span>
-                    <span className="text-sm font-medium">
-                        {staff.has_member_access ? 'Yes' : 'No'}
-                    </span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Account no</span>
-                    <span className="text-sm font-medium">
-                        {staff.acctno ?? '--'}
-                    </span>
-                </div>
-                <div className="space-y-2">
-                    <span className="text-muted-foreground">Roles</span>
-                    <div className="flex flex-wrap gap-2">
-                        {staff.roles.length === 0 ? (
-                            <Badge variant="outline">No staff roles yet</Badge>
-                        ) : (
-                            staff.roles.map((role) => (
-                                <Badge
-                                    key={`${staff.user_id}-${role.name}`}
-                                    variant={roleBadgeVariant(role.name)}
-                                >
-                                    {role.label}
-                                </Badge>
-                            ))
-                        )}
-                    </div>
-                </div>
-                <div className="space-y-1">
-                    <span className="text-muted-foreground">
-                        Last role or access change
-                    </span>
-                    <p className="text-sm font-medium">
-                        {describeLastChange(staff)}
-                    </p>
-                </div>
-            </div>
-
-            <div className="mt-3 flex items-center justify-between gap-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onOpenHistory(staff)}
-                >
-                    <History className="h-4 w-4" />
-                    History
-                </Button>
-
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Manage staff</span>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuLabel>Manage roles</DropdownMenuLabel>
-                        {assignableRoles.length === 0 ? (
-                            <DropdownMenuItem disabled>
-                                {assignedEditableRoles.length > 0
-                                    ? 'Remove the current role to assign a different one'
-                                    : 'No editable roles available'}
-                            </DropdownMenuItem>
-                        ) : (
-                            assignableRoles.map((role) => (
-                                <DropdownMenuItem
-                                    key={`assign-${staff.user_id}-${role.value}`}
-                                    onSelect={() =>
-                                        onOpenRoleMutation(
-                                            staff,
-                                            role.value,
-                                            'assign',
-                                        )
-                                    }
-                                >
-                                    Assign {role.label}
-                                </DropdownMenuItem>
-                            ))
-                        )}
-                        {assignedEditableRoles.length > 0 ? (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuLabel>
-                                    Remove roles
-                                </DropdownMenuLabel>
-                                {assignedEditableRoles.map((role) => (
-                                    <DropdownMenuItem
-                                        key={`remove-${staff.user_id}-${role.name}`}
-                                        variant={
-                                            role.name === 'superadmin'
-                                                ? 'destructive'
-                                                : 'default'
-                                        }
-                                        onSelect={() =>
-                                            onOpenRoleMutation(
-                                                staff,
-                                                role.name as EditableStaffRoleName,
-                                                'remove',
-                                            )
-                                        }
-                                    >
-                                        Remove {role.label}
-                                    </DropdownMenuItem>
-                                ))}
-                            </>
-                        ) : null}
-                        {staff.staff_access_status !== 'not_staff' ? (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    variant={
-                                        staff.staff_access_status === 'active'
-                                            ? 'destructive'
-                                            : 'default'
-                                    }
-                                    onSelect={() =>
-                                        onOpenAccessMutation(
-                                            staff,
-                                            staff.staff_access_status ===
-                                                'suspended'
-                                                ? 'reactivate'
-                                                : 'suspend',
-                                        )
-                                    }
-                                >
-                                    {staff.staff_access_status === 'suspended'
-                                        ? 'Reactivate staff access'
-                                        : 'Suspend staff access'}
-                                </DropdownMenuItem>
-                            </>
-                        ) : null}
-                        {staff.staff_access_status !== 'not_staff' ? (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onSelect={() => onOpenResetPassword(staff)}
-                                >
-                                    Reset password
-                                </DropdownMenuItem>
-                            </>
-                        ) : null}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-        </SurfaceCard>
-    );
-}
 
 export default function SuperadminStaffPage() {
     const [search, setSearch] = useState('');
@@ -969,6 +777,10 @@ export default function SuperadminStaffPage() {
     const columns: ColumnDef<StaffAccount>[] = [
         {
             accessorKey: 'display_name',
+            meta: {
+                priority: 'title',
+                text: (row) => row.display_name ?? '',
+            },
             header: 'Staff account',
             cell: ({ row }) => (
                 <div className="space-y-1">
@@ -984,6 +796,7 @@ export default function SuperadminStaffPage() {
         },
         {
             accessorKey: 'has_member_access',
+            meta: { priority: 'detail' },
             header: 'Member access',
             cell: ({ row }) => (
                 <div className="space-y-1 text-sm">
@@ -998,6 +811,7 @@ export default function SuperadminStaffPage() {
         },
         {
             accessorKey: 'email',
+            meta: { priority: 'detail' },
             header: 'Contact',
             cell: ({ row }) => (
                 <div className="space-y-1 text-sm">
@@ -1010,6 +824,7 @@ export default function SuperadminStaffPage() {
         },
         {
             accessorKey: 'roles',
+            meta: { priority: 'detail' },
             header: 'Roles',
             cell: ({ row }) => (
                 <div className="flex flex-wrap gap-2">
@@ -1030,6 +845,7 @@ export default function SuperadminStaffPage() {
         },
         {
             accessorKey: 'staff_access_status',
+            meta: { priority: 'badge' },
             header: 'Status',
             cell: ({ row }) => (
                 <div className="space-y-2">
@@ -1048,6 +864,7 @@ export default function SuperadminStaffPage() {
         },
         {
             id: 'actions',
+            meta: { priority: 'action', label: 'Actions' },
             header: '',
             cell: ({ row }) => {
                 const staff = row.original;
@@ -1378,31 +1195,7 @@ export default function SuperadminStaffPage() {
                             </>
                         ) : (
                             <>
-                                <div className="space-y-3 px-2 pt-4 pb-3 md:hidden">
-                                    {items.length === 0 ? (
-                                        <div className="rounded-xl border border-border bg-muted px-4 py-6 text-center text-sm text-muted-foreground">
-                                            No staff accounts found.
-                                        </div>
-                                    ) : (
-                                        items.map((staff) => (
-                                            <MobileStaffCard
-                                                key={staff.user_id}
-                                                staff={staff}
-                                                onOpenHistory={setHistoryUser}
-                                                onOpenRoleMutation={
-                                                    openRoleMutation
-                                                }
-                                                onOpenAccessMutation={
-                                                    openAccessMutation
-                                                }
-                                                onOpenResetPassword={
-                                                    openResetPasswordMutation
-                                                }
-                                            />
-                                        ))
-                                    )}
-                                </div>
-                                <div className="hidden md:block">
+                                <div>
                                     <DataTable
                                         columns={columns}
                                         data={items}

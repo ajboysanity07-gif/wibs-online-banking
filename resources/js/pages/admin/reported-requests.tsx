@@ -58,11 +58,13 @@ const formatReportedAt = (value?: string | null): string => {
 const columns: ColumnDef<RequestPreview>[] = [
     {
         accessorKey: 'reference',
+        meta: { priority: 'detail' },
         header: 'Reference',
         cell: ({ row }) => row.original.reference ?? '--',
     },
     {
         accessorKey: 'member_name',
+        meta: { priority: 'title', text: (row) => row.member_name ?? '' },
         header: 'Member',
         cell: ({ row }) => {
             const memberName = row.original.member_name ?? '--';
@@ -80,6 +82,7 @@ const columns: ColumnDef<RequestPreview>[] = [
     },
     {
         accessorKey: 'status',
+        meta: { priority: 'badge' },
         header: 'Status',
         cell: ({ row }) => (
             <div className="flex flex-wrap items-center gap-2">
@@ -95,23 +98,27 @@ const columns: ColumnDef<RequestPreview>[] = [
     },
     {
         accessorKey: 'latest_correction_report_issue',
+        meta: { priority: 'detail' },
         header: 'Reported issue',
         cell: ({ row }) => row.original.latest_correction_report_issue ?? '--',
     },
     {
         accessorKey: 'latest_correction_report_correct_information',
+        meta: { priority: 'detail' },
         header: 'Correct information',
         cell: ({ row }) =>
             row.original.latest_correction_report_correct_information ?? '--',
     },
     {
         accessorKey: 'latest_correction_report_reported_at',
+        meta: { priority: 'detail' },
         header: 'Reported at',
         cell: ({ row }) =>
             formatReportedAt(row.original.latest_correction_report_reported_at),
     },
     {
         id: 'action',
+        meta: { priority: 'action', label: 'Action' },
         header: () => <div className="flex justify-end">Action</div>,
         cell: ({ row }) => {
             const requestId = row.original.id;
@@ -271,14 +278,14 @@ export default function ReportedRequestsPage() {
                     </div>
 
                     <div className="px-2 pb-2 sm:px-4 sm:pb-4">
-                        <div className="hidden md:block">
+                        <div>
                             {showSkeleton ? (
                                 <TableSkeleton
                                     columns={
                                         reportedRequestsTableSkeletonColumns
                                     }
                                     rows={perPage}
-                                    className="pt-4"
+                                    className="hidden pt-4 md:block"
                                     tableClassName="bg-transparent"
                                 />
                             ) : (
@@ -316,110 +323,7 @@ export default function ReportedRequestsPage() {
                                         ),
                                     )}
                                 </div>
-                            ) : items.length > 0 ? (
-                                <div className="space-y-3 px-2 pt-4 pb-3">
-                                    {items.map((item, index) => (
-                                        <div
-                                            key={
-                                                item.id ??
-                                                `${item.reference ?? 'reported-request'}-${index}`
-                                            }
-                                            className="rounded-xl border border-border bg-card p-4 shadow-card"
-                                        >
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div>
-                                                    <p className="text-sm font-semibold text-foreground">
-                                                        {item.reference ?? '--'}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {item.member_name ??
-                                                            '--'}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        Acct:{' '}
-                                                        {item.member_acctno ??
-                                                            '--'}
-                                                    </p>
-                                                </div>
-                                                <div className="flex flex-wrap justify-end gap-1">
-                                                    <LoanRequestStatusBadge
-                                                        status={item.status}
-                                                        className="text-[0.65rem]"
-                                                    />
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="border-amber-500/30 bg-amber-500/10 text-[0.65rem] text-amber-700 dark:text-amber-200"
-                                                    >
-                                                        Correction reported
-                                                    </Badge>
-                                                </div>
-                                            </div>
-                                            <div className="mt-4 space-y-3 text-xs">
-                                                <div>
-                                                    <p className="text-muted-foreground">
-                                                        Reported issue
-                                                    </p>
-                                                    <p className="text-sm text-foreground">
-                                                        {item.latest_correction_report_issue ??
-                                                            '--'}
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-muted-foreground">
-                                                        Correct information
-                                                    </p>
-                                                    <p className="text-sm text-foreground">
-                                                        {item.latest_correction_report_correct_information ??
-                                                            '--'}
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-muted-foreground">
-                                                        Reported at
-                                                    </p>
-                                                    <p className="text-sm text-foreground">
-                                                        {formatReportedAt(
-                                                            item.latest_correction_report_reported_at,
-                                                        )}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="mt-4 flex justify-end">
-                                                {item.id ? (
-                                                    <Button
-                                                        asChild
-                                                        size="sm"
-                                                        variant="outline"
-                                                    >
-                                                        <Link
-                                                            href={
-                                                                requestsShow(
-                                                                    item.id,
-                                                                ).url
-                                                            }
-                                                        >
-                                                            View request
-                                                        </Link>
-                                                    </Button>
-                                                ) : null}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="px-4 pt-6 pb-6 text-center">
-                                    <p className="text-sm font-medium text-foreground">
-                                        {warning
-                                            ? 'Reported requests unavailable'
-                                            : 'No reported requests'}
-                                    </p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        {warning
-                                            ? warning
-                                            : 'Member correction reports will appear here for admin review.'}
-                                    </p>
-                                </div>
-                            )}
+                            ) : null}
                         </div>
                     </div>
                 </section>

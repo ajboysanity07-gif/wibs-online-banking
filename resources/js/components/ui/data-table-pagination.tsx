@@ -23,7 +23,7 @@ export function DataTablePagination({
       <p className="text-xs text-muted-foreground">
         Page {page} of {lastPage} ({total} results)
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 max-sm:[&>button]:flex-1">
         <Button
           type="button"
           variant="outline"

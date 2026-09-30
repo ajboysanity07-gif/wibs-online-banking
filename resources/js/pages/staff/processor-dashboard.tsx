@@ -2,8 +2,13 @@ import { Head, Link } from '@inertiajs/react';
 import { AlertTriangle } from 'lucide-react';
 import { PageHero } from '@/components/page-hero';
 import { PageShell } from '@/components/page-shell';
+import {
+    ResponsiveDataList,
+    type ResponsiveDataListColumn,
+} from '@/components/responsive-data-list';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -41,6 +46,14 @@ type Props = {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'My Dashboard', href: processorDashboardIndex().url },
+];
+
+const queueListColumns: ResponsiveDataListColumn[] = [
+    { key: 'reference', label: 'Reference', priority: 'title' },
+    { key: 'aging', label: 'Aging', priority: 'badge' },
+    { key: 'status', label: 'Status', priority: 'detail' },
+    { key: 'days', label: 'Business days', priority: 'detail' },
+    { key: 'action', label: 'Action', priority: 'action' },
 ];
 
 export default function ProcessorDashboard({
@@ -139,72 +152,97 @@ export default function ProcessorDashboard({
                                 Your queue is empty.
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="px-6">
-                                                Reference
-                                            </TableHead>
-                                            <TableHead className="px-6">
-                                                Status
-                                            </TableHead>
-                                            <TableHead className="px-6">
-                                                Business days
-                                            </TableHead>
-                                            <TableHead className="px-6">
-                                                Aging
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {queueData.items.map((item) => (
-                                            <TableRow
-                                                key={item.id}
-                                                className={
-                                                    item.is_aging
-                                                        ? 'bg-destructive/5'
-                                                        : ''
-                                                }
-                                            >
-                                                <TableCell className="px-6 font-medium">
-                                                    <Link
-                                                        href={
-                                                            loanRequestShow(
-                                                                item.id,
-                                                            ).url
-                                                        }
-                                                        className="underline-offset-4 hover:underline"
-                                                    >
-                                                        {item.reference}
-                                                    </Link>
-                                                </TableCell>
-                                                <TableCell className="px-6">
-                                                    <Badge variant="outline">
-                                                        {item.status}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="px-6">
-                                                    {
-                                                        item.business_days_in_queue
-                                                    }
-                                                </TableCell>
-                                                <TableCell className="px-6">
-                                                    {item.is_aging ? (
-                                                        <Badge variant="destructive">
-                                                            Aging
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge variant="secondary">
-                                                            On time
-                                                        </Badge>
-                                                    )}
-                                                </TableCell>
+                            <ResponsiveDataList
+                                columns={queueListColumns}
+                                rows={queueData.items.map((item) => ({
+                                    id: String(item.id),
+                                    initials: item.reference,
+                                    cells: {
+                                        reference: item.reference,
+                                        aging: item.is_aging ? (
+                                            <Badge variant="destructive">Aging</Badge>
+                                        ) : (
+                                            <Badge variant="secondary">On time</Badge>
+                                        ),
+                                        status: <Badge variant="outline">{item.status}</Badge>,
+                                        days: item.business_days_in_queue,
+                                        action: (
+                                            <Button asChild size="sm" variant="outline">
+                                                <Link href={loanRequestShow(item.id).url}>
+                                                    View request
+                                                </Link>
+                                            </Button>
+                                        ),
+                                    },
+                                }))}
+                            >
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="px-6">
+                                                    Reference
+                                                </TableHead>
+                                                <TableHead className="px-6">
+                                                    Status
+                                                </TableHead>
+                                                <TableHead className="px-6">
+                                                    Business days
+                                                </TableHead>
+                                                <TableHead className="px-6">
+                                                    Aging
+                                                </TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {queueData.items.map((item) => (
+                                                <TableRow
+                                                    key={item.id}
+                                                    className={
+                                                        item.is_aging
+                                                            ? 'bg-destructive/5'
+                                                            : ''
+                                                    }
+                                                >
+                                                    <TableCell className="px-6 font-medium">
+                                                        <Link
+                                                            href={
+                                                                loanRequestShow(
+                                                                    item.id,
+                                                                ).url
+                                                            }
+                                                            className="underline-offset-4 hover:underline"
+                                                        >
+                                                            {item.reference}
+                                                        </Link>
+                                                    </TableCell>
+                                                    <TableCell className="px-6">
+                                                        <Badge variant="outline">
+                                                            {item.status}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="px-6">
+                                                        {
+                                                            item.business_days_in_queue
+                                                        }
+                                                    </TableCell>
+                                                    <TableCell className="px-6">
+                                                        {item.is_aging ? (
+                                                            <Badge variant="destructive">
+                                                                Aging
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="secondary">
+                                                                On time
+                                                            </Badge>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </ResponsiveDataList>
                         )}
                     </CardContent>
                 </Card>

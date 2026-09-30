@@ -14,7 +14,10 @@ import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-s
 import { MemberListCardSkeleton } from '@/components/member-list-card-skeleton';
 import { PageHero } from '@/components/page-hero';
 import { PageShell } from '@/components/page-shell';
-import { SurfaceCard } from '@/components/surface-card';
+import {
+    ResponsiveDataList,
+    type ResponsiveDataListColumn,
+} from '@/components/responsive-data-list';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,7 +55,7 @@ import { index as reportsIndex } from '@/routes/admin/reports';
 import { index as requestsIndex } from '@/routes/admin/requests';
 import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
-import type { DashboardSummary, MemberSummary } from '@/types/admin';
+import type { DashboardSummary } from '@/types/admin';
 import type {
     DateRange,
     ReportingMetrics,
@@ -98,48 +101,6 @@ const memberLookupSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-16', cellClassName: 'w-16' },
     { headerClassName: 'w-12', cellClassName: 'h-8 w-24', align: 'right' },
 ];
-
-const MobileMemberLookupCard = ({ member }: { member: MemberSummary }) => (
-    <SurfaceCard variant="default" padding="sm">
-        <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-                <p className="text-sm font-semibold">{member.member_name}</p>
-                {member.username && member.member_name !== member.username ? (
-                    <p className="text-xs text-muted-foreground">
-                        {member.username}
-                    </p>
-                ) : null}
-            </div>
-            <Badge
-                variant={getRegistrationStatusVariant(
-                    member.registration_status,
-                )}
-            >
-                {getRegistrationStatusLabel(member.registration_status)}
-            </Badge>
-        </div>
-        <div className="mt-3 space-y-2 rounded-xl border border-border bg-muted p-3 text-xs">
-            <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Account No</span>
-                <span className="text-sm font-medium">
-                    {member.acctno ?? '--'}
-                </span>
-            </div>
-        </div>
-        <div className="mt-3">
-            <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="w-full sm:w-auto"
-            >
-                <Link href={showMember(member.member_id).url}>
-                    Open profile
-                </Link>
-            </Button>
-        </div>
-    </SurfaceCard>
-);
 
 function useReducedMotion(): boolean {
     return (
@@ -242,6 +203,28 @@ const dateRangeToggleLabels: Record<DateRangeToggle, string> = {
     month: 'This month',
     all: 'All time',
 };
+
+const memberLookupListColumns: ResponsiveDataListColumn[] = [
+    { key: 'member', label: 'Member', priority: 'title' },
+    { key: 'acctno', label: 'Account No', priority: 'detail' },
+    { key: 'registration', label: 'Registration', priority: 'badge' },
+    { key: 'action', label: 'Action', priority: 'action' },
+];
+
+const requestListColumns: ResponsiveDataListColumn[] = [
+    { key: 'member', label: 'Member', priority: 'title' },
+    { key: 'reference', label: 'Reference', priority: 'detail' },
+    { key: 'status', label: 'Status', priority: 'badge' },
+    { key: 'created', label: 'Created', priority: 'detail' },
+];
+
+const staffWorkloadListColumns: ResponsiveDataListColumn[] = [
+    { key: 'name', label: 'Processor', priority: 'title' },
+    { key: 'assigned', label: 'Assigned', priority: 'amount' },
+    { key: 'approved', label: 'Approved', priority: 'detail' },
+    { key: 'rejected', label: 'Rejected', priority: 'detail' },
+    { key: 'avg_days', label: 'Avg days', priority: 'detail' },
+];
 
 export default function AdminDashboard({
     summary,
@@ -548,53 +531,68 @@ export default function AdminDashboard({
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="px-0">
-                                    <div className="overflow-x-auto">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead className="px-6">
-                                                        Processor
-                                                    </TableHead>
-                                                    <TableHead className="px-6">
-                                                        Assigned
-                                                    </TableHead>
-                                                    <TableHead className="px-6">
-                                                        Approved
-                                                    </TableHead>
-                                                    <TableHead className="px-6">
-                                                        Rejected
-                                                    </TableHead>
-                                                    <TableHead className="px-6">
-                                                        Avg days
-                                                    </TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {staffPerformance.map((row) => (
-                                                    <TableRow
-                                                        key={row.processor_id}
-                                                    >
-                                                        <TableCell className="px-6 font-medium">
-                                                            {row.name}
-                                                        </TableCell>
-                                                        <TableCell className="px-6">
-                                                            {row.assigned}
-                                                        </TableCell>
-                                                        <TableCell className="px-6">
-                                                            {row.approved}
-                                                        </TableCell>
-                                                        <TableCell className="px-6">
-                                                            {row.rejected}
-                                                        </TableCell>
-                                                        <TableCell className="px-6">
-                                                            {row.avg_days ??
-                                                                '--'}
-                                                        </TableCell>
+                                    <ResponsiveDataList
+                                        columns={staffWorkloadListColumns}
+                                        rows={staffPerformance.map((row) => ({
+                                            id: String(row.processor_id),
+                                            initials: row.name,
+                                            cells: {
+                                                name: row.name,
+                                                assigned: `${row.assigned} assigned`,
+                                                approved: row.approved,
+                                                rejected: row.rejected,
+                                                avg_days: row.avg_days ?? '--',
+                                            },
+                                        }))}
+                                    >
+                                        <div className="overflow-x-auto">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead className="px-6">
+                                                            Processor
+                                                        </TableHead>
+                                                        <TableHead className="px-6">
+                                                            Assigned
+                                                        </TableHead>
+                                                        <TableHead className="px-6">
+                                                            Approved
+                                                        </TableHead>
+                                                        <TableHead className="px-6">
+                                                            Rejected
+                                                        </TableHead>
+                                                        <TableHead className="px-6">
+                                                            Avg days
+                                                        </TableHead>
                                                     </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {staffPerformance.map((row) => (
+                                                        <TableRow
+                                                            key={row.processor_id}
+                                                        >
+                                                            <TableCell className="px-6 font-medium">
+                                                                {row.name}
+                                                            </TableCell>
+                                                            <TableCell className="px-6">
+                                                                {row.assigned}
+                                                            </TableCell>
+                                                            <TableCell className="px-6">
+                                                                {row.approved}
+                                                            </TableCell>
+                                                            <TableCell className="px-6">
+                                                                {row.rejected}
+                                                            </TableCell>
+                                                            <TableCell className="px-6">
+                                                                {row.avg_days ??
+                                                                    '--'}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    </ResponsiveDataList>
                                 </CardContent>
                             </Card>
                         ) : null}
@@ -632,59 +630,73 @@ export default function AdminDashboard({
                                     No requests yet.
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader className="border-b border-border text-muted-foreground">
-                                            <TableRow>
-                                                <TableHead className="px-6">
-                                                    Member
-                                                </TableHead>
-                                                <TableHead className="px-6">
-                                                    Reference
-                                                </TableHead>
-                                                <TableHead className="px-6">
-                                                    Status
-                                                </TableHead>
-                                                <TableHead className="px-6">
-                                                    Created
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {requestsPreview.map(
-                                                (request, index) => (
-                                                    <TableRow
-                                                        key={
-                                                            request.id ??
-                                                            `request-${index}`
-                                                        }
-                                                    >
-                                                        <TableCell className="px-6 font-medium">
-                                                            {request.member_name ??
-                                                                '--'}
-                                                        </TableCell>
-                                                        <TableCell className="px-6">
-                                                            {request.reference ??
-                                                                '--'}
-                                                        </TableCell>
-                                                        <TableCell className="px-6">
-                                                            <LoanRequestStatusBadge
-                                                                status={
-                                                                    request.status
-                                                                }
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell className="px-6">
-                                                            {formatDate(
-                                                                request.created_at,
-                                                            )}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ),
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </div>
+                                <ResponsiveDataList
+                                    columns={requestListColumns}
+                                    rows={requestsPreview.map((request, index) => ({
+                                        id: request.id ? String(request.id) : `request-${index}`,
+                                        initials: request.member_name ?? '',
+                                        cells: {
+                                            member: request.member_name ?? '--',
+                                            reference: request.reference ?? '--',
+                                            status: <LoanRequestStatusBadge status={request.status} />,
+                                            created: formatDate(request.created_at),
+                                        },
+                                    }))}
+                                >
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader className="border-b border-border text-muted-foreground">
+                                                <TableRow>
+                                                    <TableHead className="px-6">
+                                                        Member
+                                                    </TableHead>
+                                                    <TableHead className="px-6">
+                                                        Reference
+                                                    </TableHead>
+                                                    <TableHead className="px-6">
+                                                        Status
+                                                    </TableHead>
+                                                    <TableHead className="px-6">
+                                                        Created
+                                                    </TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {requestsPreview.map(
+                                                    (request, index) => (
+                                                        <TableRow
+                                                            key={
+                                                                request.id ??
+                                                                `request-${index}`
+                                                            }
+                                                        >
+                                                            <TableCell className="px-6 font-medium">
+                                                                {request.member_name ??
+                                                                    '--'}
+                                                            </TableCell>
+                                                            <TableCell className="px-6">
+                                                                {request.reference ??
+                                                                    '--'}
+                                                            </TableCell>
+                                                            <TableCell className="px-6">
+                                                                <LoanRequestStatusBadge
+                                                                    status={
+                                                                        request.status
+                                                                    }
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell className="px-6">
+                                                                {formatDate(
+                                                                    request.created_at,
+                                                                )}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ),
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </ResponsiveDataList>
                             )}
                         </CardContent>
                     </Card>
@@ -753,113 +765,129 @@ export default function AdminDashboard({
                                 </>
                             ) : (
                                 <>
-                                    <div className="space-y-3 md:hidden">
-                                        {lookupRows.length === 0 ? (
-                                            <div className="rounded-xl border border-border bg-muted px-4 py-6 text-center text-sm text-muted-foreground">
-                                                {lookupEmptyMessage}
-                                            </div>
-                                        ) : (
-                                            lookupRows.map((member) => (
-                                                <MobileMemberLookupCard
-                                                    key={member.member_id}
-                                                    member={member}
-                                                />
-                                            ))
-                                        )}
-                                    </div>
-                                    <div className="hidden rounded-xl border border-border bg-card md:block">
-                                        <Table>
-                                            <TableHeader className="text-muted-foreground">
-                                                <TableRow>
-                                                    <TableHead>
-                                                        Member
-                                                    </TableHead>
-                                                    <TableHead>
-                                                        Account No
-                                                    </TableHead>
-                                                    <TableHead>
-                                                        Registration
-                                                    </TableHead>
-                                                    <TableHead className="text-right">
-                                                        Action
-                                                    </TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {lookupRows.length === 0 ? (
+                                    <ResponsiveDataList
+                                        className="max-md:rounded-xl max-md:border max-md:border-border max-md:bg-card"
+                                        columns={memberLookupListColumns}
+                                        rows={lookupRows.map((member) => ({
+                                            id: String(member.member_id),
+                                            initials: member.member_name ?? '',
+                                            cells: {
+                                                member: member.member_name,
+                                                acctno: member.acctno ?? '--',
+                                                registration: (
+                                                    <Badge
+                                                        variant={getRegistrationStatusVariant(
+                                                            member.registration_status,
+                                                        )}
+                                                    >
+                                                        {getRegistrationStatusLabel(member.registration_status)}
+                                                    </Badge>
+                                                ),
+                                                action: (
+                                                    <Button asChild size="sm" variant="outline">
+                                                        <Link href={showMember(member.member_id).url}>
+                                                            Open profile
+                                                        </Link>
+                                                    </Button>
+                                                ),
+                                            },
+                                        }))}
+                                        emptyMessage={lookupEmptyMessage}
+                                    >
+                                        <div className="rounded-xl border border-border bg-card">
+                                            <Table>
+                                                <TableHeader className="text-muted-foreground">
                                                     <TableRow>
-                                                        <TableCell
-                                                            colSpan={4}
-                                                            className="h-24 text-center text-sm text-muted-foreground"
-                                                        >
-                                                            {lookupEmptyMessage}
-                                                        </TableCell>
+                                                        <TableHead>
+                                                            Member
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Account No
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Registration
+                                                        </TableHead>
+                                                        <TableHead className="text-right">
+                                                            Action
+                                                        </TableHead>
                                                     </TableRow>
-                                                ) : (
-                                                    lookupRows.map((member) => (
-                                                        <TableRow
-                                                            key={
-                                                                member.member_id
-                                                            }
-                                                        >
-                                                            <TableCell>
-                                                                <div className="flex flex-col">
-                                                                    <span className="font-medium">
-                                                                        {
-                                                                            member.member_name
-                                                                        }
-                                                                    </span>
-                                                                    {member.username &&
-                                                                    member.member_name !==
-                                                                        member.username ? (
-                                                                        <span className="text-xs text-muted-foreground">
-                                                                            {
-                                                                                member.username
-                                                                            }
-                                                                        </span>
-                                                                    ) : null}
-                                                                </div>
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                {member.acctno ??
-                                                                    '--'}
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <Badge
-                                                                    variant={getRegistrationStatusVariant(
-                                                                        member.registration_status,
-                                                                    )}
-                                                                >
-                                                                    {getRegistrationStatusLabel(
-                                                                        member.registration_status,
-                                                                    )}
-                                                                </Badge>
-                                                            </TableCell>
-                                                            <TableCell className="text-right">
-                                                                <Button
-                                                                    asChild
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                >
-                                                                    <Link
-                                                                        href={
-                                                                            showMember(
-                                                                                member.member_id,
-                                                                            )
-                                                                                .url
-                                                                        }
-                                                                    >
-                                                                        Open
-                                                                        profile
-                                                                    </Link>
-                                                                </Button>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {lookupRows.length === 0 ? (
+                                                        <TableRow>
+                                                            <TableCell
+                                                                colSpan={4}
+                                                                className="h-24 text-center text-sm text-muted-foreground"
+                                                            >
+                                                                {lookupEmptyMessage}
                                                             </TableCell>
                                                         </TableRow>
-                                                    ))
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
+                                                    ) : (
+                                                        lookupRows.map((member) => (
+                                                            <TableRow
+                                                                key={
+                                                                    member.member_id
+                                                                }
+                                                            >
+                                                                <TableCell>
+                                                                    <div className="flex flex-col">
+                                                                        <span className="font-medium">
+                                                                            {
+                                                                                member.member_name
+                                                                            }
+                                                                        </span>
+                                                                        {member.username &&
+                                                                        member.member_name !==
+                                                                            member.username ? (
+                                                                            <span className="text-xs text-muted-foreground">
+                                                                                {
+                                                                                    member.username
+                                                                                }
+                                                                            </span>
+                                                                        ) : null}
+                                                                    </div>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {member.acctno ??
+                                                                        '--'}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Badge
+                                                                        variant={getRegistrationStatusVariant(
+                                                                            member.registration_status,
+                                                                        )}
+                                                                    >
+                                                                        {getRegistrationStatusLabel(
+                                                                            member.registration_status,
+                                                                        )}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell className="text-right">
+                                                                    <Button
+                                                                        asChild
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                    >
+                                                                        <Link
+                                                                            href={
+                                                                                showMember(
+                                                                                    member.member_id,
+                                                                                )
+                                                                                    .url
+                                                                            }
+                                                                        >
+                                                                            Open
+                                                                            profile
+                                                                        </Link>
+                                                                    </Button>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    </ResponsiveDataList>
                                 </>
                             )}
                             {lookupLoading ? (

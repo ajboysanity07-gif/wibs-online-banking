@@ -1,9 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { useMemo } from 'react';
-import {
-    MemberMobileCard,
-    MemberMobileCardSkeleton,
-} from '@/components/member-mobile-card';
+import { MemberMobileCardSkeleton } from '@/components/member-mobile-card';
 import { MemberRecordsCard } from '@/components/member-records-card';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
@@ -56,40 +53,6 @@ const MobileSavingsCardSkeletonList = ({ rows = 4 }: { rows?: number }) => (
     </div>
 );
 
-const MobileSavingsCard = ({
-    savings,
-}: {
-    savings: MemberLoanSecurityLedgerEntry;
-}) => {
-    const movementMeta = getSavingsMovementMeta(savings);
-
-    return (
-        <MemberMobileCard
-            title={
-                <span className="inline-flex flex-wrap items-center gap-2">
-                    <Badge variant={movementMeta.variant}>
-                        {movementMeta.label}
-                    </Badge>
-                </span>
-            }
-            subtitle={renderSavingsType(savings.svtype)}
-            valueLabel="Balance"
-            value={formatCurrency(savings.balance)}
-            meta={[
-                {
-                    label: 'Transaction date',
-                    value: formatDate(savings.date_in),
-                },
-                { label: 'Deposit', value: formatCurrency(savings.deposit) },
-                {
-                    label: 'Withdrawal',
-                    value: formatCurrency(savings.withdrawal),
-                },
-            ]}
-        />
-    );
-};
-
 export function MemberSavingsLedgerCard({
     items,
     meta,
@@ -112,11 +75,16 @@ export function MemberSavingsLedgerCard({
         () => [
             {
                 accessorKey: 'date_in',
+                meta: {
+                    priority: 'title',
+                    text: (row) => formatDate(row.date_in),
+                },
                 header: 'Transaction Date',
                 cell: ({ row }) => formatDate(row.original.date_in),
             },
             {
                 id: 'movement',
+                meta: { priority: 'badge' },
                 header: 'Movement',
                 cell: ({ row }) => {
                     const movementMeta = getSavingsMovementMeta(row.original);
@@ -130,21 +98,25 @@ export function MemberSavingsLedgerCard({
             },
             {
                 accessorKey: 'svtype',
+                meta: { priority: 'detail' },
                 header: 'Type',
                 cell: ({ row }) => renderSavingsType(row.original.svtype),
             },
             {
                 accessorKey: 'deposit',
+                meta: { priority: 'detail' },
                 header: 'Deposit',
                 cell: ({ row }) => formatCurrency(row.original.deposit),
             },
             {
                 accessorKey: 'withdrawal',
+                meta: { priority: 'detail' },
                 header: 'Withdrawal',
                 cell: ({ row }) => formatCurrency(row.original.withdrawal),
             },
             {
                 accessorKey: 'balance',
+                meta: { priority: 'amount' },
                 header: 'Balance',
                 cell: ({ row }) => formatCurrency(row.original.balance),
             },
@@ -171,26 +143,12 @@ export function MemberSavingsLedgerCard({
                 />
             }
             mobileWrapperClassName="space-y-3"
-            mobileContent={
-                items.length === 0 ? (
-                    <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-                        {savingsEmptyMessage}
-                    </div>
-                ) : (
-                    items.map((savingsRow, index) => (
-                        <MobileSavingsCard
-                            key={`${savingsRow.svnumber ?? 'savings'}-${savingsRow.date_in ?? index}`}
-                            savings={savingsRow}
-                        />
-                    ))
-                )
-            }
-            desktopContent={
-                <div className="overflow-x-auto">
+            body={
+                <div className="md:overflow-x-auto">
                     <DataTable
                         columns={columns}
                         data={items}
-                        className="min-w-[840px]"
+                        className="md:min-w-[840px]"
                         emptyMessage={savingsEmptyMessage}
                     />
                 </div>

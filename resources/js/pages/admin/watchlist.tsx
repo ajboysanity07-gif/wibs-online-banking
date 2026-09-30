@@ -63,6 +63,7 @@ const formatDate = (value?: string | null): string => {
 const columns: ColumnDef<MemberSummary>[] = [
     {
         accessorKey: 'member_name',
+        meta: { priority: 'title', text: (row) => row.member_name ?? '' },
         header: 'Member',
         cell: ({ row }) => (
             <div className="flex flex-col">
@@ -78,16 +79,19 @@ const columns: ColumnDef<MemberSummary>[] = [
     },
     {
         accessorKey: 'acctno',
+        meta: { priority: 'detail' },
         header: 'Account No',
         cell: ({ row }) => row.original.acctno ?? '--',
     },
     {
         accessorKey: 'email',
+        meta: { priority: 'detail' },
         header: 'Email',
         cell: ({ row }) => row.original.email ?? '--',
     },
     {
         accessorKey: 'registration_status',
+        meta: { priority: 'badge' },
         header: 'Registration',
         cell: ({ row }) => (
             <Badge
@@ -101,11 +105,13 @@ const columns: ColumnDef<MemberSummary>[] = [
     },
     {
         accessorKey: 'created_at',
+        meta: { priority: 'detail' },
         header: 'Created',
         cell: ({ row }) => formatDate(row.original.created_at),
     },
     {
         id: 'actions',
+        meta: { priority: 'action', label: 'Actions' },
         header: '',
         cell: ({ row }) => (
             <div className="text-right">
@@ -127,61 +133,6 @@ const membersTableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-20', cellClassName: 'w-20' },
     { headerClassName: 'w-12', cellClassName: 'h-8 w-24', align: 'right' },
 ];
-
-const MobileMemberCard = ({ member }: { member: MemberSummary }) => (
-    <SurfaceCard variant="default" padding="sm">
-        <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-                <p className="text-sm font-semibold">{member.member_name}</p>
-                {member.username && member.member_name !== member.username ? (
-                    <p className="text-xs text-muted-foreground">
-                        {member.username}
-                    </p>
-                ) : null}
-            </div>
-            <Badge
-                variant={getRegistrationStatusVariant(
-                    member.registration_status,
-                )}
-            >
-                {getRegistrationStatusLabel(member.registration_status)}
-            </Badge>
-        </div>
-        <div className="mt-3 space-y-2 rounded-xl border border-border bg-muted/30 p-3 text-xs">
-            <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Account No</span>
-                <span className="text-sm font-medium">
-                    {member.acctno ?? '--'}
-                </span>
-            </div>
-            <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Email</span>
-                <span className="text-sm font-medium">
-                    {member.email ?? '--'}
-                </span>
-            </div>
-            <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Created</span>
-                <span className="text-sm font-medium">
-                    {formatDate(member.created_at)}
-                </span>
-            </div>
-        </div>
-        <div className="mt-3">
-            <Button
-                asChild
-                type="button"
-                size="sm"
-                variant="outline"
-                className="w-full sm:w-auto"
-            >
-                <Link href={showMember(member.member_id).url}>
-                    Open profile
-                </Link>
-            </Button>
-        </div>
-    </SurfaceCard>
-);
 
 export default function MembersPage() {
     const [search, setSearch] = useState('');
@@ -373,21 +324,7 @@ export default function MembersPage() {
                             </>
                         ) : (
                             <>
-                                <div className="space-y-3 px-2 pt-4 pb-3 md:hidden">
-                                    {items.length === 0 ? (
-                                        <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-                                            No members found.
-                                        </div>
-                                    ) : (
-                                        items.map((member) => (
-                                            <MobileMemberCard
-                                                key={member.member_id}
-                                                member={member}
-                                            />
-                                        ))
-                                    )}
-                                </div>
-                                <div className="hidden md:block">
+                                <div>
                                     <DataTable
                                         columns={columns}
                                         data={items}

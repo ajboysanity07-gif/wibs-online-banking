@@ -470,6 +470,7 @@ export function LoanRequestQueuePage({
         () => [
             {
                 id: 'select',
+                meta: { priority: 'hidden' },
                 header: ({ table }) => (
                     <Checkbox
                         aria-label="Select all eligible requests on this page"
@@ -510,6 +511,7 @@ export function LoanRequestQueuePage({
             },
             {
                 accessorKey: 'reference',
+                meta: { priority: 'detail', label: 'Reference' },
                 header: () => (
                     <SortableColumnHeader
                         label="Reference"
@@ -523,17 +525,20 @@ export function LoanRequestQueuePage({
             },
             {
                 accessorKey: 'member_name',
+                meta: { priority: 'title', text: (row) => row.member_name ?? '' },
                 header: 'Member',
                 cell: ({ row }) => row.original.member_name ?? '--',
             },
             {
                 accessorKey: 'assigned_officer',
+                meta: { priority: 'detail' },
                 header: 'Assigned Loan Processor',
                 cell: ({ row }) =>
                     row.original.assigned_officer?.name ?? 'Unassigned',
             },
             {
                 accessorKey: 'loan_type',
+                meta: { priority: 'detail', label: 'Loan type' },
                 header: () => (
                     <SortableColumnHeader
                         label="Loan type"
@@ -547,6 +552,7 @@ export function LoanRequestQueuePage({
             },
             {
                 accessorKey: 'requested_amount',
+                meta: { priority: 'amount', label: 'Amount' },
                 header: () => (
                     <SortableColumnHeader
                         label="Amount"
@@ -564,6 +570,7 @@ export function LoanRequestQueuePage({
             },
             {
                 accessorKey: 'status',
+                meta: { priority: 'badge', label: 'Status' },
                 header: () => (
                     <SortableColumnHeader
                         label="Status"
@@ -589,6 +596,7 @@ export function LoanRequestQueuePage({
             },
             {
                 accessorKey: 'last_activity_at',
+                meta: { priority: 'detail', label: 'Last activity' },
                 header: () => (
                     <SortableColumnHeader
                         label="Last Activity"
@@ -607,6 +615,7 @@ export function LoanRequestQueuePage({
             },
             {
                 id: 'action',
+                meta: { priority: 'action', label: 'Action' },
                 header: () => <div className="flex justify-end">Action</div>,
                 cell: ({ row }) => {
                     const requestId = row.original.id;
@@ -1097,12 +1106,12 @@ export function LoanRequestQueuePage({
                     </div>
 
                     <div className="px-2 pb-2 sm:px-4 sm:pb-4">
-                        <div className="hidden md:block">
+                        <div>
                             {showSkeleton ? (
                                 <TableSkeleton
                                     columns={requestsTableSkeletonColumns}
                                     rows={perPage}
-                                    className="pt-4"
+                                    className="hidden pt-4 md:block"
                                     tableClassName="bg-transparent"
                                 />
                             ) : (
@@ -1147,145 +1156,7 @@ export function LoanRequestQueuePage({
                                         ),
                                     )}
                                 </div>
-                            ) : items.length > 0 ? (
-                                <div className="space-y-3 px-2 pt-4 pb-3">
-                                    {items.map((item, index) => (
-                                        <div
-                                            key={
-                                                item.id ??
-                                                `${item.member_name ?? 'request'}-${index}`
-                                            }
-                                            className="rounded-xl border border-border bg-card p-4"
-                                        >
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div>
-                                                    <p className="text-sm font-semibold text-foreground">
-                                                        {item.member_name ??
-                                                            '--'}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {`Reference: ${item.reference ?? '--'}`}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {item.loan_type ??
-                                                            'Loan type unavailable'}
-                                                    </p>
-                                                </div>
-                                                <div className="flex flex-wrap justify-end gap-1">
-                                                    <LoanRequestStatusBadge
-                                                        status={item.status}
-                                                        className="text-[0.65rem]"
-                                                    />
-                                                    {item.has_open_correction_report ? (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="border-amber-500/30 bg-amber-500/10 text-[0.65rem] text-amber-700 dark:text-amber-200"
-                                                        >
-                                                            Correction reported
-                                                        </Badge>
-                                                    ) : null}
-                                                </div>
-                                            </div>
-                                            <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                                                <div className="space-y-1">
-                                                    <p className="text-muted-foreground">
-                                                        Assignee
-                                                    </p>
-                                                    <p className="text-sm font-medium text-foreground">
-                                                        {item.assigned_officer
-                                                            ?.name ??
-                                                            'Unassigned'}
-                                                    </p>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-muted-foreground">
-                                                        Amount
-                                                    </p>
-                                                    <p className="text-sm font-semibold text-foreground">
-                                                        {item.requested_amount !==
-                                                            null &&
-                                                        item.requested_amount !==
-                                                            undefined
-                                                            ? formatCurrency(
-                                                                  Number(
-                                                                      item.requested_amount,
-                                                                  ),
-                                                              )
-                                                            : '--'}
-                                                    </p>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-muted-foreground">
-                                                        Last Activity
-                                                    </p>
-                                                    <p className="text-sm font-medium text-foreground">
-                                                        {formatDate(
-                                                            item.last_activity_at ??
-                                                                item.submitted_at ??
-                                                                item.created_at,
-                                                        )}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="mt-4 flex justify-end">
-                                                {item.id ? (
-                                                    <RequestRowActionsMenu
-                                                        request={item}
-                                                        requestId={item.id}
-                                                        showRequestHref={
-                                                            showRequestHref
-                                                        }
-                                                        officerOptions={
-                                                            meta.assignmentOfficers ??
-                                                            []
-                                                        }
-                                                        isProcessing={
-                                                            processingIds[
-                                                                item.id
-                                                            ] ?? false
-                                                        }
-                                                        onClaim={() =>
-                                                            claimLoanRequest(
-                                                                item.id!,
-                                                            )
-                                                        }
-                                                        onOpenAssign={(
-                                                            officerOptions,
-                                                        ) =>
-                                                            setAssignmentDialog(
-                                                                {
-                                                                    requestId:
-                                                                        item.id!,
-                                                                    mode: 'assign',
-                                                                    officerOptions,
-                                                                },
-                                                            )
-                                                        }
-                                                        onOpenReassign={(
-                                                            officerOptions,
-                                                            currentOfficerName,
-                                                        ) =>
-                                                            setAssignmentDialog(
-                                                                {
-                                                                    requestId:
-                                                                        item.id!,
-                                                                    mode: 'reassign',
-                                                                    currentOfficerName,
-                                                                    officerOptions,
-                                                                },
-                                                            )
-                                                        }
-                                                    />
-                                                ) : null}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="px-4 pt-6 pb-6 text-center text-sm text-muted-foreground">
-                                    {emptyMessage}
-                                </div>
-                            )}
+                            ) : null}
                         </div>
                     </div>
                 </section>

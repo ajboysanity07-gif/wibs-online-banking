@@ -9,10 +9,13 @@ import {
     MemberDetailSupportingCard,
 } from '@/components/member-detail-summary-cards';
 import {
-    MemberMobileCard,
     MemberMobileCardSkeleton,
 } from '@/components/member-mobile-card';
 import { MemberRecordsCard } from '@/components/member-records-card';
+import {
+    ResponsiveDataList,
+    type ResponsiveDataListColumn,
+} from '@/components/responsive-data-list';
 import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -63,6 +66,14 @@ const SummarySkeleton = () => (
     </div>
 );
 
+const scheduleListColumns: ResponsiveDataListColumn[] = [
+    { key: 'date', label: 'Due date', priority: 'title' },
+    { key: 'amortization', label: 'Amortization', priority: 'amount' },
+    { key: 'control_no', label: 'Control No', priority: 'detail' },
+    { key: 'interest', label: 'Interest', priority: 'detail' },
+    { key: 'balance', label: 'Balance', priority: 'detail' },
+];
+
 const CalendarSkeleton = () => (
     <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
@@ -79,19 +90,6 @@ const MobileScheduleCardSkeletonList = ({ rows = 3 }: { rows?: number }) => (
             <MemberMobileCardSkeleton key={`schedule-card-${index}`} />
         ))}
     </div>
-);
-
-const MobileScheduleCard = ({ entry }: { entry: MemberLoanScheduleEntry }) => (
-    <MemberMobileCard
-        title={formatDate(entry.date_pay)}
-        subtitle={`Control No: ${entry.control_no ?? '--'}`}
-        valueLabel="Amortization"
-        value={formatCurrency(entry.amortization)}
-        meta={[
-            { label: 'Interest', value: formatCurrency(entry.interest) },
-            { label: 'Balance', value: formatCurrency(entry.balance) },
-        ]}
-    />
 );
 
 export function MemberLoanScheduleSections({
@@ -315,70 +313,78 @@ export function MemberLoanScheduleSections({
                     />
                 }
                 mobileWrapperClassName="space-y-3"
-                desktopWrapperClassName="rounded-xl border border-border bg-card"
-                mobileContent={
-                    items.length === 0 ? (
-                        <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-                            No schedule entries available yet.
-                        </div>
-                    ) : (
-                        items.map((entry, index) => (
-                            <MobileScheduleCard
-                                key={entry.control_no ?? `schedule-${index}`}
-                                entry={entry}
-                            />
-                        ))
-                    )
-                }
-                desktopContent={
-                    <Table className="min-w-[720px]">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Due date</TableHead>
-                                <TableHead>Amortization</TableHead>
-                                <TableHead>Interest</TableHead>
-                                <TableHead>Balance</TableHead>
-                                <TableHead>Control No</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {items.length === 0 ? (
+                body={
+                    <ResponsiveDataList
+                        className="rounded-xl border border-border bg-card"
+                        columns={scheduleListColumns}
+                        rows={items.map((entry, index) => ({
+                            id: entry.control_no
+                                ? String(entry.control_no)
+                                : `schedule-${index}`,
+                            initials: formatDate(entry.date_pay),
+                            cells: {
+                                date: formatDate(entry.date_pay),
+                                amortization: formatCurrency(
+                                    entry.amortization,
+                                ),
+                                control_no: `Control No ${entry.control_no ?? '--'}`,
+                                interest: `Interest ${formatCurrency(entry.interest)}`,
+                                balance: formatCurrency(entry.balance),
+                            },
+                        }))}
+                        emptyMessage="No schedule entries available yet."
+                    >
+                        <div className="overflow-x-auto">
+                        <Table className="min-w-[720px]">
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell
-                                        colSpan={5}
-                                        className="h-24 text-center text-sm text-muted-foreground"
-                                    >
-                                        No schedule entries available yet.
-                                    </TableCell>
+                                    <TableHead>Due date</TableHead>
+                                    <TableHead>Amortization</TableHead>
+                                    <TableHead>Interest</TableHead>
+                                    <TableHead>Balance</TableHead>
+                                    <TableHead>Control No</TableHead>
                                 </TableRow>
-                            ) : (
-                                items.map((entry, index) => (
-                                    <TableRow
-                                        key={
-                                            entry.control_no ??
-                                            `schedule-${index}`
-                                        }
-                                    >
-                                        <TableCell className="font-medium">
-                                            {formatDate(entry.date_pay)}
-                                        </TableCell>
-                                        <TableCell>
-                                            {formatCurrency(entry.amortization)}
-                                        </TableCell>
-                                        <TableCell>
-                                            {formatCurrency(entry.interest)}
-                                        </TableCell>
-                                        <TableCell>
-                                            {formatCurrency(entry.balance)}
-                                        </TableCell>
-                                        <TableCell>
-                                            {entry.control_no ?? '--'}
+                            </TableHeader>
+                            <TableBody>
+                                {items.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={5}
+                                            className="h-24 text-center text-sm text-muted-foreground"
+                                        >
+                                            No schedule entries available yet.
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                ) : (
+                                    items.map((entry, index) => (
+                                        <TableRow
+                                            key={
+                                                entry.control_no ??
+                                                `schedule-${index}`
+                                            }
+                                        >
+                                            <TableCell className="font-medium">
+                                                {formatDate(entry.date_pay)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatCurrency(entry.amortization)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatCurrency(entry.interest)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatCurrency(entry.balance)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {entry.control_no ?? '--'}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                        </div>
+                    </ResponsiveDataList>
                 }
             />
         </>

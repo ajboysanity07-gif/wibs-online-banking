@@ -65,41 +65,6 @@ const MobilePaymentCardSkeletonList = ({ rows = 4 }: { rows?: number }) => (
     </div>
 );
 
-const MobilePaymentCard = ({ payment }: { payment: MemberLoanPayment }) => (
-    <div className="rounded-xl border border-border bg-card p-4">
-        <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-                <p className="text-sm font-semibold">
-                    {payment.reference_no ?? payment.control_no ?? '--'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                    {formatDate(payment.date_in)}
-                </p>
-            </div>
-            <div className="text-right">
-                <p className="text-xs text-muted-foreground">Payment</p>
-                <p className="text-lg font-semibold tabular-nums">
-                    {formatCurrency(payment.payment_amount)}
-                </p>
-            </div>
-        </div>
-        <div className="mt-3 rounded-xl border border-border bg-muted/30 p-3">
-            <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Balance</span>
-                <span className="text-sm font-medium tabular-nums">
-                    {formatCurrency(payment.balance)}
-                </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Principal</span>
-                <span className="text-sm font-medium tabular-nums">
-                    {formatCurrency(payment.principal)}
-                </span>
-            </div>
-        </div>
-    </div>
-);
-
 export function MemberLoanPaymentsRecordsCard({
     items,
     meta,
@@ -119,11 +84,16 @@ export function MemberLoanPaymentsRecordsCard({
         () => [
             {
                 accessorKey: 'date_in',
+                meta: {
+                    priority: 'title',
+                    text: (row) => formatDate(row.date_in),
+                },
                 header: 'Transaction Date',
                 cell: ({ row }) => formatDate(row.original.date_in),
             },
             {
                 accessorKey: 'reference_no',
+                meta: { priority: 'detail' },
                 header: 'Reference No',
                 cell: ({ row }) =>
                     row.original.reference_no ??
@@ -132,16 +102,19 @@ export function MemberLoanPaymentsRecordsCard({
             },
             {
                 accessorKey: 'principal',
+                meta: { priority: 'detail' },
                 header: 'Principal',
                 cell: ({ row }) => formatCurrency(row.original.principal),
             },
             {
                 accessorKey: 'payment_amount',
+                meta: { priority: 'amount' },
                 header: 'Payment',
                 cell: ({ row }) => formatCurrency(row.original.payment_amount),
             },
             {
                 accessorKey: 'balance',
+                meta: { priority: 'detail' },
                 header: 'Balance',
                 cell: ({ row }) => formatCurrency(row.original.balance),
             },
@@ -174,30 +147,12 @@ export function MemberLoanPaymentsRecordsCard({
                 />
             }
             mobileWrapperClassName="space-y-3"
-            mobileContent={
-                items.length === 0 ? (
-                    <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-                        {paymentsEmptyMessage}
-                    </div>
-                ) : (
-                    items.map((payment, index) => (
-                        <MobilePaymentCard
-                            key={
-                                payment.reference_no ??
-                                payment.control_no ??
-                                `payment-${index}`
-                            }
-                            payment={payment}
-                        />
-                    ))
-                )
-            }
-            desktopContent={
-                <div className="overflow-x-auto">
+            body={
+                <div className="md:overflow-x-auto">
                     <DataTable
                         columns={columns}
                         data={items}
-                        className="min-w-[840px]"
+                        className="md:min-w-[840px]"
                         emptyMessage={paymentsEmptyMessage}
                     />
                 </div>

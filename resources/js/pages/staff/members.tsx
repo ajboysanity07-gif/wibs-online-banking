@@ -61,6 +61,7 @@ const formatDate = (value?: string | null): string => {
 const columns: ColumnDef<MemberSummary>[] = [
     {
         accessorKey: 'member_name',
+        meta: { priority: 'title', text: (row) => row.member_name ?? '' },
         header: 'Member',
         cell: ({ row }) => (
             <div className="flex flex-col">
@@ -76,16 +77,19 @@ const columns: ColumnDef<MemberSummary>[] = [
     },
     {
         accessorKey: 'acctno',
+        meta: { priority: 'detail' },
         header: 'Account No',
         cell: ({ row }) => row.original.acctno ?? '--',
     },
     {
         accessorKey: 'email',
+        meta: { priority: 'detail' },
         header: 'Email',
         cell: ({ row }) => row.original.email ?? '--',
     },
     {
         accessorKey: 'registration_status',
+        meta: { priority: 'badge' },
         header: 'Registration',
         cell: ({ row }) => (
             <Badge
@@ -99,6 +103,7 @@ const columns: ColumnDef<MemberSummary>[] = [
     },
     {
         accessorKey: 'created_at',
+        meta: { priority: 'detail' },
         header: 'Created',
         cell: ({ row }) => formatDate(row.original.created_at),
     },
@@ -110,48 +115,6 @@ const membersTableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-32', cellClassName: 'w-36' },
     { headerClassName: 'w-16', cellClassName: 'w-16' },
 ];
-
-const MobileMemberCard = ({ member }: { member: MemberSummary }) => (
-    <SurfaceCard variant="default" padding="sm">
-        <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-                <p className="text-sm font-semibold">{member.member_name}</p>
-                {member.username && member.member_name !== member.username ? (
-                    <p className="text-xs text-muted-foreground">
-                        {member.username}
-                    </p>
-                ) : null}
-            </div>
-            <Badge
-                variant={getRegistrationStatusVariant(
-                    member.registration_status,
-                )}
-            >
-                {getRegistrationStatusLabel(member.registration_status)}
-            </Badge>
-        </div>
-        <div className="mt-3 space-y-2 rounded-xl border border-border bg-muted p-3 text-xs">
-            <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Account No</span>
-                <span className="text-sm font-medium">
-                    {member.acctno ?? '--'}
-                </span>
-            </div>
-            <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Email</span>
-                <span className="text-sm font-medium">
-                    {member.email ?? '--'}
-                </span>
-            </div>
-            <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Created</span>
-                <span className="text-sm font-medium">
-                    {formatDate(member.created_at)}
-                </span>
-            </div>
-        </div>
-    </SurfaceCard>
-);
 
 export default function StaffMembersPage() {
     const [search, setSearch] = useState('');
@@ -343,21 +306,7 @@ export default function StaffMembersPage() {
                             </>
                         ) : (
                             <>
-                                <div className="space-y-3 px-2 pt-4 pb-3 md:hidden">
-                                    {items.length === 0 ? (
-                                        <div className="rounded-xl border border-border bg-muted px-4 py-6 text-center text-sm text-muted-foreground">
-                                            No members found.
-                                        </div>
-                                    ) : (
-                                        items.map((member) => (
-                                            <MobileMemberCard
-                                                key={member.member_id}
-                                                member={member}
-                                            />
-                                        ))
-                                    )}
-                                </div>
-                                <div className="hidden md:block">
+                                <div>
                                     <DataTable
                                         columns={columns}
                                         data={items}

@@ -10,6 +10,10 @@ import {
 } from 'react';
 import { PageHero } from '@/components/page-hero';
 import { PageShell } from '@/components/page-shell';
+import {
+    ResponsiveDataList,
+    type ResponsiveDataListColumn,
+} from '@/components/responsive-data-list';
 import { SurfaceCard } from '@/components/surface-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -85,6 +89,15 @@ const ACTION_BADGE_VARIANT: Record<
     reject: 'destructive',
     approve: 'default',
 };
+
+const auditListColumns: ResponsiveDataListColumn[] = [
+    { key: 'actor', label: 'Actor', priority: 'title' },
+    { key: 'action', label: 'Action', priority: 'badge' },
+    { key: 'target', label: 'Target / Document', priority: 'detail' },
+    { key: 'occurred', label: 'Occurred At', priority: 'detail' },
+    { key: 'type', label: 'Type', priority: 'detail' },
+    { key: 'reason', label: 'Reason', priority: 'detail' },
+];
 
 export default function AuditLog() {
     const [filters, setFilters] = useState<Filters>({
@@ -288,82 +301,107 @@ export default function AuditLog() {
                         </div>
                     </form>
 
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Action</TableHead>
-                                    <TableHead>Actor</TableHead>
-                                    <TableHead>Target / Document</TableHead>
-                                    <TableHead>Reason</TableHead>
-                                    <TableHead>Occurred At</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {loading && (
+                    <ResponsiveDataList
+                        columns={auditListColumns}
+                        emptyMessage={loading ? 'Loading…' : 'No audit records found.'}
+                        rows={(loading ? [] : items).map((entry) => ({
+                            id: `${entry.type}-${entry.id}`,
+                            initials: entry.actor ?? '',
+                            cells: {
+                                actor: entry.actor ?? '—',
+                                action: (
+                                    <Badge
+                                        variant={ACTION_BADGE_VARIANT[entry.action] ?? 'secondary'}
+                                    >
+                                        {entry.action}
+                                    </Badge>
+                                ),
+                                target: describeEntry(entry),
+                                occurred: entry.occurred_at
+                                    ? new Date(entry.occurred_at).toLocaleString()
+                                    : '—',
+                                type: TYPE_LABELS[entry.type] ?? entry.type,
+                                reason: entry.reason ?? '—',
+                            },
+                        }))}
+                    >
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell
-                                            colSpan={6}
-                                            className="text-center text-muted-foreground"
-                                        >
-                                            Loading…
-                                        </TableCell>
+                                        <TableHead>Type</TableHead>
+                                        <TableHead>Action</TableHead>
+                                        <TableHead>Actor</TableHead>
+                                        <TableHead>Target / Document</TableHead>
+                                        <TableHead>Reason</TableHead>
+                                        <TableHead>Occurred At</TableHead>
                                     </TableRow>
-                                )}
-                                {!loading && items.length === 0 && (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={6}
-                                            className="text-center text-muted-foreground"
-                                        >
-                                            No audit records found.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                                {!loading &&
-                                    items.map((entry) => (
-                                        <TableRow
-                                            key={`${entry.type}-${entry.id}`}
-                                        >
-                                            <TableCell>
-                                                <Badge variant="outline">
-                                                    {TYPE_LABELS[entry.type] ??
-                                                        entry.type}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        ACTION_BADGE_VARIANT[
-                                                            entry.action
-                                                        ] ?? 'secondary'
-                                                    }
-                                                >
-                                                    {entry.action}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="font-medium">
-                                                {entry.actor ?? '—'}
-                                            </TableCell>
-                                            <TableCell>
-                                                {describeEntry(entry)}
-                                            </TableCell>
-                                            <TableCell className="max-w-xs truncate text-muted-foreground">
-                                                {entry.reason ?? '—'}
-                                            </TableCell>
-                                            <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
-                                                {entry.occurred_at
-                                                    ? new Date(
-                                                          entry.occurred_at,
-                                                      ).toLocaleString()
-                                                    : '—'}
+                                </TableHeader>
+                                <TableBody>
+                                    {loading && (
+                                        <TableRow>
+                                            <TableCell
+                                                colSpan={6}
+                                                className="text-center text-muted-foreground"
+                                            >
+                                                Loading…
                                             </TableCell>
                                         </TableRow>
-                                    ))}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                    )}
+                                    {!loading && items.length === 0 && (
+                                        <TableRow>
+                                            <TableCell
+                                                colSpan={6}
+                                                className="text-center text-muted-foreground"
+                                            >
+                                                No audit records found.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                    {!loading &&
+                                        items.map((entry) => (
+                                            <TableRow
+                                                key={`${entry.type}-${entry.id}`}
+                                            >
+                                                <TableCell>
+                                                    <Badge variant="outline">
+                                                        {TYPE_LABELS[entry.type] ??
+                                                            entry.type}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={
+                                                            ACTION_BADGE_VARIANT[
+                                                                entry.action
+                                                            ] ?? 'secondary'
+                                                        }
+                                                    >
+                                                        {entry.action}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="font-medium">
+                                                    {entry.actor ?? '—'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {describeEntry(entry)}
+                                                </TableCell>
+                                                <TableCell className="max-w-xs truncate text-muted-foreground">
+                                                    {entry.reason ?? '—'}
+                                                </TableCell>
+                                                <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
+                                                    {entry.occurred_at
+                                                        ? new Date(
+                                                              entry.occurred_at,
+                                                          ).toLocaleString()
+                                                        : '—'}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </ResponsiveDataList>
 
                     {meta && meta.last_page > 1 && (
                         <div className="flex items-center justify-between border-t border-border px-4 py-3">

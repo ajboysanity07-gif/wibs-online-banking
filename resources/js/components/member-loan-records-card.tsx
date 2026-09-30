@@ -2,10 +2,7 @@ import { Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { CalendarClock, CreditCard, WalletCards } from 'lucide-react';
 import { useMemo } from 'react';
-import {
-    MemberMobileCard,
-    MemberMobileCardSkeleton,
-} from '@/components/member-mobile-card';
+import { MemberMobileCardSkeleton } from '@/components/member-mobile-card';
 import { MemberRecordsCard } from '@/components/member-records-card';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
@@ -101,60 +98,6 @@ const LoanActionButton = ({
     );
 };
 
-const MobileLoanCard = ({
-    loan,
-    canNavigate,
-    scheduleHref,
-    paymentsHref,
-}: {
-    loan: MemberLoan;
-    canNavigate: boolean;
-    scheduleHref: string | null;
-    paymentsHref: string | null;
-}) => (
-    <MemberMobileCard
-        title={loan.lnnumber ?? '--'}
-        subtitle={loan.lntype ?? '--'}
-        valueLabel="Balance"
-        value={formatCurrency(loan.balance)}
-        meta={[
-            { label: 'Last move', value: formatDate(loan.lastmove) },
-            { label: 'Principal', value: formatCurrency(loan.principal) },
-            { label: 'Initial', value: formatCurrency(loan.initial) },
-        ]}
-        footer={
-            <div className="flex flex-col gap-2 sm:flex-row">
-                <LoanActionButton
-                    href={scheduleHref}
-                    label="Schedule"
-                    icon={CalendarClock}
-                    disabled={!canNavigate || !loan.lnnumber}
-                    className="w-full sm:w-auto"
-                />
-                <LoanActionButton
-                    href={paymentsHref}
-                    label="Payment"
-                    icon={CreditCard}
-                    disabled={!canNavigate || !loan.lnnumber}
-                    className="w-full sm:w-auto"
-                />
-                <LoanActionButton
-                    href={paymentsHref}
-                    label="Pay Now"
-                    icon={WalletCards}
-                    disabled={
-                        !canNavigate ||
-                        !loan.lnnumber ||
-                        !loan.balance ||
-                        loan.balance <= 0
-                    }
-                    className="w-full sm:w-auto"
-                />
-            </div>
-        }
-    />
-);
-
 export function MemberLoanRecordsCard({
     items,
     meta,
@@ -177,36 +120,46 @@ export function MemberLoanRecordsCard({
         () => [
             {
                 accessorKey: 'lnnumber',
+                meta: {
+                    priority: 'title',
+                    text: (row) => String(row.lnnumber ?? ''),
+                },
                 header: 'Loan No',
                 cell: ({ row }) => row.original.lnnumber ?? '--',
             },
             {
                 accessorKey: 'lntype',
+                meta: { priority: 'detail' },
                 header: 'Type',
                 cell: ({ row }) => row.original.lntype ?? '--',
             },
             {
                 accessorKey: 'principal',
+                meta: { priority: 'detail' },
                 header: 'Principal',
                 cell: ({ row }) => formatCurrency(row.original.principal),
             },
             {
                 accessorKey: 'balance',
+                meta: { priority: 'amount' },
                 header: 'Balance',
                 cell: ({ row }) => formatCurrency(row.original.balance),
             },
             {
                 accessorKey: 'lastmove',
+                meta: { priority: 'detail' },
                 header: 'Last move',
                 cell: ({ row }) => formatDate(row.original.lastmove),
             },
             {
                 accessorKey: 'initial',
+                meta: { priority: 'detail' },
                 header: 'Initial',
                 cell: ({ row }) => formatCurrency(row.original.initial),
             },
             {
                 id: 'actions',
+                meta: { priority: 'action', label: 'Actions' },
                 header: '',
                 cell: ({ row }) => {
                     const scheduleHref = buildScheduleHref(
@@ -217,7 +170,7 @@ export function MemberLoanRecordsCard({
                     );
 
                     return (
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
                             <LoanActionButton
                                 href={scheduleHref}
                                 label="Schedule"
@@ -272,29 +225,12 @@ export function MemberLoanRecordsCard({
                 />
             }
             mobileWrapperClassName="space-y-3"
-            mobileContent={
-                items.length === 0 ? (
-                    <div className="rounded-xl border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-                        {loanEmptyMessage}
-                    </div>
-                ) : (
-                    items.map((loan, index) => (
-                        <MobileLoanCard
-                            key={loan.lnnumber ?? `loan-${index}`}
-                            loan={loan}
-                            canNavigate={canNavigate}
-                            scheduleHref={buildScheduleHref(loan.lnnumber)}
-                            paymentsHref={buildPaymentsHref(loan.lnnumber)}
-                        />
-                    ))
-                )
-            }
-            desktopContent={
-                <div className="overflow-x-auto">
+            body={
+                <div className="md:overflow-x-auto">
                     <DataTable
                         columns={columns}
                         data={items}
-                        className="min-w-[1080px]"
+                        className="md:min-w-[1080px]"
                         emptyMessage={loanEmptyMessage}
                     />
                 </div>

@@ -2,10 +2,7 @@ import { Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useMemo } from 'react';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
-import {
-    MemberMobileCard,
-    MemberMobileCardSkeleton,
-} from '@/components/member-mobile-card';
+import { MemberMobileCardSkeleton } from '@/components/member-mobile-card';
 import { MemberRecordsCard } from '@/components/member-records-card';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
@@ -113,58 +110,6 @@ const LoanRequestActionButton = ({
     </Button>
 );
 
-const LoanRequestMobileCard = ({
-    request,
-}: {
-    request: LoanRequestListItem;
-}) => {
-    const isEditableRequest = request.status === 'draft';
-    const actionHref = isEditableRequest
-        ? loanRequestCreate().url
-        : loanRequestShow(request.id).url;
-    const actionLabel = isEditableRequest ? 'Resume draft' : 'View request';
-    const timestampLabel =
-        request.status === 'draft' ? 'Last saved' : 'Submitted';
-
-    return (
-        <MemberMobileCard
-            title={resolveLoanTypeLabel(request)}
-            subtitle={resolveTerm(request)}
-            valueLabel="Amount"
-            value={resolveAmount(request)}
-            meta={[
-                {
-                    label: 'Reference',
-                    value: resolveReference(request),
-                },
-                {
-                    label: 'Status',
-                    value: (
-                        <LoanRequestStatusBadge
-                            status={request.status}
-                            className="text-xs"
-                        />
-                    ),
-                },
-                {
-                    label: 'Assigned Loan Processor',
-                    value: resolveAssignedOfficer(request),
-                },
-                {
-                    label: timestampLabel,
-                    value: resolveTimestamp(request),
-                },
-            ]}
-            footer={
-                <LoanRequestActionButton
-                    href={actionHref}
-                    label={actionLabel}
-                />
-            }
-        />
-    );
-};
-
 export function LoanRequestRecordsCard({
     items,
     isUpdating = false,
@@ -178,26 +123,34 @@ export function LoanRequestRecordsCard({
         () => [
             {
                 id: 'reference',
+                meta: { priority: 'detail' },
                 header: 'Reference',
                 cell: ({ row }) => resolveReference(row.original),
             },
             {
                 id: 'loan_type',
+                meta: {
+                    priority: 'title',
+                    text: (row) => resolveLoanTypeLabel(row),
+                },
                 header: 'Loan type',
                 cell: ({ row }) => resolveLoanTypeLabel(row.original),
             },
             {
                 id: 'amount',
+                meta: { priority: 'amount' },
                 header: 'Requested amount',
                 cell: ({ row }) => resolveAmount(row.original),
             },
             {
                 id: 'term',
+                meta: { priority: 'detail' },
                 header: 'Requested term',
                 cell: ({ row }) => resolveTerm(row.original),
             },
             {
                 id: 'status',
+                meta: { priority: 'badge' },
                 header: 'Status',
                 cell: ({ row }) => (
                     <LoanRequestStatusBadge status={row.original.status} />
@@ -205,16 +158,19 @@ export function LoanRequestRecordsCard({
             },
             {
                 id: 'assigned_officer',
+                meta: { priority: 'detail' },
                 header: 'Assigned Loan Processor',
                 cell: ({ row }) => resolveAssignedOfficer(row.original),
             },
             {
                 id: 'updated',
+                meta: { priority: 'detail' },
                 header: 'Updated',
                 cell: ({ row }) => resolveTimestamp(row.original),
             },
             {
                 id: 'actions',
+                meta: { priority: 'action', label: 'Action' },
                 header: '',
                 cell: ({ row }) => {
                     const isEditableRequest = row.original.status === 'draft';
@@ -284,33 +240,18 @@ export function LoanRequestRecordsCard({
                             </Button>
                         </div>
                     </div>
-                ) : undefined
-            }
-            mobileWrapperClassName="space-y-3"
-            mobileContent={
-                items.length === 0 ? null : (
-                    <>
-                        {items.map((request) => (
-                            <LoanRequestMobileCard
-                                key={request.id}
-                                request={request}
-                            />
-                        ))}
-                    </>
-                )
-            }
-            desktopContent={
-                items.length === 0 ? null : (
-                    <div className="overflow-x-auto">
+                ) : items.length === 0 ? null : (
+                    <div className="md:overflow-x-auto">
                         <DataTable
                             columns={columns}
                             data={items}
-                            className="min-w-[1040px]"
+                            className="md:min-w-[1040px]"
                             emptyMessage="No loan requests found."
                         />
                     </div>
                 )
             }
+            mobileWrapperClassName="space-y-3"
         />
     );
 }
