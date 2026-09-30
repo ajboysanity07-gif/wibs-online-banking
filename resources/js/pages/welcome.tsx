@@ -913,7 +913,7 @@ export default function Welcome() {
                             <img
                                 src={branding.logoUrl}
                                 alt={branding.appTitle}
-                                className="box-content h-9 w-auto rounded-md bg-sidebar-foreground object-contain p-1"
+                                className="size-10 shrink-0 rounded-full bg-sidebar-foreground object-contain p-1.5"
                             />
                             {showCompanyName ? (
                                 <p className="font-bold">

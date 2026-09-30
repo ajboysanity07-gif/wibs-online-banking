@@ -18,7 +18,7 @@ export default function AuthSplitLayout({
             <div className="relative hidden flex-col justify-between bg-sidebar p-12 text-sidebar-foreground lg:flex">
                 <Link href={home()} className="flex items-center gap-2">
                     <AppLogo
-                        iconClassName="bg-sidebar-foreground box-content h-8 w-auto rounded-md object-contain p-1"
+                        iconClassName="size-10 shrink-0 rounded-full bg-sidebar-foreground object-contain p-1.5"
                         titleClassName="text-lg font-bold text-sidebar-foreground"
                         subtitleClassName="text-sm text-sidebar-foreground/75"
                     />

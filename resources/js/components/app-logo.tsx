@@ -35,8 +35,8 @@ export default function AppLogo({
             <AppLogoIcon
                 className={cn(
                     isStacked
-                        ? 'h-10 w-auto object-contain'
-                        : 'h-8 w-auto object-contain',
+                        ? 'h-10 w-auto shrink-0 object-contain'
+                        : 'h-8 w-auto shrink-0 object-contain',
                     iconClassName,
                 )}
             />
