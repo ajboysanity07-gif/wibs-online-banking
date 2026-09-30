@@ -9,6 +9,7 @@ export {
     PENSIONER_EMPLOYMENT_TYPE,
     SELF_EMPLOYED_EMPLOYMENT_TYPE,
 } from '@/lib/employment-type';
+import { openInlineRowFor } from '@/components/settings/inline-edit-row';
 import {
     PENSIONER_EMPLOYMENT_TYPE,
     SELF_EMPLOYED_EMPLOYMENT_TYPE,
@@ -371,6 +372,9 @@ export const focusInvalidField = (fieldName: string | null): void => {
         if (!(element instanceof HTMLElement)) {
             return;
         }
+
+        // A closed inline-edit row keeps its input hidden; open it first.
+        openInlineRowFor(element);
 
         if (
             'disabled' in element &&

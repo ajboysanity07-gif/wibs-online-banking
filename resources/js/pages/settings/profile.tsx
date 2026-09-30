@@ -1,7 +1,7 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head, usePage } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import LinkMembershipController from '@/actions/App/Http/Controllers/Settings/LinkMembershipController';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
@@ -10,6 +10,11 @@ import InputError from '@/components/input-error';
 import ProfileImageCropModal, {
     type ProfileImageCropResult,
 } from '@/components/profile/profile-image-crop-modal';
+import {
+    closeInlineRows,
+    InlineEditProvider,
+    openInlineRowFor,
+} from '@/components/settings/inline-edit-row';
 import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -60,7 +65,23 @@ import { DependentsTab } from './profile-tabs/dependents-tab';
 import { PersonalTab } from './profile-tabs/personal-tab';
 import { WorkTab } from './profile-tabs/work-tab';
 
-export default function Profile({
+// Cancel on an inline row re-mounts the form so every field returns to the
+// last saved values; the active tab survives through the ref.
+export default function Profile(props: Props) {
+    const [resetKey, setResetKey] = useState(0);
+    const tabRef = useRef<ProfileTab | null>(null);
+
+    return (
+        <ProfileForm
+            key={resetKey}
+            {...props}
+            tabRef={tabRef}
+            onDiscard={() => setResetKey((key) => key + 1)}
+        />
+    );
+}
+
+function ProfileForm({
     mustVerifyEmail,
     status,
     adminProfile = null,
@@ -69,7 +90,12 @@ export default function Profile({
     dependents = null,
     profileCompletion = null,
     onboarding = false,
-}: Props) {
+    tabRef,
+    onDiscard,
+}: Props & {
+    tabRef: RefObject<ProfileTab | null>;
+    onDiscard: () => void;
+}) {
     const { auth } = usePage().props;
     const hasMemberAccess = auth.hasMemberAccess;
     const getInitials = useInitials();
@@ -420,6 +446,10 @@ export default function Profile({
             ? natureOfBusinessOther.trim()
             : natureOfBusinessSelection;
     const [activeTab, setActiveTab] = useState<ProfileTab>(() => {
+        if (tabRef.current) {
+            return tabRef.current;
+        }
+
         if (typeof window === 'undefined') {
             return 'account';
         }
@@ -487,6 +517,10 @@ export default function Profile({
         hasMemberAccess ? PROFILE_TAB_ORDER : ['account']
     ) as ProfileTab[];
     const resolvedActiveTab = hasMemberAccess ? activeTab : 'account';
+    useEffect(() => {
+        tabRef.current = activeTab;
+    }, [activeTab, tabRef]);
+    const rowMode = !onboarding;
     const activeTabIndex = availableTabs.indexOf(resolvedActiveTab);
     const previousTab =
         activeTabIndex > 0 ? availableTabs[activeTabIndex - 1] : null;
@@ -584,6 +618,7 @@ export default function Profile({
             setProfilePhotoFile(file);
             setProfilePhotoInputFile(file);
             clearProfilePhotoDraft();
+            openInlineRowFor(profilePhotoInputRef.current);
         } catch (error) {
             showErrorToast(error, 'Unable to crop the photo.', {
                 id: 'profile-photo-crop',
@@ -765,6 +800,7 @@ export default function Profile({
                         preserveScroll: true,
                     }}
                     onSuccess={() => {
+                        closeInlineRows();
                         showSuccessToast(
                             adminToastCopy.success.updated('Profile'),
                             { id: 'profile-update' },
@@ -799,7 +835,11 @@ export default function Profile({
                         recentlySuccessful,
                         errors: formErrors,
                     }) => (
-                        <>
+                        <InlineEditProvider
+                            rowMode={rowMode}
+                            processing={processing}
+                            onDiscard={onDiscard}
+                        >
                             {showOnboardingSteps && (
                                 <Badge variant="secondary" className="w-fit">
                                     Step {activeTabIndex + 1} of{' '}
@@ -1056,78 +1096,80 @@ export default function Profile({
                                 )}
                             </Tabs>
 
-                            <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-end">
-                                <div className="flex flex-wrap items-center gap-3">
-                                    {showStepperNav && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            disabled={
-                                                processing || !previousTab
-                                            }
-                                            onClick={() => {
-                                                if (!previousTab) {
-                                                    return;
+                            {!rowMode && (
+                                <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-end">
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        {showStepperNav && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                disabled={
+                                                    processing || !previousTab
                                                 }
+                                                onClick={() => {
+                                                    if (!previousTab) {
+                                                        return;
+                                                    }
 
-                                                setActiveTab(previousTab);
-                                            }}
-                                        >
-                                            Previous
-                                        </Button>
-                                    )}
-
-                                    {showStepperNav && nextTab && (
-                                        <Button
-                                            type="button"
-                                            variant={
-                                                onboarding
-                                                    ? 'default'
-                                                    : 'secondary'
-                                            }
-                                            disabled={processing}
-                                            onClick={() => {
-                                                setActiveTab(nextTab);
-                                            }}
-                                        >
-                                            Next
-                                        </Button>
-                                    )}
-
-                                    <Button
-                                        type="submit"
-                                        disabled={processing}
-                                        data-test="update-profile-button"
-                                        variant={
-                                            onboarding && nextTab
-                                                ? 'secondary'
-                                                : 'default'
-                                        }
-                                    >
-                                        {processing ? (
-                                            <>
-                                                <Loader2 className="size-4 animate-spin" />
-                                                Saving...
-                                            </>
-                                        ) : (
-                                            'Save'
+                                                    setActiveTab(previousTab);
+                                                }}
+                                            >
+                                                Previous
+                                            </Button>
                                         )}
-                                    </Button>
 
-                                    <Transition
-                                        show={recentlySuccessful}
-                                        enter="transition ease-in-out"
-                                        enterFrom="opacity-0"
-                                        leave="transition ease-in-out"
-                                        leaveTo="opacity-0"
-                                    >
-                                        <p className="text-sm text-muted-foreground">
-                                            Saved
-                                        </p>
-                                    </Transition>
+                                        {showStepperNav && nextTab && (
+                                            <Button
+                                                type="button"
+                                                variant={
+                                                    onboarding
+                                                        ? 'default'
+                                                        : 'secondary'
+                                                }
+                                                disabled={processing}
+                                                onClick={() => {
+                                                    setActiveTab(nextTab);
+                                                }}
+                                            >
+                                                Next
+                                            </Button>
+                                        )}
+
+                                        <Button
+                                            type="submit"
+                                            disabled={processing}
+                                            data-test="update-profile-button"
+                                            variant={
+                                                onboarding && nextTab
+                                                    ? 'secondary'
+                                                    : 'default'
+                                            }
+                                        >
+                                            {processing ? (
+                                                <>
+                                                    <Loader2 className="size-4 animate-spin" />
+                                                    Saving...
+                                                </>
+                                            ) : (
+                                                'Save'
+                                            )}
+                                        </Button>
+
+                                        <Transition
+                                            show={recentlySuccessful}
+                                            enter="transition ease-in-out"
+                                            enterFrom="opacity-0"
+                                            leave="transition ease-in-out"
+                                            leaveTo="opacity-0"
+                                        >
+                                            <p className="text-sm text-muted-foreground">
+                                                Saved
+                                            </p>
+                                        </Transition>
+                                    </div>
                                 </div>
-                            </div>
-                        </>
+                            )}
+                        </InlineEditProvider>
                     )}
                 </Form>
 

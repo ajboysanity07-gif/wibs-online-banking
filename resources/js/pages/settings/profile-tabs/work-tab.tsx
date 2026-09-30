@@ -7,6 +7,7 @@ import {
     YearsInput,
 } from '@/components/loan-request/numeric-adorned-inputs';
 import { LocationCombobox } from '@/components/location-combobox';
+import { InlineEditRow } from '@/components/settings/inline-edit-row';
 import { SurfaceCard } from '@/components/surface-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -142,334 +143,36 @@ export function WorkTab({
 
                     <LoanRequestSectionCard
                         flat
+                        contentClassName="space-y-0"
                         title="Employment"
                         icon={Briefcase}
                     >
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="grid gap-2">
-                                <Label htmlFor="employment_type">
-                                    Employment type
-                                </Label>
-
-                                <Select
-                                    value={employmentType || undefined}
-                                    onValueChange={(value) => {
-                                        setEmploymentType(value);
-                                    }}
-                                >
-                                    <SelectTrigger
-                                        id="employment_type"
-                                        className={cn(
-                                            'mt-1 w-full',
-                                            isFieldMissing('employment_type') &&
-                                                MISSING_FIELD_CLASS,
-                                        )}
-                                    >
-                                        <SelectValue placeholder="Select employment type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {employmentTypeOptions.map((option) => (
-                                            <SelectItem
-                                                key={option}
-                                                value={option}
-                                            >
-                                                {option}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-
-                                <input
-                                    type="hidden"
-                                    name="employment_type"
-                                    value={employmentType}
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={formErrors.employment_type}
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="employer_business_name">
-                                    Employer or business name
-                                </Label>
-
-                                <Input
-                                    id="employer_business_name"
-                                    className={cn(
-                                        'mt-1 block w-full',
-                                        isFieldMissing(
-                                            'employer_business_name',
-                                        ) && MISSING_FIELD_CLASS,
-                                    )}
-                                    defaultValue={
-                                        memberApplicationProfile?.employer_business_name ??
-                                        ''
-                                    }
-                                    name="employer_business_name"
-                                    required={!isPensioner}
-                                    placeholder="Employer or business name"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={formErrors.employer_business_name}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="employer_business_address3">
-                                    Province
-                                </Label>
-
-                                <LocationCombobox
-                                    id="employer_business_address3"
-                                    name="employer_business_address3"
-                                    search={employerBusinessProvinceSearch}
-                                    placeholder="Select province"
-                                    required
-                                    inputClassName="mt-1 block w-full"
-                                    loadingMessage="Searching province suggestions..."
-                                    errorMessage="Province suggestions are temporarily unavailable."
-                                    promptMessage="Type at least 2 characters to search provinces."
-                                    onSelect={() => {
-                                        employerBusinessCitySearch.setSelectedValue(
-                                            '',
-                                        );
-                                        employerBusinessBarangaySearch.setSelectedValue(
-                                            '',
-                                        );
-                                        setEmployerBusinessAddressZipValue('');
-                                    }}
-                                    onClear={() => {
-                                        employerBusinessCitySearch.setSelectedValue(
-                                            '',
-                                        );
-                                        employerBusinessBarangaySearch.setSelectedValue(
-                                            '',
-                                        );
-                                        setEmployerBusinessAddressZipValue('');
-                                    }}
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={
-                                        formErrors.employer_business_address3
-                                    }
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="employer_business_address2">
-                                    City/Municipality
-                                </Label>
-
-                                <LocationCombobox
-                                    id="employer_business_address2"
-                                    name="employer_business_address2"
-                                    search={employerBusinessCitySearch}
-                                    placeholder="Select city or municipality"
-                                    required
-                                    disabled={
-                                        !employerBusinessProvinceSearch.selectedValue
-                                    }
-                                    inputClassName="mt-1 block w-full"
-                                    loadingMessage="Searching city suggestions..."
-                                    errorMessage="City suggestions are temporarily unavailable."
-                                    promptMessage="Select a province first."
-                                    onSelect={(suggestion) => {
-                                        if (suggestion.province) {
-                                            employerBusinessProvinceSearch.setSelectedValue(
-                                                suggestion.province,
-                                            );
-                                        }
-
-                                        employerBusinessBarangaySearch.setSelectedValue(
-                                            '',
-                                        );
-                                        void handleEmployerCitySelect(
-                                            suggestion.code,
-                                        );
-                                    }}
-                                    onClear={() => {
-                                        employerBusinessBarangaySearch.setSelectedValue(
-                                            '',
-                                        );
-                                        setEmployerBusinessAddressZipValue('');
-                                    }}
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={
-                                        formErrors.employer_business_address2
-                                    }
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="employer_business_address_zip">
-                                    ZIP code
-                                </Label>
-
-                                <Input
-                                    id="employer_business_address_zip"
-                                    className="mt-1 block w-full"
-                                    value={employerBusinessAddressZipValue}
-                                    onChange={(event) =>
-                                        setEmployerBusinessAddressZipValue(
-                                            event.target.value,
-                                        )
-                                    }
-                                    name="employer_business_address_zip"
-                                    inputMode="numeric"
-                                    autoComplete="postal-code"
-                                    placeholder="Auto-filled from city"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={
-                                        formErrors.employer_business_address_zip
-                                    }
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="employer_business_address_barangay">
-                                    Barangay
-                                </Label>
-
-                                <LocationCombobox
-                                    id="employer_business_address_barangay"
-                                    name="employer_business_address_barangay"
-                                    search={employerBusinessBarangaySearch}
-                                    placeholder="Select barangay"
-                                    disabled={
-                                        !employerBusinessCitySearch.selectedValue
-                                    }
-                                    inputClassName={cn(
-                                        'mt-1 block w-full',
-                                        isFieldMissing(
-                                            'employer_business_address_barangay',
-                                        ) && MISSING_FIELD_CLASS,
-                                    )}
-                                    loadingMessage="Loading barangays..."
-                                    errorMessage="Barangay suggestions are temporarily unavailable."
-                                    promptMessage="Select a city or municipality first."
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={
-                                        formErrors.employer_business_address_barangay
-                                    }
-                                />
-                            </div>
-
-                            <div className="grid gap-2 md:col-span-2">
-                                <Label htmlFor="employer_business_address1">
-                                    Employer/Business address (street)
-                                </Label>
-
-                                <Input
-                                    id="employer_business_address1"
-                                    className="mt-1 block w-full"
-                                    defaultValue={employerBusinessAddress1}
-                                    name="employer_business_address1"
-                                    required
-                                    placeholder="Employer or business address"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={
-                                        formErrors.employer_business_address1
-                                    }
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="telephone_no">
-                                    Telephone number
-                                </Label>
-
-                                <Input
-                                    id="telephone_no"
-                                    type="tel"
-                                    className="mt-1 block w-full"
-                                    defaultValue={
-                                        memberApplicationProfile?.telephone_no ??
-                                        ''
-                                    }
-                                    name="telephone_no"
-                                    placeholder="Telephone number"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={formErrors.telephone_no}
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="current_position">
-                                    Current position
-                                </Label>
-
-                                <Input
-                                    id="current_position"
-                                    className={cn(
-                                        'mt-1 block w-full',
-                                        isCurrentPositionFromWmaster &&
-                                            WMASTER_VALUE_CLASS,
-                                        isFieldMissing('current_position') &&
-                                            MISSING_FIELD_CLASS,
-                                    )}
-                                    defaultValue={resolvedCurrentPosition}
-                                    name="current_position"
-                                    required={!isPensioner}
-                                    placeholder="Current position"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={formErrors.current_position}
-                                />
-                            </div>
-
-                            <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
+                        <div>
+                            <InlineEditRow label="Employment type">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="nature_of_business">
-                                        Nature of business
+                                    <Label htmlFor="employment_type">
+                                        Employment type
                                     </Label>
 
                                     <Select
-                                        value={
-                                            natureOfBusinessSelection ||
-                                            undefined
-                                        }
+                                        value={employmentType || undefined}
                                         onValueChange={(value) => {
-                                            setNatureOfBusinessSelection(value);
-
-                                            if (
-                                                value !==
-                                                NATURE_OF_BUSINESS_OTHER_VALUE
-                                            ) {
-                                                setNatureOfBusinessOther('');
-                                            }
+                                            setEmploymentType(value);
                                         }}
                                     >
                                         <SelectTrigger
-                                            id="nature_of_business"
-                                            className="mt-1 w-full"
+                                            id="employment_type"
+                                            className={cn(
+                                                'mt-1 w-full',
+                                                isFieldMissing(
+                                                    'employment_type',
+                                                ) && MISSING_FIELD_CLASS,
+                                            )}
                                         >
-                                            <SelectValue placeholder="Select an industry" />
+                                            <SelectValue placeholder="Select employment type" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {NATURE_OF_BUSINESS_OPTIONS.map(
+                                            {employmentTypeOptions.map(
                                                 (option) => (
                                                     <SelectItem
                                                         key={option}
@@ -484,86 +187,435 @@ export function WorkTab({
 
                                     <input
                                         type="hidden"
-                                        name="nature_of_business"
-                                        value={resolvedNatureOfBusiness}
+                                        name="employment_type"
+                                        value={employmentType}
                                     />
 
                                     <InputError
                                         className="mt-2"
-                                        message={formErrors.nature_of_business}
+                                        message={formErrors.employment_type}
                                     />
                                 </div>
+                            </InlineEditRow>
 
-                                {natureOfBusinessSelection ===
-                                    NATURE_OF_BUSINESS_OTHER_VALUE && (
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="nature_of_business_other">
-                                            Specify industry
-                                        </Label>
-
-                                        <Input
-                                            id="nature_of_business_other"
-                                            className="mt-1 block w-full"
-                                            value={natureOfBusinessOther}
-                                            name="nature_of_business_other"
-                                            placeholder="Describe your industry"
-                                            onChange={(event) => {
-                                                setNatureOfBusinessOther(
-                                                    event.target.value,
-                                                );
-                                            }}
-                                        />
-                                    </div>
-                                )}
-
-                                <div className="grid gap-2 md:col-span-2">
-                                    <Label htmlFor="years_in_work_business">
-                                        Years in work or business
+                            <InlineEditRow label="Employer or business name">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="employer_business_name">
+                                        Employer or business name
                                     </Label>
 
-                                    <YearsInput
-                                        id="years_in_work_business"
-                                        className="mt-1 block w-full"
-                                        value={yearsInWorkBusiness}
-                                        onChange={setYearsInWorkBusiness}
-                                        placeholder="e.g. 5"
-                                    />
-
-                                    <input
-                                        type="hidden"
-                                        name="years_in_work_business"
-                                        value={yearsInWorkBusiness}
+                                    <Input
+                                        id="employer_business_name"
+                                        className={cn(
+                                            'mt-1 block w-full',
+                                            isFieldMissing(
+                                                'employer_business_name',
+                                            ) && MISSING_FIELD_CLASS,
+                                        )}
+                                        defaultValue={
+                                            memberApplicationProfile?.employer_business_name ??
+                                            ''
+                                        }
+                                        name="employer_business_name"
+                                        required={!isPensioner}
+                                        placeholder="Employer or business name"
                                     />
 
                                     <InputError
                                         className="mt-2"
                                         message={
-                                            formErrors.years_in_work_business
+                                            formErrors.employer_business_name
                                         }
                                     />
                                 </div>
-
-                                {showDateEmployed && (
+                            </InlineEditRow>
+                            <InlineEditRow label="Business address" group>
+                                <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="employer_date_employed">
-                                            Date employed
+                                        <Label htmlFor="employer_business_address3">
+                                            Province
                                         </Label>
 
-                                        <DateInputWithPicker
-                                            id="employer_date_employed"
-                                            name="employer_date_employed"
-                                            value={employerDateEmployed}
-                                            onChange={setEmployerDateEmployed}
-                                            aria-label="Choose date employed"
+                                        <LocationCombobox
+                                            id="employer_business_address3"
+                                            name="employer_business_address3"
+                                            search={
+                                                employerBusinessProvinceSearch
+                                            }
+                                            placeholder="Select province"
+                                            required
+                                            inputClassName="mt-1 block w-full"
+                                            loadingMessage="Searching province suggestions..."
+                                            errorMessage="Province suggestions are temporarily unavailable."
+                                            promptMessage="Type at least 2 characters to search provinces."
+                                            onSelect={() => {
+                                                employerBusinessCitySearch.setSelectedValue(
+                                                    '',
+                                                );
+                                                employerBusinessBarangaySearch.setSelectedValue(
+                                                    '',
+                                                );
+                                                setEmployerBusinessAddressZipValue(
+                                                    '',
+                                                );
+                                            }}
+                                            onClear={() => {
+                                                employerBusinessCitySearch.setSelectedValue(
+                                                    '',
+                                                );
+                                                employerBusinessBarangaySearch.setSelectedValue(
+                                                    '',
+                                                );
+                                                setEmployerBusinessAddressZipValue(
+                                                    '',
+                                                );
+                                            }}
                                         />
 
                                         <InputError
                                             className="mt-2"
                                             message={
-                                                formErrors.employer_date_employed
+                                                formErrors.employer_business_address3
                                             }
                                         />
                                     </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="employer_business_address2">
+                                            City/Municipality
+                                        </Label>
+
+                                        <LocationCombobox
+                                            id="employer_business_address2"
+                                            name="employer_business_address2"
+                                            search={employerBusinessCitySearch}
+                                            placeholder="Select city or municipality"
+                                            required
+                                            disabled={
+                                                !employerBusinessProvinceSearch.selectedValue
+                                            }
+                                            inputClassName="mt-1 block w-full"
+                                            loadingMessage="Searching city suggestions..."
+                                            errorMessage="City suggestions are temporarily unavailable."
+                                            promptMessage="Select a province first."
+                                            onSelect={(suggestion) => {
+                                                if (suggestion.province) {
+                                                    employerBusinessProvinceSearch.setSelectedValue(
+                                                        suggestion.province,
+                                                    );
+                                                }
+
+                                                employerBusinessBarangaySearch.setSelectedValue(
+                                                    '',
+                                                );
+                                                void handleEmployerCitySelect(
+                                                    suggestion.code,
+                                                );
+                                            }}
+                                            onClear={() => {
+                                                employerBusinessBarangaySearch.setSelectedValue(
+                                                    '',
+                                                );
+                                                setEmployerBusinessAddressZipValue(
+                                                    '',
+                                                );
+                                            }}
+                                        />
+
+                                        <InputError
+                                            className="mt-2"
+                                            message={
+                                                formErrors.employer_business_address2
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="employer_business_address_zip">
+                                            ZIP code
+                                        </Label>
+
+                                        <Input
+                                            id="employer_business_address_zip"
+                                            className="mt-1 block w-full"
+                                            value={
+                                                employerBusinessAddressZipValue
+                                            }
+                                            onChange={(event) =>
+                                                setEmployerBusinessAddressZipValue(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            name="employer_business_address_zip"
+                                            inputMode="numeric"
+                                            autoComplete="postal-code"
+                                            placeholder="Auto-filled from city"
+                                        />
+
+                                        <InputError
+                                            className="mt-2"
+                                            message={
+                                                formErrors.employer_business_address_zip
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="employer_business_address_barangay">
+                                            Barangay
+                                        </Label>
+
+                                        <LocationCombobox
+                                            id="employer_business_address_barangay"
+                                            name="employer_business_address_barangay"
+                                            search={
+                                                employerBusinessBarangaySearch
+                                            }
+                                            placeholder="Select barangay"
+                                            disabled={
+                                                !employerBusinessCitySearch.selectedValue
+                                            }
+                                            inputClassName={cn(
+                                                'mt-1 block w-full',
+                                                isFieldMissing(
+                                                    'employer_business_address_barangay',
+                                                ) && MISSING_FIELD_CLASS,
+                                            )}
+                                            loadingMessage="Loading barangays..."
+                                            errorMessage="Barangay suggestions are temporarily unavailable."
+                                            promptMessage="Select a city or municipality first."
+                                        />
+
+                                        <InputError
+                                            className="mt-2"
+                                            message={
+                                                formErrors.employer_business_address_barangay
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2 md:col-span-2">
+                                        <Label htmlFor="employer_business_address1">
+                                            Employer/Business address (street)
+                                        </Label>
+
+                                        <Input
+                                            id="employer_business_address1"
+                                            className="mt-1 block w-full"
+                                            defaultValue={
+                                                employerBusinessAddress1
+                                            }
+                                            name="employer_business_address1"
+                                            required
+                                            placeholder="Employer or business address"
+                                        />
+
+                                        <InputError
+                                            className="mt-2"
+                                            message={
+                                                formErrors.employer_business_address1
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                            </InlineEditRow>
+
+                            <InlineEditRow label="Telephone number">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="telephone_no">
+                                        Telephone number
+                                    </Label>
+
+                                    <Input
+                                        id="telephone_no"
+                                        type="tel"
+                                        className="mt-1 block w-full"
+                                        defaultValue={
+                                            memberApplicationProfile?.telephone_no ??
+                                            ''
+                                        }
+                                        name="telephone_no"
+                                        placeholder="Telephone number"
+                                    />
+
+                                    <InputError
+                                        className="mt-2"
+                                        message={formErrors.telephone_no}
+                                    />
+                                </div>
+                            </InlineEditRow>
+
+                            <InlineEditRow label="Current position">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="current_position">
+                                        Current position
+                                    </Label>
+
+                                    <Input
+                                        id="current_position"
+                                        className={cn(
+                                            'mt-1 block w-full',
+                                            isCurrentPositionFromWmaster &&
+                                                WMASTER_VALUE_CLASS,
+                                            isFieldMissing(
+                                                'current_position',
+                                            ) && MISSING_FIELD_CLASS,
+                                        )}
+                                        defaultValue={resolvedCurrentPosition}
+                                        name="current_position"
+                                        required={!isPensioner}
+                                        placeholder="Current position"
+                                    />
+
+                                    <InputError
+                                        className="mt-2"
+                                        message={formErrors.current_position}
+                                    />
+                                </div>
+                            </InlineEditRow>
+
+                            <div>
+                                <InlineEditRow label="Nature of business" group>
+                                    <div className="grid gap-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="nature_of_business">
+                                                Nature of business
+                                            </Label>
+
+                                            <Select
+                                                value={
+                                                    natureOfBusinessSelection ||
+                                                    undefined
+                                                }
+                                                onValueChange={(value) => {
+                                                    setNatureOfBusinessSelection(
+                                                        value,
+                                                    );
+
+                                                    if (
+                                                        value !==
+                                                        NATURE_OF_BUSINESS_OTHER_VALUE
+                                                    ) {
+                                                        setNatureOfBusinessOther(
+                                                            '',
+                                                        );
+                                                    }
+                                                }}
+                                            >
+                                                <SelectTrigger
+                                                    id="nature_of_business"
+                                                    className="mt-1 w-full"
+                                                >
+                                                    <SelectValue placeholder="Select an industry" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {NATURE_OF_BUSINESS_OPTIONS.map(
+                                                        (option) => (
+                                                            <SelectItem
+                                                                key={option}
+                                                                value={option}
+                                                            >
+                                                                {option}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+
+                                            <input
+                                                type="hidden"
+                                                name="nature_of_business"
+                                                value={resolvedNatureOfBusiness}
+                                            />
+
+                                            <InputError
+                                                className="mt-2"
+                                                message={
+                                                    formErrors.nature_of_business
+                                                }
+                                            />
+                                        </div>
+
+                                        {natureOfBusinessSelection ===
+                                            NATURE_OF_BUSINESS_OTHER_VALUE && (
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="nature_of_business_other">
+                                                    Specify industry
+                                                </Label>
+
+                                                <Input
+                                                    id="nature_of_business_other"
+                                                    className="mt-1 block w-full"
+                                                    value={
+                                                        natureOfBusinessOther
+                                                    }
+                                                    name="nature_of_business_other"
+                                                    placeholder="Describe your industry"
+                                                    onChange={(event) => {
+                                                        setNatureOfBusinessOther(
+                                                            event.target.value,
+                                                        );
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </InlineEditRow>
+
+                                <InlineEditRow label="Years in work / business">
+                                    <div className="grid gap-2 md:col-span-2">
+                                        <Label htmlFor="years_in_work_business">
+                                            Years in work or business
+                                        </Label>
+
+                                        <YearsInput
+                                            id="years_in_work_business"
+                                            className="mt-1 block w-full"
+                                            value={yearsInWorkBusiness}
+                                            onChange={setYearsInWorkBusiness}
+                                            placeholder="e.g. 5"
+                                        />
+
+                                        <input
+                                            type="hidden"
+                                            name="years_in_work_business"
+                                            value={yearsInWorkBusiness}
+                                        />
+
+                                        <InputError
+                                            className="mt-2"
+                                            message={
+                                                formErrors.years_in_work_business
+                                            }
+                                        />
+                                    </div>
+                                </InlineEditRow>
+
+                                {showDateEmployed && (
+                                    <InlineEditRow label="Date employed">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="employer_date_employed">
+                                                Date employed
+                                            </Label>
+
+                                            <DateInputWithPicker
+                                                id="employer_date_employed"
+                                                name="employer_date_employed"
+                                                value={employerDateEmployed}
+                                                onChange={
+                                                    setEmployerDateEmployed
+                                                }
+                                                aria-label="Choose date employed"
+                                            />
+
+                                            <InputError
+                                                className="mt-2"
+                                                message={
+                                                    formErrors.employer_date_employed
+                                                }
+                                            />
+                                        </div>
+                                    </InlineEditRow>
                                 )}
                             </div>
                         </div>
@@ -571,277 +623,313 @@ export function WorkTab({
 
                     <LoanRequestSectionCard
                         flat
+                        contentClassName="space-y-0"
                         title="Income & payday"
                         icon={Wallet}
                     >
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="grid gap-2">
-                                <Label htmlFor="gross_monthly_income">
-                                    Gross monthly income
-                                </Label>
+                        <div>
+                            <InlineEditRow label="Gross monthly income">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="gross_monthly_income">
+                                        Gross monthly income
+                                    </Label>
 
-                                <CurrencyInput
-                                    id="gross_monthly_income"
-                                    className={cn(
-                                        isFieldMissing(
-                                            'gross_monthly_income',
-                                        ) && MISSING_FIELD_CLASS,
-                                    )}
-                                    value={grossMonthlyIncome}
-                                    onValueChange={setGrossMonthlyIncome}
-                                    required
-                                />
-
-                                <input
-                                    type="hidden"
-                                    name="gross_monthly_income"
-                                    value={grossMonthlyIncome}
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={formErrors.gross_monthly_income}
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="payday">Payday</Label>
-
-                                <Select
-                                    value={paydaySelection || undefined}
-                                    onValueChange={(value) => {
-                                        setPaydaySelection(value);
-                                    }}
-                                >
-                                    <SelectTrigger
-                                        id="payday"
+                                    <CurrencyInput
+                                        id="gross_monthly_income"
                                         className={cn(
-                                            'mt-1 w-full',
-                                            isFieldMissing('payday') &&
-                                                MISSING_FIELD_CLASS,
-                                        )}
-                                    >
-                                        <SelectValue placeholder="Select payday" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {PAYDAY_OPTIONS.map((option) => (
-                                            <SelectItem
-                                                key={option}
-                                                value={option}
-                                            >
-                                                {option}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-
-                                <input
-                                    type="hidden"
-                                    name="payday"
-                                    value={paydaySelection}
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={formErrors.payday}
-                                />
-                            </div>
-                        </div>
-                    </LoanRequestSectionCard>
-
-                    <LoanRequestSectionCard
-                        flat
-                        title="Source of Funds & Government ID"
-                        description="Required before you can start a loan request."
-                        icon={IdCard}
-                    >
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="grid gap-2">
-                                <Label htmlFor="source_of_fund_wealth">
-                                    Source of fund / wealth
-                                </Label>
-
-                                <Select
-                                    value={sourceOfFundSelection || undefined}
-                                    onValueChange={(value) => {
-                                        setSourceOfFundSelection(value);
-
-                                        if (
-                                            value !== SOURCE_OF_FUND_OTHER_VALUE
-                                        ) {
-                                            setSourceOfFundOther('');
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger
-                                        id="source_of_fund_wealth"
-                                        className={cn(
-                                            'mt-1 w-full',
                                             isFieldMissing(
-                                                'source_of_fund_wealth',
+                                                'gross_monthly_income',
                                             ) && MISSING_FIELD_CLASS,
                                         )}
+                                        value={grossMonthlyIncome}
+                                        onValueChange={setGrossMonthlyIncome}
+                                        required
+                                    />
+
+                                    <input
+                                        type="hidden"
+                                        name="gross_monthly_income"
+                                        value={grossMonthlyIncome}
+                                    />
+
+                                    <InputError
+                                        className="mt-2"
+                                        message={
+                                            formErrors.gross_monthly_income
+                                        }
+                                    />
+                                </div>
+                            </InlineEditRow>
+
+                            <InlineEditRow label="Payday">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="payday">Payday</Label>
+
+                                    <Select
+                                        value={paydaySelection || undefined}
+                                        onValueChange={(value) => {
+                                            setPaydaySelection(value);
+                                        }}
                                     >
-                                        <SelectValue placeholder="Select source of fund" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {SOURCE_OF_FUND_OPTIONS.map(
-                                            (option) => (
+                                        <SelectTrigger
+                                            id="payday"
+                                            className={cn(
+                                                'mt-1 w-full',
+                                                isFieldMissing('payday') &&
+                                                    MISSING_FIELD_CLASS,
+                                            )}
+                                        >
+                                            <SelectValue placeholder="Select payday" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {PAYDAY_OPTIONS.map((option) => (
                                                 <SelectItem
                                                     key={option}
                                                     value={option}
                                                 >
                                                     {option}
                                                 </SelectItem>
-                                            ),
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
 
-                                <input
-                                    type="hidden"
-                                    name="source_of_fund_wealth"
-                                    value={resolvedSourceOfFund}
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={formErrors.source_of_fund_wealth}
-                                />
-                            </div>
-
-                            {sourceOfFundSelection ===
-                                SOURCE_OF_FUND_OTHER_VALUE && (
-                                <div className="grid gap-2">
-                                    <Label htmlFor="source_of_fund_wealth_other">
-                                        Specify source of fund
-                                    </Label>
-
-                                    <Input
-                                        id="source_of_fund_wealth_other"
-                                        className="mt-1 block w-full"
-                                        value={sourceOfFundOther}
-                                        name="source_of_fund_wealth_other"
-                                        placeholder="Describe your source of fund"
-                                        onChange={(event) => {
-                                            setSourceOfFundOther(
-                                                event.target.value,
-                                            );
-                                        }}
-                                    />
-                                </div>
-                            )}
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="id_type">
-                                    Government ID type
-                                </Label>
-
-                                <Select
-                                    value={idTypeSelection || undefined}
-                                    onValueChange={(value) => {
-                                        setIdTypeSelection(value);
-
-                                        if (value !== ID_TYPE_OTHER_VALUE) {
-                                            setIdTypeOther('');
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger
-                                        id="id_type"
-                                        className={cn(
-                                            'mt-1 w-full',
-                                            isFieldMissing('id_type') &&
-                                                MISSING_FIELD_CLASS,
-                                        )}
-                                    >
-                                        <SelectValue placeholder="Select ID type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {ID_TYPE_OPTIONS.map((option) => (
-                                            <SelectItem
-                                                key={option}
-                                                value={option}
-                                            >
-                                                {option}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-
-                                <input
-                                    type="hidden"
-                                    name="id_type"
-                                    value={idTypeSelection}
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={formErrors.id_type}
-                                />
-                            </div>
-
-                            {idTypeSelection === ID_TYPE_OTHER_VALUE && (
-                                <div className="grid gap-2">
-                                    <Label htmlFor="id_type_other">
-                                        Specify ID type
-                                    </Label>
-
-                                    <Input
-                                        id="id_type_other"
-                                        className="mt-1 block w-full"
-                                        value={idTypeOther}
-                                        name="id_type_other"
-                                        placeholder="Describe your ID type"
-                                        onChange={(event) => {
-                                            setIdTypeOther(event.target.value);
-                                        }}
+                                    <input
+                                        type="hidden"
+                                        name="payday"
+                                        value={paydaySelection}
                                     />
 
                                     <InputError
                                         className="mt-2"
-                                        message={formErrors.id_type_other}
+                                        message={formErrors.payday}
                                     />
                                 </div>
-                            )}
+                            </InlineEditRow>
+                        </div>
+                    </LoanRequestSectionCard>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="id_number">ID number</Label>
+                    <LoanRequestSectionCard
+                        flat
+                        contentClassName="space-y-0"
+                        title="Source of Funds & Government ID"
+                        description="Required before you can start a loan request."
+                        icon={IdCard}
+                    >
+                        <div>
+                            <InlineEditRow label="Source of funds" group>
+                                <div className="grid gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="source_of_fund_wealth">
+                                            Source of fund / wealth
+                                        </Label>
 
-                                <Input
-                                    id="id_number"
-                                    className={cn(
-                                        'mt-1 block w-full',
-                                        isFieldMissing('id_number') &&
-                                            MISSING_FIELD_CLASS,
+                                        <Select
+                                            value={
+                                                sourceOfFundSelection ||
+                                                undefined
+                                            }
+                                            onValueChange={(value) => {
+                                                setSourceOfFundSelection(value);
+
+                                                if (
+                                                    value !==
+                                                    SOURCE_OF_FUND_OTHER_VALUE
+                                                ) {
+                                                    setSourceOfFundOther('');
+                                                }
+                                            }}
+                                        >
+                                            <SelectTrigger
+                                                id="source_of_fund_wealth"
+                                                className={cn(
+                                                    'mt-1 w-full',
+                                                    isFieldMissing(
+                                                        'source_of_fund_wealth',
+                                                    ) && MISSING_FIELD_CLASS,
+                                                )}
+                                            >
+                                                <SelectValue placeholder="Select source of fund" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {SOURCE_OF_FUND_OPTIONS.map(
+                                                    (option) => (
+                                                        <SelectItem
+                                                            key={option}
+                                                            value={option}
+                                                        >
+                                                            {option}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+
+                                        <input
+                                            type="hidden"
+                                            name="source_of_fund_wealth"
+                                            value={resolvedSourceOfFund}
+                                        />
+
+                                        <InputError
+                                            className="mt-2"
+                                            message={
+                                                formErrors.source_of_fund_wealth
+                                            }
+                                        />
+                                    </div>
+
+                                    {sourceOfFundSelection ===
+                                        SOURCE_OF_FUND_OTHER_VALUE && (
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="source_of_fund_wealth_other">
+                                                Specify source of fund
+                                            </Label>
+
+                                            <Input
+                                                id="source_of_fund_wealth_other"
+                                                className="mt-1 block w-full"
+                                                value={sourceOfFundOther}
+                                                name="source_of_fund_wealth_other"
+                                                placeholder="Describe your source of fund"
+                                                onChange={(event) => {
+                                                    setSourceOfFundOther(
+                                                        event.target.value,
+                                                    );
+                                                }}
+                                            />
+                                        </div>
                                     )}
-                                    defaultValue={
-                                        memberApplicationProfile?.id_number ??
-                                        ''
-                                    }
-                                    name="id_number"
-                                    placeholder={
-                                        ID_NUMBER_PLACEHOLDERS[
-                                            idTypeSelection
-                                        ] ?? 'ID number'
-                                    }
-                                />
+                                </div>
+                            </InlineEditRow>
 
-                                {ID_NUMBER_PLACEHOLDERS[idTypeSelection] && (
-                                    <p className="text-xs text-muted-foreground">
-                                        {
+                            <InlineEditRow label="Government ID type" group>
+                                <div className="grid gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="id_type">
+                                            Government ID type
+                                        </Label>
+
+                                        <Select
+                                            value={idTypeSelection || undefined}
+                                            onValueChange={(value) => {
+                                                setIdTypeSelection(value);
+
+                                                if (
+                                                    value !==
+                                                    ID_TYPE_OTHER_VALUE
+                                                ) {
+                                                    setIdTypeOther('');
+                                                }
+                                            }}
+                                        >
+                                            <SelectTrigger
+                                                id="id_type"
+                                                className={cn(
+                                                    'mt-1 w-full',
+                                                    isFieldMissing('id_type') &&
+                                                        MISSING_FIELD_CLASS,
+                                                )}
+                                            >
+                                                <SelectValue placeholder="Select ID type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {ID_TYPE_OPTIONS.map(
+                                                    (option) => (
+                                                        <SelectItem
+                                                            key={option}
+                                                            value={option}
+                                                        >
+                                                            {option}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+
+                                        <input
+                                            type="hidden"
+                                            name="id_type"
+                                            value={idTypeSelection}
+                                        />
+
+                                        <InputError
+                                            className="mt-2"
+                                            message={formErrors.id_type}
+                                        />
+                                    </div>
+
+                                    {idTypeSelection ===
+                                        ID_TYPE_OTHER_VALUE && (
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="id_type_other">
+                                                Specify ID type
+                                            </Label>
+
+                                            <Input
+                                                id="id_type_other"
+                                                className="mt-1 block w-full"
+                                                value={idTypeOther}
+                                                name="id_type_other"
+                                                placeholder="Describe your ID type"
+                                                onChange={(event) => {
+                                                    setIdTypeOther(
+                                                        event.target.value,
+                                                    );
+                                                }}
+                                            />
+
+                                            <InputError
+                                                className="mt-2"
+                                                message={
+                                                    formErrors.id_type_other
+                                                }
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </InlineEditRow>
+
+                            <InlineEditRow label="ID number">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="id_number">ID number</Label>
+
+                                    <Input
+                                        id="id_number"
+                                        className={cn(
+                                            'mt-1 block w-full',
+                                            isFieldMissing('id_number') &&
+                                                MISSING_FIELD_CLASS,
+                                        )}
+                                        defaultValue={
+                                            memberApplicationProfile?.id_number ??
+                                            ''
+                                        }
+                                        name="id_number"
+                                        placeholder={
                                             ID_NUMBER_PLACEHOLDERS[
                                                 idTypeSelection
-                                            ]
+                                            ] ?? 'ID number'
                                         }
-                                    </p>
-                                )}
+                                    />
 
-                                <InputError
-                                    className="mt-2"
-                                    message={formErrors.id_number}
-                                />
-                            </div>
+                                    {ID_NUMBER_PLACEHOLDERS[
+                                        idTypeSelection
+                                    ] && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {
+                                                ID_NUMBER_PLACEHOLDERS[
+                                                    idTypeSelection
+                                                ]
+                                            }
+                                        </p>
+                                    )}
+
+                                    <InputError
+                                        className="mt-2"
+                                        message={formErrors.id_number}
+                                    />
+                                </div>
+                            </InlineEditRow>
                         </div>
                     </LoanRequestSectionCard>
                 </div>

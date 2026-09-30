@@ -17,6 +17,7 @@ import {
     PaymentMethodIcon,
 } from '@/components/loan-request/payment-account-picker-sheet';
 import type { PaymentMethodOption } from '@/components/loan-request/payment-account-picker-sheet';
+import { InlineEditRow } from '@/components/settings/inline-edit-row';
 import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
 import { TabsContent } from '@/components/ui/tabs';
@@ -135,6 +136,23 @@ export function BankTab({
         [accounts, paymentAccountId],
     );
 
+    const releaseSummary = [
+        (releaseMethod && RELEASE_METHOD_LABELS[releaseMethod]) ||
+            releaseMethod ||
+            'Not set',
+        releaseNeedsAccount ? releaseAccountLabel : null,
+    ]
+        .filter(Boolean)
+        .join('\n');
+    const paymentSummary = [
+        (paymentOption && PAYMENT_OPTION_LABELS[paymentOption]) ||
+            paymentOption ||
+            'Not set',
+        paymentNeedsAccount ? paymentAccountLabel : null,
+    ]
+        .filter(Boolean)
+        .join('\n');
+
     const confirmRelease = async (method: string, accountId: number | null) => {
         setReleaseMethod(method);
         setReleaseAccountId(accountId);
@@ -165,140 +183,154 @@ export function BankTab({
 
                     <LoanRequestSectionCard
                         flat
+                        contentClassName="space-y-0"
                         title="Loan Disbursement"
                         description="Bank account details are required for ATM and Bank Transfer."
                         icon={Landmark}
                     >
-                        <div
-                            className={cn(
-                                'flex flex-wrap items-center gap-3 rounded-md border border-input p-3',
-                                isFieldMissing('release_method') &&
-                                    MISSING_FIELD_CLASS,
-                            )}
+                        <InlineEditRow
+                            label="Loan disbursement"
+                            group
+                            value={releaseSummary}
                         >
-                            <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-2">
-                                    <PaymentMethodIcon
-                                        method={releaseMethod || null}
-                                        className="h-4 w-4 text-muted-foreground"
-                                    />
-                                    <p className="text-sm font-medium">
-                                        {(releaseMethod &&
-                                            RELEASE_METHOD_LABELS[
-                                                releaseMethod
-                                            ]) ||
-                                            releaseMethod ||
-                                            'Not set'}
-                                    </p>
-                                </div>
-                                {releaseNeedsAccount && (
-                                    <p className="text-sm text-muted-foreground">
-                                        {releaseAccountLabel ??
-                                            (releaseAccountId !== null &&
-                                            isLoadingAccounts
-                                                ? 'Loading account…'
-                                                : 'No account selected')}
-                                    </p>
+                            <div
+                                className={cn(
+                                    'flex flex-wrap items-center gap-3 rounded-md border border-input p-3',
+                                    isFieldMissing('release_method') &&
+                                        MISSING_FIELD_CLASS,
                                 )}
-                            </div>
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                    void loadAccounts();
-                                    setIsReleaseSheetOpen(true);
-                                }}
                             >
-                                {releaseMethod
-                                    ? 'Change'
-                                    : 'Choose release method'}
-                            </Button>
-                            <input
-                                type="hidden"
-                                name="release_method"
-                                value={releaseMethod}
-                            />
-                            <input
-                                type="hidden"
-                                name="release_saved_account_id"
-                                value={releaseAccountId ?? ''}
-                            />
-                        </div>
+                                <div className="flex-1 space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <PaymentMethodIcon
+                                            method={releaseMethod || null}
+                                            className="h-4 w-4 text-muted-foreground"
+                                        />
+                                        <p className="text-sm font-medium">
+                                            {(releaseMethod &&
+                                                RELEASE_METHOD_LABELS[
+                                                    releaseMethod
+                                                ]) ||
+                                                releaseMethod ||
+                                                'Not set'}
+                                        </p>
+                                    </div>
+                                    {releaseNeedsAccount && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {releaseAccountLabel ??
+                                                (releaseAccountId !== null &&
+                                                isLoadingAccounts
+                                                    ? 'Loading account…'
+                                                    : 'No account selected')}
+                                        </p>
+                                    )}
+                                </div>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        void loadAccounts();
+                                        setIsReleaseSheetOpen(true);
+                                    }}
+                                >
+                                    {releaseMethod
+                                        ? 'Change'
+                                        : 'Choose release method'}
+                                </Button>
+                                <input
+                                    type="hidden"
+                                    name="release_method"
+                                    value={releaseMethod}
+                                />
+                                <input
+                                    type="hidden"
+                                    name="release_saved_account_id"
+                                    value={releaseAccountId ?? ''}
+                                />
+                            </div>
 
-                        <InputError message={formErrors.release_method} />
-                        <InputError
-                            message={formErrors.release_saved_account_id}
-                        />
+                            <InputError message={formErrors.release_method} />
+                            <InputError
+                                message={formErrors.release_saved_account_id}
+                            />
+                        </InlineEditRow>
                     </LoanRequestSectionCard>
 
                     <LoanRequestSectionCard
                         flat
+                        contentClassName="space-y-0"
                         title="Repayment Method"
                         description="This becomes the default for new loan requests -- you can still change it per request."
                         icon={Wallet}
                     >
-                        <div
-                            className={cn(
-                                'flex flex-wrap items-center gap-3 rounded-md border border-input p-3',
-                                isFieldMissing('payment_option') &&
-                                    MISSING_FIELD_CLASS,
-                            )}
+                        <InlineEditRow
+                            label="Repayment method"
+                            group
+                            value={paymentSummary}
                         >
-                            <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-2">
-                                    <PaymentMethodIcon
-                                        method={paymentOption || null}
-                                        className="h-4 w-4 text-muted-foreground"
-                                    />
-                                    <p className="text-sm font-medium">
-                                        {(paymentOption &&
-                                            PAYMENT_OPTION_LABELS[
-                                                paymentOption
-                                            ]) ||
-                                            paymentOption ||
-                                            'Not set'}
-                                    </p>
-                                </div>
-                                {paymentNeedsAccount && (
-                                    <p className="text-sm text-muted-foreground">
-                                        {paymentAccountLabel ??
-                                            (paymentAccountId !== null &&
-                                            isLoadingAccounts
-                                                ? 'Loading account…'
-                                                : 'No account selected')}
-                                    </p>
+                            <div
+                                className={cn(
+                                    'flex flex-wrap items-center gap-3 rounded-md border border-input p-3',
+                                    isFieldMissing('payment_option') &&
+                                        MISSING_FIELD_CLASS,
                                 )}
-                            </div>
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                    void loadAccounts();
-                                    setIsPaymentSheetOpen(true);
-                                }}
                             >
-                                {paymentOption
-                                    ? 'Change'
-                                    : 'Choose repayment method'}
-                            </Button>
-                            <input
-                                type="hidden"
-                                name="payment_option"
-                                value={paymentOption}
-                            />
-                            <input
-                                type="hidden"
-                                name="payment_saved_account_id"
-                                value={paymentAccountId ?? ''}
-                            />
-                        </div>
+                                <div className="flex-1 space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <PaymentMethodIcon
+                                            method={paymentOption || null}
+                                            className="h-4 w-4 text-muted-foreground"
+                                        />
+                                        <p className="text-sm font-medium">
+                                            {(paymentOption &&
+                                                PAYMENT_OPTION_LABELS[
+                                                    paymentOption
+                                                ]) ||
+                                                paymentOption ||
+                                                'Not set'}
+                                        </p>
+                                    </div>
+                                    {paymentNeedsAccount && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {paymentAccountLabel ??
+                                                (paymentAccountId !== null &&
+                                                isLoadingAccounts
+                                                    ? 'Loading account…'
+                                                    : 'No account selected')}
+                                        </p>
+                                    )}
+                                </div>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        void loadAccounts();
+                                        setIsPaymentSheetOpen(true);
+                                    }}
+                                >
+                                    {paymentOption
+                                        ? 'Change'
+                                        : 'Choose repayment method'}
+                                </Button>
+                                <input
+                                    type="hidden"
+                                    name="payment_option"
+                                    value={paymentOption}
+                                />
+                                <input
+                                    type="hidden"
+                                    name="payment_saved_account_id"
+                                    value={paymentAccountId ?? ''}
+                                />
+                            </div>
 
-                        <InputError message={formErrors.payment_option} />
-                        <InputError
-                            message={formErrors.payment_saved_account_id}
-                        />
+                            <InputError message={formErrors.payment_option} />
+                            <InputError
+                                message={formErrors.payment_saved_account_id}
+                            />
+                        </InlineEditRow>
                     </LoanRequestSectionCard>
                 </div>
 

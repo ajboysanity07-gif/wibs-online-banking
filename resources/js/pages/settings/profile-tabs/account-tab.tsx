@@ -3,6 +3,7 @@ import { Camera, IdCard, UserCog } from 'lucide-react';
 import type { ChangeEvent, RefObject } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
+import { InlineEditRow } from '@/components/settings/inline-edit-row';
 import { SurfaceCard } from '@/components/surface-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -60,82 +61,97 @@ export function AccountTab({
                     </p>
                 </div>
 
-                <LoanRequestSectionCard flat title="Profile" icon={UserCog}>
-                    <div className="grid gap-3">
-                        <Label htmlFor="profile_photo">Profile picture</Label>
+                <LoanRequestSectionCard
+                    flat
+                    title="Profile"
+                    icon={UserCog}
+                    contentClassName="space-y-0"
+                >
+                    <InlineEditRow
+                        label="Profile picture"
+                        value={profilePhotoUrl ? 'Photo uploaded' : 'No photo'}
+                    >
+                        <div className="grid gap-3">
+                            <Label htmlFor="profile_photo">
+                                Profile picture
+                            </Label>
 
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-                            <label
-                                htmlFor="profile_photo"
-                                className="group relative flex h-24 w-24 cursor-pointer items-center justify-center rounded-full"
-                            >
-                                <Avatar className="h-24 w-24 overflow-hidden rounded-full border border-border shadow-sm">
-                                    <AvatarImage
-                                        src={profilePhotoUrl}
-                                        alt={displayName}
-                                        className="object-cover"
-                                    />
-                                    <AvatarFallback className="rounded-full bg-muted text-sm text-foreground">
-                                        {getInitials(displayName)}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <span className="absolute inset-0 rounded-full bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-                                <span className="absolute right-1 bottom-1 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-card transition-transform duration-200 group-hover:scale-105">
-                                    <Camera className="h-4 w-4" />
-                                </span>
-                            </label>
-
-                            <div className="space-y-2 text-sm text-muted-foreground">
-                                <p>
-                                    Upload a JPG, PNG, or WebP image (max 2MB).
-                                </p>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                        profilePhotoInputRef.current?.click()
-                                    }
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+                                <label
+                                    htmlFor="profile_photo"
+                                    className="group relative flex h-24 w-24 cursor-pointer items-center justify-center rounded-full"
                                 >
-                                    Change photo
-                                </Button>
+                                    <Avatar className="h-24 w-24 overflow-hidden rounded-full border border-border shadow-sm">
+                                        <AvatarImage
+                                            src={profilePhotoUrl}
+                                            alt={displayName}
+                                            className="object-cover"
+                                        />
+                                        <AvatarFallback className="rounded-full bg-muted text-sm text-foreground">
+                                            {getInitials(displayName)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="absolute inset-0 rounded-full bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                                    <span className="absolute right-1 bottom-1 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-card transition-transform duration-200 group-hover:scale-105">
+                                        <Camera className="h-4 w-4" />
+                                    </span>
+                                </label>
+
+                                <div className="space-y-2 text-sm text-muted-foreground">
+                                    <p>
+                                        Upload a JPG, PNG, or WebP image (max
+                                        2MB).
+                                    </p>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                            profilePhotoInputRef.current?.click()
+                                        }
+                                    >
+                                        Change photo
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
 
-                        <input
-                            id="profile_photo"
-                            ref={profilePhotoInputRef}
-                            name="profile_photo"
-                            type="file"
-                            accept="image/png,image/jpeg,image/webp"
-                            className="sr-only"
-                            onChange={handleProfilePhotoChange}
-                        />
-
-                        <InputError
-                            className="mt-2"
-                            message={formErrors.profile_photo}
-                        />
-                    </div>
-
-                    {adminProfile && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="fullname">Full name</Label>
-
-                            <Input
-                                id="fullname"
-                                className="mt-1 block w-full"
-                                defaultValue={adminProfile.fullname ?? ''}
-                                name="fullname"
-                                autoComplete="name"
-                                placeholder="Full name"
+                            <input
+                                id="profile_photo"
+                                ref={profilePhotoInputRef}
+                                name="profile_photo"
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                className="sr-only"
+                                onChange={handleProfilePhotoChange}
                             />
 
                             <InputError
                                 className="mt-2"
-                                message={formErrors.fullname}
+                                message={formErrors.profile_photo}
                             />
                         </div>
+                    </InlineEditRow>
+
+                    {adminProfile && (
+                        <InlineEditRow label="Full name">
+                            <div className="grid gap-2">
+                                <Label htmlFor="fullname">Full name</Label>
+
+                                <Input
+                                    id="fullname"
+                                    className="mt-1 block w-full"
+                                    defaultValue={adminProfile.fullname ?? ''}
+                                    name="fullname"
+                                    autoComplete="name"
+                                    placeholder="Full name"
+                                />
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.fullname}
+                                />
+                            </div>
+                        </InlineEditRow>
                     )}
                 </LoanRequestSectionCard>
 
@@ -144,103 +160,117 @@ export function AccountTab({
                     title="Basic Account Information"
                     description="Update your login and contact details."
                     icon={IdCard}
+                    contentClassName="space-y-0"
                 >
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div className="grid gap-2">
-                            <Label htmlFor="username">Username</Label>
-
-                            <Input
-                                id="username"
-                                className="mt-1 block w-full"
-                                defaultValue={
-                                    auth.user.username ?? auth.user.name
-                                }
-                                name="username"
-                                required
-                                autoComplete="username"
-                                placeholder="Username"
-                            />
-
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.username}
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">Email address</Label>
-
-                            <Input
-                                id="email"
-                                type="email"
-                                className="mt-1 block w-full"
-                                defaultValue={auth.user.email}
-                                name="email"
-                                required
-                                autoComplete="username"
-                                placeholder="Email address"
-                            />
-
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.email}
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="phoneno">Cell number</Label>
-
-                            <Input
-                                id="phoneno"
-                                type="tel"
-                                className="mt-1 block w-full"
-                                defaultValue={auth.user.phoneno ?? ''}
-                                name="phoneno"
-                                required
-                                autoComplete="tel"
-                                inputMode="numeric"
-                                maxLength={11}
-                                placeholder="09XXXXXXXXX"
-                                onChange={handleMobileNumberInput}
-                            />
-
-                            <InputError
-                                className="mt-2"
-                                message={formErrors.phoneno}
-                            />
-                        </div>
-
-                        {memberRecord && (
+                    <div>
+                        <InlineEditRow label="Username">
                             <div className="grid gap-2">
-                                <Label htmlFor="member_telephone">
-                                    Contact number on file
-                                </Label>
+                                <Label htmlFor="username">Username</Label>
 
                                 <Input
-                                    id="member_telephone"
-                                    type="tel"
-                                    className={cn(
-                                        'mt-1 block w-full',
-                                        hasWmasterValue(
-                                            memberRecord.telephone,
-                                        ) && WMASTER_VALUE_CLASS,
-                                    )}
-                                    defaultValue={memberRecord.telephone ?? ''}
-                                    disabled
+                                    id="username"
+                                    className="mt-1 block w-full"
+                                    defaultValue={
+                                        auth.user.username ?? auth.user.name
+                                    }
+                                    name="username"
+                                    required
+                                    autoComplete="username"
+                                    placeholder="Username"
                                 />
-                                <p className="text-xs text-muted-foreground">
-                                    From your membership record -- this is the
-                                    number printed on insurance documents
-                                    (Generali, Grepalife).
-                                </p>
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.username}
+                                />
                             </div>
+                        </InlineEditRow>
+
+                        <InlineEditRow label="Email address">
+                            <div className="grid gap-2">
+                                <Label htmlFor="email">Email address</Label>
+
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    className="mt-1 block w-full"
+                                    defaultValue={auth.user.email}
+                                    name="email"
+                                    required
+                                    autoComplete="username"
+                                    placeholder="Email address"
+                                />
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.email}
+                                />
+                            </div>
+                        </InlineEditRow>
+
+                        <InlineEditRow label="Cell number">
+                            <div className="grid gap-2">
+                                <Label htmlFor="phoneno">Cell number</Label>
+
+                                <Input
+                                    id="phoneno"
+                                    type="tel"
+                                    className="mt-1 block w-full"
+                                    defaultValue={auth.user.phoneno ?? ''}
+                                    name="phoneno"
+                                    required
+                                    autoComplete="tel"
+                                    inputMode="numeric"
+                                    maxLength={11}
+                                    placeholder="09XXXXXXXXX"
+                                    onChange={handleMobileNumberInput}
+                                />
+
+                                <InputError
+                                    className="mt-2"
+                                    message={formErrors.phoneno}
+                                />
+                            </div>
+                        </InlineEditRow>
+
+                        {memberRecord && (
+                            <InlineEditRow
+                                label="Contact number on file"
+                                readOnly
+                            >
+                                <div className="grid gap-2">
+                                    <Label htmlFor="member_telephone">
+                                        Contact number on file
+                                    </Label>
+
+                                    <Input
+                                        id="member_telephone"
+                                        type="tel"
+                                        className={cn(
+                                            'mt-1 block w-full',
+                                            hasWmasterValue(
+                                                memberRecord.telephone,
+                                            ) && WMASTER_VALUE_CLASS,
+                                        )}
+                                        defaultValue={
+                                            memberRecord.telephone ?? ''
+                                        }
+                                        disabled
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        From your membership record -- this is
+                                        the number printed on insurance
+                                        documents (Generali, Grepalife).
+                                    </p>
+                                </div>
+                            </InlineEditRow>
                         )}
                     </div>
 
                     {mustVerifyEmail &&
                         auth.user.email_verified_at === null && (
                             <div>
-                                <p className="-mt-4 text-sm text-muted-foreground">
+                                <p className="mt-4 text-sm text-muted-foreground">
                                     Your email address is unverified.{' '}
                                     <Link
                                         href={send()}
