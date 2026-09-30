@@ -6,7 +6,6 @@ import { LoanRequestActivityTab } from '@/components/loan-request/loan-request-a
 import { LoanRequestApplicantSnapshot } from '@/components/loan-request/loan-request-applicant-snapshot';
 import { LoanRequestAttentionCard } from '@/components/loan-request/loan-request-attention-card';
 import { LoanRequestConditionsCard } from '@/components/loan-request/loan-request-conditions-card';
-import { LoanRequestDecisionHeader } from '@/components/loan-request/loan-request-decision-header';
 import {
     LoanRequestLoanInformationCard,
     displayText,
@@ -20,8 +19,11 @@ import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
 } from '@/components/loan-request/loan-request-fields';
-import { LoanRequestProgressCard } from '@/components/loan-request/loan-request-progress-card';
 import { LoanRequestRecommendationSummary } from '@/components/loan-request/loan-request-recommendation-summary';
+import {
+    LoanRequestRecordHeader,
+    type RecordHeaderFigure,
+} from '@/components/loan-request/loan-request-record-header';
 import {
     LoanRequestApplicantPanel,
     LoanRequestCoMakerCard,
@@ -51,6 +53,7 @@ import {
 import {
     ProcessingDetailsPanel,
     type RecommendationPreviewState,
+    snapshotPercent,
     textareaClassName,
     toStringValue,
 } from '@/components/loan-request/processing-details-panel';
@@ -87,7 +90,7 @@ import { useApprovedDocumentPackageDownload } from '@/hooks/loan-request/use-app
 import AppLayout from '@/layouts/app-layout';
 import { adminApi } from '@/lib/api/admin';
 import { staffApprovedDocumentPackageApi } from '@/lib/api/approved-document-package';
-import { formatDate, formatDateTime } from '@/lib/formatters';
+import { formatCurrency, formatDateTime } from '@/lib/formatters';
 import { institutionalEmployerCategoryMismatch } from '@/lib/institutional-employer-category';
 import { buildAttentionRows } from '@/lib/loan-request-attention';
 import { buildRecommendGates } from '@/lib/loan-request-gates';
@@ -456,7 +459,11 @@ export default function StaffLoanRequestShow({
             href: requestsIndex().url,
         },
         {
-            title: 'Loan request',
+            title: 'My queue',
+            href: requestsIndex().url,
+        },
+        {
+            title: currentRequest.reference,
             href: requestsShow(currentRequest.id).url,
         },
     ];
@@ -973,10 +980,6 @@ export default function StaffLoanRequestShow({
         }
     };
 
-    const submittedAt = currentRequest.submitted_at
-        ? formatDate(currentRequest.submitted_at)
-        : null;
-
     const processingWorkflowActions = {
         rejectDuringProcessing: canRejectDuringProcessing
             ? {
@@ -1187,6 +1190,54 @@ export default function StaffLoanRequestShow({
                   )[0]?.from_status ?? null)
             : null;
 
+    const loanName =
+        currentRequest.other_loan_type_name ?? currentRequest.kind_of_loan;
+    const toAmount = (value: number | string | null) =>
+        value === null || `${value}`.trim() === '' ? null : Number(value);
+    const processingAgeDays = currentWorkflowHealth.processing_age_days;
+    const headerTerm =
+        currentRequest.recommended_term ?? currentRequest.requested_term;
+    const headerFigures: RecordHeaderFigure[] = [
+        {
+            label: 'Requested',
+            value: formatCurrency(toAmount(currentRequest.requested_amount)),
+        },
+        {
+            label: 'Recommended',
+            value: formatCurrency(toAmount(currentRequest.recommended_amount)),
+        },
+        {
+            label: 'Term · rate',
+            value: `${headerTerm === null ? '--' : `${headerTerm} mo`} · ${snapshotPercent(currentRequest.recommended_interest_rate)}`,
+        },
+        {
+            // Mirrored from the Processing details panel preview; no second formula.
+            label: 'Net proceeds',
+            value: formatCurrency(processingPreview?.net_proceeds_raw ?? null),
+            tone: 'primary',
+        },
+        {
+            label: 'Processing age',
+            value: `${processingAgeDays === null ? '-' : `${processingAgeDays}d`} of ${PROCESSING_AGE_ISSUE_THRESHOLD_DAYS}d`,
+            tone:
+                processingAgeDays !== null &&
+                processingAgeDays >= PROCESSING_AGE_ISSUE_THRESHOLD_DAYS
+                    ? 'destructive'
+                    : undefined,
+        },
+        {
+            label: 'Assigned to',
+            value:
+                normalizedAssignedProcessorId === null
+                    ? 'Unassigned'
+                    : normalizedAssignedProcessorId === normalizedActorUserId
+                      ? 'You'
+                      : (currentRequest.assigned_processor?.name ??
+                        currentRequest.assigned_officer?.name ??
+                        'Assigned processor'),
+        },
+    ];
+
     const workflowProps: LoanRequestWorkflowProps = {
         claim:
             canClaim && !canStartReview
@@ -1302,28 +1353,15 @@ export default function StaffLoanRequestShow({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            <LoanRequestDecisionHeader
+            <LoanRequestRecordHeader
+                eyebrow={`Loan request · ${displayText(
+                    currentRequest.loan_type_label_snapshot,
+                )}${loanName ? ` (${loanName})` : ''}`}
                 reference={currentRequest.reference}
                 status={currentRequest.status}
-                details={[
-                    personName(currentApplicant),
-                    displayText(currentRequest.loan_type_label_snapshot),
-                    submittedAt
-                        ? `Submitted ${submittedAt}`
-                        : 'Not submitted yet',
-                    assignedProcessorId === null
-                        ? 'Unassigned'
-                        : `Assigned to ${
-                              currentRequest.assigned_processor?.name ??
-                              currentRequest.assigned_officer?.name ??
-                              'processor'
-                          }`,
-                ]}
-                age={{
-                    days: currentWorkflowHealth.processing_age_days,
-                    targetDays: PROCESSING_AGE_ISSUE_THRESHOLD_DAYS,
-                }}
-                blockedNote={blockedReason}
+                previousStatus={cancelledFromStatus}
+                applicantName={personName(currentApplicant)}
+                figures={headerFigures}
                 tabs={
                     <LoanRequestReviewTabs
                         tab={tab}
@@ -1347,14 +1385,8 @@ export default function StaffLoanRequestShow({
                     }}
                     recommendBlockedReason={blockedReason}
                 />
-            </LoanRequestDecisionHeader>
-            <section className="mx-auto mt-6 mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                <LoanRequestProgressCard
-                    status={currentRequest.status}
-                    previousStatus={cancelledFromStatus}
-                />
-            </section>
-            <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            </LoanRequestRecordHeader>
+            <section className="mx-auto my-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div className="min-w-0">
                         <ReviewTabPanel id="overview" tab={tab}>

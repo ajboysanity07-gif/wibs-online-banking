@@ -156,7 +156,7 @@ test('staff review Overview top is wired into the page', async () => {
         'loan-request-detail-page.tsx',
     );
 
-    assert.match(page, /<LoanRequestProgressCard/);
+    assert.match(page, /<LoanRequestRecordHeader/);
     assert.match(page, /<LoanRequestAttentionCard/);
     assert.match(page, /<LoanRequestRecommendationSummary/);
     assert.match(page, /<LoanRequestApplicantSnapshot/);

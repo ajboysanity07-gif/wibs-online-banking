@@ -2,10 +2,20 @@ import type { LoanRequestStatusValue } from '@/types/loan-requests';
 
 export const PROGRESS_STEPS = [
     'Draft',
-    'Pending',
-    'In Processing',
+    'Submitted',
+    'In processing',
     'Manager approval',
     'Release',
+] as const;
+
+/** One line per step; the last entry covers `released` (every step done). */
+export const STAGE_GUIDANCE = [
+    'the member is still completing the application; there is nothing to process yet.',
+    'claim the request or wait for assignment, then start processing.',
+    'verify the conditions, clear exceptions, generate the document package, then recommend approval to the Loan Manager.',
+    'the Loan Manager reviews the recommendation and approves or declines; the member then accepts the terms.',
+    'encode the loan in WIBS, schedule the release, then confirm it.',
+    'the loan has been released; no further processing is needed.',
 ] as const;
 
 export type LoanRequestProgress = {

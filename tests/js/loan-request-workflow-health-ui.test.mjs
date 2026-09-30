@@ -56,17 +56,17 @@ test('staff page moves Audit trail and Notification history to the Activity tab 
 
     const sectionWrapperMatches = [
         ...pageFile.matchAll(
-            /<section className="mx-auto (?:mt-6 )?mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">/g,
+            /<section className="mx-auto my-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">/g,
         ),
     ];
     assert.equal(
         sectionWrapperMatches.length,
-        2,
-        'expected only the progress section and the consolidated tabbed main section',
+        1,
+        'expected only the consolidated tabbed main section (progress lives in the record header)',
     );
 
     // Inside the main section the tab panels appear in tab order.
-    const mainSectionStart = sectionWrapperMatches[1].index;
+    const mainSectionStart = sectionWrapperMatches[0].index;
     const order = [
         '<ReviewTabPanel id="overview"',
         '<ProcessingDetailsPanel',
