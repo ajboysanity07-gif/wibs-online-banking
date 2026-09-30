@@ -53,7 +53,7 @@ export function MemberDetailPrimaryCard({
         <SurfaceCard
             variant="default"
             padding="md"
-            className={cn(styles.border, styles.bg)}
+            className={cn('h-full min-w-0', styles.border, styles.bg)}
         >
             <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
@@ -82,7 +82,7 @@ export function MemberDetailSupportingCard({
         <SurfaceCard
             variant="default"
             padding="md"
-            className="border-border bg-card"
+            className="h-full min-w-0 border-border bg-card"
         >
             <div className="flex h-full flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">

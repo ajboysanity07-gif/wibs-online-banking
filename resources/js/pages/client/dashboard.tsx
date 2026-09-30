@@ -227,7 +227,7 @@ export default function MemberProfile({
                 />
 
                 {activeDraft ? (
-                    <Card className="rounded-xl shadow-none">
+                    <Card className="rounded-xl">
                         <CardHeader className="space-y-2 pb-4">
                             <CardTitle className="flex items-center gap-2 text-lg">
                                 <FileClock className="size-4 text-muted-foreground" />

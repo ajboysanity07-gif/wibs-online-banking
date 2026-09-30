@@ -15,7 +15,7 @@ export default function SettingsLayout({
                     Manage your profile, security and preferences.
                 </p>
             </div>
-            <div className="grid gap-6 lg:grid-cols-[250px_minmax(0,1fr)] lg:items-start">
+            <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
                 <SettingsNav profileSection={profileSection} />
                 <div className="min-w-0 space-y-6">{children}</div>
             </div>

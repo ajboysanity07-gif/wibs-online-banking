@@ -1155,7 +1155,7 @@ export function LoanRequestQueuePage({
                                                 item.id ??
                                                 `${item.member_name ?? 'request'}-${index}`
                                             }
-                                            className="rounded-xl border border-border bg-card p-4 shadow-card"
+                                            className="rounded-xl border border-border bg-card p-4"
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>

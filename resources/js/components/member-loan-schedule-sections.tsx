@@ -237,7 +237,7 @@ export function MemberLoanScheduleSections({
                             />
                         )}
                         {selectedEntry ? (
-                            <div className="rounded-xl border border-border bg-card p-4 shadow-card">
+                            <div className="rounded-xl border border-border bg-card p-4">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="space-y-1">
                                         <p className="text-sm font-semibold">
@@ -257,7 +257,7 @@ export function MemberLoanScheduleSections({
                                         Clear
                                     </Button>
                                 </div>
-                                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                                     <div className="rounded-xl border border-border bg-muted/30 px-3 py-2">
                                         <p className="text-xs text-muted-foreground">
                                             Amortization

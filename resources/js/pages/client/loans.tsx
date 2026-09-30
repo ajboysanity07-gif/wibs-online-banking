@@ -123,7 +123,7 @@ export default function MemberLoans({
                     />
                 ) : null}
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
                     <MemberDetailPrimaryCard
                         title="Total Outstanding Loan Balance"
                         value={loanBalance}

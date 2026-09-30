@@ -17,7 +17,7 @@ export function MemberListCardSkeleton({
     return (
         <div
             className={cn(
-                'rounded-xl border border-border bg-card p-4 shadow-card',
+                'rounded-xl border border-border bg-card p-4',
                 className,
             )}
         >

@@ -78,8 +78,8 @@ export function MemberBalanceCards({
                     </AlertDescription>
                 </Alert>
             ) : null}
-            <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex flex-col gap-4 rounded-xl bg-primary p-6 text-primary-foreground">
+            <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+                <div className="flex min-w-0 flex-col gap-4 rounded-xl bg-primary p-6 text-primary-foreground shadow-card">
                     <span className="text-sm font-semibold">
                         Outstanding balance
                     </span>
@@ -128,7 +128,7 @@ export function MemberBalanceCards({
                         </Button>
                     </div>
                 </div>
-                <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6 text-card-foreground">
+                <div className="flex min-w-0 flex-col gap-4 rounded-xl border border-border bg-card p-6 text-card-foreground shadow-card">
                     <span className="text-sm font-semibold text-muted-foreground">
                         Loan security
                     </span>

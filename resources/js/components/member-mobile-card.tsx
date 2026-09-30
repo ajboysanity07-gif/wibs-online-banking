@@ -34,7 +34,7 @@ export function MemberMobileCard({
     footer,
 }: MemberMobileCardProps) {
     return (
-        <div className="rounded-xl border border-border bg-card p-4 shadow-card">
+        <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                     <p className="text-sm font-semibold">{title}</p>
@@ -88,7 +88,7 @@ export function MemberMobileCardSkeleton({
     valueClassName,
 }: MemberMobileCardSkeletonProps) {
     return (
-        <div className="rounded-xl border border-border bg-card p-4 shadow-card">
+        <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
                 <div className="space-y-2">
                     <Skeleton className={cn('h-4 w-24', titleClassName)} />
