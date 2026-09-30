@@ -65,11 +65,9 @@ class LoanRequestDocumentCatalog
         'grepalife' => [
             'template_version' => 'grepalife-v2',
             'applicability' => 'not_one_month_term',
-            'required_fields' => [
-                'beneficiary_primary_name',
-                'beneficiary_primary_relationship',
-                'beneficiary_primary_birthdate',
-            ],
+            // Beneficiaries are optional -- the member may leave the Dependents
+            // step blank, so no beneficiary field gates generation.
+            'required_fields' => [],
             'source_fields' => [
                 'beneficiary_primary_name',
                 'beneficiary_primary_relationship',

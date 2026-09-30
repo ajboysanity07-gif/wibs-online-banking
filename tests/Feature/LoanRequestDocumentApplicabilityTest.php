@@ -74,7 +74,7 @@ test('undertaking barangay becomes applicable once staff enter the barangay agen
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::Applicant)
-        ->create(['employer_business_name' => 'Barangay San Isidro']);
+        ->create(['employment_type' => 'Government', 'employer_business_name' => 'Barangay San Isidro']);
 
     $catalog = app(LoanRequestDocumentCatalog::class);
 
@@ -93,7 +93,7 @@ test('undertaking barangay becomes applicable when the applicant employer name c
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::Applicant)
-        ->create(['employer_business_name' => 'Barangay Poblacion']);
+        ->create(['employment_type' => 'Government', 'employer_business_name' => 'Barangay Poblacion']);
 
     $catalog = app(LoanRequestDocumentCatalog::class);
 
@@ -188,7 +188,7 @@ test('undertaking barangay surfaces incomplete when applicable but its required 
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::Applicant)
-        ->create(['employer_business_name' => 'Barangay San Isidro']);
+        ->create(['employment_type' => 'Government', 'employer_business_name' => 'Barangay San Isidro']);
 
     applicabilityPersistDataEntries($loanRequest, [
         'barangay_agency_name' => ['string', 'Barangay San Isidro'],
@@ -210,7 +210,7 @@ test('undertaking barangay becomes ready to generate once applicable and its req
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::Applicant)
-        ->create(['employer_business_name' => 'Barangay San Isidro']);
+        ->create(['employment_type' => 'Government', 'employer_business_name' => 'Barangay San Isidro']);
 
     applicabilityPersistDataEntries($loanRequest, [
         'barangay_agency_name' => ['string', 'Barangay San Isidro'],
@@ -981,7 +981,7 @@ test('authority to deduct is applicable with 2 recommended officers for a BLGU e
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::Applicant)
-        ->create(['employer_business_name' => 'Barangay San Isidro']);
+        ->create(['employment_type' => 'Government', 'employer_business_name' => 'Barangay San Isidro']);
 
     $catalog = app(LoanRequestDocumentCatalog::class);
     $loanRequest = $loanRequest->fresh();
@@ -1268,7 +1268,7 @@ test('affidavit of undertaking is applicable for a BLGU employee whose payment o
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::Applicant)
-        ->create(['employer_business_name' => 'Barangay San Isidro']);
+        ->create(['employment_type' => 'Government', 'employer_business_name' => 'Barangay San Isidro']);
 
     $catalog = app(LoanRequestDocumentCatalog::class);
     $loanRequest = $loanRequest->fresh();

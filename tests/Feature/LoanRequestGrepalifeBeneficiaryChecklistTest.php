@@ -75,22 +75,8 @@ function grepalifeBeneficiaryChecklistEntry(LoanRequest $loanRequest): array
     return collect($checklist)->firstWhere('key', LoanRequestDocumentKey::Grepalife->value);
 }
 
-test('grepalife still requires the legacy primary beneficiary fields when no dependent is flagged', function (): void {
+test('grepalife does not require a primary beneficiary', function (): void {
     $loanRequest = grepalifeBeneficiaryChecklistLoanRequest();
-
-    $entry = grepalifeBeneficiaryChecklistEntry($loanRequest);
-
-    expect($entry['blockers'])->toContain('Primary beneficiary name is required.')
-        ->and($entry['blockers'])->toContain('Primary beneficiary relationship is required.')
-        ->and($entry['blockers'])->toContain('Primary beneficiary birthdate is required.');
-});
-
-test('a dependent flagged as insurance beneficiary satisfies the primary beneficiary requirement', function (): void {
-    $loanRequest = grepalifeBeneficiaryChecklistLoanRequest();
-
-    grepalifeBeneficiaryChecklistPersistDataEntry($loanRequest, 'dependents', 'dependent_child_1_is_beneficiary', 'boolean', true);
-    grepalifeBeneficiaryChecklistPersistDataEntry($loanRequest, 'dependents', 'dependent_child_1_name', 'string', 'Junior Member');
-    grepalifeBeneficiaryChecklistPersistDataEntry($loanRequest, 'dependents', 'dependent_child_1_birthdate', 'date', '2015-01-01');
 
     $entry = grepalifeBeneficiaryChecklistEntry($loanRequest);
 
