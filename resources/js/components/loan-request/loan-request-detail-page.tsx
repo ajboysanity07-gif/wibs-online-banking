@@ -38,6 +38,10 @@ import {
 } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
+import {
+    LoanRequestFactGrid,
+    type LoanRequestFact,
+} from '@/components/loan-request/loan-request-fact-grid';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import {
@@ -599,11 +603,14 @@ export const LoanRequestSummaryHeader = ({
 export type LoanRequestLoanInformationCardProps = {
     loanRequest: LoanRequestDetail;
     headerAction?: ReactNode;
+    /** Extra label/value cells (release method, repayment method, ...). */
+    extraFacts?: LoanRequestFact[];
 };
 
 export const LoanRequestLoanInformationCard = ({
     loanRequest,
     headerAction,
+    extraFacts = [],
 }: LoanRequestLoanInformationCardProps) => {
     const amount = displayCurrency(loanRequest.requested_amount);
     const loanTypeLabel = displayText(loanRequest.loan_type_label_snapshot);
@@ -626,30 +633,21 @@ export const LoanRequestLoanInformationCard = ({
             headerAction={headerAction ?? null}
             className="border-border bg-card shadow-card"
         >
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <SummaryStat
-                    label="Requested amount"
-                    value={amount}
-                    className="border-primary bg-primary sm:col-span-2 [&_p]:text-primary-foreground [&_p:last-child]:text-xl [&_p:last-child]:tabular-nums"
-                />
-                <SummaryStat label="Loan type" value={loanTypeLabel} />
-                <SummaryStat label="Requested term" value={requestedTerm} />
-                <SummaryStat label="Availment status" value={availmentStatus} />
-                {otherLoanTypeName ? (
-                    <SummaryStat
-                        label="Loan name"
-                        value={otherLoanTypeName}
-                        className="sm:col-span-2"
-                    />
-                ) : null}
-                {loanPurpose ? (
-                    <SummaryStat
-                        label="Loan purpose"
-                        value={loanPurpose}
-                        className="sm:col-span-2"
-                    />
-                ) : null}
-            </div>
+            <LoanRequestFactGrid
+                facts={[
+                    { label: 'Requested amount', value: amount },
+                    { label: 'Loan type', value: loanTypeLabel },
+                    ...(otherLoanTypeName
+                        ? [{ label: 'Loan name', value: otherLoanTypeName }]
+                        : []),
+                    { label: 'Requested term', value: requestedTerm },
+                    { label: 'Availment status', value: availmentStatus },
+                    ...(loanPurpose
+                        ? [{ label: 'Loan purpose', value: loanPurpose }]
+                        : []),
+                    ...extraFacts,
+                ]}
+            />
         </LoanRequestSectionCard>
     );
 };
@@ -802,11 +800,14 @@ const PersonAccordionRow = ({
 export type LoanRequestApplicantCardProps = {
     applicant: LoanRequestPersonData | null;
     headerAction?: ReactNode;
+    /** Staff review shows this in "Needs your attention" instead. */
+    showCategoryMismatch?: boolean;
 };
 
 export const LoanRequestApplicantCard = ({
     applicant,
     headerAction,
+    showCategoryMismatch = true,
 }: LoanRequestApplicantCardProps) => {
     const curatedFields: PersonFieldSpec[] = [
         {
@@ -952,12 +953,14 @@ export const LoanRequestApplicantCard = ({
         },
     ];
 
-    const hasCategoryMismatch = institutionalEmployerCategoryMismatch(
-        applicant?.institutional_employer_category,
-        applicant?.employer_business_name,
-        applicant?.employment_type,
-        applicant?.nature_of_business,
-    );
+    const hasCategoryMismatch =
+        showCategoryMismatch &&
+        institutionalEmployerCategoryMismatch(
+            applicant?.institutional_employer_category,
+            applicant?.employer_business_name,
+            applicant?.employment_type,
+            applicant?.nature_of_business,
+        );
 
     return (
         <LoanRequestSectionCard

@@ -259,7 +259,7 @@ const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
 // suggested default (still staff-editable, same as before).
 const OTHER_LOAN_TYPECODE = '01';
 
-const resolveDefaultLoanSecurityRate = (
+export const resolveDefaultLoanSecurityRate = (
     typecode: string | null | undefined,
 ): number => (typecode === OTHER_LOAN_TYPECODE ? 0.02 : 0.05);
 
@@ -270,7 +270,7 @@ const resolveDefaultLoanSecurityRate = (
 // percentages -- insurance_rate feeds insurance_premium = (amount/1000) *
 // insurance_term * insurance_rate, so the raw table value (e.g. 2.05) must
 // be stored as-is, unlike the other *_rate fields which are true percentages.
-const INSURANCE_RATE_AGE_BANDS: {
+export const INSURANCE_RATE_AGE_BANDS: {
     minAge: number;
     maxAge: number;
     rate: number;
@@ -279,7 +279,9 @@ const INSURANCE_RATE_AGE_BANDS: {
     { minAge: 71, maxAge: 75, rate: 3.95 },
 ];
 
-const calculateAgeFromBirthdate = (birthdate: string | null): number | null => {
+export const calculateAgeFromBirthdate = (
+    birthdate: string | null,
+): number | null => {
     if (!birthdate) {
         return null;
     }
@@ -498,7 +500,7 @@ const hasSecondOfficerValue = (
     );
 };
 
-type RecommendationPreviewState = {
+export type RecommendationPreviewState = {
     approved_amount_raw: number | null;
     service_charge_amount_raw: number | null;
     interest_not_deducted_raw: number | null;
@@ -540,6 +542,11 @@ type ProcessingDetailsPanelProps = {
     onDocumentChecklistPreview?: (
         updates: LoanRequestChecklistPreviewItem[],
     ) => void;
+    // Mirrors the computed preview to the page (read-only) so the
+    // recommendation summary can show net proceeds without recomputing.
+    onPreviewChange?: (preview: RecommendationPreviewState | null) => void;
+    // Bump to open the inline editor from outside (attention card action).
+    openEditSignal?: number;
 };
 
 function ChargeLineItem({
@@ -574,6 +581,8 @@ export function ProcessingDetailsPanel({
     saveError = null,
     onDismissSaveError,
     onDocumentChecklistPreview,
+    onPreviewChange,
+    openEditSignal = 0,
 }: ProcessingDetailsPanelProps) {
     const buildInitialProcessingForm = useCallback(
         (): InlineProcessingFormState => ({
@@ -628,6 +637,16 @@ export function ProcessingDetailsPanel({
     const [isEditing, setIsEditing] = useState(false);
     const [recommendationPreview, setRecommendationPreview] =
         useState<RecommendationPreviewState | null>(null);
+    const [seenEditSignal, setSeenEditSignal] = useState(openEditSignal);
+
+    if (openEditSignal !== seenEditSignal) {
+        setSeenEditSignal(openEditSignal);
+        setIsEditing(canUpdateProcessing);
+    }
+
+    useEffect(() => {
+        onPreviewChange?.(recommendationPreview);
+    }, [onPreviewChange, recommendationPreview]);
     const [reasonError, setReasonError] = useState<string | null>(null);
     const isFirstProcessingSave = loanRequest.is_first_processing_save;
     const [isRecommendationPreviewLoading, setIsRecommendationPreviewLoading] =
