@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     Banknote,
     FileText,
@@ -8,6 +8,7 @@ import {
     ShieldCheck,
     Users,
 } from 'lucide-react';
+import { useEffect } from 'react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -18,6 +19,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import {
     memberLoanRequestsNavMatchOptions,
@@ -137,6 +139,13 @@ const staffWorkflowNavItems = (auth: Auth): NavItem[] => [
 
 export function AppSidebar() {
     const { auth } = usePage<PageProps>().props;
+    const { setOpenMobile } = useSidebar();
+
+    useEffect(
+        () => router.on('navigate', () => setOpenMobile(false)),
+        [setOpenMobile],
+    );
+
     const activeWorkspace = auth.activeWorkspace;
     const hasMemberWorkspace = auth.availableWorkspaces.includes('member');
     const hasStaffWorkspace = auth.availableWorkspaces.includes('staff');

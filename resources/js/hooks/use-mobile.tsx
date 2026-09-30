@@ -1,36 +1,28 @@
-import { useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
-const MOBILE_BREAKPOINT = 768;
+const DEFAULT_MOBILE_BREAKPOINT = 768;
 
-const mql =
-    typeof window === 'undefined'
-        ? undefined
-        : window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+export function useIsMobile(breakpoint = DEFAULT_MOBILE_BREAKPOINT): boolean {
+    const query = `(max-width: ${breakpoint - 1}px)`;
 
-function mediaQueryListener(callback: (event: MediaQueryListEvent) => void) {
-    if (!mql) {
-        return () => {};
-    }
+    const subscribe = useCallback(
+        (callback: () => void) => {
+            if (typeof window === 'undefined') {
+                return () => {};
+            }
 
-    mql.addEventListener('change', callback);
+            const mql = window.matchMedia(query);
 
-    return () => {
-        mql.removeEventListener('change', callback);
-    };
-}
+            mql.addEventListener('change', callback);
 
-function isSmallerThanBreakpoint(): boolean {
-    return mql?.matches ?? false;
-}
+            return () => mql.removeEventListener('change', callback);
+        },
+        [query],
+    );
 
-function getServerSnapshot(): boolean {
-    return false;
-}
-
-export function useIsMobile(): boolean {
     return useSyncExternalStore(
-        mediaQueryListener,
-        isSmallerThanBreakpoint,
-        getServerSnapshot,
+        subscribe,
+        () => window.matchMedia(query).matches,
+        () => false,
     );
 }

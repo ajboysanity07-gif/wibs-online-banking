@@ -35,7 +35,7 @@ export function PageHero({
                         </p>
                     ) : null}
                     <div className="space-y-2">
-                        <h1 className="text-3xl font-bold tracking-tight">
+                        <h1 className="text-[26px] leading-tight font-bold tracking-tight lg:text-[32px]">
                             {title}
                         </h1>
                         {description ? (
@@ -51,7 +51,7 @@ export function PageHero({
                     ) : null}
                 </div>
                 {rightSlot ? (
-                    <div className="flex w-full flex-wrap items-center gap-2 rounded-lg bg-card p-2 text-card-foreground lg:w-auto lg:justify-end">
+                    <div className="flex w-full flex-wrap items-center gap-2 rounded-lg bg-card p-2 text-card-foreground max-sm:[&>*]:w-full lg:w-auto lg:justify-end">
                         {rightSlot}
                     </div>
                 ) : null}
