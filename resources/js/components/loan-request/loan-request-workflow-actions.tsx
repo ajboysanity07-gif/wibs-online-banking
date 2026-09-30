@@ -1,6 +1,11 @@
 import { Loader2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
+import {
+    LoanRequestActionBar,
+    type LoanRequestBarAction,
+    type LoanRequestBarDirectAction,
+} from '@/components/loan-request/loan-request-action-bar';
 import { fractionToPercentDisplay } from '@/components/loan-request/numeric-adorned-inputs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -134,6 +139,15 @@ export type LoanRequestWorkflowProps = {
 type Props = {
     loanRequest: LoanRequestDetail;
     workflow?: LoanRequestWorkflowProps;
+    /**
+     * `panel` = grouped buttons in the sidebar card (default).
+     * `header` = compact action bar for the sticky decision header.
+     */
+    layout?: 'panel' | 'header';
+    /** Extra action owned by the page (e.g. the member-action sheet). */
+    memberAction?: { show: boolean; onSelect: () => void };
+    /** Header layout only: disables Recommend approval and says why. */
+    recommendBlockedReason?: string | null;
 };
 
 const textareaClassName =
@@ -222,7 +236,14 @@ function ActionButtonLabel({
     );
 }
 
-export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
+export function LoanRequestWorkflowActions({
+    loanRequest,
+    workflow,
+    layout = 'panel',
+    memberAction,
+    recommendBlockedReason = null,
+}: Props) {
+    const isPanel = layout === 'panel';
     const [isAssignOpen, setIsAssignOpen] = useState(false);
     const [isReassignOpen, setIsReassignOpen] = useState(false);
     const [isReturnToQueueOpen, setIsReturnToQueueOpen] = useState(false);
@@ -838,9 +859,132 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
         }
     };
 
+    const barPrimary: LoanRequestBarAction | undefined = workflow?.approve?.show
+        ? {
+              key: 'approve',
+              label: 'Approve',
+              onSelect: () => setIsApproveOpen(true),
+              isProcessing: workflow.approve.isProcessing,
+          }
+        : workflow?.recommendApproval?.show
+          ? {
+                key: 'recommend',
+                label: 'Recommend approval',
+                onSelect: () => setIsRecommendOpen(true),
+                isProcessing: workflow.recommendApproval.isProcessing,
+                blockedReason: recommendBlockedReason,
+            }
+          : workflow?.startReview?.show
+            ? {
+                  key: 'start-review',
+                  label: 'Start review',
+                  onSelect: () =>
+                      void workflow.startReview?.onSubmit?.({ remarks: null }),
+                  isProcessing: workflow.startReview.isProcessing,
+              }
+            : workflow?.claim?.show
+              ? {
+                    key: 'claim',
+                    label: 'Claim',
+                    onSelect: () => void workflow.claim?.onSubmit?.(),
+                    isProcessing: workflow.claim.isProcessing,
+                }
+              : undefined;
+    const barDirect = (
+        [
+            workflow?.returnToQueue?.show && {
+                key: 'return-to-queue',
+                label: 'Return to queue',
+                tone: 'ghost' as const,
+                onSelect: () => setIsReturnToQueueOpen(true),
+                isProcessing: workflow.returnToQueue.isProcessing,
+            },
+            memberAction?.show && {
+                key: 'member-action',
+                label: 'Request member action',
+                tone: 'outline' as const,
+                onSelect: memberAction.onSelect,
+            },
+            workflow?.reject?.show && {
+                key: 'reject',
+                label: 'Reject',
+                tone: 'destructive' as const,
+                onSelect: () => setIsRejectOpen(true),
+                isProcessing: workflow.reject.isProcessing,
+            },
+            workflow?.rejectDuringProcessing?.show && {
+                key: 'reject-during-processing',
+                label: 'Reject during processing',
+                tone: 'destructive' as const,
+                onSelect: () => setIsRejectDuringProcessingOpen(true),
+                isProcessing: workflow.rejectDuringProcessing.isProcessing,
+            },
+            workflow?.decline?.show && {
+                key: 'decline',
+                label: 'Decline',
+                tone: 'destructive' as const,
+                onSelect: () => setIsDeclineOpen(true),
+                isProcessing: workflow.decline.isProcessing,
+            },
+        ] as (LoanRequestBarDirectAction | false | undefined)[]
+    ).filter((action) => !!action) as LoanRequestBarDirectAction[];
+    const barOverflow = (
+        [
+            workflow?.assign?.show && {
+                key: 'assign',
+                label: 'Assign Loan Processor',
+                onSelect: () => setIsAssignOpen(true),
+                isProcessing: workflow.assign.isProcessing,
+            },
+            workflow?.reassign?.show && {
+                key: 'reassign',
+                label: 'Reassign Loan Processor',
+                onSelect: () => setIsReassignOpen(true),
+                isProcessing: workflow.reassign.isProcessing,
+            },
+            workflow?.requestRevision?.show && {
+                key: 'request-revision',
+                label: 'Request revision',
+                onSelect: () => setIsRequestRevisionOpen(true),
+                isProcessing: workflow.requestRevision.isProcessing,
+            },
+            workflow?.returnForProcessing?.show && {
+                key: 'return-for-processing',
+                label: 'Return for processing',
+                onSelect: () => setIsReturnForProcessingOpen(true),
+                isProcessing: workflow.returnForProcessing.isProcessing,
+            },
+            workflow?.reopen?.show && {
+                key: 'reopen',
+                label: 'Reopen rejected request',
+                onSelect: () => setIsReopenOpen(true),
+                isProcessing: workflow.reopen.isProcessing,
+            },
+            workflow?.upgradeWorkflow?.show && {
+                key: 'upgrade-workflow',
+                label: 'Upgrade to Document Workflow v2',
+                onSelect: () => setIsUpgradeWorkflowOpen(true),
+                isProcessing: workflow.upgradeWorkflow.isProcessing,
+            },
+            workflow?.revertStatus?.show && {
+                key: 'revert-status',
+                label: 'Revert status',
+                onSelect: () => setIsRevertStatusOpen(true),
+                isProcessing: workflow.revertStatus.isProcessing,
+            },
+        ] as (LoanRequestBarAction | false | undefined)[]
+    ).filter((action) => !!action) as LoanRequestBarAction[];
+
     return (
         <>
-            {hasAssignmentActions ? (
+            {!isPanel ? (
+                <LoanRequestActionBar
+                    direct={barDirect}
+                    primary={barPrimary}
+                    overflow={barOverflow}
+                />
+            ) : null}
+            {isPanel && hasAssignmentActions ? (
                 <div className="space-y-3">
                     <div className="space-y-1">
                         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -907,7 +1051,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                 </div>
             ) : null}
 
-            {hasOfficerActions ? (
+            {isPanel && hasOfficerActions ? (
                 <div className="space-y-3">
                     <div className="space-y-1">
                         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -978,7 +1122,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                 </div>
             ) : null}
 
-            {hasProcessingActions ? (
+            {isPanel && hasProcessingActions ? (
                 <div className="space-y-3">
                     <div className="space-y-1">
                         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -1047,7 +1191,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                 </div>
             ) : null}
 
-            {hasSuperadminActions ? (
+            {isPanel && hasSuperadminActions ? (
                 <div className="space-y-3">
                     <div className="space-y-1">
                         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -1076,7 +1220,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                 </div>
             ) : null}
 
-            {hasManagerActions ? (
+            {isPanel && hasManagerActions ? (
                 <div className="space-y-3">
                     <div className="space-y-1">
                         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">

@@ -10,15 +10,14 @@ import {
 import { useEffect, useState, type FormEvent } from 'react';
 import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
+import { LoanRequestDecisionHeader } from '@/components/loan-request/loan-request-decision-header';
 import {
     LoanRequestApplicantCard,
     LoanRequestCoMakersCard,
     LoanRequestDetailPage,
     LoanRequestLoanInformationCard,
-    LoanRequestSummaryHeader,
-    displayCurrency,
     displayText,
-    displayValue,
+    personName,
 } from '@/components/loan-request/loan-request-detail-page';
 import { LoanRequestDocumentChecklistCard } from '@/components/loan-request/loan-request-document-checklist-card';
 import {
@@ -31,6 +30,8 @@ import {
     KIND_OF_LOAN_OPTIONS,
     OTHER_LOAN_TYPECODE,
 } from '@/components/loan-request/loan-request-steps';
+import type { LoanRequestWorkflowProps } from '@/components/loan-request/loan-request-workflow-actions';
+import { LoanRequestWorkflowActions } from '@/components/loan-request/loan-request-workflow-actions';
 import { LoanStatusWarning } from '@/components/loan-request/loan-status-warning';
 import {
     CurrencyInput,
@@ -320,6 +321,28 @@ const toLoanInfoForm = (request: LoanRequestDetail): LoanInfoFormState => ({
     loan_purpose: request.loan_purpose ?? '',
     availment_status: request.availment_status ?? '',
 });
+
+// Mirrors LoanRequestDocumentWorkflowService::blockersForRecommendation.
+// Phase 4 adds conditions and exceptions to the same reasons list.
+const recommendBlockedReason = (
+    documents: LoanRequestDocumentChecklistItem[],
+    enforced: boolean,
+): string | null => {
+    if (!enforced) {
+        return null;
+    }
+
+    const applicable = documents.filter((document) => document.is_applicable);
+    const current = applicable.filter(
+        (document) => document.status === 'generated_current',
+    ).length;
+
+    if (current === applicable.length) {
+        return null;
+    }
+
+    return `Documents not all current (${current}/${applicable.length}) to clear before you can recommend approval.`;
+};
 
 export default function StaffLoanRequestShow({
     loanRequest,
@@ -781,6 +804,9 @@ export default function StaffLoanRequestShow({
         ].includes(currentRequest.status ?? '');
     const isWorkflowProcessing =
         workflowProcessingIds[currentRequest.id] ?? false;
+    const blockedReason = canRecommendApproval
+        ? recommendBlockedReason(currentDocumentChecklist, isV2Workflow)
+        : null;
     const memberFieldDefinitions = Object.entries(
         dataSectionDefinitions,
     ).flatMap(([sectionKey, section]) =>
@@ -1055,22 +1081,6 @@ export default function StaffLoanRequestShow({
     const submittedAt = currentRequest.submitted_at
         ? formatDate(currentRequest.submitted_at)
         : null;
-    const summarySubmittedLabel = submittedAt
-        ? `Submitted ${submittedAt}`
-        : 'Not submitted yet';
-    const summaryAmount = displayCurrency(currentRequest.requested_amount);
-    const summaryLoanTypeLabel = displayText(
-        currentRequest.loan_type_label_snapshot,
-    );
-    const summaryRequestedTerm =
-        currentRequest.requested_term !== null &&
-        currentRequest.requested_term !== undefined &&
-        `${currentRequest.requested_term}`.trim() !== ''
-            ? `${currentRequest.requested_term} months`
-            : '--';
-    const summaryAvailmentStatus = displayValue(
-        currentRequest.availment_status,
-    );
 
     const processingWorkflowActions = {
         rejectDuringProcessing: canRejectDuringProcessing
@@ -1157,6 +1167,92 @@ export default function StaffLoanRequestShow({
           })()
         : null;
 
+    const workflowProps: LoanRequestWorkflowProps = {
+        claim:
+            canClaim && !canStartReview
+                ? {
+                      show: true,
+                      isProcessing: isWorkflowProcessing,
+                      onSubmit: () => claimLoanRequest(currentRequest.id),
+                  }
+                : undefined,
+        assign: canAssign
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  officerOptions: currentEligibleOfficers,
+                  onSubmit: (payload) =>
+                      assignLoanRequest(currentRequest.id, payload),
+              }
+            : undefined,
+        reassign: canReassign
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  officerOptions: currentEligibleOfficers,
+                  onSubmit: (payload) =>
+                      reassignLoanRequest(currentRequest.id, payload),
+              }
+            : undefined,
+        returnToQueue: canReturnToQueue
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  onSubmit: (payload) =>
+                      returnLoanRequestToQueue(currentRequest.id, payload),
+              }
+            : undefined,
+        startReview: canStartReview
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  onSubmit: (payload) =>
+                      startReview(currentRequest.id, payload),
+              }
+            : undefined,
+        requestRevision: canRequestRevision
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  onSubmit: (payload) =>
+                      requestRevision(currentRequest.id, payload),
+              }
+            : undefined,
+        reject: canReject
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  onSubmit: (payload) =>
+                      rejectLoanRequest(currentRequest.id, payload),
+              }
+            : undefined,
+        recommendApproval: canRecommendApproval
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  onSubmit: (payload) =>
+                      recommendApproval(currentRequest.id, payload),
+              }
+            : undefined,
+        approve: canWorkflowApprove
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  onSubmit: (payload) =>
+                      approveLoanRequest(currentRequest.id, payload),
+              }
+            : undefined,
+        decline: canWorkflowDecline
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  onSubmit: (payload) =>
+                      declineLoanRequest(currentRequest.id, payload),
+              }
+            : undefined,
+        ...processingWorkflowActions,
+    };
+
     const actionsHeaderContent = (
         <>
             <div className="flex flex-wrap items-center gap-2">
@@ -1208,17 +1304,6 @@ export default function StaffLoanRequestShow({
                         ) : null}
                     </AlertDescription>
                 </Alert>
-            ) : null}
-            {canRequestMemberAction ? (
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full justify-start"
-                    disabled={isWorkflowProcessing}
-                    onClick={() => setIsMemberActionDialogOpen(true)}
-                >
-                    Request Member Action
-                </Button>
             ) : null}
         </>
     );
@@ -1400,21 +1485,43 @@ export default function StaffLoanRequestShow({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            <section className="mx-auto mt-6 mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                <LoanRequestSummaryHeader
-                    reference={currentRequest.reference}
-                    status={currentRequest.status}
-                    submittedLabel={summarySubmittedLabel}
-                    amount={summaryAmount}
-                    loanTypeLabel={summaryLoanTypeLabel}
-                    requestedTerm={summaryRequestedTerm}
-                    availmentStatus={summaryAvailmentStatus}
-                    loanPurpose={displayText(currentRequest.loan_purpose)}
-                    hideLoanSummary
+            <LoanRequestDecisionHeader
+                reference={currentRequest.reference}
+                status={currentRequest.status}
+                details={[
+                    personName(currentApplicant),
+                    displayText(currentRequest.loan_type_label_snapshot),
+                    submittedAt
+                        ? `Submitted ${submittedAt}`
+                        : 'Not submitted yet',
+                    assignedProcessorId === null
+                        ? 'Unassigned'
+                        : `Assigned to ${
+                              currentRequest.assigned_processor?.name ??
+                              currentRequest.assigned_officer?.name ??
+                              'processor'
+                          }`,
+                ]}
+                age={{
+                    days: currentWorkflowHealth.processing_age_days,
+                    targetDays: PROCESSING_AGE_ISSUE_THRESHOLD_DAYS,
+                }}
+                blockedNote={blockedReason}
+            >
+                <LoanRequestWorkflowActions
+                    layout="header"
+                    loanRequest={currentRequest}
+                    workflow={workflowProps}
+                    memberAction={{
+                        show: canRequestMemberAction,
+                        onSelect: () => setIsMemberActionDialogOpen(true),
+                    }}
+                    recommendBlockedReason={blockedReason}
                 />
+            </LoanRequestDecisionHeader>
+            <section className="mx-auto mt-6 mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <LoanStatusWarning
                     loanStatus={currentRequest.applicant_loan_status}
-                    className="mt-4"
                 />
                 {managerStageAlert ? (
                     <Alert
@@ -2202,124 +2309,6 @@ export default function StaffLoanRequestShow({
                             approvedDocumentHrefs={approvedDocumentHrefs}
                             auditTrail={currentAuditTrail}
                             auditTrailAudience="staff"
-                            workflow={{
-                                claim:
-                                    canClaim && !canStartReview
-                                        ? {
-                                              show: true,
-                                              isProcessing:
-                                                  isWorkflowProcessing,
-                                              onSubmit: () =>
-                                                  claimLoanRequest(
-                                                      currentRequest.id,
-                                                  ),
-                                          }
-                                        : undefined,
-                                assign: canAssign
-                                    ? {
-                                          show: true,
-                                          isProcessing: isWorkflowProcessing,
-                                          officerOptions:
-                                              currentEligibleOfficers,
-                                          onSubmit: (payload) =>
-                                              assignLoanRequest(
-                                                  currentRequest.id,
-                                                  payload,
-                                              ),
-                                      }
-                                    : undefined,
-                                reassign: canReassign
-                                    ? {
-                                          show: true,
-                                          isProcessing: isWorkflowProcessing,
-                                          officerOptions:
-                                              currentEligibleOfficers,
-                                          onSubmit: (payload) =>
-                                              reassignLoanRequest(
-                                                  currentRequest.id,
-                                                  payload,
-                                              ),
-                                      }
-                                    : undefined,
-                                returnToQueue: canReturnToQueue
-                                    ? {
-                                          show: true,
-                                          isProcessing: isWorkflowProcessing,
-                                          onSubmit: (payload) =>
-                                              returnLoanRequestToQueue(
-                                                  currentRequest.id,
-                                                  payload,
-                                              ),
-                                      }
-                                    : undefined,
-                                startReview: canStartReview
-                                    ? {
-                                          show: true,
-                                          isProcessing: isWorkflowProcessing,
-                                          onSubmit: (payload) =>
-                                              startReview(
-                                                  currentRequest.id,
-                                                  payload,
-                                              ),
-                                      }
-                                    : undefined,
-                                requestRevision: canRequestRevision
-                                    ? {
-                                          show: true,
-                                          isProcessing: isWorkflowProcessing,
-                                          onSubmit: (payload) =>
-                                              requestRevision(
-                                                  currentRequest.id,
-                                                  payload,
-                                              ),
-                                      }
-                                    : undefined,
-                                reject: canReject
-                                    ? {
-                                          show: true,
-                                          isProcessing: isWorkflowProcessing,
-                                          onSubmit: (payload) =>
-                                              rejectLoanRequest(
-                                                  currentRequest.id,
-                                                  payload,
-                                              ),
-                                      }
-                                    : undefined,
-                                recommendApproval: canRecommendApproval
-                                    ? {
-                                          show: true,
-                                          isProcessing: isWorkflowProcessing,
-                                          onSubmit: (payload) =>
-                                              recommendApproval(
-                                                  currentRequest.id,
-                                                  payload,
-                                              ),
-                                      }
-                                    : undefined,
-                                approve: canWorkflowApprove
-                                    ? {
-                                          show: true,
-                                          isProcessing: isWorkflowProcessing,
-                                          onSubmit: (payload) =>
-                                              approveLoanRequest(
-                                                  currentRequest.id,
-                                                  payload,
-                                              ),
-                                      }
-                                    : undefined,
-                                decline: canWorkflowDecline
-                                    ? {
-                                          show: true,
-                                          isProcessing: isWorkflowProcessing,
-                                          onSubmit: (payload) =>
-                                              declineLoanRequest(
-                                                  currentRequest.id,
-                                                  payload,
-                                              ),
-                                      }
-                                    : undefined,
-                                ...processingWorkflowActions,
-                            }}
                             actionsPanelHeader={actionsHeaderContent}
                             hideSummaryHeader
                             hideMainColumn
@@ -2329,6 +2318,9 @@ export default function StaffLoanRequestShow({
                     </div>
                 </div>
             </section>
+
+            {/* Keeps the mobile action bar from covering the last card. */}
+            <div aria-hidden className="h-24 sm:hidden" />
 
             <Sheet
                 open={isMemberActionDialogOpen}

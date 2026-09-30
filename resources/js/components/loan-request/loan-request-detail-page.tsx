@@ -148,7 +148,7 @@ type ApprovedDocumentHrefs = {
     packageZip?: string | null;
 };
 
-const personName = (person?: LoanRequestPersonData | null): string => {
+export const personName = (person?: LoanRequestPersonData | null): string => {
     if (!person) {
         return '--';
     }
