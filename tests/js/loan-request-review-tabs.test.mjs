@@ -8,7 +8,7 @@ const path = (...parts) => resolve('resources', 'js', ...parts);
 const read = (...parts) => readFile(path(...parts), 'utf8');
 const load = (...parts) => import(pathToFileURL(path(...parts)).href);
 
-test('review tab hash parsing falls back to overview', async () => {
+test('section hash parsing maps legacy tab hashes and falls back to summary', async () => {
     const { parseReviewTabHash, REVIEW_TABS } = await load(
         'lib',
         'loan-request-review-tab.ts',
@@ -16,26 +16,86 @@ test('review tab hash parsing falls back to overview', async () => {
 
     assert.deepEqual(
         REVIEW_TABS.map((tab) => tab.id),
-        ['overview', 'applicant', 'co-makers', 'documents', 'activity'],
+        ['summary', 'applicant', 'terms', 'signatories', 'docs', 'history'],
     );
-    assert.equal(parseReviewTabHash('#documents'), 'documents');
-    assert.equal(parseReviewTabHash('co-makers'), 'co-makers');
-    assert.equal(parseReviewTabHash(''), 'overview');
-    assert.equal(parseReviewTabHash('#nope'), 'overview');
+    assert.equal(parseReviewTabHash('#docs'), 'docs');
+    assert.equal(parseReviewTabHash('terms'), 'terms');
+    assert.equal(parseReviewTabHash('#overview'), 'summary');
+    assert.equal(parseReviewTabHash('#documents'), 'docs');
+    assert.equal(parseReviewTabHash('#activity'), 'history');
+    assert.equal(parseReviewTabHash('#co-makers'), 'applicant');
+    assert.equal(parseReviewTabHash(''), 'summary');
+    assert.equal(parseReviewTabHash('#nope'), 'summary');
 });
 
-test('arrow keys wrap around the tab row and Home/End jump to the ends', async () => {
+test('both arrow pairs wrap around the section list and Home/End jump to the ends', async () => {
     const { nextReviewTab } = await load('lib', 'loan-request-review-tab.ts');
 
-    assert.equal(nextReviewTab('overview', 'ArrowRight'), 'applicant');
-    assert.equal(nextReviewTab('activity', 'ArrowRight'), 'overview');
-    assert.equal(nextReviewTab('overview', 'ArrowLeft'), 'activity');
-    assert.equal(nextReviewTab('documents', 'Home'), 'overview');
-    assert.equal(nextReviewTab('documents', 'End'), 'activity');
-    assert.equal(nextReviewTab('documents', 'Enter'), null);
+    assert.equal(nextReviewTab('summary', 'ArrowDown'), 'applicant');
+    assert.equal(nextReviewTab('summary', 'ArrowRight'), 'applicant');
+    assert.equal(nextReviewTab('history', 'ArrowDown'), 'summary');
+    assert.equal(nextReviewTab('summary', 'ArrowUp'), 'history');
+    assert.equal(nextReviewTab('summary', 'ArrowLeft'), 'history');
+    assert.equal(nextReviewTab('docs', 'Home'), 'summary');
+    assert.equal(nextReviewTab('docs', 'End'), 'history');
+    assert.equal(nextReviewTab('docs', 'Enter'), null);
 });
 
-test('staff page renders every tab panel mounted, with counts and cross-tab jumps', async () => {
+test('section badges: missing signatory blockers and current/total documents', async () => {
+    const { hasMissingSignatory, documentPackageCounts } = await load(
+        'lib',
+        'loan-request-review-tab.ts',
+    );
+    const definitions = {
+        processing: {
+            label: 'Processing',
+            fields: { witness_one_name: { label: 'Witness 1 name' } },
+        },
+    };
+    const doc = (overrides) => ({
+        is_applicable: true,
+        status: 'ready_to_generate',
+        blockers: [],
+        ...overrides,
+    });
+
+    assert.equal(
+        hasMissingSignatory(
+            [doc({ blockers: ['Witness 1 name is required.'] })],
+            definitions,
+        ),
+        true,
+    );
+    assert.equal(
+        hasMissingSignatory(
+            [
+                doc({
+                    is_applicable: false,
+                    blockers: ['Witness 1 name is required.'],
+                }),
+            ],
+            definitions,
+        ),
+        false,
+    );
+    assert.equal(
+        hasMissingSignatory(
+            [doc({ blockers: ['Notarial fee is required.'] })],
+            definitions,
+        ),
+        false,
+    );
+    assert.deepEqual(
+        documentPackageCounts([
+            doc({ status: 'generated_current' }),
+            doc({ status: 'generated_stale' }),
+            doc({ is_applicable: false, status: 'generated_current' }),
+        ]),
+        { current: 1, total: 2 },
+    );
+});
+
+test('staff page renders every section panel mounted in a three-pane grid', async () => {
     const page = await read('pages', 'staff', 'loan-request-show.tsx');
     const tabs = await read(
         'components',
@@ -44,22 +104,31 @@ test('staff page renders every tab panel mounted, with counts and cross-tab jump
     );
 
     for (const id of [
-        'overview',
+        'summary',
         'applicant',
-        'co-makers',
-        'documents',
-        'activity',
+        'terms',
+        'signatories',
+        'docs',
+        'history',
     ]) {
         assert.match(page, new RegExp(`<ReviewTabPanel id="${id}"`));
     }
 
-    // Counts on Documents (applicable) and Activity (audit entries).
-    assert.match(page, /documents: currentDocumentChecklist\.filter/);
-    assert.match(page, /activity: currentAuditTrail\.length/);
-    // Attention actions and "Full profile" switch tab first.
-    assert.match(page, /goToTab\(\s*'overview',\s*'processing-details',?\s*\)/);
-    assert.match(page, /goToTab\(\s*'documents',\s*'document-checklist',?\s*\)/);
+    assert.match(
+        page,
+        /lg:grid-cols-\[210px_minmax\(0,1fr\)\] xl:grid-cols-\[210px_minmax\(0,1fr\)_320px\]/,
+    );
+    assert.match(page, /max-w-\[1440px\]/);
+    assert.match(
+        page,
+        /lg:col-span-full xl:sticky xl:top-\[72px\] xl:col-span-1/,
+    );
+    // Attention actions and "Full profile" switch section first.
+    assert.match(page, /goToTab\(\s*'terms',\s*'processing-details',?\s*\)/);
+    assert.match(page, /goToTab\(\s*'docs',\s*'document-checklist',?\s*\)/);
     assert.match(page, /onFullProfile=\{\(\) => goToTab\('applicant'\)\}/);
+    assert.match(page, /hasMissingSignatory\(/);
+    assert.match(page, /label: `\$\{currentAuditTrail\.length\}`/);
 
     // Hash-backed, accessible tablist; hidden panels stay mounted.
     assert.match(tabs, /window\.addEventListener\('hashchange'/);
@@ -67,6 +136,8 @@ test('staff page renders every tab panel mounted, with counts and cross-tab jump
     assert.match(tabs, /role="tab"/);
     assert.match(tabs, /aria-selected=\{active\}/);
     assert.match(tabs, /hidden=\{tab !== id\}/);
+    assert.match(tabs, /lg:sticky lg:top-\[72px\]/);
+    assert.match(tabs, /shadow-\[inset_3px_0_0_var\(--primary\)\]/);
     assert.match(tabs, /\[&::-webkit-scrollbar\]:hidden/);
 });
 

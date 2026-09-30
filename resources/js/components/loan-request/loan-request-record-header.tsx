@@ -26,8 +26,6 @@ type Props = {
     previousStatus?: LoanRequestStatusValue | null;
     /** Workflow action bar. */
     children?: ReactNode;
-    /** Tabs row (until the section list replaces it). */
-    tabs?: ReactNode;
 };
 
 const chevron =
@@ -41,13 +39,12 @@ export function LoanRequestRecordHeader({
     figures,
     previousStatus,
     children,
-    tabs,
 }: Props) {
     const { step, held } = resolveLoanRequestProgress(status, previousStatus);
 
     return (
         <div className="border-b border-border bg-card shadow-card">
-            <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-4 px-4 pt-4 pb-3 sm:px-6 lg:px-8">
+            <div className="mx-auto flex w-full max-w-[1440px] flex-wrap items-center gap-4 px-4 pt-4 pb-3 sm:px-6 lg:px-8">
                 <div className="min-w-0 flex-1 basis-72">
                     <p className="text-xs font-semibold tracking-wide text-muted-foreground">
                         {eyebrow}
@@ -65,7 +62,7 @@ export function LoanRequestRecordHeader({
                 {children}
             </div>
 
-            <dl className="mx-auto scrollbar-hide flex w-full max-w-7xl overflow-x-auto px-4 pb-3.5 sm:px-6 lg:px-8">
+            <dl className="mx-auto scrollbar-hide flex w-full max-w-[1440px] overflow-x-auto px-4 pb-3.5 sm:px-6 lg:px-8">
                 {figures.map((figure) => (
                     <div
                         key={figure.label}
@@ -93,7 +90,7 @@ export function LoanRequestRecordHeader({
                 ))}
             </dl>
 
-            <div className="mx-auto w-full max-w-7xl px-4 pb-3.5 sm:px-6 lg:px-8">
+            <div className="mx-auto w-full max-w-[1440px] px-4 pb-3.5 sm:px-6 lg:px-8">
                 <ol
                     aria-label="Stage"
                     className="scrollbar-hide flex gap-[3px] overflow-x-auto"
@@ -146,7 +143,6 @@ export function LoanRequestRecordHeader({
                     )}
                 </p>
             </div>
-            {tabs}
         </div>
     );
 }

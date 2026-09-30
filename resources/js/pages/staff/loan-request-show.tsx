@@ -94,7 +94,11 @@ import { formatCurrency, formatDateTime } from '@/lib/formatters';
 import { institutionalEmployerCategoryMismatch } from '@/lib/institutional-employer-category';
 import { buildAttentionRows } from '@/lib/loan-request-attention';
 import { buildRecommendGates } from '@/lib/loan-request-gates';
-import type { ReviewTabId } from '@/lib/loan-request-review-tab';
+import {
+    documentPackageCounts,
+    hasMissingSignatory,
+    type ReviewTabId,
+} from '@/lib/loan-request-review-tab';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import {
@@ -1190,6 +1194,7 @@ export default function StaffLoanRequestShow({
                   )[0]?.from_status ?? null)
             : null;
 
+    const documentCounts = documentPackageCounts(currentDocumentChecklist);
     const loanName =
         currentRequest.other_loan_type_name ?? currentRequest.kind_of_loan;
     const toAmount = (value: number | string | null) =>
@@ -1362,18 +1367,6 @@ export default function StaffLoanRequestShow({
                 previousStatus={cancelledFromStatus}
                 applicantName={personName(currentApplicant)}
                 figures={headerFigures}
-                tabs={
-                    <LoanRequestReviewTabs
-                        tab={tab}
-                        onSelect={setTab}
-                        counts={{
-                            documents: currentDocumentChecklist.filter(
-                                (document) => document.is_applicable,
-                            ).length,
-                            activity: currentAuditTrail.length,
-                        }}
-                    />
-                }
             >
                 <LoanRequestWorkflowActions
                     layout="header"
@@ -1386,10 +1379,37 @@ export default function StaffLoanRequestShow({
                     recommendBlockedReason={blockedReason}
                 />
             </LoanRequestRecordHeader>
-            <section className="mx-auto my-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <section className="mx-auto my-5 w-full max-w-[1440px] px-4 sm:px-6 lg:px-8">
+                <div className="grid items-start gap-[18px] lg:grid-cols-[210px_minmax(0,1fr)] xl:grid-cols-[210px_minmax(0,1fr)_320px]">
+                    <LoanRequestReviewTabs
+                        tab={tab}
+                        onSelect={setTab}
+                        badges={{
+                            signatories: hasMissingSignatory(
+                                currentDocumentChecklist,
+                                dataSectionDefinitions,
+                            )
+                                ? { label: '!', tone: 'destructive' }
+                                : null,
+                            docs:
+                                documentCounts.total > 0
+                                    ? {
+                                          label: `${documentCounts.current}/${documentCounts.total}`,
+                                          tone:
+                                              documentCounts.current ===
+                                              documentCounts.total
+                                                  ? 'success'
+                                                  : 'warning',
+                                      }
+                                    : null,
+                            history: {
+                                label: `${currentAuditTrail.length}`,
+                                tone: 'muted',
+                            },
+                        }}
+                    />
                     <div className="min-w-0">
-                        <ReviewTabPanel id="overview" tab={tab}>
+                        <ReviewTabPanel id="summary" tab={tab}>
                             <LoanRequestAttentionCard
                                 rows={attention.rows}
                                 blockingCount={attention.blockingCount}
@@ -1399,15 +1419,9 @@ export default function StaffLoanRequestShow({
                                 onAction={(key) => {
                                     if (key === 'edit-category') {
                                         setProcessingEditSignal((n) => n + 1);
-                                        goToTab(
-                                            'overview',
-                                            'processing-details',
-                                        );
+                                        goToTab('terms', 'processing-details');
                                     } else {
-                                        goToTab(
-                                            'documents',
-                                            'document-checklist',
-                                        );
+                                        goToTab('docs', 'document-checklist');
                                     }
                                 }}
                             />
@@ -1706,6 +1720,13 @@ export default function StaffLoanRequestShow({
                                 />
                             </div>
 
+                            <LoanRequestConditionsCard
+                                conditions={currentConditions}
+                                pendingKey={conditionPendingKey}
+                                onToggle={toggleCondition}
+                            />
+                        </ReviewTabPanel>
+                        <ReviewTabPanel id="terms" tab={tab}>
                             {showProcessingSection ? (
                                 <div
                                     id="processing-details"
@@ -1752,11 +1773,43 @@ export default function StaffLoanRequestShow({
                                     />
                                 </div>
                             ) : null}
-                            <LoanRequestConditionsCard
-                                conditions={currentConditions}
-                                pendingKey={conditionPendingKey}
-                                onToggle={toggleCondition}
-                            />
+                            {!showProcessingSection ? (
+                                <LoanRequestSectionCard title="Terms and charges">
+                                    <p className="text-sm text-muted-foreground">
+                                        Processing details become available once
+                                        the request is in processing.
+                                    </p>
+                                </LoanRequestSectionCard>
+                            ) : null}
+                        </ReviewTabPanel>
+                        <ReviewTabPanel id="signatories" tab={tab}>
+                            <LoanRequestSectionCard
+                                title="Signatories and insurance"
+                                headerAction={
+                                    showProcessingSection ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() =>
+                                                goToTab(
+                                                    'terms',
+                                                    'processing-details',
+                                                )
+                                            }
+                                        >
+                                            Open in Terms &amp; charges
+                                        </Button>
+                                    ) : undefined
+                                }
+                            >
+                                {/* ponytail: pointer until Phase 3 splits the signatory fields out of ProcessingDetailsPanel. */}
+                                <p className="text-sm text-muted-foreground">
+                                    Witnesses, authority-to-deduct officers and
+                                    insurance cycles are edited with the
+                                    processing details.
+                                </p>
+                            </LoanRequestSectionCard>
                         </ReviewTabPanel>
                         <ReviewTabPanel id="applicant" tab={tab}>
                             <div
@@ -1863,8 +1916,6 @@ export default function StaffLoanRequestShow({
                                     </div>
                                 )}
                             </div>
-                        </ReviewTabPanel>
-                        <ReviewTabPanel id="co-makers" tab={tab}>
                             {editingSection === 'co_maker_1' ||
                             editingSection === 'co_maker_2' ? (
                                 <LoanRequestSectionCard
@@ -2020,7 +2071,7 @@ export default function StaffLoanRequestShow({
                                 </div>
                             )}
                         </ReviewTabPanel>
-                        <ReviewTabPanel id="documents" tab={tab}>
+                        <ReviewTabPanel id="docs" tab={tab}>
                             {documentResultsAlert}
                             <div
                                 id="document-checklist"
@@ -2277,14 +2328,14 @@ export default function StaffLoanRequestShow({
                                 </LoanRequestSectionCard>
                             ) : null}
                         </ReviewTabPanel>
-                        <ReviewTabPanel id="activity" tab={tab}>
+                        <ReviewTabPanel id="history" tab={tab}>
                             <LoanRequestActivityTab
                                 auditTrail={currentAuditTrail}
                                 notifications={currentNotificationHistory}
                             />
                         </ReviewTabPanel>
                     </div>
-                    <aside className="min-w-0 space-y-4">
+                    <aside className="min-w-0 space-y-4 lg:col-span-full xl:sticky xl:top-[72px] xl:col-span-1">
                         <LoanRequestReadyCard
                             stage={railStage}
                             gated={isV2Workflow}

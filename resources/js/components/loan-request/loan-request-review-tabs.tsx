@@ -18,8 +18,8 @@ const subscribe = (onChange: () => void) => {
 };
 
 /**
- * Selected tab lives in the URL hash so refresh and back/forward work.
- * Panel ids are prefixed, so the browser never scrolls to `#documents`.
+ * Selected section lives in the URL hash so refresh and back/forward work.
+ * Panel ids are prefixed, so the browser never scrolls to `#docs`.
  */
 export function useReviewTab(): [ReviewTabId, (tab: ReviewTabId) => void] {
     const hash = useSyncExternalStore(
@@ -36,13 +36,26 @@ export function useReviewTab(): [ReviewTabId, (tab: ReviewTabId) => void] {
     ];
 }
 
+export type ReviewTabBadge = {
+    label: string;
+    tone: 'destructive' | 'success' | 'warning' | 'muted';
+};
+
+const badgeTone: Record<ReviewTabBadge['tone'], string> = {
+    destructive: 'bg-destructive text-destructive-foreground',
+    success: 'bg-secondary text-secondary-foreground',
+    warning: 'bg-amber-500/15 text-amber-700 dark:text-amber-200',
+    muted: 'bg-muted text-muted-foreground',
+};
+
 type TabsProps = {
     tab: ReviewTabId;
     onSelect: (tab: ReviewTabId) => void;
-    counts?: Partial<Record<ReviewTabId, number>>;
+    badges?: Partial<Record<ReviewTabId, ReviewTabBadge | null>>;
 };
 
-export function LoanRequestReviewTabs({ tab, onSelect, counts }: TabsProps) {
+/** Left section list on lg+, a horizontal chip row below. */
+export function LoanRequestReviewTabs({ tab, onSelect, badges }: TabsProps) {
     const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
         const next = nextReviewTab(tab, event.key);
 
@@ -56,16 +69,25 @@ export function LoanRequestReviewTabs({ tab, onSelect, counts }: TabsProps) {
     };
 
     return (
-        <div className="border-t border-border">
+        <nav
+            aria-label="Request sections"
+            className="min-w-0 rounded-xl border border-border bg-card p-1 shadow-card lg:sticky lg:top-[72px] lg:p-2"
+        >
+            <p
+                aria-hidden="true"
+                className="hidden px-2.5 py-2 text-[11px] font-bold tracking-[0.14em] text-muted-foreground uppercase lg:block"
+            >
+                Sections
+            </p>
             <div
                 role="tablist"
                 aria-label="Request sections"
                 onKeyDown={onKeyDown}
-                className="mx-auto flex w-full max-w-7xl gap-1 overflow-x-auto px-4 [scrollbar-width:none] sm:px-6 lg:px-8 [&::-webkit-scrollbar]:hidden"
+                className="flex gap-0.5 overflow-x-auto [scrollbar-width:none] lg:flex-col lg:overflow-visible [&::-webkit-scrollbar]:hidden"
             >
                 {REVIEW_TABS.map(({ id, label }) => {
                     const active = tab === id;
-                    const count = counts?.[id];
+                    const badge = badges?.[id];
 
                     return (
                         <button
@@ -78,23 +100,28 @@ export function LoanRequestReviewTabs({ tab, onSelect, counts }: TabsProps) {
                             tabIndex={active ? 0 : -1}
                             onClick={() => onSelect(id)}
                             className={cn(
-                                'flex min-h-11 items-center gap-1.5 border-b-[3px] px-3.5 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset motion-reduce:transition-none lg:min-h-10',
+                                'flex min-h-11 shrink-0 items-center justify-between gap-2 rounded-lg px-2.5 text-left text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none lg:min-h-10 lg:whitespace-normal',
                                 active
-                                    ? 'border-primary font-bold text-foreground'
-                                    : 'border-transparent font-medium text-muted-foreground hover:text-foreground',
+                                    ? 'bg-secondary font-bold text-secondary-foreground shadow-[inset_3px_0_0_var(--primary)]'
+                                    : 'font-medium text-foreground hover:bg-muted',
                             )}
                         >
                             {label}
-                            {count ? (
-                                <span className="rounded-full bg-primary/10 px-[7px] py-px text-[11px] font-bold text-primary">
-                                    {count}
+                            {badge ? (
+                                <span
+                                    className={cn(
+                                        'rounded-full px-2 py-px text-[11px] font-bold',
+                                        badgeTone[badge.tone],
+                                    )}
+                                >
+                                    {badge.label}
                                 </span>
                             ) : null}
                         </button>
                     );
                 })}
             </div>
-        </div>
+        </nav>
     );
 }
 

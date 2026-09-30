@@ -38,7 +38,7 @@ test('workflow health card is a rail card with a badge, processing age and pendi
     assert.ok(pageFile.includes('PROCESSING_AGE_ISSUE_THRESHOLD_DAYS'));
 });
 
-test('staff page moves Audit trail and Notification history to the Activity tab and keeps the rail out of the tab panels', async () => {
+test('staff page moves Audit trail and Notification history to the History section and keeps the rail out of the section panels', async () => {
     const pageFile = await readSource([
         'resources',
         'js',
@@ -56,27 +56,29 @@ test('staff page moves Audit trail and Notification history to the Activity tab 
 
     const sectionWrapperMatches = [
         ...pageFile.matchAll(
-            /<section className="mx-auto my-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">/g,
+            /<section className="mx-auto my-5 w-full max-w-\[1440px\] px-4 sm:px-6 lg:px-8">/g,
         ),
     ];
     assert.equal(
         sectionWrapperMatches.length,
         1,
-        'expected only the consolidated tabbed main section (progress lives in the record header)',
+        'expected only the three-pane workspace section (progress lives in the record header)',
     );
 
-    // Inside the main section the tab panels appear in tab order.
+    // Inside the workspace section: section list, then panels in a fixed order.
     const mainSectionStart = sectionWrapperMatches[0].index;
     const order = [
-        '<ReviewTabPanel id="overview"',
+        '<LoanRequestReviewTabs',
+        '<ReviewTabPanel id="summary"',
+        '<ReviewTabPanel id="terms"',
         '<ProcessingDetailsPanel',
+        '<ReviewTabPanel id="signatories"',
         '<ReviewTabPanel id="applicant"',
         '<LoanRequestApplicantPanel',
-        '<ReviewTabPanel id="co-makers"',
         '<LoanRequestCoMakerCard',
-        '<ReviewTabPanel id="documents"',
+        '<ReviewTabPanel id="docs"',
         '<LoanRequestDocumentChecklistCard',
-        '<ReviewTabPanel id="activity"',
+        '<ReviewTabPanel id="history"',
     ].map((marker) => pageFile.indexOf(marker, mainSectionStart));
 
     order.forEach((index) => assert.ok(index !== -1));
