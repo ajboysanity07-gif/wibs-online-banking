@@ -64,7 +64,7 @@ export function buildRecommendGates(input: {
         openCount,
         blockedReason:
             input.enforced && parts.length > 0
-                ? `${parts.join(' · ')} to clear before you can recommend approval.`
+                ? `${parts.join(' - ')} to clear before you can recommend approval.`
                 : null,
     };
 }

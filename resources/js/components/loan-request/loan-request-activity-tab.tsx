@@ -1,6 +1,7 @@
 import { ArrowRight } from 'lucide-react';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { formatDateTime } from '@/lib/formatters';
+import { isRecentAuditEntry } from '@/lib/loan-request-audit';
 import { cn } from '@/lib/utils';
 import type {
     LoanRequestAuditEntry,
@@ -28,7 +29,7 @@ type Props = {
 };
 
 export function LoanRequestActivityTab({ auditTrail, notifications }: Props) {
-    // Newest first; the latest event is the "new" one (bold, filled dot).
+    // Newest first; entries from the last 24h are "new" (bold, filled dot).
     const entries = [...auditTrail].reverse();
 
     return (
@@ -49,8 +50,8 @@ export function LoanRequestActivityTab({ auditTrail, notifications }: Props) {
                     </p>
                 ) : (
                     <ol>
-                        {entries.map((entry, index) => {
-                            const isNew = index === 0;
+                        {entries.map((entry) => {
+                            const isNew = isRecentAuditEntry(entry.created_at);
 
                             return (
                                 <li
@@ -169,7 +170,11 @@ export function LoanRequestActivityTab({ auditTrail, notifications }: Props) {
                                             {event.event_label}
                                         </p>
                                         <p className="text-[13px] text-muted-foreground">
-                                            {event.channel} · Queued{' '}
+                                            {event.channel}
+                                            {event.recipient
+                                                ? ` · ${event.recipient}`
+                                                : ''}
+                                            {' · '}Queued{' '}
                                             {event.queued_at
                                                 ? formatDateTime(
                                                       event.queued_at,

@@ -407,6 +407,7 @@ export type LoanRequestNotificationHistoryItem = {
     channel: string;
     event_type: string;
     event_label: string;
+    recipient: string | null;
     status: string | null;
     queued_at: string | null;
     sent_at: string | null;

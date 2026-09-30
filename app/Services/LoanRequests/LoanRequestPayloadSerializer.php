@@ -983,6 +983,7 @@ class LoanRequestPayloadSerializer
     public function serializeNotificationHistory(LoanRequest $loanRequest): array
     {
         $events = $loanRequest->notificationEvents()
+            ->with('recipientUser')
             ->orderByDesc('id')
             ->get();
 
@@ -995,6 +996,7 @@ class LoanRequestPayloadSerializer
                     ->replace('_', ' ')
                     ->headline()
                     ->toString(),
+                'recipient' => $this->notificationRecipientLabel($event),
                 'status' => $event->result,
                 'queued_at' => $event->queued_at?->toDateTimeString(),
                 'sent_at' => $event->sent_at?->toDateTimeString(),
@@ -1009,6 +1011,29 @@ class LoanRequestPayloadSerializer
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Member name plus a masked contact (phone: last 4 digits; email: first
+     * letter + domain), so staff can tell who was notified without the full
+     * number/address landing in the page payload.
+     */
+    private function notificationRecipientLabel(LoanRequestNotificationEvent $event): ?string
+    {
+        $contact = trim((string) $event->recipient);
+
+        if (str_contains($contact, '@')) {
+            [$local, $domain] = explode('@', $contact, 2);
+            $contact = Str::substr($local, 0, 1).'***@'.$domain;
+        } elseif (strlen(preg_replace('/\D/', '', $contact) ?? '') >= 7) {
+            $contact = '***'.substr(preg_replace('/\D/', '', $contact) ?? '', -4);
+        }
+
+        $name = $event->recipientUser?->name;
+
+        return collect([$name, $contact])
+            ->filter(fn (?string $part): bool => $part !== null && $part !== '')
+            ->implode(' · ') ?: null;
     }
 
     /**

@@ -25,7 +25,7 @@ test('recommend gates name every open gate and clear only when all are clear', a
     assert.equal(open.openCount, 3);
     assert.equal(
         open.blockedReason,
-        '2 conditions · 1 exception · documents not all current (1/2) to clear before you can recommend approval.',
+        '2 conditions - 1 exception - documents not all current (1/2) to clear before you can recommend approval.',
     );
     assert.deepEqual(open.exceptions, { done: 1, total: 2 });
 
@@ -121,4 +121,15 @@ test('staff page wires conditions, gates and the review rail without touching pe
     assert.match(card, /disabled=\{[\s\S]*?readOnly/);
     assert.match(card, /pending deployment/);
     assert.match(card, /type="checkbox"/);
+});
+
+test('audit entries are new only within the last 24 hours and tolerate bad dates', async () => {
+    const { isRecentAuditEntry } = await load('lib', 'loan-request-audit.ts');
+    const now = Date.parse('2026-09-30T12:00:00Z');
+
+    assert.equal(isRecentAuditEntry('2026-09-30T00:00:00Z', now), true);
+    assert.equal(isRecentAuditEntry('2026-09-29T11:59:00Z', now), false);
+    assert.equal(isRecentAuditEntry('2026-10-01T00:00:00Z', now), false);
+    assert.equal(isRecentAuditEntry('not a date', now), false);
+    assert.equal(isRecentAuditEntry(null, now), false);
 });
