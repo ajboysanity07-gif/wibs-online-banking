@@ -522,3 +522,9 @@ export const handleMobileNumberInput = (
 ): void => {
     event.target.value = normalizeMobileNumberInput(event.target.value);
 };
+
+export const joinAddress = (...parts: string[]) =>
+    parts
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .join(', ');

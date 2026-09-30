@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import {
     ID_TYPE_OPTIONS,
     ID_TYPE_OTHER_VALUE,
+    joinAddress,
     MISSING_FIELD_CLASS,
     NATURE_OF_BUSINESS_OPTIONS,
     NATURE_OF_BUSINESS_OTHER_VALUE,
@@ -229,7 +230,17 @@ export function WorkTab({
                                     />
                                 </div>
                             </InlineEditRow>
-                            <InlineEditRow label="Business address" group>
+                            <InlineEditRow
+                                label="Business address"
+                                group
+                                value={joinAddress(
+                                    employerBusinessAddress1,
+                                    employerBusinessBarangaySearch.selectedValue,
+                                    employerBusinessCitySearch.selectedValue,
+                                    employerBusinessProvinceSearch.selectedValue,
+                                    employerBusinessAddressZipValue,
+                                )}
+                            >
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="grid gap-2">
                                         <Label htmlFor="employer_business_address3">

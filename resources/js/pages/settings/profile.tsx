@@ -124,10 +124,6 @@ function ProfileForm({
         .join(' ');
     const memberDisplayName =
         structuredMemberName || memberRecord?.bname?.trim() || '';
-    const hasStructuredName = Boolean(memberRecord?.hasStructuredName);
-    const memberFirstName = memberRecord?.fname?.trim() ?? '';
-    const memberMiddleName = memberRecord?.mname?.trim() ?? '';
-    const memberLastName = memberRecord?.lname?.trim() ?? '';
     const memberAge = calculateAge(memberRecord?.birthday ?? null);
     const memberBirthplaceCity = memberRecord?.birthplace_city?.trim() ?? '';
     const memberBirthplaceProvince =
@@ -864,7 +860,7 @@ function ProfileForm({
                                 onValueChange={(value) => {
                                     showTab(value as ProfileTab);
                                 }}
-                                className="w-full"
+                                className="w-full flex-col"
                             >
                                 <AccountTab
                                     formErrors={formErrors}
@@ -892,10 +888,6 @@ function ProfileForm({
                                             memberApplicationProfile
                                         }
                                         isFieldMissing={isFieldMissing}
-                                        hasStructuredName={hasStructuredName}
-                                        memberFirstName={memberFirstName}
-                                        memberLastName={memberLastName}
-                                        memberMiddleName={memberMiddleName}
                                         memberDisplayName={memberDisplayName}
                                         memberAge={memberAge}
                                         memberCivilStatus={memberCivilStatus}

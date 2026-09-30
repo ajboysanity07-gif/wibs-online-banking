@@ -23,6 +23,7 @@ import {
     CIVIL_STATUS_OPTIONS,
     handleMobileNumberInput,
     HOUSING_STATUS_OPTIONS,
+    joinAddress,
     hasWmasterValue,
     MISSING_FIELD_CLASS,
     OriginalValueHint,
@@ -39,10 +40,6 @@ type Props = {
     memberRecord: MemberRecord | null;
     memberApplicationProfile: MemberApplicationProfileData | null;
     isFieldMissing: (field: string) => boolean;
-    hasStructuredName: boolean;
-    memberFirstName: string;
-    memberLastName: string;
-    memberMiddleName: string;
     memberDisplayName: string;
     memberAge: number | null;
     memberCivilStatus: string;
@@ -91,10 +88,6 @@ export function PersonalTab({
     memberRecord,
     memberApplicationProfile,
     isFieldMissing,
-    hasStructuredName,
-    memberFirstName,
-    memberLastName,
-    memberMiddleName,
     memberDisplayName,
     memberAge,
     memberCivilStatus,
@@ -188,93 +181,6 @@ export function PersonalTab({
                                     />
                                 </div>
                             </InlineEditRow>
-                            {hasStructuredName && (
-                                <>
-                                    {memberFirstName !== '' && (
-                                        <InlineEditRow
-                                            label="First name"
-                                            readOnly
-                                        >
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="member_first_name">
-                                                    First name
-                                                </Label>
-
-                                                <Input
-                                                    id="member_first_name"
-                                                    className={cn(
-                                                        'mt-1 block w-full',
-                                                        hasWmasterValue(
-                                                            memberFirstName,
-                                                        ) &&
-                                                            WMASTER_VALUE_CLASS,
-                                                    )}
-                                                    defaultValue={
-                                                        memberFirstName
-                                                    }
-                                                    disabled
-                                                />
-                                            </div>
-                                        </InlineEditRow>
-                                    )}
-
-                                    {memberLastName !== '' && (
-                                        <InlineEditRow
-                                            label="Last name"
-                                            readOnly
-                                        >
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="member_last_name">
-                                                    Last name
-                                                </Label>
-
-                                                <Input
-                                                    id="member_last_name"
-                                                    className={cn(
-                                                        'mt-1 block w-full',
-                                                        hasWmasterValue(
-                                                            memberLastName,
-                                                        ) &&
-                                                            WMASTER_VALUE_CLASS,
-                                                    )}
-                                                    defaultValue={
-                                                        memberLastName
-                                                    }
-                                                    disabled
-                                                />
-                                            </div>
-                                        </InlineEditRow>
-                                    )}
-
-                                    {memberMiddleName !== '' && (
-                                        <InlineEditRow
-                                            label="Middle name"
-                                            readOnly
-                                        >
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="member_middle_name">
-                                                    Middle name
-                                                </Label>
-
-                                                <Input
-                                                    id="member_middle_name"
-                                                    className={cn(
-                                                        'mt-1 block w-full',
-                                                        hasWmasterValue(
-                                                            memberMiddleName,
-                                                        ) &&
-                                                            WMASTER_VALUE_CLASS,
-                                                    )}
-                                                    defaultValue={
-                                                        memberMiddleName
-                                                    }
-                                                    disabled
-                                                />
-                                            </div>
-                                        </InlineEditRow>
-                                    )}
-                                </>
-                            )}
                             <InlineEditRow label="Nickname">
                                 <div className="grid gap-2">
                                     <Label htmlFor="nickname">Nickname</Label>
@@ -349,7 +255,15 @@ export function PersonalTab({
                         icon={MapPin}
                     >
                         <div>
-                            <InlineEditRow label="Birthplace" group>
+                            <InlineEditRow
+                                label="Birthplace"
+                                group
+                                value={joinAddress(
+                                    birthplaceBarangaySearch.selectedValue,
+                                    birthplaceCitySearch.selectedValue,
+                                    birthplaceProvinceSearch.selectedValue,
+                                )}
+                            >
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div className="grid gap-2">
                                         <Label htmlFor="birthplace_province">
@@ -485,7 +399,17 @@ export function PersonalTab({
                         icon={Home}
                     >
                         <div>
-                            <InlineEditRow label="Home address" group>
+                            <InlineEditRow
+                                label="Home address"
+                                group
+                                value={joinAddress(
+                                    homeAddress1,
+                                    homeBarangaySearch.selectedValue,
+                                    homeCitySearch.selectedValue,
+                                    homeProvinceSearch.selectedValue,
+                                    homeAddressZipValue,
+                                )}
+                            >
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="grid gap-2">
                                         <Label htmlFor="home_address3">

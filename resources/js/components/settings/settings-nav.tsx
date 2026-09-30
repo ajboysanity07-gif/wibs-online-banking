@@ -169,10 +169,7 @@ export function SettingsNav({
     return (
         <nav
             aria-label="Settings"
-            className={cn(
-                'rounded-xl border border-border bg-card p-3 shadow-card lg:sticky lg:top-20',
-                className,
-            )}
+            className={cn('lg:sticky lg:top-20', className)}
         >
             {groups.map((group) => {
                 const items = group.items.filter(
