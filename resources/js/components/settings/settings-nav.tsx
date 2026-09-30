@@ -158,8 +158,10 @@ function ItemBody({ item, active }: { item: NavItem; active: boolean }) {
 
 export function SettingsNav({
     profileSection,
+    className,
 }: {
     profileSection?: ProfileSectionControl;
+    className?: string;
 }) {
     const { isMatch } = useCurrentUrl();
     const { auth } = usePage<{ auth: { hasMemberAccess: boolean } }>().props;
@@ -167,7 +169,10 @@ export function SettingsNav({
     return (
         <nav
             aria-label="Settings"
-            className="rounded-xl border border-border bg-card p-3 shadow-card lg:sticky lg:top-20"
+            className={cn(
+                'rounded-xl border border-border bg-card p-3 shadow-card lg:sticky lg:top-20',
+                className,
+            )}
         >
             {groups.map((group) => {
                 const items = group.items.filter(

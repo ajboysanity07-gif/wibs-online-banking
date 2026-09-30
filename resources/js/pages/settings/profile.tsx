@@ -169,7 +169,7 @@ function ProfileForm({
         const tab = tabForField(field);
 
         if (tab && (hasMemberAccess || tab === 'account')) {
-            setActiveTab(tab);
+            showTab(tab);
         }
 
         focusInvalidField(field);
@@ -464,6 +464,17 @@ function ProfileForm({
             ? (requestedTab as ProfileTab)
             : 'account';
     });
+    // Below lg the settings menu and the section content are separate screens.
+    const [mobileSectionOpen, setMobileSectionOpen] = useState<boolean>(
+        () =>
+            onboarding ||
+            (typeof window !== 'undefined' &&
+                new URLSearchParams(window.location.search).has('tab')),
+    );
+    const showTab = (tab: ProfileTab) => {
+        setActiveTab(tab);
+        setMobileSectionOpen(true);
+    };
     const [dependentsValues, setDependentsValues] = useState<DependentValues>(
         () => dependents ?? {},
     );
@@ -667,8 +678,10 @@ function ProfileForm({
             <SettingsLayout
                 profileSection={{
                     active: resolvedActiveTab,
-                    onSelect: setActiveTab,
+                    onSelect: showTab,
                 }}
+                mobileSectionOpen={mobileSectionOpen}
+                onMobileBack={() => setMobileSectionOpen(false)}
             >
                 <SurfaceCard
                     padding="none"
@@ -821,7 +834,7 @@ function ProfileForm({
                             nextTabWithErrors &&
                             (hasMemberAccess || nextTabWithErrors === 'account')
                         ) {
-                            setActiveTab(nextTabWithErrors);
+                            showTab(nextTabWithErrors);
                         }
 
                         focusInvalidField(firstInvalidField);
@@ -849,7 +862,7 @@ function ProfileForm({
                             <Tabs
                                 value={resolvedActiveTab}
                                 onValueChange={(value) => {
-                                    setActiveTab(value as ProfileTab);
+                                    showTab(value as ProfileTab);
                                 }}
                                 className="w-full"
                             >
@@ -1111,7 +1124,7 @@ function ProfileForm({
                                                         return;
                                                     }
 
-                                                    setActiveTab(previousTab);
+                                                    showTab(previousTab);
                                                 }}
                                             >
                                                 Previous
@@ -1128,7 +1141,7 @@ function ProfileForm({
                                                 }
                                                 disabled={processing}
                                                 onClick={() => {
-                                                    setActiveTab(nextTab);
+                                                    showTab(nextTab);
                                                 }}
                                             >
                                                 Next
