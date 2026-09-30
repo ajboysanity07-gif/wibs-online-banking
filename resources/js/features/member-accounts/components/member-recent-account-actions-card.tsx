@@ -25,7 +25,7 @@ import type {
     MemberRecentAccountAction,
     MemberRecentAccountActionSource,
 } from '@/features/member-accounts/types';
-import { formatCurrency, formatDate } from '@/lib/formatters';
+import { formatCurrency, formatDate, MASKED_AMOUNT } from '@/lib/formatters';
 import type { PaginationMeta } from '@/types/pagination';
 
 type MemberRecentAccountActionsCardProps = {
@@ -37,6 +37,7 @@ type MemberRecentAccountActionsCardProps = {
     onRetry?: () => void;
     onPageChange?: (page: number) => void;
     resolveActionHref?: (action: MemberRecentAccountAction) => string | null;
+    hideBalances?: boolean;
 };
 
 const accountActionSkeletonColumn = {
@@ -122,60 +123,72 @@ const MobileAccountActionSkeletonList = ({ rows = 3 }: { rows?: number }) => (
 const MobileAccountActionCard = ({
     action,
     actionHref,
+    hideBalances,
 }: {
     action: MemberRecentAccountAction;
     actionHref: string | null;
-}) => (
-    <SurfaceCard variant="default" padding="sm">
-        <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-                <p className="text-sm font-semibold">
-                    {action.ln_sv_number ?? '--'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                    {action.transaction_type ?? '--'}
-                </p>
+    hideBalances: boolean;
+}) => {
+    const money = (value: number | null) =>
+        hideBalances ? MASKED_AMOUNT : formatCurrency(value);
+
+    return (
+        <SurfaceCard variant="default" padding="sm">
+            <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                    <p className="text-sm font-semibold">
+                        {action.ln_sv_number ?? '--'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        {action.transaction_type ?? '--'}
+                    </p>
+                </div>
+                <Badge variant={sourceVariant(action.source)}>
+                    {sourceLabel(action.source)}
+                </Badge>
             </div>
-            <Badge variant={sourceVariant(action.source)}>
-                {sourceLabel(action.source)}
-            </Badge>
-        </div>
-        <div className="mt-3 rounded-xl border border-border bg-muted/30 p-3">
-            <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Control ID</span>
-                <span className="text-sm font-medium tabular-nums">
-                    {action.control_no ?? '--'}
-                </span>
+            <div className="mt-3 rounded-xl border border-border bg-muted/30 p-3">
+                <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Control ID</span>
+                    <span className="text-sm font-medium tabular-nums">
+                        {action.control_no ?? '--'}
+                    </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Amount</span>
+                    <span className="text-sm font-medium tabular-nums">
+                        {money(action.amount)}
+                    </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Movement</span>
+                    <span className="text-sm font-medium tabular-nums">
+                        {money(action.movement)}
+                    </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Balance</span>
+                    <span className="text-sm font-medium tabular-nums">
+                        {money(action.balance)}
+                    </span>
+                </div>
             </div>
-            <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Amount</span>
-                <span className="text-sm font-medium tabular-nums">
-                    {formatCurrency(action.amount)}
-                </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Movement</span>
-                <span className="text-sm font-medium tabular-nums">
-                    {formatCurrency(action.movement)}
-                </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Balance</span>
-                <span className="text-sm font-medium tabular-nums">
-                    {formatCurrency(action.balance)}
-                </span>
-            </div>
-        </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-            Date: {formatDate(action.date_in)}
-        </p>
-        {actionHref !== null ? (
-            <Button asChild size="sm" variant="outline" className="mt-3 w-full">
-                <Link href={actionHref}>View transaction</Link>
-            </Button>
-        ) : null}
-    </SurfaceCard>
-);
+            <p className="mt-3 text-xs text-muted-foreground">
+                Date: {formatDate(action.date_in)}
+            </p>
+            {actionHref !== null ? (
+                <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    className="mt-3 w-full"
+                >
+                    <Link href={actionHref}>View transaction</Link>
+                </Button>
+            ) : null}
+        </SurfaceCard>
+    );
+};
 
 export function MemberRecentAccountActionsCard({
     acctno,
@@ -186,7 +199,10 @@ export function MemberRecentAccountActionsCard({
     onRetry,
     onPageChange,
     resolveActionHref,
+    hideBalances = false,
 }: MemberRecentAccountActionsCardProps) {
+    const money = (value: number | null) =>
+        hideBalances ? MASKED_AMOUNT : formatCurrency(value);
     const actionsEmpty = actions.length === 0;
     const showSkeleton = loading && actionsEmpty;
     const handleRetry = () => {
@@ -272,6 +288,7 @@ export function MemberRecentAccountActionsCard({
                                                 `action-${index}`
                                             }
                                             action={action}
+                                            hideBalances={hideBalances}
                                             actionHref={
                                                 resolveActionHref?.(action) ??
                                                 null
@@ -346,19 +363,13 @@ export function MemberRecentAccountActionsCard({
                                                     {action.control_no ?? '--'}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {formatCurrency(
-                                                        action.amount,
-                                                    )}
+                                                    {money(action.amount)}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {formatCurrency(
-                                                        action.movement,
-                                                    )}
+                                                    {money(action.movement)}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {formatCurrency(
-                                                        action.balance,
-                                                    )}
+                                                    {money(action.balance)}
                                                 </TableCell>
                                                 {showActions ? (
                                                     <TableCell className="text-right">

@@ -275,3 +275,12 @@ export const formatPayday = (value: string): string => {
 
     return trimmed;
 };
+
+export const MASKED_AMOUNT = '••••••';
+
+/** `••••1234` -- only the last four characters of the real account number. */
+export const maskAccountNumber = (value?: string | null): string => {
+    const trimmed = value?.trim() ?? '';
+
+    return trimmed === '' ? '--' : `••••${trimmed.slice(-4)}`;
+};

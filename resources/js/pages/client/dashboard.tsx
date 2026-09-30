@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { FileClock } from 'lucide-react';
+import { Eye, EyeOff, FileClock, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { MemberLoanStatusCard } from '@/components/member/member-loan-status-card';
@@ -14,9 +14,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MemberBalanceCards } from '@/features/member-accounts/components/member-balance-cards';
 import { MemberRecentAccountActionsCard } from '@/features/member-accounts/components/member-recent-account-actions-card';
+import { MemberRecentTransactions } from '@/features/member-accounts/components/member-recent-transactions';
+import { useHideBalances } from '@/hooks/use-hide-balances';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
-import { formatDate, formatDateTime } from '@/lib/formatters';
+import {
+    formatDate,
+    formatDateTime,
+    maskAccountNumber,
+} from '@/lib/formatters';
 import {
     getMemberStatusLabel,
     getMemberStatusVariant,
@@ -26,6 +32,7 @@ import {
     loans as clientLoans,
     savings as clientSavings,
 } from '@/routes/client';
+import { security as securitySettings } from '@/routes/settings';
 import type { Auth, BreadcrumbItem } from '@/types';
 import type {
     MemberAccountActionsResponse,
@@ -85,6 +92,7 @@ export default function MemberProfile({
     const { auth } = usePage<PageProps>().props;
     const getInitials = useInitials();
     const [actionsLoading, setActionsLoading] = useState(false);
+    const [balancesHidden, toggleBalancesHidden] = useHideBalances();
     const currentMember: MemberProfile = member ?? {
         name:
             auth.user.name ?? auth.user.username ?? auth.user.email ?? 'Member',
@@ -156,7 +164,8 @@ export default function MemberProfile({
                     meta={
                         <>
                             <Badge variant="outline" className="bg-card">
-                                Account No: {currentMember.acctno ?? '--'}
+                                Account No:{' '}
+                                {maskAccountNumber(currentMember.acctno)}
                             </Badge>
                             <Badge variant="outline" className="bg-card">
                                 Username: {currentMember.username}
@@ -200,7 +209,9 @@ export default function MemberProfile({
                                 },
                                 {
                                     label: 'Account No',
-                                    value: currentMember.acctno ?? '--',
+                                    value: maskAccountNumber(
+                                        currentMember.acctno,
+                                    ),
                                 },
                                 {
                                     label: 'Created',
@@ -216,7 +227,26 @@ export default function MemberProfile({
                     </div>
                 </SurfaceCard>
 
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold">Your accounts</h2>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        aria-pressed={balancesHidden}
+                        onClick={toggleBalancesHidden}
+                    >
+                        {balancesHidden ? (
+                            <Eye className="size-4" />
+                        ) : (
+                            <EyeOff className="size-4" />
+                        )}
+                        {balancesHidden ? 'Show balances' : 'Hide balances'}
+                    </Button>
+                </div>
+
                 <MemberBalanceCards
+                    hideBalances={balancesHidden}
                     acctno={currentMember.acctno}
                     summary={summaryValue}
                     loading={summaryLoading}
@@ -255,7 +285,36 @@ export default function MemberProfile({
                     <MemberLoanStatusCard loanSummary={loanSummary} />
                 ) : null}
 
+                <MemberRecentTransactions
+                    actions={actionsItems}
+                    hideAmounts={balancesHidden}
+                />
+
+                <SurfaceCard
+                    padding="md"
+                    className="flex flex-wrap items-center gap-4"
+                >
+                    <span
+                        aria-hidden="true"
+                        className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-primary"
+                    >
+                        <ShieldCheck className="size-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold">Stay safe</p>
+                        <p className="text-sm text-muted-foreground">
+                            WIBS never asks for your password by phone or email.
+                        </p>
+                    </div>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={securitySettings().url}>
+                            Review security settings
+                        </Link>
+                    </Button>
+                </SurfaceCard>
+
                 <MemberRecentAccountActionsCard
+                    hideBalances={balancesHidden}
                     acctno={currentMember.acctno}
                     actions={actionsItems}
                     meta={actionsMeta}

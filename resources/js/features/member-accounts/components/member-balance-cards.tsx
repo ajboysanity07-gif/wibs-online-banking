@@ -3,7 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { MemberAccountsSummary } from '@/features/member-accounts/types';
-import { formatCurrency, formatDate } from '@/lib/formatters';
+import { formatCurrency, formatDate, MASKED_AMOUNT } from '@/lib/formatters';
 
 type MemberBalanceCardsProps = {
     acctno: string | null;
@@ -13,6 +13,7 @@ type MemberBalanceCardsProps = {
     onRetry?: () => void;
     loansHref: string;
     loanSecurityHref: string;
+    hideBalances?: boolean;
 };
 
 // ponytail: derived from the recent-loans window only; add a real repaid figure to the API if this drifts.
@@ -45,6 +46,7 @@ export function MemberBalanceCards({
     onRetry,
     loansHref,
     loanSecurityHref,
+    hideBalances = false,
 }: MemberBalanceCardsProps) {
     const repaid = getRepaidPercent(summary);
     const disabled = !acctno;
@@ -87,7 +89,9 @@ export function MemberBalanceCards({
                         <Skeleton className="h-10 w-48 bg-primary-foreground/25" />
                     ) : (
                         <p className="text-[2.5rem] leading-none font-bold tracking-tight tabular-nums">
-                            {formatCurrency(summary?.loanBalanceLeft)}
+                            {hideBalances
+                                ? MASKED_AMOUNT
+                                : formatCurrency(summary?.loanBalanceLeft)}
                         </p>
                     )}
                     {repaid !== null ? (
@@ -136,9 +140,11 @@ export function MemberBalanceCards({
                         <Skeleton className="h-10 w-48" />
                     ) : (
                         <p className="text-[2.5rem] leading-none font-bold tracking-tight tabular-nums">
-                            {formatCurrency(
-                                summary?.currentLoanSecurityBalance,
-                            )}
+                            {hideBalances
+                                ? MASKED_AMOUNT
+                                : formatCurrency(
+                                      summary?.currentLoanSecurityBalance,
+                                  )}
                         </p>
                     )}
                     <p className="text-sm text-muted-foreground">
