@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { BirthdateInput } from '@/components/loan-request/birthdate-input';
 import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
@@ -7,6 +7,7 @@ import {
     YearsInput,
 } from '@/components/loan-request/numeric-adorned-inputs';
 import { LocationCombobox } from '@/components/location-combobox';
+import { InlineEditRow } from '@/components/settings/inline-edit-row';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +28,7 @@ import {
     SELF_EMPLOYED_EMPLOYMENT_TYPE,
 } from '@/lib/employment-type';
 import { calculateAge } from '@/lib/formatters';
+import { APPLICANT_REQUIRED_FIELDS } from '@/lib/loan-request-step-validation';
 import { normalizeMobileNumberInput } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { barangays, cities, provinces, zip } from '@/routes/api/locations';
@@ -149,6 +151,57 @@ const resolveNatureOfBusinessOther = (value: string): string => {
     return trimmed;
 };
 
+type FieldRowProps = {
+    rows: boolean;
+    label: string;
+    field: string;
+    values: LoanRequestPersonFormData;
+    readOnlyFields?: LoanRequestReadOnlyMap | null;
+    readOnly?: boolean;
+    group?: boolean;
+    startOpen?: boolean;
+    className?: string;
+    children: ReactNode;
+};
+
+// One field. With `rows` it becomes a Settings-style label/value row with its
+// own Edit button (verified fields stay read-only); without, the plain
+// stacked field the co-maker steps and correction dialog use.
+function FieldRow({
+    rows,
+    label,
+    field,
+    values,
+    readOnlyFields,
+    readOnly = false,
+    group,
+    startOpen,
+    className,
+    children,
+}: FieldRowProps) {
+    if (!rows) {
+        return <div className={cn('grid gap-2', className)}>{children}</div>;
+    }
+
+    const blank =
+        String(
+            values[field as keyof LoanRequestPersonFormData] ?? '',
+        ).trim() === '';
+
+    return (
+        <InlineEditRow
+            label={label}
+            group={group}
+            readOnly={readOnly || Boolean(readOnlyFields?.[field])}
+            startOpen={
+                startOpen ?? (blank && APPLICANT_REQUIRED_FIELDS.has(field))
+            }
+        >
+            <div className="grid gap-2">{children}</div>
+        </InlineEditRow>
+    );
+}
+
 type PersonalFieldsProps = {
     prefix: string;
     values: LoanRequestPersonFormData;
@@ -158,6 +211,8 @@ type PersonalFieldsProps = {
     includeChildren?: boolean;
     includeCivilHousing?: boolean;
     portal?: boolean;
+    // Settings-style per-field Edit rows (applicant wizard only).
+    rows?: boolean;
     section?: 'all' | 'basic' | 'contact' | 'family';
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
     // Applicant-only: the member's contact number on file (wmaster.telephone)
@@ -175,6 +230,7 @@ export function LoanRequestPersonalFields({
     includeChildren = false,
     includeCivilHousing = false,
     portal = true,
+    rows = false,
     section = 'all',
     onChange,
     contactNumberOnFile = null,
@@ -299,8 +355,14 @@ export function LoanRequestPersonalFields({
                 </div>
             ) : null}
             {section === 'all' || section === 'basic' ? (
-                <div className="grid gap-5 md:grid-cols-2">
-                    <div className="grid gap-2">
+                <div className={rows ? undefined : 'grid gap-5 md:grid-cols-2'}>
+                    <FieldRow
+                        rows={rows}
+                        label="First name"
+                        field="first_name"
+                        values={values}
+                        readOnlyFields={readOnly}
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_first_name`}
                             label="First name"
@@ -321,9 +383,15 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'first_name'),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
-                    <div className="grid gap-2">
+                    <FieldRow
+                        rows={rows}
+                        label="Last name"
+                        field="last_name"
+                        values={values}
+                        readOnlyFields={readOnly}
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_last_name`}
                             label="Last name"
@@ -344,9 +412,15 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'last_name'),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
-                    <div className="grid gap-2">
+                    <FieldRow
+                        rows={rows}
+                        label="Middle name"
+                        field="middle_name"
+                        values={values}
+                        readOnlyFields={readOnly}
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_middle_name`}
                             label="Middle name"
@@ -366,9 +440,15 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'middle_name'),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
-                    <div className="grid gap-2">
+                    <FieldRow
+                        rows={rows}
+                        label="Nickname"
+                        field="nickname"
+                        values={values}
+                        readOnlyFields={readOnly}
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_nickname`}
                             label="Nickname"
@@ -383,9 +463,15 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'nickname'),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
-                    <div className="grid gap-2">
+                    <FieldRow
+                        rows={rows}
+                        label="Birthdate"
+                        field="birthdate"
+                        values={values}
+                        readOnlyFields={readOnly}
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_birthdate`}
                             label="Birthdate"
@@ -407,9 +493,15 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'birthdate'),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
-                    <div className="grid gap-2">
+                    <FieldRow
+                        rows={rows}
+                        label="Birthplace province"
+                        field="birthplace_province"
+                        values={values}
+                        readOnlyFields={readOnly}
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_birthplace_province`}
                             label="Birthplace province"
@@ -450,9 +542,15 @@ export function LoanRequestPersonalFields({
                                 ),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
-                    <div className="grid gap-2">
+                    <FieldRow
+                        rows={rows}
+                        label="Birthplace city/municipality"
+                        field="birthplace_city"
+                        values={values}
+                        readOnlyFields={readOnly}
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_birthplace_city`}
                             label="Birthplace city/municipality"
@@ -489,10 +587,16 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'birthplace_city'),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
                     {includeCivilHousing ? (
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Sex"
+                            field="sex"
+                            values={values}
+                            readOnlyFields={readOnly}
+                        >
                             <FieldLabel
                                 htmlFor={`${prefix}_sex`}
                                 label="Sex"
@@ -525,7 +629,7 @@ export function LoanRequestPersonalFields({
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </FieldRow>
                     ) : null}
                 </div>
             ) : null}
@@ -533,8 +637,14 @@ export function LoanRequestPersonalFields({
             {section === 'all' ? <Separator className="bg-border/40" /> : null}
 
             {section === 'all' || section === 'contact' ? (
-                <div className="grid gap-5 md:grid-cols-2">
-                    <div className="grid gap-2">
+                <div className={rows ? undefined : 'grid gap-5 md:grid-cols-2'}>
+                    <FieldRow
+                        rows={rows}
+                        label="Province"
+                        field="address3"
+                        values={values}
+                        readOnlyFields={readOnly}
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_address3`}
                             label="Province"
@@ -581,9 +691,15 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'address3'),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
-                    <div className="grid gap-2">
+                    <FieldRow
+                        rows={rows}
+                        label="City/Municipality"
+                        field="address2"
+                        values={values}
+                        readOnlyFields={readOnly}
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_address2`}
                             label="City/Municipality"
@@ -630,9 +746,15 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'address2'),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
-                    <div className="grid gap-2">
+                    <FieldRow
+                        rows={rows}
+                        label="ZIP code"
+                        field="address_zip"
+                        values={values}
+                        readOnlyFields={readOnly}
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_address_zip`}
                             label="ZIP code"
@@ -657,9 +779,15 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'address_zip'),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
-                    <div className="grid gap-2">
+                    <FieldRow
+                        rows={rows}
+                        label="Barangay"
+                        field="address_barangay"
+                        values={values}
+                        readOnlyFields={readOnly}
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_address_barangay`}
                             label="Barangay"
@@ -688,9 +816,16 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'address_barangay'),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
-                    <div className="grid gap-2 md:col-span-2">
+                    <FieldRow
+                        rows={rows}
+                        label="Address (street)"
+                        field="address1"
+                        values={values}
+                        readOnlyFields={readOnly}
+                        className="md:col-span-2"
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_address1`}
                             label="Address (street)"
@@ -711,9 +846,16 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'address1'),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
-                    <div className="grid gap-2">
+                    <FieldRow
+                        rows={rows}
+                        label="Length of stay"
+                        field="length_of_stay"
+                        values={values}
+                        readOnlyFields={readOnly}
+                        group
+                    >
                         <div className="flex items-center justify-between gap-2">
                             <Label htmlFor={`${prefix}_length_of_stay`}>
                                 Length of stay
@@ -758,10 +900,16 @@ export function LoanRequestPersonalFields({
                                 fieldError(errors, prefix, 'length_of_stay'),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
                     {includeCivilHousing ? (
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Housing status"
+                            field="housing_status"
+                            values={values}
+                            readOnlyFields={readOnly}
+                        >
                             <FieldLabel
                                 htmlFor={`${prefix}_housing_status`}
                                 label="Housing status"
@@ -802,10 +950,16 @@ export function LoanRequestPersonalFields({
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </FieldRow>
                     ) : null}
 
-                    <div className="grid gap-2">
+                    <FieldRow
+                        rows={rows}
+                        label="Cell no."
+                        field="cell_no"
+                        values={values}
+                        readOnlyFields={readOnly}
+                    >
                         <FieldLabel
                             htmlFor={`${prefix}_cell_no`}
                             label="Cell no."
@@ -831,10 +985,16 @@ export function LoanRequestPersonalFields({
                                 Grepalife), not this field.
                             </p>
                         ) : null}
-                    </div>
+                    </FieldRow>
 
                     {!hasFamilySection ? (
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Educational attainment"
+                            field="educational_attainment"
+                            values={values}
+                            readOnlyFields={readOnly}
+                        >
                             <FieldLabel
                                 htmlFor={`${prefix}_educational_attainment`}
                                 label="Educational attainment"
@@ -871,7 +1031,7 @@ export function LoanRequestPersonalFields({
                                     )}
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </FieldRow>
                     ) : null}
                 </div>
             ) : null}
@@ -879,9 +1039,15 @@ export function LoanRequestPersonalFields({
             {section === 'all' ? <Separator className="bg-border/40" /> : null}
 
             {section === 'all' || section === 'family' ? (
-                <div className="grid gap-5 md:grid-cols-2">
+                <div className={rows ? undefined : 'grid gap-5 md:grid-cols-2'}>
                     {includeCivilHousing ? (
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Civil status"
+                            field="civil_status"
+                            values={values}
+                            readOnlyFields={readOnly}
+                        >
                             <FieldLabel
                                 htmlFor={`${prefix}_civil_status`}
                                 label="Civil status"
@@ -919,11 +1085,17 @@ export function LoanRequestPersonalFields({
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </FieldRow>
                     ) : null}
 
                     {hasFamilySection ? (
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Educational attainment"
+                            field="educational_attainment"
+                            values={values}
+                            readOnlyFields={readOnly}
+                        >
                             <FieldLabel
                                 htmlFor={`${prefix}_educational_attainment`}
                                 label="Educational attainment"
@@ -960,11 +1132,17 @@ export function LoanRequestPersonalFields({
                                     )}
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </FieldRow>
                     ) : null}
 
                     {includeChildren ? (
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="No. of children"
+                            field="number_of_children"
+                            values={values}
+                            readOnlyFields={readOnly}
+                        >
                             <FieldLabel
                                 htmlFor={`${prefix}_number_of_children`}
                                 label="No. of children"
@@ -991,12 +1169,18 @@ export function LoanRequestPersonalFields({
                                     ),
                                 )}
                             />
-                        </div>
+                        </FieldRow>
                     ) : null}
 
                     {showSpouseFields ? (
                         <>
-                            <div className="grid gap-2">
+                            <FieldRow
+                                rows={rows}
+                                label="Spouse name"
+                                field="spouse_name"
+                                values={values}
+                                readOnlyFields={readOnly}
+                            >
                                 <FieldLabel
                                     htmlFor={`${prefix}_spouse_name`}
                                     label="Spouse name"
@@ -1021,9 +1205,15 @@ export function LoanRequestPersonalFields({
                                         ),
                                     )}
                                 />
-                            </div>
+                            </FieldRow>
 
-                            <div className="grid gap-2">
+                            <FieldRow
+                                rows={rows}
+                                label="Spouse birthdate"
+                                field="spouse_birthdate"
+                                values={values}
+                                readOnlyFields={readOnly}
+                            >
                                 <FieldLabel
                                     htmlFor={`${prefix}_spouse_birthdate`}
                                     label="Spouse birthdate"
@@ -1043,9 +1233,16 @@ export function LoanRequestPersonalFields({
                                         ),
                                     )}
                                 />
-                            </div>
+                            </FieldRow>
 
-                            <div className="grid gap-2">
+                            <FieldRow
+                                rows={rows}
+                                label="Spouse age"
+                                field="spouse_age_display"
+                                values={values}
+                                readOnlyFields={readOnly}
+                                readOnly
+                            >
                                 <FieldLabel
                                     htmlFor={`${prefix}_spouse_age_display`}
                                     label="Spouse age"
@@ -1062,9 +1259,15 @@ export function LoanRequestPersonalFields({
                                     disabled
                                     readOnly
                                 />
-                            </div>
+                            </FieldRow>
 
-                            <div className="grid gap-2">
+                            <FieldRow
+                                rows={rows}
+                                label="Spouse cell no."
+                                field="spouse_cell_no"
+                                values={values}
+                                readOnlyFields={readOnly}
+                            >
                                 <FieldLabel
                                     htmlFor={`${prefix}_spouse_cell_no`}
                                     label="Spouse cell no."
@@ -1088,7 +1291,7 @@ export function LoanRequestPersonalFields({
                                         ),
                                     )}
                                 />
-                            </div>
+                            </FieldRow>
                         </>
                     ) : null}
                 </div>
@@ -1102,6 +1305,7 @@ type WorkFieldsProps = {
     values: LoanRequestPersonFormData;
     errors: Record<string, string | undefined>;
     portal?: boolean;
+    rows?: boolean;
     section?: 'all' | 'employment' | 'income';
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
 };
@@ -1111,6 +1315,7 @@ export function LoanRequestWorkFields({
     values,
     errors,
     portal = true,
+    rows = false,
     section = 'all',
     onChange,
 }: WorkFieldsProps) {
@@ -1207,8 +1412,13 @@ export function LoanRequestWorkFields({
     return (
         <div className="space-y-7">
             {section === 'all' || section === 'employment' ? (
-                <div className="grid gap-5 md:grid-cols-2">
-                    <div className="grid gap-2">
+                <div className={rows ? undefined : 'grid gap-5 md:grid-cols-2'}>
+                    <FieldRow
+                        rows={rows}
+                        label="Employment"
+                        field="employment_type"
+                        values={values}
+                    >
                         <Label htmlFor={`${prefix}_employment_type`}>
                             Employment
                         </Label>
@@ -1242,10 +1452,15 @@ export function LoanRequestWorkFields({
                                 ))}
                             </SelectContent>
                         </Select>
-                    </div>
+                    </FieldRow>
 
                     {!isPensioner ? (
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Employer/Business name"
+                            field="employer_business_name"
+                            values={values}
+                        >
                             <Label htmlFor={`${prefix}_employer_business_name`}>
                                 Employer/Business name
                             </Label>
@@ -1271,11 +1486,16 @@ export function LoanRequestWorkFields({
                                     ),
                                 )}
                             />
-                        </div>
+                        </FieldRow>
                     ) : null}
 
                     {!isPensioner && prefix === 'applicant' ? (
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Business province"
+                            field="employer_business_address3"
+                            values={values}
+                        >
                             <Label
                                 htmlFor={`${prefix}_employer_business_address3`}
                             >
@@ -1334,11 +1554,16 @@ export function LoanRequestWorkFields({
                                     ),
                                 )}
                             />
-                        </div>
+                        </FieldRow>
                     ) : null}
 
                     {!isPensioner && prefix === 'applicant' ? (
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Business city/municipality"
+                            field="employer_business_address2"
+                            values={values}
+                        >
                             <Label
                                 htmlFor={`${prefix}_employer_business_address2`}
                             >
@@ -1403,11 +1628,16 @@ export function LoanRequestWorkFields({
                                     ),
                                 )}
                             />
-                        </div>
+                        </FieldRow>
                     ) : null}
 
                     {!isPensioner && prefix === 'applicant' ? (
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Business ZIP code"
+                            field="employer_business_address_zip"
+                            values={values}
+                        >
                             <Label
                                 htmlFor={`${prefix}_employer_business_address_zip`}
                             >
@@ -1438,11 +1668,16 @@ export function LoanRequestWorkFields({
                                     ),
                                 )}
                             />
-                        </div>
+                        </FieldRow>
                     ) : null}
 
                     {!isPensioner && prefix === 'applicant' ? (
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Business barangay"
+                            field="employer_business_address_barangay"
+                            values={values}
+                        >
                             <Label
                                 htmlFor={`${prefix}_employer_business_address_barangay`}
                             >
@@ -1476,11 +1711,17 @@ export function LoanRequestWorkFields({
                                     ),
                                 )}
                             />
-                        </div>
+                        </FieldRow>
                     ) : null}
 
                     {!isPensioner && prefix === 'applicant' ? (
-                        <div className="grid gap-2 md:col-span-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Employer/Business address (street)"
+                            field="employer_business_address1"
+                            values={values}
+                            className="md:col-span-2"
+                        >
                             <Label
                                 htmlFor={`${prefix}_employer_business_address1`}
                             >
@@ -1508,7 +1749,7 @@ export function LoanRequestWorkFields({
                                     ),
                                 )}
                             />
-                        </div>
+                        </FieldRow>
                     ) : null}
                 </div>
             ) : null}
@@ -1519,8 +1760,17 @@ export function LoanRequestWorkFields({
                         <Separator className="bg-border/40" />
                     ) : null}
 
-                    <div className="grid gap-5 md:grid-cols-2">
-                        <div className="grid gap-2">
+                    <div
+                        className={
+                            rows ? undefined : 'grid gap-5 md:grid-cols-2'
+                        }
+                    >
+                        <FieldRow
+                            rows={rows}
+                            label="Tel. no."
+                            field="telephone_no"
+                            values={values}
+                        >
                             <Label htmlFor={`${prefix}_telephone_no`}>
                                 Tel. no.
                             </Label>
@@ -1536,9 +1786,14 @@ export function LoanRequestWorkFields({
                                     fieldError(errors, prefix, 'telephone_no'),
                                 )}
                             />
-                        </div>
+                        </FieldRow>
 
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Current position"
+                            field="current_position"
+                            values={values}
+                        >
                             <Label htmlFor={`${prefix}_current_position`}>
                                 Current position
                             </Label>
@@ -1561,9 +1816,14 @@ export function LoanRequestWorkFields({
                                     ),
                                 )}
                             />
-                        </div>
+                        </FieldRow>
 
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Nature of business"
+                            field="nature_of_business"
+                            values={values}
+                        >
                             <Label htmlFor={`${prefix}_nature_of_business`}>
                                 Nature of business
                             </Label>
@@ -1597,11 +1857,17 @@ export function LoanRequestWorkFields({
                                     )}
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </FieldRow>
 
                         {natureOfBusinessSelection ===
                         NATURE_OF_BUSINESS_OTHER_VALUE ? (
-                            <div className="grid gap-2">
+                            <FieldRow
+                                rows={rows}
+                                label="Specify industry"
+                                field="nature_of_business_other"
+                                values={values}
+                                startOpen
+                            >
                                 <Label
                                     htmlFor={`${prefix}_nature_of_business_other`}
                                 >
@@ -1614,10 +1880,15 @@ export function LoanRequestWorkFields({
                                     placeholder="Specify industry"
                                     onChange={handleNatureOfBusinessOtherChange}
                                 />
-                            </div>
+                            </FieldRow>
                         ) : null}
 
-                        <div className="grid gap-2">
+                        <FieldRow
+                            rows={rows}
+                            label="Total years in work/business"
+                            field="years_in_work_business"
+                            values={values}
+                        >
                             <Label htmlFor={`${prefix}_years_in_work_business`}>
                                 Total years in work/business
                             </Label>
@@ -1637,10 +1908,15 @@ export function LoanRequestWorkFields({
                                     ),
                                 )}
                             />
-                        </div>
+                        </FieldRow>
 
                         {prefix === 'applicant' && !isSelfEmployed ? (
-                            <div className="grid gap-2">
+                            <FieldRow
+                                rows={rows}
+                                label="Date employed"
+                                field="employer_date_employed"
+                                values={values}
+                            >
                                 <Label
                                     htmlFor={`${prefix}_employer_date_employed`}
                                 >
@@ -1666,9 +1942,9 @@ export function LoanRequestWorkFields({
                                             'employer_date_employed',
                                         ),
                                     )}
-                                    aria-label="Choose date employed"
+                                    aria-label="Date employed"
                                 />
-                            </div>
+                            </FieldRow>
                         ) : null}
                     </div>
                 </>
@@ -1679,8 +1955,13 @@ export function LoanRequestWorkFields({
             ) : null}
 
             {section === 'all' || section === 'income' ? (
-                <div className="grid gap-5 md:grid-cols-2">
-                    <div className="grid gap-2">
+                <div className={rows ? undefined : 'grid gap-5 md:grid-cols-2'}>
+                    <FieldRow
+                        rows={rows}
+                        label="Gross monthly income"
+                        field="gross_monthly_income"
+                        values={values}
+                    >
                         <Label htmlFor={`${prefix}_gross_monthly_income`}>
                             Gross monthly income
                         </Label>
@@ -1699,9 +1980,14 @@ export function LoanRequestWorkFields({
                                 ),
                             )}
                         />
-                    </div>
+                    </FieldRow>
 
-                    <div className="grid gap-2">
+                    <FieldRow
+                        rows={rows}
+                        label="Payday"
+                        field="payday"
+                        values={values}
+                    >
                         <Label htmlFor={`${prefix}_payday`}>Payday</Label>
                         <Select
                             value={values.payday || undefined}
@@ -1724,7 +2010,7 @@ export function LoanRequestWorkFields({
                                 ))}
                             </SelectContent>
                         </Select>
-                    </div>
+                    </FieldRow>
                 </div>
             ) : null}
         </div>

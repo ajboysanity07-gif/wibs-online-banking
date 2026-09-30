@@ -69,6 +69,7 @@ class LoanRequestService
      *     dataSectionDefinitions: array<string, mixed>,
      *     insurancePrefilledFromProfile: bool,
      *     initialStep: int,
+     *     initialStepId: string|null,
      *     autoFilledDeclarations: array<string, bool|string|float|null>,
      *     draft: array{
      *         id: int,
@@ -128,6 +129,7 @@ class LoanRequestService
             : null;
 
         $initialStep = 0;
+        $initialStepId = null;
 
         if ($draft !== null) {
             $flatValues = $this->dataService->loadFlatValues($draft);
@@ -135,6 +137,12 @@ class LoanRequestService
 
             if (is_numeric($stepValue)) {
                 $initialStep = max(0, min(17, (int) $stepValue));
+            }
+
+            $stepIdValue = $flatValues['wizard_current_step_id'] ?? null;
+
+            if (is_string($stepIdValue) && $stepIdValue !== '') {
+                $initialStepId = $stepIdValue;
             }
         }
 
@@ -178,6 +186,7 @@ class LoanRequestService
             'dataSections' => $dataSections,
             'dataSectionDefinitions' => $this->dataService->sectionDefinitions(),
             'initialStep' => $initialStep,
+            'initialStepId' => $initialStepId,
             'autoFilledDeclarations' => $autoFilledDeclarations,
             'draft' => $draft !== null ? $this->serializeLoanRequest($draft) : null,
             'bankingPrefilledFromProfile' => $bankingPrefilledFromProfile,
@@ -543,6 +552,24 @@ class LoanRequestService
                 );
             }
 
+            if (is_string($payload['wizard_step_id'] ?? null) && $payload['wizard_step_id'] !== '') {
+                LoanRequestDataEntry::query()->updateOrCreate(
+                    [
+                        'loan_request_id' => $loanRequest->id,
+                        'field_key' => 'wizard_current_step_id',
+                    ],
+                    [
+                        'section_key' => 'system',
+                        'owner_type' => 'system',
+                        'is_sensitive' => false,
+                        'confirmed_by_member' => false,
+                        'confirmed_by_member_at' => null,
+                        'value_json' => ['value' => $payload['wizard_step_id']],
+                        'metadata_json' => ['label' => 'Wizard current step id', 'type' => 'string'],
+                    ],
+                );
+            }
+
             return $loanRequest->loadMissing('people');
         });
     }
@@ -617,7 +644,11 @@ class LoanRequestService
                 ]);
             }
 
-            $this->syncMemberApplicationProfileFromSubmission($user, $payload);
+            // The member can opt out of overwriting their profile with what they
+            // entered on this request (default: update, as before).
+            if (($payload['update_profile'] ?? true) !== false) {
+                $this->syncMemberApplicationProfileFromSubmission($user, $payload);
+            }
 
             $missingPrerequisites = $user->memberApplicationProfile?->missingLoanPrerequisiteFields() ?? ['release_method'];
 

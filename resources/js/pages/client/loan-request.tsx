@@ -1,5 +1,5 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
 import { LoanRequestCheckRow } from '@/components/loan-request/loan-request-check-row';
@@ -7,7 +7,6 @@ import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-s
 import { GROUP_META } from '@/components/loan-request/loan-request-step-indicator';
 import { LoanRequestStepper } from '@/components/loan-request/loan-request-stepper';
 import {
-    LoanRequestApplicantConfirmStep,
     LoanRequestApplicantPersonalStep,
     LoanRequestApplicantWorkStep,
     LoanRequestCoMakerStep,
@@ -25,6 +24,10 @@ import {
     buildStepIndex,
     getVisibleWizardSteps,
 } from '@/components/loan-request/loan-request-wizard-steps';
+import {
+    closeInlineRows,
+    InlineEditProvider,
+} from '@/components/settings/inline-edit-row';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { focusField } from '@/components/ui/form-error-summary';
@@ -69,6 +72,7 @@ type Props = {
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
     draft: LoanRequestDraft | null;
     initialStep: number;
+    initialStepId?: string | null;
     autoFilledDeclarations: AutoFilledDeclarations;
     bankingPrefilledFromProfile: boolean;
     applicantPrefilledFromProfile: boolean;
@@ -376,20 +380,28 @@ export default function LoanRequestPage({
     dataSectionDefinitions,
     draft,
     initialStep,
+    initialStepId = null,
     autoFilledDeclarations,
     bankingPrefilledFromProfile,
     applicantPrefilledFromProfile,
     applicantWorkIncomePrefilledFromProfile,
     missingIdentityPrerequisites,
 }: Props) {
-    const steps = useMemo(
-        () => getVisibleWizardSteps(applicantPrefilledFromProfile),
-        [applicantPrefilledFromProfile],
-    );
+    const steps = useMemo(() => getVisibleWizardSteps(), []);
     const STEP_INDEX = useMemo(() => buildStepIndex(steps), [steps]);
 
-    const [currentStep, setCurrentStep] = useState(initialStep);
-    const [highestStepReached, setHighestStepReached] = useState(initialStep);
+    // Resume on the step the member last worked on. The id survives step
+    // list changes; a legacy draft only has an index, which may be past the
+    // end of today's list.
+    const savedStepIndex = initialStepId
+        ? steps.findIndex((step) => step.id === initialStepId)
+        : -1;
+    const clampedStep = Math.min(initialStep, steps.length - 1);
+    const startStep = savedStepIndex >= 0 ? savedStepIndex : clampedStep;
+    const [currentStep, setCurrentStep] = useState(startStep);
+    const [highestStepReached, setHighestStepReached] = useState(
+        Math.max(startStep, clampedStep),
+    );
     const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>(
         'forward',
     );
@@ -400,9 +412,7 @@ export default function LoanRequestPage({
         useState(!applicantPrefilledFromProfile);
     const [applicantWorkIncomeConfirmed, setApplicantWorkIncomeConfirmed] =
         useState(!applicantWorkIncomePrefilledFromProfile);
-    const [forceUnlockedApplicantSections, setForceUnlockedApplicantSections] =
-        useState<Set<'basic' | 'contact' | 'family'>>(() => new Set());
-    const [forceUnlockIncome, setForceUnlockIncome] = useState(false);
+    const [updateProfile, setUpdateProfile] = useState(true);
     const [activeAction, setActiveAction] = useState<'draft' | 'submit' | null>(
         null,
     );
@@ -449,6 +459,9 @@ export default function LoanRequestPage({
     };
 
     const form = useForm<LoanRequestFormData>(initialFormData);
+    // Applicant values as last saved to the draft -- "Cancel" on an About you
+    // row restores them.
+    const savedApplicantRef = useRef(form.data.applicant);
     const isFirstStep = currentStep === 0;
     const isLastStep = currentStep === steps.length - 1;
     const isReviewStep = isLastStep;
@@ -545,19 +558,6 @@ export default function LoanRequestPage({
     const handleErrorClick = (key: string) => {
         const step = resolveStepForErrorKey(key, STEP_INDEX);
 
-        if (key.startsWith('applicant.')) {
-            const field = key.replace('applicant.', '');
-            const section = classifyApplicantField(field);
-
-            if (section === 'income') {
-                setForceUnlockIncome(true);
-            } else {
-                setForceUnlockedApplicantSections((current) =>
-                    new Set(current).add(section),
-                );
-            }
-        }
-
         if (step === null || step === currentStep) {
             focusField(key);
             return;
@@ -598,7 +598,7 @@ export default function LoanRequestPage({
     }
 
     if (
-        currentStepId === 'work-employment' &&
+        currentStepId === 'personal-basic' &&
         applicantWorkIncomePrefilledFromProfile &&
         !applicantWorkIncomeConfirmed
     ) {
@@ -814,15 +814,24 @@ export default function LoanRequestPage({
             if (!draftState) {
                 const response = await client.patch<LoanRequestDraft>(
                     LoanRequestController.draft().url,
-                    { ...form.data, wizard_step: highestStepReached },
+                    {
+                        ...form.data,
+                        wizard_step: highestStepReached,
+                        wizard_step_id: steps[currentStep]?.id,
+                    },
                 );
                 setDraftState(response.data);
             } else {
                 await client.patch(
                     LoanRequestController.saveDraft(draftState).url,
-                    { ...form.data, wizard_step: highestStepReached },
+                    {
+                        ...form.data,
+                        wizard_step: highestStepReached,
+                        wizard_step_id: steps[currentStep]?.id,
+                    },
                 );
             }
+            savedApplicantRef.current = form.data.applicant;
             showSuccessToast('Draft saved.', { id: 'manual-save-draft' });
             setLastAction('draft');
 
@@ -840,6 +849,10 @@ export default function LoanRequestPage({
 
     const handleSubmit = () => {
         setActiveAction('submit');
+        form.transform((data) => ({
+            ...data,
+            update_profile: updateProfile,
+        }));
         form.post(LoanRequestController.store().url, {
             onSuccess: () => {
                 showSuccessToast('Loan request submitted for review.', {
@@ -860,34 +873,6 @@ export default function LoanRequestPage({
                 }
 
                 const step = resolveStepFromErrors(errors, STEP_INDEX);
-
-                const basicSections = new Set<'basic' | 'contact' | 'family'>();
-                let incomeSection = false;
-
-                Object.keys(errors).forEach((key) => {
-                    if (!errors[key] || !key.startsWith('applicant.')) {
-                        return;
-                    }
-
-                    const field = key.replace('applicant.', '');
-                    const section = classifyApplicantField(field);
-
-                    if (section === 'income') {
-                        incomeSection = true;
-                    } else {
-                        basicSections.add(section);
-                    }
-                });
-
-                if (basicSections.size > 0) {
-                    setForceUnlockedApplicantSections(
-                        (current) => new Set([...current, ...basicSections]),
-                    );
-                }
-
-                if (incomeSection) {
-                    setForceUnlockIncome(true);
-                }
 
                 if (step !== null) {
                     handleStepChange(step);
@@ -927,6 +912,23 @@ export default function LoanRequestPage({
         } finally {
             setIsDiscardingDraft(false);
         }
+    };
+
+    const handleSaveAboutYouRow = async () => {
+        if (await handleSaveDraft()) {
+            closeInlineRows();
+        }
+    };
+
+    const handleCancelAboutYouRow = () => {
+        const saved = savedApplicantRef.current;
+
+        (Object.keys(saved) as (keyof typeof saved)[]).forEach((field) => {
+            if (form.data.applicant[field] !== saved[field]) {
+                updatePersonField('applicant')(field, saved[field] as string);
+            }
+        });
+        closeInlineRows();
     };
 
     const handleSaveAndExit = async () => {
@@ -1052,9 +1054,24 @@ export default function LoanRequestPage({
                                     </AlertDescription>
                                 </Alert>
                             ) : null}
-                            {applicantPrefilledFromProfile ? (
+                            <InlineEditProvider
+                                rowMode
+                                processing={isSavingDraft}
+                                onSave={handleSaveAboutYouRow}
+                                onDiscard={handleCancelAboutYouRow}
+                            >
                                 <div className="space-y-5">
-                                    <LoanRequestApplicantConfirmStep
+                                    <LoanRequestApplicantPersonalStep
+                                        section="basic"
+                                        values={form.data.applicant}
+                                        errors={form.errors}
+                                        readOnly={applicantReadOnly}
+                                        onChange={updatePersonField(
+                                            'applicant',
+                                        )}
+                                    />
+                                    <LoanRequestApplicantPersonalStep
+                                        section="contact"
                                         values={form.data.applicant}
                                         errors={form.errors}
                                         readOnly={applicantReadOnly}
@@ -1062,100 +1079,62 @@ export default function LoanRequestPage({
                                             'applicant',
                                         )}
                                         contactNumberOnFile={member.telephone}
-                                        forceUnlockedKeys={
-                                            forceUnlockedApplicantSections
-                                        }
                                     />
-                                    <LoanRequestSectionCard
-                                        title="Confirm your details"
-                                        description="These details were pre-filled from your member profile. Please confirm they are still accurate."
-                                    >
-                                        <LoanRequestCheckRow
-                                            id="applicant_personal_confirmed"
-                                            checked={applicantPersonalConfirmed}
-                                            onCheckedChange={
-                                                setApplicantPersonalConfirmed
-                                            }
+                                    <LoanRequestApplicantPersonalStep
+                                        section="family"
+                                        values={form.data.applicant}
+                                        errors={form.errors}
+                                        readOnly={applicantReadOnly}
+                                        onChange={updatePersonField(
+                                            'applicant',
+                                        )}
+                                    />
+                                    {applicantPrefilledFromProfile ? (
+                                        <LoanRequestSectionCard
+                                            title="Confirm your details"
+                                            description="These details were pre-filled from your member profile. Please confirm they are still accurate."
                                         >
-                                            These details are still correct
-                                        </LoanRequestCheckRow>
-                                    </LoanRequestSectionCard>
+                                            <LoanRequestCheckRow
+                                                id="applicant_personal_confirmed"
+                                                checked={
+                                                    applicantPersonalConfirmed
+                                                }
+                                                onCheckedChange={
+                                                    setApplicantPersonalConfirmed
+                                                }
+                                            >
+                                                These details are still correct
+                                            </LoanRequestCheckRow>
+                                        </LoanRequestSectionCard>
+                                    ) : null}
+                                    <LoanRequestApplicantWorkStep
+                                        values={form.data.applicant}
+                                        errors={form.errors}
+                                        onChange={updatePersonField(
+                                            'applicant',
+                                        )}
+                                    />
+                                    {applicantWorkIncomePrefilledFromProfile ? (
+                                        <LoanRequestSectionCard
+                                            title="Confirm work & income details"
+                                            description="These details were pre-filled from a previous loan request. Please confirm they are still accurate."
+                                        >
+                                            <LoanRequestCheckRow
+                                                id="applicant_work_income_confirmed"
+                                                checked={
+                                                    applicantWorkIncomeConfirmed
+                                                }
+                                                onCheckedChange={
+                                                    setApplicantWorkIncomeConfirmed
+                                                }
+                                            >
+                                                Confirm these details are still
+                                                correct
+                                            </LoanRequestCheckRow>
+                                        </LoanRequestSectionCard>
+                                    ) : null}
                                 </div>
-                            ) : (
-                                <LoanRequestApplicantPersonalStep
-                                    section="basic"
-                                    values={form.data.applicant}
-                                    errors={form.errors}
-                                    readOnly={applicantReadOnly}
-                                    onChange={updatePersonField('applicant')}
-                                />
-                            )}
-                        </LoanRequestAnimatedStep>
-
-                        <LoanRequestAnimatedStep
-                            show={
-                                currentStep === STEP_INDEX['personal-contact']
-                            }
-                            direction={stepDirection}
-                        >
-                            <LoanRequestApplicantPersonalStep
-                                section="contact"
-                                values={form.data.applicant}
-                                errors={form.errors}
-                                readOnly={applicantReadOnly}
-                                onChange={updatePersonField('applicant')}
-                                contactNumberOnFile={member.telephone}
-                            />
-                        </LoanRequestAnimatedStep>
-
-                        <LoanRequestAnimatedStep
-                            show={currentStep === STEP_INDEX['personal-family']}
-                            direction={stepDirection}
-                        >
-                            <LoanRequestApplicantPersonalStep
-                                section="family"
-                                values={form.data.applicant}
-                                errors={form.errors}
-                                readOnly={applicantReadOnly}
-                                onChange={updatePersonField('applicant')}
-                            />
-                        </LoanRequestAnimatedStep>
-
-                        <LoanRequestAnimatedStep
-                            show={currentStep === STEP_INDEX['work-employment']}
-                            direction={stepDirection}
-                        >
-                            <div className="space-y-5">
-                                <LoanRequestApplicantWorkStep
-                                    values={form.data.applicant}
-                                    errors={form.errors}
-                                    onChange={updatePersonField('applicant')}
-                                    hasExistingIncomeData={
-                                        applicantWorkIncomePrefilledFromProfile
-                                    }
-                                    forceUnlock={forceUnlockIncome}
-                                />
-
-                                {applicantWorkIncomePrefilledFromProfile ? (
-                                    <LoanRequestSectionCard
-                                        title="Confirm work & income details"
-                                        description="These details were pre-filled from a previous loan request. Please confirm they are still accurate."
-                                    >
-                                        <LoanRequestCheckRow
-                                            id="applicant_work_income_confirmed"
-                                            checked={
-                                                applicantWorkIncomeConfirmed
-                                            }
-                                            onCheckedChange={
-                                                setApplicantWorkIncomeConfirmed
-                                            }
-                                        >
-                                            Confirm these details are still
-                                            correct
-                                        </LoanRequestCheckRow>
-                                    </LoanRequestSectionCard>
-                                ) : null}
-                            </div>
+                            </InlineEditProvider>
                         </LoanRequestAnimatedStep>
 
                         <LoanRequestAnimatedStep
@@ -1370,6 +1349,8 @@ export default function LoanRequestPage({
                                 onUndertakingChange={(value) =>
                                     form.setData('undertaking_accepted', value)
                                 }
+                                updateProfile={updateProfile}
+                                onUpdateProfileChange={setUpdateProfile}
                                 onErrorClick={handleErrorClick}
                             />
                         </LoanRequestAnimatedStep>

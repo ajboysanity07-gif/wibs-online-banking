@@ -15,6 +15,8 @@ type InlineEditContextValue = {
     anyOpen: boolean;
     setOpenCount: (update: (count: number) => number) => void;
     onDiscard: () => void;
+    // Where Save goes when there is no surrounding <form> to submit.
+    onSave?: () => void;
 };
 
 const InlineEditContext = createContext<InlineEditContextValue>({
@@ -29,11 +31,13 @@ export function InlineEditProvider({
     rowMode,
     processing,
     onDiscard,
+    onSave,
     children,
 }: {
     rowMode: boolean;
     processing: boolean;
     onDiscard: () => void;
+    onSave?: () => void;
     children: ReactNode;
 }) {
     const [openCount, setOpenCount] = useState(0);
@@ -53,6 +57,7 @@ export function InlineEditProvider({
                 anyOpen: openCount > 0,
                 setOpenCount,
                 onDiscard,
+                onSave,
             }}
         >
             {children}
@@ -116,6 +121,7 @@ export function InlineEditRow({
     readOnly = false,
     group = false,
     value: valueOverride,
+    startOpen = false,
 }: {
     label: string;
     // The existing field markup (label, input, error) -- rendered unchanged.
@@ -125,13 +131,15 @@ export function InlineEditRow({
     // Several fields edited together; keeps their own labels.
     group?: boolean;
     value?: string;
+    // Mounts already open (e.g. a required field that is still empty).
+    startOpen?: boolean;
 }) {
-    const { rowMode, processing, anyOpen, setOpenCount, onDiscard } =
+    const { rowMode, processing, anyOpen, setOpenCount, onDiscard, onSave } =
         useContext(InlineEditContext);
     const rootRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<HTMLDivElement>(null);
-    const editingRef = useRef(false);
-    const [editing, setEditing] = useState(false);
+    const editingRef = useRef(startOpen && !readOnly);
+    const [editing, setEditing] = useState(startOpen && !readOnly);
     const [display, setDisplay] = useState('');
     const isOpen = !rowMode || (editing && !readOnly);
 
@@ -229,9 +237,11 @@ export function InlineEditRow({
                                 size="sm"
                                 disabled={processing}
                                 onClick={() =>
-                                    editorRef.current
-                                        ?.closest('form')
-                                        ?.requestSubmit()
+                                    onSave
+                                        ? onSave()
+                                        : editorRef.current
+                                              ?.closest('form')
+                                              ?.requestSubmit()
                                 }
                             >
                                 {processing ? (

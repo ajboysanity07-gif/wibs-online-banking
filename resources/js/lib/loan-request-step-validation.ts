@@ -104,6 +104,22 @@ function checkWorkFields(
     return checkPersonFields(values, checks);
 }
 
+/** Applicant fields the wizard requires -- empty ones start open for editing. */
+export const APPLICANT_REQUIRED_FIELDS: ReadonlySet<string> = new Set(
+    [...BASIC_FIELDS, ...CONTACT_FIELDS_APPLICANT, ...FAMILY_FIELDS]
+        .map(({ field }) => field)
+        .concat([
+            'employment_type',
+            'employer_business_name',
+            'employer_business_address1',
+            'current_position',
+            'nature_of_business',
+            'years_in_work_business',
+            'gross_monthly_income',
+            'payday',
+        ]),
+);
+
 type StepValidationContext = {
     applicantPrefilledFromProfile: boolean;
     applicantWorkIncomePrefilledFromProfile: boolean;
@@ -136,21 +152,24 @@ export function getStepMissingFields(
             return missing;
         }
 
+        // The applicant's personal, contact, family and work/income content
+        // all lives on this one step.
         case 'personal-basic':
-            if (context.applicantPrefilledFromProfile) return [];
-            return checkPersonFields(data.applicant, BASIC_FIELDS);
-
-        case 'personal-contact':
-            if (context.applicantPrefilledFromProfile) return [];
-            return checkPersonFields(data.applicant, CONTACT_FIELDS_APPLICANT);
-
-        case 'personal-family':
-            if (context.applicantPrefilledFromProfile) return [];
-            return checkPersonFields(data.applicant, FAMILY_FIELDS);
-
-        case 'work-employment':
-            if (context.applicantWorkIncomePrefilledFromProfile) return [];
-            return checkWorkFields(data.applicant, true);
+            return [
+                ...(context.applicantPrefilledFromProfile
+                    ? []
+                    : [
+                          ...checkPersonFields(data.applicant, BASIC_FIELDS),
+                          ...checkPersonFields(
+                              data.applicant,
+                              CONTACT_FIELDS_APPLICANT,
+                          ),
+                          ...checkPersonFields(data.applicant, FAMILY_FIELDS),
+                      ]),
+                ...(context.applicantWorkIncomePrefilledFromProfile
+                    ? []
+                    : checkWorkFields(data.applicant, true)),
+            ];
 
         case 'co-maker-1-basic':
             return checkPersonFields(data.co_maker_1, BASIC_FIELDS);

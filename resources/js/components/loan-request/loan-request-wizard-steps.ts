@@ -136,63 +136,36 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
 ];
 
 /**
- * Step ids collapsed into a single "Confirm your details" step (rendered at
- * `personal-basic`'s slot) when the applicant's basic/contact/family details
- * are already complete on file. `personal-basic`/`personal-contact`/
- * `personal-family` stay as distinct entries in `loanRequestWizardSteps`
- * itself so error-key-to-step resolution keeps working off stable ids --
- * only this filtered view (and the `STEP_INDEX` built from it) collapses
- * them. First-time/incomplete-profile members keep all three steps.
+ * Applicant personal, contact, family and work/income content all render on
+ * one "About you" step (at `personal-basic`'s slot), and each employment/
+ * income pair (applicant and both co-makers) shares the employment step's
+ * slot. The collapsed ids stay in `loanRequestWizardSteps` so error-key-to-
+ * step resolution keeps working off stable ids -- only this filtered view
+ * (and the `STEP_INDEX` built from it) collapses them.
  */
-const APPLICANT_CONFIRM_COLLAPSED_STEP_IDS = new Set([
+const COLLAPSED_STEP_IDS = new Set([
     'personal-contact',
     'personal-family',
-]);
-
-/**
- * `work-income` is always collapsed into `work-employment`'s slot --
- * employment and income were always shown as one "My work & finances" card
- * in the step content, so the wizard shouldn't count/navigate them as two
- * steps. Unlike the personal-info collapse above this isn't conditional:
- * income has no wmaster-backed verification to gate on, so there's no
- * "incomplete profile" case where showing them separately would help. Same
- * reasoning applies to each co-maker's employment/income pair.
- */
-const ALWAYS_COLLAPSED_STEP_IDS = new Set([
+    'work-employment',
     'work-income',
     'co-maker-1-income',
     'co-maker-2-income',
 ]);
 
-/**
- * Returns the step list the client wizard should actually render/index,
- * collapsing `personal-basic`/`personal-contact`/`personal-family` into one
- * "Confirm your details" step when `applicantPrefilledFromProfile` is true,
- * and always collapsing each employment/income pair (applicant and both
- * co-makers) into their employment step's slot.
- */
-export function getVisibleWizardSteps(
-    applicantPrefilledFromProfile: boolean,
-): LoanRequestWizardStep[] {
+/** Returns the step list the client wizard should actually render/index. */
+export function getVisibleWizardSteps(): LoanRequestWizardStep[] {
     return loanRequestWizardSteps
-        .filter((step) => !ALWAYS_COLLAPSED_STEP_IDS.has(step.id))
-        .filter(
-            (step) =>
-                !applicantPrefilledFromProfile ||
-                !APPLICANT_CONFIRM_COLLAPSED_STEP_IDS.has(step.id),
-        )
-        .map((step) => {
-            if (applicantPrefilledFromProfile && step.id === 'personal-basic') {
-                return {
-                    ...step,
-                    title: 'Confirm your details',
-                    description:
-                        'Review your basic info, address, and family details.',
-                };
-            }
-
-            return step;
-        });
+        .filter((step) => !COLLAPSED_STEP_IDS.has(step.id))
+        .map((step) =>
+            step.id === 'personal-basic'
+                ? {
+                      ...step,
+                      title: 'About you',
+                      description:
+                          'Confirm your personal, contact, family, and work details.',
+                  }
+                : step,
+        );
 }
 
 export function buildStepIndex(

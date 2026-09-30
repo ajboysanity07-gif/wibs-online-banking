@@ -79,7 +79,7 @@ export function LoanRequestWizardHeader({
             </div>
 
             <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <AlertDialogContent>
+                <AlertDialogContent className="data-[size=default]:sm:max-w-2xl">
                     <AlertDialogHeader>
                         <AlertDialogTitle>
                             Leave this application?
@@ -92,7 +92,7 @@ export function LoanRequestWizardHeader({
                                 : ''}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
+                    <AlertDialogFooter className="sm:flex-wrap">
                         <AlertDialogCancel>Keep editing</AlertDialogCancel>
                         {canDiscard ? (
                             <AlertDialogAction

@@ -1,4 +1,5 @@
 import { AlertCircle } from 'lucide-react';
+import { openInlineRowFor } from '@/components/settings/inline-edit-row';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,8 @@ export const focusField = (
         return;
     }
 
+    // A field inside a closed inline-edit row has to be opened to be focusable.
+    openInlineRowFor(target);
     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     target.focus({ preventScroll: true });
 };

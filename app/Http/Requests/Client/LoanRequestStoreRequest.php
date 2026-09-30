@@ -456,6 +456,7 @@ class LoanRequestStoreRequest extends FormRequest
 
         return [
             'typecode' => $loanTypeRules,
+            'update_profile' => ['sometimes', 'boolean'],
             'requested_amount' => ['required', 'numeric', 'min:1'],
             'requested_term' => ['required', 'integer', 'min:1', 'max:360'],
             'loan_purpose' => ['required', 'string', 'max:255'],

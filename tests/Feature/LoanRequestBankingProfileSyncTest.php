@@ -278,6 +278,42 @@ test('submit writes back validated banking and applicant fields to the member pr
     expect($profile->current_position)->toBe('Analyst');
 });
 
+test('submit leaves the member profile untouched when the member opts out of updating it', function (): void {
+    $member = createBankingTestMember('003105', [
+        'release_method' => LoanReleaseMethod::BankTransfer->value,
+        'source_of_fund_wealth' => 'Salary',
+        'id_type' => 'TIN',
+        'id_number' => '123-456-789',
+        'height_cm' => '165',
+        'weight_kg' => '68',
+        'employer_business_name' => 'Original Employer',
+    ]);
+    $profile = $member->memberApplicationProfile;
+
+    $account = $profile->paymentAccounts()->create(savedAccountPayload([
+        'bank_name' => 'Placeholder Bank',
+        'account_name' => 'Placeholder Holder',
+        'account_number' => '000000000',
+    ]));
+
+    $profile->forceFill([
+        'payment_option' => LoanPaymentOption::AtmDeduction->value,
+        'release_saved_account_id' => $account->id,
+        'payment_saved_account_id' => $account->id,
+    ])->save();
+
+    app(LoanRequestService::class)->submit($member, [
+        ...fullLoanRequestSubmitPayload($account->id),
+        'update_profile' => false,
+    ]);
+
+    $profile = MemberApplicationProfile::query()
+        ->where('user_id', $member->user_id)
+        ->first();
+
+    expect($profile->employer_business_name)->toBe('Original Employer');
+});
+
 test('submit does not write back on a draft-only save', function (): void {
     $member = createBankingTestMember('003104', ['release_method' => null]);
 

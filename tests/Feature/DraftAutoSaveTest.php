@@ -444,3 +444,26 @@ test('draft endpoint accepts full form.data shape with empty strings and returns
         ->assertOk()
         ->assertJsonStructure(['id', 'reference', 'status', 'updated_at']);
 });
+
+test('save draft with wizard_step_id persists it and the create page returns it as initialStepId', function (): void {
+    $member = createDraftMember('002013');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Draft,
+        'acctno' => $member->acctno,
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [
+            'wizard_step' => 4,
+            'wizard_step_id' => 'co-maker-1-basic',
+        ])
+        ->assertNoContent();
+
+    $this->actingAs($member)
+        ->get(route('client.loan-requests.create'))
+        ->assertInertia(fn ($page) => $page
+            ->component('client/loan-request')
+            ->where('initialStepId', 'co-maker-1-basic'),
+        );
+});
