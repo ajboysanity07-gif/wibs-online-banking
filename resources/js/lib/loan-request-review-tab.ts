@@ -87,6 +87,35 @@ export const hasMissingSignatory = (
     );
 };
 
+/**
+ * Signatory fields that must be filled but are blank: Witness 1 (auto-filled
+ * from the assigned processor on save, so `witnessOneFallback` counts) and,
+ * where authority to deduct applies and the officers are not marked unknown,
+ * the officer 1 name printed on it.
+ */
+export const missingSignatoryFields = (
+    processing: Record<string, unknown> | undefined,
+    options: {
+        authorityToDeductApplicable: boolean;
+        witnessOneFallback: string | null;
+    },
+): string[] => {
+    const values = processing ?? {};
+    const blank = (key: string) => `${values[key] ?? ''}`.trim() === '';
+
+    return [
+        blank('witness_one_name') &&
+        `${options.witnessOneFallback ?? ''}`.trim() === ''
+            ? 'witness_one_name'
+            : null,
+        options.authorityToDeductApplicable &&
+        values.authority_to_deduct_officers_unknown !== true &&
+        blank('authority_to_deduct_officer_1_name')
+            ? 'authority_to_deduct_officer_1_name'
+            : null,
+    ].filter((key): key is string => key !== null);
+};
+
 /** Applicable documents, and how many of them are generated and current. */
 export const documentPackageCounts = (
     documents: LoanRequestDocumentChecklistItem[],

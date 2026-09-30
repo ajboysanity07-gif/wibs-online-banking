@@ -54,3 +54,39 @@ test('document checklist rows show a status badge and the missing-field count as
     );
     assert.ok(rowsBlock.includes('displayChecklistStatusTone'));
 });
+
+test('document package card uses workspace status wording and a ready-documents action', async () => {
+    const card = await readFile(
+        resolve(
+            'resources',
+            'js',
+            'components',
+            'loan-request',
+            'loan-request-document-checklist-card.tsx',
+        ),
+        'utf8',
+    );
+
+    for (const [status, label] of [
+        ['ready_to_generate', 'Ready'],
+        ['generated_current', 'Current'],
+        ['generated_stale', 'Outdated'],
+        ['incomplete', 'Incomplete'],
+        ['awaiting_member_confirmation', 'Awaiting member'],
+        ['not_applicable', 'Not applicable'],
+        ['generation_failed', 'Failed'],
+    ]) {
+        assert.ok(card.includes(`${status}: '${label}'`), status);
+    }
+
+    assert.match(card, /Document package/);
+    assert.match(card, /applicable documents generated and current\./);
+    // Nothing selected: generate every ready/outdated/failed document.
+    assert.match(
+        card,
+        /selectedKeys\.size > 0 \? \[\.\.\.selectedKeys\] : readyKeys/,
+    );
+    assert.match(card, /'Generate ready documents'/);
+    assert.match(card, /onClick=\{onFixMissingFields\}/);
+    assert.match(card, /Download all as ZIP/);
+});

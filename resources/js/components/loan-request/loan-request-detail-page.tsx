@@ -649,23 +649,24 @@ export const LoanRequestLoanInformationCard = ({
 
     return (
         <LoanRequestSectionCard
-            title="Loan Information"
-            description="Requested loan details from the request."
-            icon={IdCard}
+            title="Request details"
+            description="What the member submitted."
+            workspace
             headerAction={headerAction ?? null}
             className="border-border bg-card shadow-card"
+            contentClassName="space-y-4"
         >
             <LoanRequestFactGrid
                 facts={[
-                    { label: 'Requested amount', value: amount },
                     { label: 'Loan type', value: loanTypeLabel },
                     ...(otherLoanTypeName
                         ? [{ label: 'Loan name', value: otherLoanTypeName }]
                         : []),
+                    { label: 'Requested amount', value: amount },
                     { label: 'Requested term', value: requestedTerm },
-                    { label: 'Availment status', value: availmentStatus },
+                    { label: 'Availment', value: availmentStatus },
                     ...(loanPurpose
-                        ? [{ label: 'Loan purpose', value: loanPurpose }]
+                        ? [{ label: 'Purpose', value: loanPurpose }]
                         : []),
                     ...extraFacts,
                 ]}

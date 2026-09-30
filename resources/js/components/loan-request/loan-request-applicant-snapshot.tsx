@@ -2,14 +2,15 @@ import {
     displayCurrency,
     displayText,
     displayValue,
-    personName,
 } from '@/components/loan-request/loan-request-detail-page';
 import { LoanRequestFactGrid } from '@/components/loan-request/loan-request-fact-grid';
+import { Button } from '@/components/ui/button';
+import { calculateAge, formatPayday } from '@/lib/formatters';
 import type { LoanRequestPersonData } from '@/types/loan-requests';
 
 type Props = {
     applicant: LoanRequestPersonData | null;
-    /** Phase 3 turns this into a jump to the Applicant tab. */
+    /** Selects the Applicant section. */
     onFullProfile: () => void;
 };
 
@@ -18,22 +19,31 @@ export function LoanRequestApplicantSnapshot({
     onFullProfile,
 }: Props) {
     return (
-        <div className="rounded-xl border border-border bg-card px-5 py-[18px] shadow-card">
-            <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-[17px] font-semibold">
-                    Applicant snapshot
-                </h2>
-                <button
+        <section
+            className="rounded-xl border border-border bg-card px-5 py-[18px] shadow-card"
+            aria-label="Applicant snapshot"
+        >
+            <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2.5">
+                <div className="min-w-0">
+                    <h2 className="text-[17px] font-semibold">
+                        Applicant snapshot
+                    </h2>
+                    <p className="text-[13px] text-muted-foreground">
+                        Enough to process; full profile under Applicant.
+                    </p>
+                </div>
+                <Button
                     type="button"
-                    className="min-h-11 text-[13px] font-bold text-primary underline-offset-4 hover:underline lg:min-h-0"
+                    variant="outline"
+                    size="sm"
+                    className="min-h-11 lg:min-h-9"
                     onClick={onFullProfile}
                 >
-                    Full profile
-                </button>
+                    Open profile
+                </Button>
             </div>
             <LoanRequestFactGrid
                 facts={[
-                    { label: 'Name', value: personName(applicant) },
                     {
                         label: 'Employer',
                         value: displayText(applicant?.employer_business_name),
@@ -43,16 +53,25 @@ export function LoanRequestApplicantSnapshot({
                         value: displayText(applicant?.current_position),
                     },
                     {
-                        label: 'Gross income',
+                        label: 'Gross monthly income',
                         value: displayCurrency(applicant?.gross_monthly_income),
                     },
-                    { label: 'Payday', value: displayValue(applicant?.payday) },
+                    {
+                        label: 'Payday',
+                        value: applicant?.payday
+                            ? formatPayday(applicant.payday)
+                            : '--',
+                    },
+                    {
+                        label: 'Age',
+                        value: displayValue(calculateAge(applicant?.birthdate)),
+                    },
                     {
                         label: 'Cell no.',
                         value: displayValue(applicant?.cell_no),
                     },
                 ]}
             />
-        </div>
+        </section>
     );
 }

@@ -160,9 +160,12 @@ test('staff review Overview top is wired into the page', async () => {
     assert.match(page, /<LoanRequestAttentionCard/);
     assert.match(page, /<LoanRequestRecommendationSummary/);
     assert.match(page, /<LoanRequestApplicantSnapshot/);
+    // Summary: request details, applicant snapshot, then the member strip.
+    assert.match(page, /Waiting on member:/);
+    assert.match(page, /This does not block your recommendation\./);
     assert.match(
         page,
-        /grid-cols-\[repeat\(auto-fit,minmax\(min\(340px,100%\),1fr\)\)\]/,
+        /memberWaitBlocks =\s*currentRequest\.member_action_type !== null \|\|\s*\(isV2Workflow && awaitingMemberDocuments\.length > 0\)/,
     );
     // Replaced banners are gone from the page.
     assert.doesNotMatch(page, /<LoanStatusWarning/);
@@ -173,9 +176,10 @@ test('staff review Overview top is wired into the page', async () => {
     // Phase 4 reads this as gate 2.
     assert.match(page, /attention\.blockingCount/);
     // Net proceeds come from the panel's existing preview, not a second call.
-    assert.match(panel, /onPreviewChange\?\.\(recommendationPreview\)/);
+    assert.match(panel, /onPreviewChange\?\.\(baselinePreview\)/);
     assert.match(summary, /preview\?\.net_proceeds_raw/);
     assert.match(detail, /LoanRequestFactGrid/);
+    assert.match(detail, /title="Request details"/);
 });
 
 test('category mismatch only blocks while it can still be confirmed', async () => {

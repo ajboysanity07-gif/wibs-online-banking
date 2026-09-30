@@ -2,7 +2,6 @@ import {
     AlertCircle,
     CheckCircle2,
     Circle,
-    ClipboardCheck,
     Clock,
     Download,
     Eye,
@@ -137,6 +136,32 @@ const checklistStatusIcon = (status: LoanRequestDocumentReadinessStatus) => {
     }
 };
 
+// Workspace wording for each readiness status; anything else keeps the
+// server's label.
+const DOCUMENT_STATUS_LABELS: Partial<
+    Record<LoanRequestDocumentReadinessStatus, string>
+> = {
+    ready_to_generate: 'Ready',
+    generated_current: 'Current',
+    generated_stale: 'Outdated',
+    incomplete: 'Incomplete',
+    legacy_data_incomplete: 'Incomplete',
+    awaiting_member_confirmation: 'Awaiting member',
+    not_applicable: 'Not applicable',
+    generation_failed: 'Failed',
+};
+
+export const documentStatusLabel = (
+    document: Pick<LoanRequestDocumentChecklistItem, 'status' | 'status_label'>,
+): string => DOCUMENT_STATUS_LABELS[document.status] ?? document.status_label;
+
+// Statuses "Generate ready documents" picks up when nothing is selected.
+const GENERATABLE_STATUSES: LoanRequestDocumentReadinessStatus[] = [
+    'ready_to_generate',
+    'generated_stale',
+    'generation_failed',
+];
+
 export const displayChecklistStatusTone = (status: string): string =>
     ({
         generated_current:
@@ -168,6 +193,8 @@ export type LoanRequestDocumentChecklistCardProps = {
     } | null;
     lockFinalizedDocuments?: boolean;
     processingDetailsSaved?: boolean;
+    /** Opens the edit form that clears missing-field blockers. */
+    onFixMissingFields?: () => void;
 };
 
 export const LoanRequestDocumentChecklistCard = ({
@@ -180,6 +207,7 @@ export const LoanRequestDocumentChecklistCard = ({
     packageZipDownload = null,
     lockFinalizedDocuments = false,
     processingDetailsSaved = true,
+    onFixMissingFields,
 }: LoanRequestDocumentChecklistCardProps) => {
     const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
     const [hideNotApplicable, setHideNotApplicable] = useState(true);
@@ -246,8 +274,18 @@ export const LoanRequestDocumentChecklistCard = ({
         setSelectedKeys(checked ? new Set(selectableKeys) : new Set());
     };
 
+    const readyKeys = documentChecklist
+        .filter(
+            (document) =>
+                document.is_applicable &&
+                !isDocumentLocked(document) &&
+                GENERATABLE_STATUSES.includes(document.status),
+        )
+        .map((document) => document.key);
+
+    // Selected documents, or every ready one when nothing is selected.
     const handleGenerateSelected = async () => {
-        const keys = [...selectedKeys];
+        const keys = selectedKeys.size > 0 ? [...selectedKeys] : readyKeys;
         setPendingKeys(new Set(keys));
         setSelectedKeys(new Set());
 
@@ -334,6 +372,9 @@ export const LoanRequestDocumentChecklistCard = ({
     const applicableDocuments = documentChecklist.filter(
         (document) => document.is_applicable,
     );
+    const currentCount = applicableDocuments.filter(
+        (document) => document.status === 'generated_current',
+    ).length;
     const allDocumentsGenerated =
         applicableDocuments.length > 0 &&
         applicableDocuments.every(
@@ -345,13 +386,12 @@ export const LoanRequestDocumentChecklistCard = ({
             <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                     <div className="min-w-0 space-y-1.5">
-                        <CardTitle className="flex items-center gap-2 text-[17px]">
-                            <ClipboardCheck className="size-4 text-muted-foreground" />
-                            Document checklist
+                        <CardTitle className="text-[17px]">
+                            Document package
                         </CardTitle>
-                        <CardDescription>
-                            Every applicable document must be current before
-                            recommendation.
+                        <CardDescription className="text-[13px]">
+                            {currentCount} of {applicableDocuments.length}{' '}
+                            applicable documents generated and current.
                         </CardDescription>
                     </div>
                     {canGenerateDocuments ? (
@@ -361,7 +401,8 @@ export const LoanRequestDocumentChecklistCard = ({
                             disabled={
                                 !processingDetailsSaved ||
                                 isProcessing ||
-                                selectedKeys.size === 0
+                                (selectedKeys.size === 0 &&
+                                    readyKeys.length === 0)
                             }
                             onClick={handleGenerateSelected}
                         >
@@ -372,10 +413,9 @@ export const LoanRequestDocumentChecklistCard = ({
                                 </>
                             ) : (
                                 <>
-                                    Generate selected
                                     {selectedKeys.size > 0
-                                        ? ` (${selectedKeys.size})`
-                                        : ''}
+                                        ? `Generate selected (${selectedKeys.size})`
+                                        : 'Generate ready documents'}
                                 </>
                             )}
                         </Button>
@@ -446,10 +486,21 @@ export const LoanRequestDocumentChecklistCard = ({
                 {processingDetailsSaved && blockedEntries.length > 0 ? (
                     <Alert variant="destructive" className="mb-3">
                         <AlertCircle className="size-4" />
-                        <AlertTitle>
+                        <AlertTitle className="flex flex-wrap items-center justify-between gap-2">
                             {blockedEntries.length === 1
                                 ? '1 document has missing fields'
                                 : `${blockedEntries.length} documents have missing fields`}
+                            {onFixMissingFields ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="min-h-11 border-destructive text-destructive lg:min-h-8"
+                                    onClick={onFixMissingFields}
+                                >
+                                    Enter name
+                                </Button>
+                            ) : null}
                         </AlertTitle>
                         <AlertDescription>
                             {blockedEntries.map((document) => (
@@ -470,10 +521,10 @@ export const LoanRequestDocumentChecklistCard = ({
                 <div className="flex flex-col">
                     {groupedChecklist.map((group) => (
                         <div key={group.group} className="flex flex-col">
-                            <p className="py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                            <p className="pt-4 pb-1.5 text-[11px] font-bold tracking-[0.14em] text-muted-foreground uppercase">
                                 {group.label}
                             </p>
-                            <div className="flex flex-col divide-y divide-border/40">
+                            <div className="flex flex-col divide-y divide-border border-t border-border">
                                 {group.documents.map((document) => {
                                     const viewHref = `${generatedDocumentBaseHref}/${document.key}`;
                                     const isWorkbookDocument =
@@ -494,9 +545,6 @@ export const LoanRequestDocumentChecklistCard = ({
                                         className: statusIconClassName,
                                         circle: statusCircleClassName,
                                     } = checklistStatusIcon(document.status);
-                                    const subtitle =
-                                        document.template_version ??
-                                        document.key;
                                     const showWitnessTwoCaveat =
                                         document.key === 'loan_information' ||
                                         document.key === 'promissory_note';
@@ -511,7 +559,7 @@ export const LoanRequestDocumentChecklistCard = ({
                                     return (
                                         <div
                                             key={document.key}
-                                            className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0"
+                                            className="flex flex-col gap-2 py-2.5"
                                         >
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="flex min-w-0 items-center gap-2">
@@ -580,9 +628,6 @@ export const LoanRequestDocumentChecklistCard = ({
                                                                 </TooltipProvider>
                                                             ) : null}
                                                         </p>
-                                                        <p className="truncate text-xs text-muted-foreground">
-                                                            {subtitle}
-                                                        </p>
                                                         {showWitnessTwoCaveat && (
                                                             <p className="truncate text-xs text-muted-foreground/70">
                                                                 Witness 2
@@ -597,13 +642,15 @@ export const LoanRequestDocumentChecklistCard = ({
                                                 <div className="flex shrink-0 items-center gap-2">
                                                     <span
                                                         className={cn(
-                                                            'hidden rounded-md border px-2 py-0.5 text-xs font-bold sm:inline-block',
+                                                            'rounded-md border px-2 py-0.5 text-[11px] font-bold',
                                                             displayChecklistStatusTone(
                                                                 document.status,
                                                             ),
                                                         )}
                                                     >
-                                                        {document.status_label}
+                                                        {documentStatusLabel(
+                                                            document,
+                                                        )}
                                                     </span>
                                                     {processingDetailsSaved &&
                                                     missingFieldCount > 0 ? (
@@ -849,7 +896,7 @@ export const LoanRequestDocumentChecklistCard = ({
                     ))}
                 </div>
                 {packageZipDownload ? (
-                    <div className="mt-4 border-t border-border pt-4">
+                    <div className="mt-4">
                         {allDocumentsGenerated ? (
                             <div className="space-y-2">
                                 <Button
@@ -867,7 +914,7 @@ export const LoanRequestDocumentChecklistCard = ({
                                         <span className="min-w-0 flex-1 text-left text-sm font-semibold">
                                             {packageZipDownload.isPreparing
                                                 ? 'Preparing ZIP…'
-                                                : 'Download All as ZIP'}
+                                                : 'Download all as ZIP'}
                                         </span>
                                     </span>
                                 </Button>
@@ -878,9 +925,9 @@ export const LoanRequestDocumentChecklistCard = ({
                                 ) : null}
                             </div>
                         ) : (
-                            <p className="rounded-lg border border-dashed border-border bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
-                                Generate every applicable document above to
-                                enable the ZIP download.
+                            <p className="rounded-[10px] border border-dashed border-input px-3.5 py-2.5 text-[13px] text-muted-foreground">
+                                Generate every applicable document to enable the
+                                ZIP download.
                             </p>
                         )}
                     </div>

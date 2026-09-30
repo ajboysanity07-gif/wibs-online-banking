@@ -30,6 +30,10 @@ type Props = {
     // Renders a divider-separated block instead of a bordered card, for use
     // inside a panel that already provides the card surface (Settings).
     flat?: boolean;
+    /** Staff workspace density: 17px title, 13px description. */
+    workspace?: boolean;
+    /** Inline next to the title (e.g. an "Editing" pill). */
+    titleAddon?: ReactNode;
 };
 
 export function LoanRequestSectionCard({
@@ -43,6 +47,8 @@ export function LoanRequestSectionCard({
     errors,
     onErrorClick,
     flat,
+    workspace = false,
+    titleAddon,
 }: Props) {
     if (flat) {
         return (
@@ -93,14 +99,24 @@ export function LoanRequestSectionCard({
                 )}
             >
                 <div className={cn('min-w-0', headerAction && 'space-y-1.5')}>
-                    <CardTitle className="flex items-center gap-2 text-lg">
+                    <CardTitle
+                        className={cn(
+                            'flex items-center gap-2',
+                            workspace ? 'text-[17px]' : 'text-lg',
+                        )}
+                    >
                         {Icon ? (
                             <Icon className="size-5 shrink-0 text-muted-foreground" />
                         ) : null}
                         {title}
+                        {titleAddon}
                     </CardTitle>
                     {description ? (
-                        <CardDescription>{description}</CardDescription>
+                        <CardDescription
+                            className={workspace ? 'text-[13px]' : undefined}
+                        >
+                            {description}
+                        </CardDescription>
                     ) : null}
                 </div>
                 {headerAction ?? null}

@@ -147,9 +147,7 @@ export function LoanRequestActivityTab({ auditTrail, notifications }: Props) {
                 className={cn(cardClassName, 'px-5 py-[18px]')}
                 aria-label="Notification history"
             >
-                <h2 className="text-[17px] font-semibold">
-                    Notification history
-                </h2>
+                <h2 className="text-[17px] font-semibold">Notifications</h2>
                 <p className="mb-1.5 text-[13px] text-muted-foreground">
                     Delivery state for workflow-triggered member notifications.
                 </p>
@@ -169,34 +167,27 @@ export function LoanRequestActivityTab({ auditTrail, notifications }: Props) {
                                         <p className="text-sm font-semibold">
                                             {event.event_label}
                                         </p>
-                                        <p className="text-[13px] text-muted-foreground">
-                                            {event.channel}
-                                            {event.recipient
-                                                ? ` · ${event.recipient}`
-                                                : ''}
-                                            {' · '}Queued{' '}
-                                            {event.queued_at
-                                                ? formatDateTime(
-                                                      event.queued_at,
-                                                  )
-                                                : '-'}
-                                            {' · '}Sent{' '}
-                                            {event.sent_at
-                                                ? formatDateTime(event.sent_at)
-                                                : '-'}
-                                            {event.failed_at
-                                                ? ` · Failed ${formatDateTime(event.failed_at)}`
-                                                : ''}
-                                        </p>
                                         <p className="text-xs text-muted-foreground">
-                                            Attempts {event.attempt_count} ·
-                                            Retries {event.retry_count} ·
-                                            Reminders {event.reminder_attempts}
+                                            {[
+                                                event.channel,
+                                                event.recipient,
+                                                event.failed_at
+                                                    ? `Failed ${formatDateTime(event.failed_at)}`
+                                                    : event.sent_at
+                                                      ? formatDateTime(
+                                                            event.sent_at,
+                                                        )
+                                                      : event.queued_at
+                                                        ? `Queued ${formatDateTime(event.queued_at)}`
+                                                        : null,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' · ')}
                                         </p>
                                     </div>
                                     <span
                                         className={cn(
-                                            'shrink-0 rounded-md border px-2 py-0.5 text-xs font-bold',
+                                            'shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-bold',
                                             notificationStatusTone(
                                                 event.status,
                                             ),

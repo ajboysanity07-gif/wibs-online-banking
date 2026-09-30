@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 
 export type LoanRequestFact = { label: string; value: string };
 
-/** Compact label/value grid: 1 column on mobile, 2 from sm, 1px dividers. */
+/** Label/value grid: 1 column on mobile, auto-fill 190px columns from sm. */
 export function LoanRequestFactGrid({
     facts,
     className,
@@ -13,19 +13,16 @@ export function LoanRequestFactGrid({
     return (
         <dl
             className={cn(
-                'grid grid-cols-1 gap-px overflow-hidden rounded-[10px] border border-border bg-border sm:grid-cols-2',
+                'grid grid-cols-1 gap-x-[18px] gap-y-3.5 sm:grid-cols-[repeat(auto-fill,minmax(190px,1fr))]',
                 className,
             )}
         >
             {facts.map((fact) => (
-                <div
-                    key={fact.label}
-                    className="min-w-0 bg-muted px-3 py-[9px]"
-                >
-                    <dt className="text-[11px] font-semibold tracking-widest text-muted-foreground uppercase">
+                <div key={fact.label} className="min-w-0">
+                    <dt className="text-xs text-muted-foreground">
                         {fact.label}
                     </dt>
-                    <dd className="mt-px text-sm font-semibold [overflow-wrap:anywhere]">
+                    <dd className="text-sm font-semibold [overflow-wrap:anywhere]">
                         {fact.value}
                     </dd>
                 </div>

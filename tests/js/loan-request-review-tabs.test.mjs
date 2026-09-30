@@ -141,29 +141,171 @@ test('staff page renders every section panel mounted in a three-pane grid', asyn
     assert.match(tabs, /\[&::-webkit-scrollbar\]:hidden/);
 });
 
-test('processing snapshot is grouped and marks policy-locked fields', async () => {
+test('processing panel splits into terms and signatories views with one save path', async () => {
+    const panel = await read(
+        'components',
+        'loan-request',
+        'processing-details-panel.tsx',
+    );
+    const page = await read('pages', 'staff', 'loan-request-show.tsx');
+
+    // Two views of the same record; the page mounts one of each.
+    assert.match(panel, /view\?: 'all' \| 'terms' \| 'signatories'/);
+    assert.match(page, /view="terms"/);
+    assert.match(page, /view="signatories"/);
+    assert.equal(
+        page.match(/\{\.\.\.processingPanelProps\}/g)?.length,
+        2,
+        'both panels share the same props and save endpoint',
+    );
+    // Only the terms instance mirrors net proceeds and previews the checklist.
+    assert.match(
+        page,
+        /view="terms"\s*onDocumentChecklistPreview=\{\s*applyDocumentChecklistPreview\s*\}\s*onPreviewChange=\{setProcessingPreview\}/,
+    );
+    // Every save still sends the full processing payload + passthrough.
+    assert.match(
+        panel,
+        /processing: buildInlineProcessingPayload\(processingForm\.processing\)/,
+    );
+    assert.match(panel, /loan_request: buildLoanRequestPassthrough\(\)/);
+    // Signatories never call the preview endpoint.
+    assert.match(
+        panel,
+        /if \(!canUpdateProcessing \|\| view === 'signatories'\) \{\s*return;/,
+    );
+
+    for (const title of [
+        'Signatories',
+        'Authority to deduct',
+        'Insurance cycle',
+        'Disbursement and repayment',
+    ]) {
+        assert.ok(
+            panel.includes(`title="${title}"`),
+            `missing group ${title}`,
+        );
+    }
+
+    // Read view: charges table with Policy tags, totals and net proceeds.
+    for (const label of [
+        'Service charge',
+        'Loan security / savings',
+        'Insurance premium',
+        'Documentary stamp',
+        'Notarial fee',
+        'Other charges',
+    ]) {
+        assert.ok(panel.includes(`label: '${label}'`), `missing ${label}`);
+    }
+    assert.match(panel, /<PolicyTag \/>/);
+    assert.match(panel, /Total deductions/);
+    assert.match(panel, /bg-secondary px-3\.5 py-3 text-secondary-foreground/);
+    assert.match(panel, /Penalty rate/);
+    // Amounts come from the backend preview, never a client formula.
+    assert.match(panel, /baselinePreview\?\.net_proceeds_raw/);
+    assert.match(panel, /onPreviewChange\?\.\(baselinePreview\)/);
+});
+
+test('terms edit tracks changes, gates save and recomputes live via the backend', async () => {
     const panel = await read(
         'components',
         'loan-request',
         'processing-details-panel.tsx',
     );
 
-    for (const title of [
-        'Recommendation',
-        'Charges',
-        'Computed preview',
-        'Signatories',
-        'Authority to deduct',
-        'Cycle status',
-        'Disbursement and repayment',
-    ]) {
-        assert.ok(
-            panel.includes(`<SnapshotGroup title="${title}"`),
-            `missing group ${title}`,
-        );
-    }
+    // Debounced backend preview on every keystroke.
+    assert.match(
+        panel,
+        /setTimeout\(\s*\(\) => void recalculateGnthpRef\.current\(false\),\s*250,?\s*\)/,
+    );
+    assert.doesNotMatch(panel, /scheduleGnthpRecalculation/);
+    assert.match(panel, /adminApi\.previewLoanRequestProcessingDetails/);
 
-    assert.match(panel, /repeat\(auto-fill,minmax\(min\(200px,100%\),1fr\)\)/);
-    assert.match(panel, /\(locked\)/);
-    assert.match(panel, /Editing requires remarks after the first save/);
+    // Changed markers and the save gate.
+    assert.match(panel, /was \{previous === '—' \? 'blank' : previous\}/);
+    assert.match(panel, /isChanged\(key\) \? 'border-primary' : undefined/);
+    assert.match(
+        panel,
+        /isFirstProcessingSave \|\| \(changedKeys\.length > 0 && !isRemarksMissing\)/,
+    );
+    assert.match(panel, /disabled=\{isProcessing \|\| !canSaveProcessing\}/);
+    assert.match(panel, /' · remarks required'/);
+    assert.match(panel, /'Save terms'/);
+
+    // Live computation and warnings.
+    assert.match(panel, /Live computation/);
+    assert.match(panel, /vs saved/);
+    assert.match(panel, /Term under 2 months: insurance does not apply\./);
+    assert.match(panel, /Recommended amount must be greater than 0\./);
+    assert.match(panel, /The manager will see this flagged\./);
+
+    // Saved banner flags stale documents.
+    assert.match(panel, /Saved\. Changes are recorded in the audit trail\./);
+    assert.match(panel, /document\.status === 'generated_stale'/);
+});
+
+test('change detection treats equal numbers as unchanged', async () => {
+    const panel = await read(
+        'components',
+        'loan-request',
+        'processing-details-panel.tsx',
+    );
+    const body = panel.match(
+        /const sameFormValue = \(([\s\S]*?)\n\};/,
+    )?.[0];
+
+    assert.ok(body, 'expected sameFormValue');
+
+    const sameFormValue = new Function(
+        `${body.replace(/: [^,)=]+(?=[,)=])/g, '').replace(/\): boolean =>/, ') =>')}; return sameFormValue;`,
+    )();
+
+    assert.equal(sameFormValue('30000', '30000.00'), true);
+    assert.equal(sameFormValue(0.02, '0.02'), true);
+    assert.equal(sameFormValue(null, ''), true);
+    assert.equal(sameFormValue('', '0'), false);
+    assert.equal(sameFormValue('Monthly', 'Due date'), false);
+});
+
+test('missing signatory fields follow witness auto-fill and authority to deduct', async () => {
+    const { missingSignatoryFields } = await load(
+        'lib',
+        'loan-request-review-tab.ts',
+    );
+    const applicable = {
+        authorityToDeductApplicable: true,
+        witnessOneFallback: null,
+    };
+
+    assert.deepEqual(missingSignatoryFields({}, applicable), [
+        'witness_one_name',
+        'authority_to_deduct_officer_1_name',
+    ]);
+    // Witness 1 is filled from the assigned processor on save.
+    assert.deepEqual(
+        missingSignatoryFields(
+            { authority_to_deduct_officer_1_name: 'Juan' },
+            { ...applicable, witnessOneFallback: 'Processor' },
+        ),
+        [],
+    );
+    // Officers marked unknown, or no authority to deduct: not required.
+    assert.deepEqual(
+        missingSignatoryFields(
+            {
+                witness_one_name: 'P',
+                authority_to_deduct_officers_unknown: true,
+            },
+            applicable,
+        ),
+        [],
+    );
+    assert.deepEqual(
+        missingSignatoryFields(
+            { witness_one_name: 'P' },
+            { ...applicable, authorityToDeductApplicable: false },
+        ),
+        [],
+    );
 });

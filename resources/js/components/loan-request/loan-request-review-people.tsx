@@ -156,7 +156,7 @@ const personalFacts = (
 ];
 
 const SectionLabel = ({ children }: { children: ReactNode }) => (
-    <p className="mb-2 text-[11px] font-bold tracking-[0.14em] text-muted-foreground uppercase">
+    <p className="mb-3 border-b border-border pb-1.5 text-[11px] font-bold tracking-[0.14em] text-muted-foreground uppercase">
         {children}
     </p>
 );
@@ -175,19 +175,19 @@ function PersonFacts({
 
     return (
         <>
-            <SectionLabel>Work &amp; income</SectionLabel>
+            <SectionLabel>Work and income</SectionLabel>
             <LoanRequestFactGrid facts={workFacts(person)} />
             <button
                 type="button"
-                className="mt-3.5 min-h-11 text-sm font-bold text-primary underline-offset-4 hover:underline lg:min-h-10"
+                className="mt-3.5 min-h-11 text-sm font-bold text-primary underline underline-offset-4 lg:min-h-10"
                 aria-expanded={showMore}
                 aria-controls={moreId}
                 onClick={() => setShowMore((open) => !open)}
             >
-                {showMore ? 'Show less' : toggleLabel}
+                {showMore ? 'Hide' : 'Show'} {toggleLabel}
             </button>
-            <div id={moreId} hidden={!showMore}>
-                <SectionLabel>Personal &amp; household</SectionLabel>
+            <div id={moreId} hidden={!showMore} className="mt-2.5">
+                <SectionLabel>Personal and household</SectionLabel>
                 <LoanRequestFactGrid
                     facts={personalFacts(person, { household })}
                 />
@@ -209,7 +209,7 @@ export function LoanRequestApplicantPanel({
     return (
         <section className={cn(cardClassName, 'p-5')} aria-label="Applicant">
             <div className="mb-4 flex items-center gap-3">
-                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-primary/10 font-bold text-primary">
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent font-bold text-accent-foreground">
                     {initials(applicant)}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -217,8 +217,8 @@ export function LoanRequestApplicantPanel({
                         {personName(applicant)}
                     </h2>
                     <p className="truncate text-[13px] text-muted-foreground">
-                        {displayText(applicant?.employer_business_name)} ·
-                        Primary borrower
+                        {displayText(applicant?.current_position)} ·{' '}
+                        {displayText(applicant?.employer_business_name)}
                     </p>
                 </div>
                 {headerAction}
@@ -226,7 +226,7 @@ export function LoanRequestApplicantPanel({
             <PersonFacts
                 person={applicant}
                 household
-                toggleLabel="Show personal & household details"
+                toggleLabel="personal and household details"
             />
         </section>
     );
@@ -247,32 +247,32 @@ export function LoanRequestCoMakerCard({
 
     return (
         <section
-            className={cn(cardClassName, 'p-5')}
+            className={cn(
+                'rounded-[10px] p-3.5',
+                empty
+                    ? 'border border-dashed border-input'
+                    : 'border border-border',
+            )}
             aria-label={`Co-maker ${number}`}
         >
             <div className="flex flex-wrap items-center gap-3.5">
-                <span
-                    className={cn(
-                        'grid size-11 shrink-0 place-items-center rounded-full font-bold',
-                        empty
-                            ? 'border-[1.5px] border-dashed border-input bg-muted text-muted-foreground'
-                            : 'bg-primary/10 text-primary',
-                    )}
-                >
-                    {empty ? number : initials(person)}
-                </span>
+                {empty ? null : (
+                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent font-bold text-accent-foreground">
+                        {initials(person)}
+                    </span>
+                )}
                 <div className="min-w-0 flex-1 basis-48">
-                    <h2 className="text-base font-semibold">
+                    <h3 className="text-sm font-semibold">
                         {empty ? `Co-maker ${number}` : personName(person)}
-                    </h2>
+                    </h3>
                     <p className="text-[13px] text-muted-foreground">
                         {empty
-                            ? 'No co-maker details submitted.'
+                            ? 'No details submitted'
                             : `Co-maker ${number} · ${displayText(person?.employer_business_name)}`}
                     </p>
                 </div>
                 {empty ? (
-                    <span className="rounded-md border border-border bg-muted px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
+                    <span className="rounded-md bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground">
                         Not provided
                     </span>
                 ) : null}
@@ -283,7 +283,7 @@ export function LoanRequestCoMakerCard({
                     <PersonFacts
                         person={person}
                         household={false}
-                        toggleLabel="Show more details"
+                        toggleLabel="more details"
                     />
                 </div>
             )}

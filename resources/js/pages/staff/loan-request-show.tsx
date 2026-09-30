@@ -97,6 +97,7 @@ import { buildRecommendGates } from '@/lib/loan-request-gates';
 import {
     documentPackageCounts,
     hasMissingSignatory,
+    missingSignatoryFields,
     type ReviewTabId,
 } from '@/lib/loan-request-review-tab';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
@@ -381,6 +382,7 @@ export default function StaffLoanRequestShow({
     const [processingPreview, setProcessingPreview] =
         useState<RecommendationPreviewState | null>(null);
     const [processingEditSignal, setProcessingEditSignal] = useState(0);
+    const [signatoriesEditSignal, setSignatoriesEditSignal] = useState(0);
     const [tab, setTab] = useReviewTab();
     const [isMemberActionDialogOpen, setIsMemberActionDialogOpen] =
         useState(false);
@@ -1329,6 +1331,64 @@ export default function StaffLoanRequestShow({
         ...processingWorkflowActions,
     };
 
+    // Pending member action is enforced by the server; awaiting-member
+    // documents block only through the v2 document rule.
+    const awaitingMemberDocuments = currentDocumentChecklist.filter(
+        (document) =>
+            document.is_applicable &&
+            document.status === 'awaiting_member_confirmation',
+    );
+    const memberWaitItems = [
+        ...(currentRequest.member_action_type !== null
+            ? [
+                  currentRequest.member_action_message ??
+                      'Requested member action',
+              ]
+            : []),
+        ...awaitingMemberDocuments.map(
+            (document) => `${document.label} confirmation`,
+        ),
+    ];
+    const memberWaitBlocks =
+        currentRequest.member_action_type !== null ||
+        (isV2Workflow && awaitingMemberDocuments.length > 0);
+    const processingPanelProps = {
+        loanRequest: currentRequest,
+        applicant: currentApplicant,
+        dataSections: currentDataSections,
+        dataSectionDefinitions,
+        cycleState: currentCycleState,
+        canUpdateProcessing:
+            canUpdateProcessing ||
+            canCorrectProcessingPostApproval ||
+            canWorkflowApprove,
+        isProcessing: isWorkflowProcessing,
+        updateProcessingDetails,
+        loanManagers,
+        saveError:
+            workflowLastErrors[currentRequest.id]?.action ===
+            'updateProcessingDetails'
+                ? workflowLastErrors[currentRequest.id]
+                : null,
+        onDismissSaveError: () => clearWorkflowLastError(currentRequest.id),
+    };
+    const signatoryMissing =
+        showProcessingSection &&
+        (hasMissingSignatory(
+            currentDocumentChecklist,
+            dataSectionDefinitions,
+        ) ||
+            missingSignatoryFields(currentDataSections.processing, {
+                authorityToDeductApplicable:
+                    currentRequest.authority_to_deduct_guidance?.applicable ===
+                    true,
+                witnessOneFallback:
+                    currentRequest.assigned_processor?.name ?? null,
+            }).length > 0);
+    const openSignatoriesEdit = () => {
+        setSignatoriesEditSignal((n) => n + 1);
+        goToTab('signatories', 'signatories-details');
+    };
     const documentResultsAlert =
         lastDocumentResults !== null ? (
             <Alert className="border-sky-500/30 bg-sky-500/10">
@@ -1385,10 +1445,7 @@ export default function StaffLoanRequestShow({
                         tab={tab}
                         onSelect={setTab}
                         badges={{
-                            signatories: hasMissingSignatory(
-                                currentDocumentChecklist,
-                                dataSectionDefinitions,
-                            )
+                            signatories: signatoryMissing
                                 ? { label: '!', tone: 'destructive' }
                                 : null,
                             docs:
@@ -1444,11 +1501,12 @@ export default function StaffLoanRequestShow({
                                     }
                                 />
                             ) : null}
-                            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] items-start gap-4">
+                            <div className="grid gap-4">
                                 {editingSection === 'loan_request' ? (
                                     <LoanRequestSectionCard
-                                        title="Loan Information"
+                                        title="Request details"
                                         description="Update the verified request details used throughout the document package."
+                                        workspace
                                         className="col-span-full"
                                     >
                                         <form
@@ -1718,6 +1776,17 @@ export default function StaffLoanRequestShow({
                                     applicant={currentApplicant}
                                     onFullProfile={() => goToTab('applicant')}
                                 />
+                                {memberWaitItems.length > 0 ? (
+                                    <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-800 dark:text-amber-200">
+                                        <b>Waiting on member:</b>
+                                        <span className="min-w-52 flex-1">
+                                            {memberWaitItems.join('; ')}.{' '}
+                                            {memberWaitBlocks
+                                                ? 'This must clear before you can recommend approval.'
+                                                : 'This does not block your recommendation.'}
+                                        </span>
+                                    </p>
+                                ) : null}
                             </div>
 
                             <LoanRequestConditionsCard
@@ -1733,38 +1802,8 @@ export default function StaffLoanRequestShow({
                                     className="scroll-mt-40"
                                 >
                                     <ProcessingDetailsPanel
-                                        loanRequest={currentRequest}
-                                        applicant={currentApplicant}
-                                        dataSections={currentDataSections}
-                                        dataSectionDefinitions={
-                                            dataSectionDefinitions
-                                        }
-                                        cycleState={currentCycleState}
-                                        canUpdateProcessing={
-                                            canUpdateProcessing ||
-                                            canCorrectProcessingPostApproval ||
-                                            canWorkflowApprove
-                                        }
-                                        isProcessing={isWorkflowProcessing}
-                                        updateProcessingDetails={
-                                            updateProcessingDetails
-                                        }
-                                        loanManagers={loanManagers}
-                                        saveError={
-                                            workflowLastErrors[
-                                                currentRequest.id
-                                            ]?.action ===
-                                            'updateProcessingDetails'
-                                                ? workflowLastErrors[
-                                                      currentRequest.id
-                                                  ]
-                                                : null
-                                        }
-                                        onDismissSaveError={() =>
-                                            clearWorkflowLastError(
-                                                currentRequest.id,
-                                            )
-                                        }
+                                        {...processingPanelProps}
+                                        view="terms"
                                         onDocumentChecklistPreview={
                                             applyDocumentChecklistPreview
                                         }
@@ -1772,44 +1811,42 @@ export default function StaffLoanRequestShow({
                                         openEditSignal={processingEditSignal}
                                     />
                                 </div>
-                            ) : null}
-                            {!showProcessingSection ? (
-                                <LoanRequestSectionCard title="Terms and charges">
+                            ) : (
+                                <LoanRequestSectionCard
+                                    title="Terms and charges"
+                                    workspace
+                                >
                                     <p className="text-sm text-muted-foreground">
                                         Processing details become available once
                                         the request is in processing.
                                     </p>
                                 </LoanRequestSectionCard>
-                            ) : null}
+                            )}
                         </ReviewTabPanel>
                         <ReviewTabPanel id="signatories" tab={tab}>
-                            <LoanRequestSectionCard
-                                title="Signatories and insurance"
-                                headerAction={
-                                    showProcessingSection ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() =>
-                                                goToTab(
-                                                    'terms',
-                                                    'processing-details',
-                                                )
-                                            }
-                                        >
-                                            Open in Terms &amp; charges
-                                        </Button>
-                                    ) : undefined
-                                }
-                            >
-                                {/* ponytail: pointer until Phase 3 splits the signatory fields out of ProcessingDetailsPanel. */}
-                                <p className="text-sm text-muted-foreground">
-                                    Witnesses, authority-to-deduct officers and
-                                    insurance cycles are edited with the
-                                    processing details.
-                                </p>
-                            </LoanRequestSectionCard>
+                            {showProcessingSection ? (
+                                <div
+                                    id="signatories-details"
+                                    className="scroll-mt-40"
+                                >
+                                    {/* Same record and save endpoint as Terms; this instance only shows and edits the signatory half. */}
+                                    <ProcessingDetailsPanel
+                                        {...processingPanelProps}
+                                        view="signatories"
+                                        openEditSignal={signatoriesEditSignal}
+                                    />
+                                </div>
+                            ) : (
+                                <LoanRequestSectionCard
+                                    title="Signatories and insurance"
+                                    workspace
+                                >
+                                    <p className="text-sm text-muted-foreground">
+                                        Signatories become available once the
+                                        request is in processing.
+                                    </p>
+                                </LoanRequestSectionCard>
+                            )}
                         </ReviewTabPanel>
                         <ReviewTabPanel id="applicant" tab={tab}>
                             <div
@@ -2008,11 +2045,15 @@ export default function StaffLoanRequestShow({
                                     </form>
                                 </LoanRequestSectionCard>
                             ) : (
-                                <div
+                                <section
                                     key="co-makers-display"
-                                    className="animate-in duration-200 fade-in slide-in-from-top-2"
+                                    aria-label="Co-makers"
+                                    className="rounded-xl border border-border bg-card px-5 py-[18px] shadow-card motion-safe:animate-in motion-safe:duration-200 motion-safe:fade-in"
                                 >
-                                    <div className="space-y-4">
+                                    <h2 className="mb-2.5 text-[17px] font-semibold">
+                                        Co-makers
+                                    </h2>
+                                    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(240px,100%),1fr))] gap-2.5">
                                         <LoanRequestCoMakerCard
                                             number={1}
                                             person={currentCoMakerOne}
@@ -2068,7 +2109,7 @@ export default function StaffLoanRequestShow({
                                             }
                                         />
                                     </div>
-                                </div>
+                                </section>
                             )}
                         </ReviewTabPanel>
                         <ReviewTabPanel id="docs" tab={tab}>
@@ -2103,6 +2144,12 @@ export default function StaffLoanRequestShow({
                                     ].includes(currentRequest.status ?? '')}
                                     processingDetailsSaved={
                                         !currentRequest.is_first_processing_save
+                                    }
+                                    onFixMissingFields={
+                                        showProcessingSection &&
+                                        processingPanelProps.canUpdateProcessing
+                                            ? openSignatoriesEdit
+                                            : undefined
                                     }
                                 />
                             </div>
