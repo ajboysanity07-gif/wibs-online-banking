@@ -1075,6 +1075,21 @@ export default function StaffLoanRequestShow({
     ].flatMap(([label, value]) =>
         value ? [{ label: label as string, value: `${value}` }] : [],
     );
+    const categoryCondition = currentConditions.available
+        ? currentConditions.items.find(
+              (item) => item.key === 'employer_category',
+          )
+        : undefined;
+    // Conditions only gate while they can be signed off; when the table is
+    // not deployed (or the viewer can't verify) approval is never blocked on them.
+    const conditionsGate =
+        currentConditions.available && currentConditions.can_verify
+            ? {
+                  done: currentConditions.items.filter((item) => item.verified)
+                      .length,
+                  total: currentConditions.items.length,
+              }
+            : null;
     const attention = buildAttentionRows({
         categoryMismatch: institutionalEmployerCategoryMismatch(
             currentApplicant?.institutional_employer_category,
@@ -1082,6 +1097,10 @@ export default function StaffLoanRequestShow({
             currentApplicant?.employment_type,
             currentApplicant?.nature_of_business,
         ),
+        categoryConfirmed:
+            conditionsGate === null
+                ? null
+                : (categoryCondition?.verified ?? false),
         canEditCategory: showProcessingSection && canUpdateProcessing,
         documents: currentDocumentChecklist,
         health: currentWorkflowHealth,
@@ -1098,16 +1117,6 @@ export default function StaffLoanRequestShow({
                 : null,
         managerStage: managerStageAlert,
     });
-    // Conditions only gate while they can be signed off; when the table is
-    // not deployed (or the viewer can't verify) approval is never blocked on them.
-    const conditionsGate =
-        currentConditions.available && currentConditions.can_verify
-            ? {
-                  done: currentConditions.items.filter((item) => item.verified)
-                      .length,
-                  total: currentConditions.items.length,
-              }
-            : null;
     const gates = buildRecommendGates({
         conditions: conditionsGate,
         blockingCount: attention.blockingCount,
@@ -1139,11 +1148,6 @@ export default function StaffLoanRequestShow({
             setConditionPendingKey(null);
         }
     };
-    const categoryCondition = currentConditions.available
-        ? currentConditions.items.find(
-              (item) => item.key === 'employer_category',
-          )
-        : undefined;
     const railStage = [
         'pending_review',
         'under_review',

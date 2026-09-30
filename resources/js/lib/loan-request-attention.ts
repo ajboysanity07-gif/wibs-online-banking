@@ -21,6 +21,13 @@ export type AttentionRow = {
 
 export type AttentionInput = {
     categoryMismatch: boolean;
+    /**
+     * Sign-off of the "employer category confirmed" condition. `true` clears
+     * the row; `null` = it can't be confirmed here (no conditions data or
+     * viewer can't sign off), so the heuristic mismatch only warns instead of
+     * gating a check the server doesn't enforce. Omitted = blocking.
+     */
+    categoryConfirmed?: boolean | null;
     /** Whether the viewer may open the Processing details edit. */
     canEditCategory: boolean;
     documents: Pick<
@@ -62,10 +69,10 @@ export function buildAttentionRows(input: AttentionInput): {
     const rows: AttentionRow[] = [];
     const applicable = input.documents.filter((d) => d.is_applicable);
 
-    if (input.categoryMismatch) {
+    if (input.categoryMismatch && input.categoryConfirmed !== true) {
         rows.push({
             key: 'category-mismatch',
-            tone: 'blocking',
+            tone: input.categoryConfirmed === null ? 'warning' : 'blocking',
             title: 'Institutional employer category may be outdated',
             description:
                 "Declared category doesn't match the applicant's employer details. Verify with the member before generating deduction documents.",

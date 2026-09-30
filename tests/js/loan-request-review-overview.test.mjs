@@ -177,3 +177,30 @@ test('staff review Overview top is wired into the page', async () => {
     assert.match(summary, /preview\?\.net_proceeds_raw/);
     assert.match(detail, /LoanRequestFactGrid/);
 });
+
+test('category mismatch only blocks while it can still be confirmed', async () => {
+    const { buildAttentionRows } = await load(
+        'lib',
+        'loan-request-attention.ts',
+    );
+    const mismatch = { ...base, categoryMismatch: true };
+
+    assert.equal(buildAttentionRows(mismatch).blockingCount, 1);
+    assert.equal(
+        buildAttentionRows({ ...mismatch, categoryConfirmed: false })
+            .blockingCount,
+        1,
+    );
+    // Confirmed with the member: row is gone.
+    assert.deepEqual(
+        buildAttentionRows({ ...mismatch, categoryConfirmed: true }),
+        { rows: [], blockingCount: 0 },
+    );
+    // No way to confirm here (table not deployed / can't sign off): warn only.
+    const unconfirmable = buildAttentionRows({
+        ...mismatch,
+        categoryConfirmed: null,
+    });
+    assert.equal(unconfirmable.blockingCount, 0);
+    assert.equal(unconfirmable.rows[0].tone, 'warning');
+});
