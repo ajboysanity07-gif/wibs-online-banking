@@ -1,10 +1,11 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
+import { LoanRequestCheckRow } from '@/components/loan-request/loan-request-check-row';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
-import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
+import { GROUP_META } from '@/components/loan-request/loan-request-step-indicator';
+import { LoanRequestStepper } from '@/components/loan-request/loan-request-stepper';
 import {
     LoanRequestApplicantConfirmStep,
     LoanRequestApplicantPersonalStep,
@@ -14,39 +15,25 @@ import {
     LoanRequestLoanDetailsStep,
     LoanRequestReviewStep,
 } from '@/components/loan-request/loan-request-steps';
-import { LoanRequestSummaryPanel } from '@/components/loan-request/loan-request-summary-panel';
+import {
+    LoanRequestSummaryBar,
+    LoanRequestSummaryPanel,
+} from '@/components/loan-request/loan-request-summary-panel';
 import { LoanRequestWizardActions } from '@/components/loan-request/loan-request-wizard-footer';
-import { LoanRequestWizardShell } from '@/components/loan-request/loan-request-wizard-shell';
+import { LoanRequestWizardHeader } from '@/components/loan-request/loan-request-wizard-header';
 import {
     buildStepIndex,
     getVisibleWizardSteps,
 } from '@/components/loan-request/loan-request-wizard-steps';
-import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { focusField } from '@/components/ui/form-error-summary';
-import { Label } from '@/components/ui/label';
-import AppLayout from '@/layouts/app-layout';
 import client from '@/lib/api/client';
 import { formatDateTime, toDateInputValue } from '@/lib/formatters';
 import { getStepMissingFields } from '@/lib/loan-request-step-validation';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
-import { dashboard as clientDashboard } from '@/routes/client';
 import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
 import { edit as editProfile } from '@/routes/profile';
-import type { BreadcrumbItem } from '@/types';
 import type {
     AutoFilledDeclarations,
     LoanRequestDataSectionDefinitions,
@@ -88,12 +75,6 @@ type Props = {
     applicantWorkIncomePrefilledFromProfile: boolean;
     missingIdentityPrerequisites: string[];
 };
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Overview', href: clientDashboard().url },
-    { title: 'Loan Requests', href: loanRequestsIndexHref },
-    { title: 'Loan request', href: LoanRequestController.create().url },
-];
 
 type LoanDetailField =
     | 'typecode'
@@ -425,9 +406,7 @@ export default function LoanRequestPage({
     const [activeAction, setActiveAction] = useState<'draft' | 'submit' | null>(
         null,
     );
-    const [lastAction, setLastAction] = useState<'draft' | 'submit' | null>(
-        null,
-    );
+    const [, setLastAction] = useState<'draft' | 'submit' | null>(null);
     const [draftState, setDraftState] = useState<LoanRequestDraft | null>(
         draft,
     );
@@ -828,7 +807,7 @@ export default function LoanRequestPage({
             }));
         };
 
-    const handleSaveDraft = async () => {
+    const handleSaveDraft = async (): Promise<boolean> => {
         setActiveAction('draft');
 
         try {
@@ -846,10 +825,14 @@ export default function LoanRequestPage({
             }
             showSuccessToast('Draft saved.', { id: 'manual-save-draft' });
             setLastAction('draft');
+
+            return true;
         } catch {
             showErrorToast(null, 'Unable to save draft.', {
                 id: 'manual-save-draft',
             });
+
+            return false;
         } finally {
             setActiveAction(null);
         }
@@ -938,9 +921,7 @@ export default function LoanRequestPage({
                 LoanRequestController.discardDraft(draftState.id).url,
             );
             showSuccessToast('Draft discarded.');
-            router.visit(LoanRequestController.create().url, {
-                preserveState: false,
-            });
+            router.visit(loanRequestsIndexHref);
         } catch (error) {
             showErrorToast(error, 'Unable to discard this draft.');
         } finally {
@@ -948,284 +929,132 @@ export default function LoanRequestPage({
         }
     };
 
+    const handleSaveAndExit = async () => {
+        if (await handleSaveDraft()) {
+            router.visit(loanRequestsIndexHref);
+        }
+    };
+
+    const currentStepMeta = steps[currentStep];
+    const groupSteps = steps.filter(
+        (step) => step.group === currentStepMeta.group,
+    );
+    const groupLabel =
+        GROUP_META[currentStepMeta.group as keyof typeof GROUP_META]?.label ??
+        currentStepMeta.title;
+    const eyebrow =
+        groupSteps.length > 1
+            ? `${groupLabel} · Part ${groupSteps.indexOf(currentStepMeta) + 1} of ${groupSteps.length}`
+            : groupLabel;
+    const hasSavedDraft = draftState?.status === 'draft';
+
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <div className="flex min-h-svh flex-col bg-background text-foreground">
             <Head title="Loan request" />
-            <PageShell size="wide" className="gap-9 pt-8">
-                <div className="rounded-xl border border-border bg-card p-6 shadow-card sm:p-7 lg:p-8">
-                    <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="space-y-2">
-                            <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
-                                Loan request
-                            </p>
-                            <h1 className="text-3xl font-semibold tracking-tight">
-                                Apply for a loan
-                            </h1>
-                            <p className="max-w-2xl text-sm text-muted-foreground">
-                                Complete the application form and save a draft
-                                at any time. Signatures will be collected
-                                physically upon loan release.
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                <span className="rounded-md border border-input bg-card px-2.5 py-0.5 font-medium text-foreground">
-                                    Account No: {member.acctno ?? '--'}
-                                </span>
-                                {draftState ? (
-                                    <>
-                                        <LoanRequestStatusBadge
-                                            status={draftState.status}
-                                        />
-                                        {draftUpdatedAt ? (
-                                            <span>
-                                                Last saved {draftUpdatedAt}
-                                            </span>
-                                        ) : null}
-                                    </>
-                                ) : (
-                                    <span>No draft saved yet</span>
-                                )}
-                                {form.recentlySuccessful &&
-                                lastAction === 'draft' ? (
-                                    <span className="text-emerald-700">
-                                        Draft saved.
-                                    </span>
-                                ) : null}
-                            </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 self-start">
-                            {draftState && draftState.status === 'draft' ? (
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-destructive hover:text-destructive"
-                                            disabled={isDiscardingDraft}
-                                        >
-                                            Discard draft
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>
-                                                Discard this draft?
-                                            </AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                This permanently deletes your
-                                                in-progress loan request. This
-                                                cannot be undone.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>
-                                                Cancel
-                                            </AlertDialogCancel>
-                                            <AlertDialogAction
-                                                onClick={handleDiscardDraft}
-                                                disabled={isDiscardingDraft}
-                                            >
-                                                Discard
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            ) : null}
-                            <Button
-                                asChild
-                                variant="ghost"
-                                size="sm"
-                                className="gap-2"
-                            >
-                                <Link href={loanRequestsIndexHref}>
-                                    <ArrowLeft className="h-4 w-4" />
-                                    Back to loan requests
-                                </Link>
-                            </Button>
-                        </div>
-                    </div>
+            <LoanRequestWizardHeader
+                accountNo={member.acctno ?? '--'}
+                lastSaved={draftUpdatedAt}
+                confirmExit={form.isDirty || hasSavedDraft}
+                canDiscard={hasSavedDraft}
+                isSaving={isSavingDraft}
+                isDiscarding={isDiscardingDraft}
+                onExit={() => router.visit(loanRequestsIndexHref)}
+                onSaveAndExit={handleSaveAndExit}
+                onDiscard={handleDiscardDraft}
+            />
+            <div className="border-b border-border bg-card">
+                <div className="mx-auto w-full max-w-[1040px] px-4 py-4 md:px-7 md:py-5">
+                    <LoanRequestStepper
+                        steps={steps}
+                        currentStep={currentStep}
+                        highestStepReached={highestStepReached}
+                        onStepClick={handleSidebarStepClick}
+                    />
+                </div>
+            </div>
+
+            <main className="wizard-fields mx-auto w-full max-w-[1040px] flex-1 px-4 py-6 md:px-7 md:py-8">
+                <div className="mb-5 space-y-1">
+                    <p className="text-xs font-bold tracking-wide text-primary uppercase">
+                        {eyebrow}
+                    </p>
+                    <h2 className="text-2xl font-bold tracking-tight md:text-[30px]">
+                        {currentStepMeta.title}
+                    </h2>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
-                    <LoanRequestWizardShell
-                        currentStep={currentStep}
-                        onStepClick={handleSidebarStepClick}
-                        steps={steps}
-                        hiddenStepIds={skippedStepIds}
-                        contentClassName="p-6 sm:p-7 lg:p-8"
-                        footer={
-                            <div className="mt-8 space-y-3">
-                                {currentStepBlockers.length > 0 ? (
-                                    <Alert variant="destructive">
-                                        <AlertTitle>
-                                            Complete this step to continue
-                                        </AlertTitle>
-                                        <AlertDescription>
-                                            Required:{' '}
-                                            {currentStepBlockers.join(', ')}
-                                        </AlertDescription>
-                                    </Alert>
-                                ) : null}
-                                <LoanRequestWizardActions
-                                    isFirstStep={isFirstStep}
-                                    isLastStep={isLastStep}
-                                    onBack={handlePreviousStep}
-                                    onNext={handleNextStep}
-                                    onSaveDraft={handleSaveDraft}
-                                    onSubmit={handleSubmit}
-                                    isSavingDraft={isSavingDraft}
-                                    isSubmitting={isSubmitting}
-                                    disablePrimary={
-                                        !hasLoanTypes ||
-                                        currentStepBlockers.length > 0 ||
-                                        (currentStep ===
-                                            STEP_INDEX['personal-basic'] &&
-                                            missingIdentityPrerequisites.length >
-                                                0) ||
-                                        (isLastStep &&
-                                            (!isBankingComplete ||
-                                                !isDeclarationsComplete ||
-                                                !isApplicantPersonalComplete ||
-                                                !isApplicantWorkIncomeComplete ||
-                                                missingIdentityPrerequisites.length >
-                                                    0))
-                                    }
-                                />
-                            </div>
-                        }
-                    >
-                        <div
-                            className={
-                                isReviewStep
-                                    ? 'grid gap-8'
-                                    : 'grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_24rem]'
-                            }
+                {!isReviewStep ? (
+                    <div className="mb-5 min-[900px]:hidden">
+                        <LoanRequestSummaryBar
+                            data={form.data}
+                            loanTypes={loanTypes}
+                            member={member}
+                            draft={draftState}
+                            draftUpdatedAt={draftUpdatedAt}
+                        />
+                    </div>
+                ) : null}
+
+                <div
+                    className={
+                        isReviewStep
+                            ? 'grid gap-8'
+                            : 'grid gap-6 min-[900px]:grid-cols-[minmax(0,1fr)_320px]'
+                    }
+                >
+                    <div className="min-w-0 space-y-8">
+                        {loanTypes.length === 0 ? (
+                            <Alert variant="destructive">
+                                <AlertTitle>Loan types unavailable</AlertTitle>
+                                <AlertDescription>
+                                    Please contact support to load available
+                                    loan options before submitting a request.
+                                </AlertDescription>
+                            </Alert>
+                        ) : null}
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 0}
+                            direction={stepDirection}
                         >
-                            <div className="space-y-8">
-                                {loanTypes.length === 0 ? (
-                                    <Alert variant="destructive">
-                                        <AlertTitle>
-                                            Loan types unavailable
-                                        </AlertTitle>
-                                        <AlertDescription>
-                                            Please contact support to load
-                                            available loan options before
-                                            submitting a request.
-                                        </AlertDescription>
-                                    </Alert>
-                                ) : null}
+                            <LoanRequestLoanDetailsStep
+                                data={form.data}
+                                errors={form.errors}
+                                loanTypes={loanTypes}
+                                onChange={handleLoanDetailChange}
+                            />
+                        </LoanRequestAnimatedStep>
 
-                                <LoanRequestAnimatedStep
-                                    show={currentStep === 0}
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestLoanDetailsStep
-                                        data={form.data}
-                                        errors={form.errors}
-                                        loanTypes={loanTypes}
-                                        onChange={handleLoanDetailChange}
-                                    />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['personal-basic']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    {missingIdentityPrerequisites.length > 0 ? (
-                                        <Alert
-                                            variant="destructive"
-                                            className="mb-5"
-                                        >
-                                            <AlertTitle>
-                                                Complete your profile before
-                                                continuing
-                                            </AlertTitle>
-                                            <AlertDescription className="space-y-2">
-                                                <p>
-                                                    Please add these details in
-                                                    your Profile Settings before
-                                                    submitting a loan request:{' '}
-                                                    {missingIdentityPrerequisites.join(
-                                                        ', ',
-                                                    )}
-                                                    .
-                                                </p>
-                                                <Button asChild size="sm">
-                                                    <Link
-                                                        href={editProfile().url}
-                                                    >
-                                                        Go to Profile Settings
-                                                    </Link>
-                                                </Button>
-                                            </AlertDescription>
-                                        </Alert>
-                                    ) : null}
-                                    {applicantPrefilledFromProfile ? (
-                                        <div className="space-y-5">
-                                            <LoanRequestApplicantConfirmStep
-                                                values={form.data.applicant}
-                                                errors={form.errors}
-                                                readOnly={applicantReadOnly}
-                                                onChange={updatePersonField(
-                                                    'applicant',
-                                                )}
-                                                contactNumberOnFile={
-                                                    member.telephone
-                                                }
-                                                forceUnlockedKeys={
-                                                    forceUnlockedApplicantSections
-                                                }
-                                            />
-                                            <LoanRequestSectionCard
-                                                title="Confirm your details"
-                                                description="These details were pre-filled from your member profile. Please confirm they are still accurate."
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <Checkbox
-                                                        id="applicant_personal_confirmed"
-                                                        checked={
-                                                            applicantPersonalConfirmed
-                                                        }
-                                                        onCheckedChange={(
-                                                            checked,
-                                                        ) =>
-                                                            setApplicantPersonalConfirmed(
-                                                                checked ===
-                                                                    true,
-                                                            )
-                                                        }
-                                                    />
-                                                    <Label htmlFor="applicant_personal_confirmed">
-                                                        These details are still
-                                                        correct
-                                                    </Label>
-                                                </div>
-                                            </LoanRequestSectionCard>
-                                        </div>
-                                    ) : (
-                                        <LoanRequestApplicantPersonalStep
-                                            section="basic"
-                                            values={form.data.applicant}
-                                            errors={form.errors}
-                                            readOnly={applicantReadOnly}
-                                            onChange={updatePersonField(
-                                                'applicant',
+                        <LoanRequestAnimatedStep
+                            show={currentStep === STEP_INDEX['personal-basic']}
+                            direction={stepDirection}
+                        >
+                            {missingIdentityPrerequisites.length > 0 ? (
+                                <Alert variant="destructive" className="mb-5">
+                                    <AlertTitle>
+                                        Complete your profile before continuing
+                                    </AlertTitle>
+                                    <AlertDescription className="space-y-2">
+                                        <p>
+                                            Please add these details in your
+                                            Profile Settings before submitting a
+                                            loan request:{' '}
+                                            {missingIdentityPrerequisites.join(
+                                                ', ',
                                             )}
-                                        />
-                                    )}
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['personal-contact']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestApplicantPersonalStep
-                                        section="contact"
+                                            .
+                                        </p>
+                                        <Button asChild size="sm">
+                                            <Link href={editProfile().url}>
+                                                Go to Profile Settings
+                                            </Link>
+                                        </Button>
+                                    </AlertDescription>
+                                </Alert>
+                            ) : null}
+                            {applicantPrefilledFromProfile ? (
+                                <div className="space-y-5">
+                                    <LoanRequestApplicantConfirmStep
                                         values={form.data.applicant}
                                         errors={form.errors}
                                         readOnly={applicantReadOnly}
@@ -1233,361 +1062,357 @@ export default function LoanRequestPage({
                                             'applicant',
                                         )}
                                         contactNumberOnFile={member.telephone}
+                                        forceUnlockedKeys={
+                                            forceUnlockedApplicantSections
+                                        }
                                     />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['personal-family']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestApplicantPersonalStep
-                                        section="family"
-                                        values={form.data.applicant}
-                                        errors={form.errors}
-                                        readOnly={applicantReadOnly}
-                                        onChange={updatePersonField(
-                                            'applicant',
-                                        )}
-                                    />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['work-employment']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <div className="space-y-5">
-                                        <LoanRequestApplicantWorkStep
-                                            values={form.data.applicant}
-                                            errors={form.errors}
-                                            onChange={updatePersonField(
-                                                'applicant',
-                                            )}
-                                            hasExistingIncomeData={
-                                                applicantWorkIncomePrefilledFromProfile
+                                    <LoanRequestSectionCard
+                                        title="Confirm your details"
+                                        description="These details were pre-filled from your member profile. Please confirm they are still accurate."
+                                    >
+                                        <LoanRequestCheckRow
+                                            id="applicant_personal_confirmed"
+                                            checked={applicantPersonalConfirmed}
+                                            onCheckedChange={
+                                                setApplicantPersonalConfirmed
                                             }
-                                            forceUnlock={forceUnlockIncome}
-                                        />
-
-                                        {applicantWorkIncomePrefilledFromProfile ? (
-                                            <LoanRequestSectionCard
-                                                title="Confirm work & income details"
-                                                description="These details were pre-filled from a previous loan request. Please confirm they are still accurate."
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <Checkbox
-                                                        id="applicant_work_income_confirmed"
-                                                        checked={
-                                                            applicantWorkIncomeConfirmed
-                                                        }
-                                                        onCheckedChange={(
-                                                            checked,
-                                                        ) =>
-                                                            setApplicantWorkIncomeConfirmed(
-                                                                checked ===
-                                                                    true,
-                                                            )
-                                                        }
-                                                    />
-                                                    <Label htmlFor="applicant_work_income_confirmed">
-                                                        Confirm these details
-                                                        are still correct
-                                                    </Label>
-                                                </div>
-                                            </LoanRequestSectionCard>
-                                        ) : null}
-                                    </div>
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['co-maker-1-basic']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestCoMakerStep
-                                        title="Co-maker 1 — basic info"
-                                        description="Basic personal details for your first co-maker."
-                                        prefix="co_maker_1"
-                                        section="basic"
-                                        values={form.data.co_maker_1}
-                                        errors={form.errors}
-                                        onChange={updatePersonField(
-                                            'co_maker_1',
-                                        )}
-                                        savedCoMakers={savedCoMakers.filter(
-                                            (option) =>
-                                                String(option.id) !==
-                                                form.data.co_maker_2
-                                                    .saved_co_maker_id,
-                                        )}
-                                        onLoadSavedCoMaker={loadSavedCoMaker(
-                                            'co_maker_1',
-                                        )}
-                                        onRemoveSavedCoMaker={
-                                            removeSavedCoMaker
-                                        }
-                                    />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['co-maker-1-contact']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestCoMakerStep
-                                        title="Co-maker 1 — address & contact"
-                                        description="Address and contact details for your first co-maker."
-                                        prefix="co_maker_1"
-                                        section="contact"
-                                        values={form.data.co_maker_1}
-                                        errors={form.errors}
-                                        onChange={updatePersonField(
-                                            'co_maker_1',
-                                        )}
-                                    />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['co-maker-1-employment']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestCoMakerStep
-                                        title="Co-maker 1 — work & income"
-                                        description="Employment, employer, and income details for your first co-maker."
-                                        prefix="co_maker_1"
-                                        section="all"
-                                        values={form.data.co_maker_1}
-                                        errors={form.errors}
-                                        onChange={updatePersonField(
-                                            'co_maker_1',
-                                        )}
-                                        onSaveCoMaker={saveCoMakerNow(
-                                            'co_maker_1',
-                                        )}
-                                        isSavingCoMaker={
-                                            savingCoMakerSlot === 'co_maker_1'
-                                        }
-                                    />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['co-maker-2-basic']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestCoMakerStep
-                                        title="Co-maker 2 — basic info"
-                                        description="Basic personal details for your second co-maker."
-                                        prefix="co_maker_2"
-                                        section="basic"
-                                        values={form.data.co_maker_2}
-                                        errors={form.errors}
-                                        onChange={updatePersonField(
-                                            'co_maker_2',
-                                        )}
-                                        savedCoMakers={savedCoMakers.filter(
-                                            (option) =>
-                                                String(option.id) !==
-                                                form.data.co_maker_1
-                                                    .saved_co_maker_id,
-                                        )}
-                                        onLoadSavedCoMaker={loadSavedCoMaker(
-                                            'co_maker_2',
-                                        )}
-                                        onRemoveSavedCoMaker={
-                                            removeSavedCoMaker
-                                        }
-                                    />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['co-maker-2-contact']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestCoMakerStep
-                                        title="Co-maker 2 — address & contact"
-                                        description="Address and contact details for your second co-maker."
-                                        prefix="co_maker_2"
-                                        section="contact"
-                                        values={form.data.co_maker_2}
-                                        errors={form.errors}
-                                        onChange={updatePersonField(
-                                            'co_maker_2',
-                                        )}
-                                    />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['co-maker-2-employment']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestCoMakerStep
-                                        title="Co-maker 2 — work & income"
-                                        description="Employment, employer, and income details for your second co-maker."
-                                        prefix="co_maker_2"
-                                        section="all"
-                                        values={form.data.co_maker_2}
-                                        errors={form.errors}
-                                        onChange={updatePersonField(
-                                            'co_maker_2',
-                                        )}
-                                        onSaveCoMaker={saveCoMakerNow(
-                                            'co_maker_2',
-                                        )}
-                                        isSavingCoMaker={
-                                            savingCoMakerSlot === 'co_maker_2'
-                                        }
-                                    />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={currentStep === STEP_INDEX['banking']}
-                                    direction={stepDirection}
-                                >
-                                    <div className="space-y-5">
-                                        <LoanRequestDataSectionStep
-                                            sectionKey="banking"
-                                            title="Loan Disbursement & Repayment"
-                                            description="Tell us how you'd like to receive your loan and how you'll repay it."
-                                            values={form.data.banking}
-                                            definition={
-                                                dataSectionDefinitions.banking
-                                            }
-                                            errors={form.errors}
-                                            onChange={updateDataSection(
-                                                'banking',
-                                            )}
-                                            applicantFullName={member.name}
-                                            applicantEmployerBusinessName={
-                                                form.data.applicant
-                                                    .employer_business_name
-                                            }
-                                            applicantEmploymentType={
-                                                form.data.applicant
-                                                    .employment_type
-                                            }
-                                            applicantNatureOfBusiness={
-                                                form.data.applicant
-                                                    .nature_of_business
-                                            }
-                                            applicantInstitutionalEmployerCategory={
-                                                form.data.applicant
-                                                    .institutional_employer_category
-                                            }
-                                        />
-
-                                        {bankingPrefilledFromProfile &&
-                                        (form.data.banking.release_method ===
-                                            'Bank Transfer' ||
-                                            form.data.banking.release_method ===
-                                                'ATM') ? (
-                                            <LoanRequestSectionCard
-                                                title="Confirm bank details"
-                                                description="These details were pre-filled from your member profile."
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <Checkbox
-                                                        id="bank_account_confirmed"
-                                                        checked={
-                                                            bankAccountConfirmed
-                                                        }
-                                                        onCheckedChange={(
-                                                            checked,
-                                                        ) =>
-                                                            setBankAccountConfirmed(
-                                                                checked ===
-                                                                    true,
-                                                            )
-                                                        }
-                                                    />
-                                                    <Label htmlFor="bank_account_confirmed">
-                                                        Confirm this bank
-                                                        account is still correct
-                                                    </Label>
-                                                </div>
-                                            </LoanRequestSectionCard>
-                                        ) : null}
-                                    </div>
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={
-                                        currentStep ===
-                                        STEP_INDEX['declarations']
-                                    }
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestDataSectionStep
-                                        sectionKey="declarations"
-                                        title="Personal declarations and consent"
-                                        description="Complete the declarations and consent items required before processing can begin."
-                                        values={form.data.declarations}
-                                        definition={
-                                            dataSectionDefinitions.declarations
-                                        }
-                                        errors={form.errors}
-                                        onChange={updateDataSection(
-                                            'declarations',
-                                        )}
-                                    />
-                                </LoanRequestAnimatedStep>
-
-                                <LoanRequestAnimatedStep
-                                    show={currentStep === STEP_INDEX['review']}
-                                    direction={stepDirection}
-                                >
-                                    <LoanRequestReviewStep
-                                        data={form.data}
-                                        loanTypes={loanTypes}
-                                        member={member}
-                                        errors={form.errors}
-                                        sectionDefinitions={
-                                            dataSectionDefinitions
-                                        }
-                                        onUndertakingChange={(value) =>
-                                            form.setData(
-                                                'undertaking_accepted',
-                                                value,
-                                            )
-                                        }
-                                        onErrorClick={handleErrorClick}
-                                    />
-                                </LoanRequestAnimatedStep>
-                            </div>
-
-                            {!isReviewStep && (
-                                <LoanRequestSummaryPanel
-                                    data={form.data}
-                                    loanTypes={loanTypes}
-                                    member={member}
-                                    draft={draftState}
-                                    draftUpdatedAt={draftUpdatedAt}
+                                        >
+                                            These details are still correct
+                                        </LoanRequestCheckRow>
+                                    </LoanRequestSectionCard>
+                                </div>
+                            ) : (
+                                <LoanRequestApplicantPersonalStep
+                                    section="basic"
+                                    values={form.data.applicant}
+                                    errors={form.errors}
+                                    readOnly={applicantReadOnly}
+                                    onChange={updatePersonField('applicant')}
                                 />
                             )}
-                        </div>
-                    </LoanRequestWizardShell>
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={
+                                currentStep === STEP_INDEX['personal-contact']
+                            }
+                            direction={stepDirection}
+                        >
+                            <LoanRequestApplicantPersonalStep
+                                section="contact"
+                                values={form.data.applicant}
+                                errors={form.errors}
+                                readOnly={applicantReadOnly}
+                                onChange={updatePersonField('applicant')}
+                                contactNumberOnFile={member.telephone}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === STEP_INDEX['personal-family']}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestApplicantPersonalStep
+                                section="family"
+                                values={form.data.applicant}
+                                errors={form.errors}
+                                readOnly={applicantReadOnly}
+                                onChange={updatePersonField('applicant')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === STEP_INDEX['work-employment']}
+                            direction={stepDirection}
+                        >
+                            <div className="space-y-5">
+                                <LoanRequestApplicantWorkStep
+                                    values={form.data.applicant}
+                                    errors={form.errors}
+                                    onChange={updatePersonField('applicant')}
+                                    hasExistingIncomeData={
+                                        applicantWorkIncomePrefilledFromProfile
+                                    }
+                                    forceUnlock={forceUnlockIncome}
+                                />
+
+                                {applicantWorkIncomePrefilledFromProfile ? (
+                                    <LoanRequestSectionCard
+                                        title="Confirm work & income details"
+                                        description="These details were pre-filled from a previous loan request. Please confirm they are still accurate."
+                                    >
+                                        <LoanRequestCheckRow
+                                            id="applicant_work_income_confirmed"
+                                            checked={
+                                                applicantWorkIncomeConfirmed
+                                            }
+                                            onCheckedChange={
+                                                setApplicantWorkIncomeConfirmed
+                                            }
+                                        >
+                                            Confirm these details are still
+                                            correct
+                                        </LoanRequestCheckRow>
+                                    </LoanRequestSectionCard>
+                                ) : null}
+                            </div>
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={
+                                currentStep === STEP_INDEX['co-maker-1-basic']
+                            }
+                            direction={stepDirection}
+                        >
+                            <LoanRequestCoMakerStep
+                                title="Co-maker 1 — basic info"
+                                description="Basic personal details for your first co-maker."
+                                prefix="co_maker_1"
+                                section="basic"
+                                values={form.data.co_maker_1}
+                                errors={form.errors}
+                                onChange={updatePersonField('co_maker_1')}
+                                savedCoMakers={savedCoMakers.filter(
+                                    (option) =>
+                                        String(option.id) !==
+                                        form.data.co_maker_2.saved_co_maker_id,
+                                )}
+                                onLoadSavedCoMaker={loadSavedCoMaker(
+                                    'co_maker_1',
+                                )}
+                                onRemoveSavedCoMaker={removeSavedCoMaker}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={
+                                currentStep === STEP_INDEX['co-maker-1-contact']
+                            }
+                            direction={stepDirection}
+                        >
+                            <LoanRequestCoMakerStep
+                                title="Co-maker 1 — address & contact"
+                                description="Address and contact details for your first co-maker."
+                                prefix="co_maker_1"
+                                section="contact"
+                                values={form.data.co_maker_1}
+                                errors={form.errors}
+                                onChange={updatePersonField('co_maker_1')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={
+                                currentStep ===
+                                STEP_INDEX['co-maker-1-employment']
+                            }
+                            direction={stepDirection}
+                        >
+                            <LoanRequestCoMakerStep
+                                title="Co-maker 1 — work & income"
+                                description="Employment, employer, and income details for your first co-maker."
+                                prefix="co_maker_1"
+                                section="all"
+                                values={form.data.co_maker_1}
+                                errors={form.errors}
+                                onChange={updatePersonField('co_maker_1')}
+                                onSaveCoMaker={saveCoMakerNow('co_maker_1')}
+                                isSavingCoMaker={
+                                    savingCoMakerSlot === 'co_maker_1'
+                                }
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={
+                                currentStep === STEP_INDEX['co-maker-2-basic']
+                            }
+                            direction={stepDirection}
+                        >
+                            <LoanRequestCoMakerStep
+                                title="Co-maker 2 — basic info"
+                                description="Basic personal details for your second co-maker."
+                                prefix="co_maker_2"
+                                section="basic"
+                                values={form.data.co_maker_2}
+                                errors={form.errors}
+                                onChange={updatePersonField('co_maker_2')}
+                                savedCoMakers={savedCoMakers.filter(
+                                    (option) =>
+                                        String(option.id) !==
+                                        form.data.co_maker_1.saved_co_maker_id,
+                                )}
+                                onLoadSavedCoMaker={loadSavedCoMaker(
+                                    'co_maker_2',
+                                )}
+                                onRemoveSavedCoMaker={removeSavedCoMaker}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={
+                                currentStep === STEP_INDEX['co-maker-2-contact']
+                            }
+                            direction={stepDirection}
+                        >
+                            <LoanRequestCoMakerStep
+                                title="Co-maker 2 — address & contact"
+                                description="Address and contact details for your second co-maker."
+                                prefix="co_maker_2"
+                                section="contact"
+                                values={form.data.co_maker_2}
+                                errors={form.errors}
+                                onChange={updatePersonField('co_maker_2')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={
+                                currentStep ===
+                                STEP_INDEX['co-maker-2-employment']
+                            }
+                            direction={stepDirection}
+                        >
+                            <LoanRequestCoMakerStep
+                                title="Co-maker 2 — work & income"
+                                description="Employment, employer, and income details for your second co-maker."
+                                prefix="co_maker_2"
+                                section="all"
+                                values={form.data.co_maker_2}
+                                errors={form.errors}
+                                onChange={updatePersonField('co_maker_2')}
+                                onSaveCoMaker={saveCoMakerNow('co_maker_2')}
+                                isSavingCoMaker={
+                                    savingCoMakerSlot === 'co_maker_2'
+                                }
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === STEP_INDEX['banking']}
+                            direction={stepDirection}
+                        >
+                            <div className="space-y-5">
+                                <LoanRequestDataSectionStep
+                                    sectionKey="banking"
+                                    title="Loan Disbursement & Repayment"
+                                    description="Tell us how you'd like to receive your loan and how you'll repay it."
+                                    values={form.data.banking}
+                                    definition={dataSectionDefinitions.banking}
+                                    errors={form.errors}
+                                    onChange={updateDataSection('banking')}
+                                    applicantFullName={member.name}
+                                    applicantEmployerBusinessName={
+                                        form.data.applicant
+                                            .employer_business_name
+                                    }
+                                    applicantEmploymentType={
+                                        form.data.applicant.employment_type
+                                    }
+                                    applicantNatureOfBusiness={
+                                        form.data.applicant.nature_of_business
+                                    }
+                                    applicantInstitutionalEmployerCategory={
+                                        form.data.applicant
+                                            .institutional_employer_category
+                                    }
+                                />
+
+                                {bankingPrefilledFromProfile &&
+                                (form.data.banking.release_method ===
+                                    'Bank Transfer' ||
+                                    form.data.banking.release_method ===
+                                        'ATM') ? (
+                                    <LoanRequestSectionCard
+                                        title="Confirm bank details"
+                                        description="These details were pre-filled from your member profile."
+                                    >
+                                        <LoanRequestCheckRow
+                                            id="bank_account_confirmed"
+                                            checked={bankAccountConfirmed}
+                                            onCheckedChange={
+                                                setBankAccountConfirmed
+                                            }
+                                        >
+                                            Confirm this bank account is still
+                                            correct
+                                        </LoanRequestCheckRow>
+                                    </LoanRequestSectionCard>
+                                ) : null}
+                            </div>
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === STEP_INDEX['declarations']}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestDataSectionStep
+                                sectionKey="declarations"
+                                title="Personal declarations and consent"
+                                description="Complete the declarations and consent items required before processing can begin."
+                                values={form.data.declarations}
+                                definition={dataSectionDefinitions.declarations}
+                                errors={form.errors}
+                                onChange={updateDataSection('declarations')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === STEP_INDEX['review']}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestReviewStep
+                                data={form.data}
+                                loanTypes={loanTypes}
+                                member={member}
+                                errors={form.errors}
+                                sectionDefinitions={dataSectionDefinitions}
+                                onUndertakingChange={(value) =>
+                                    form.setData('undertaking_accepted', value)
+                                }
+                                onErrorClick={handleErrorClick}
+                            />
+                        </LoanRequestAnimatedStep>
+                    </div>
+
+                    {!isReviewStep && (
+                        <aside className="hidden min-[900px]:block">
+                            <LoanRequestSummaryPanel
+                                data={form.data}
+                                loanTypes={loanTypes}
+                                member={member}
+                                draft={draftState}
+                                draftUpdatedAt={draftUpdatedAt}
+                            />
+                        </aside>
+                    )}
                 </div>
-            </PageShell>
-        </AppLayout>
+            </main>
+
+            <LoanRequestWizardActions
+                isFirstStep={isFirstStep}
+                isLastStep={isLastStep}
+                page={currentStep + 1}
+                totalPages={steps.length}
+                blockers={currentStepBlockers}
+                onBack={handlePreviousStep}
+                onNext={handleNextStep}
+                onSubmit={handleSubmit}
+                isSavingDraft={isSavingDraft}
+                isSubmitting={isSubmitting}
+                disablePrimary={
+                    !hasLoanTypes ||
+                    currentStepBlockers.length > 0 ||
+                    (currentStep === STEP_INDEX['personal-basic'] &&
+                        missingIdentityPrerequisites.length > 0) ||
+                    (isLastStep &&
+                        (!isBankingComplete ||
+                            !isDeclarationsComplete ||
+                            !isApplicantPersonalComplete ||
+                            !isApplicantWorkIncomeComplete ||
+                            missingIdentityPrerequisites.length > 0))
+                }
+            />
+        </div>
     );
 }

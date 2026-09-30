@@ -150,6 +150,52 @@
     }
 }
 
+/* Motion: defined once, opt-in via utilities, all gated on reduced-motion. */
+@keyframes page-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+}
+
+@keyframes step-forward {
+    from {
+        opacity: 0;
+        transform: translateX(12px);
+    }
+}
+
+@keyframes step-back {
+    from {
+        opacity: 0;
+        transform: translateX(-12px);
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .animate-page-in {
+        animation: page-in 200ms ease-out;
+    }
+
+    .animate-step-forward {
+        animation: step-forward 220ms ease-out;
+    }
+
+    .animate-step-back {
+        animation: step-back 220ms ease-out;
+    }
+
+    .animate-fade-in {
+        animation: fade-in 150ms ease-out;
+    }
+}
+
 @utility scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -207,4 +253,23 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-size: 0.65rem;
+}
+
+/* Loan wizard fields: 48px, 10px radius, 15px text. Scoped to the wizard page
+   so app-wide inputs keep their size. Unlayered, so it beats the utilities. */
+.wizard-fields [data-slot='input'],
+.wizard-fields [data-slot='select-trigger'] {
+    height: 3rem;
+    border-radius: 10px;
+    font-size: 15px;
+}
+
+.wizard-fields textarea {
+    border-radius: 10px;
+    font-size: 15px;
+}
+
+.wizard-fields [data-slot='input']:disabled,
+.wizard-fields [data-slot='input'][readonly] {
+    background-color: var(--muted);
 }

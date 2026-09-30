@@ -28,6 +28,7 @@ import {
 import { BirthdateInput } from '@/components/loan-request/birthdate-input';
 import { BooleanYesNoField } from '@/components/loan-request/boolean-yes-no-field';
 import { DateInputWithPicker } from '@/components/loan-request/date-input-with-picker';
+import { LoanRequestCheckRow } from '@/components/loan-request/loan-request-check-row';
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
@@ -53,7 +54,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -1213,16 +1213,19 @@ const resolveEmployerBusinessAddress = (
     );
 
 const SummaryGrid = ({ items }: { items: SummaryItem[] }) => (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <dl className="divide-y divide-border">
         {items.map((item) => (
-            <div key={item.label} className="space-y-1">
-                <p className="text-xs text-muted-foreground">{item.label}</p>
-                <p className="text-sm font-medium wrap-break-word">
+            <div
+                key={item.label}
+                className="flex items-start justify-between gap-4 py-2.5 text-sm"
+            >
+                <dt className="text-muted-foreground">{item.label}</dt>
+                <dd className="text-right font-semibold wrap-break-word">
                     {item.value}
-                </p>
+                </dd>
             </div>
         ))}
-    </div>
+    </dl>
 );
 
 type SummaryCardProps = {
@@ -1761,26 +1764,18 @@ export function LoanRequestDataSectionStep({
                                 key={fieldKey}
                                 className="grid gap-2 md:col-span-2"
                             >
-                                <div className="flex items-start gap-3">
-                                    <Checkbox
-                                        id={`${sectionKey}_${fieldKey}`}
-                                        checked={value === true}
-                                        aria-label={field.label}
-                                        aria-invalid={Boolean(errors[errorKey])}
-                                        onCheckedChange={(checked) =>
-                                            onChange(fieldKey, checked === true)
-                                        }
-                                    />
-                                    <Label
-                                        htmlFor={`${sectionKey}_${fieldKey}`}
-                                        className="text-sm leading-snug font-normal"
-                                    >
-                                        {consentCopy}{' '}
-                                        <span className="text-destructive">
-                                            *
-                                        </span>
-                                    </Label>
-                                </div>
+                                <LoanRequestCheckRow
+                                    id={`${sectionKey}_${fieldKey}`}
+                                    checked={value === true}
+                                    ariaLabel={field.label}
+                                    invalid={Boolean(errors[errorKey])}
+                                    onCheckedChange={(checked) =>
+                                        onChange(fieldKey, checked)
+                                    }
+                                >
+                                    {consentCopy}{' '}
+                                    <span className="text-destructive">*</span>
+                                </LoanRequestCheckRow>
                             </div>
                         );
                     }
@@ -2906,24 +2901,15 @@ export function LoanRequestReviewStep({
 
                 <Separator className="my-4 bg-border/40" />
 
-                <div className="flex items-start gap-3">
-                    <Checkbox
-                        id="undertaking_accepted"
-                        checked={data.undertaking_accepted}
-                        onCheckedChange={(checked) =>
-                            onUndertakingChange(checked === true)
-                        }
-                    />
-                    <div className="space-y-2">
-                        <Label
-                            htmlFor="undertaking_accepted"
-                            aria-invalid={Boolean(errors.undertaking_accepted)}
-                        >
-                            I confirm that I have read and agree to the
-                            undertaking above.
-                        </Label>
-                    </div>
-                </div>
+                <LoanRequestCheckRow
+                    id="undertaking_accepted"
+                    checked={data.undertaking_accepted}
+                    invalid={Boolean(errors.undertaking_accepted)}
+                    onCheckedChange={onUndertakingChange}
+                >
+                    I confirm that I have read and agree to the undertaking
+                    above.
+                </LoanRequestCheckRow>
             </SummaryCard>
         </LoanRequestSectionCard>
     );

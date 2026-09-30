@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 type Props = {
     isFirstStep: boolean;
     isLastStep: boolean;
+    page: number;
+    totalPages: number;
+    blockers: string[];
     onBack: () => void;
     onNext: () => void;
-    onSaveDraft: () => void;
     onSubmit: () => void;
     isSavingDraft: boolean;
     isSubmitting: boolean;
@@ -16,73 +18,56 @@ type Props = {
 export function LoanRequestWizardActions({
     isFirstStep,
     isLastStep,
+    page,
+    totalPages,
+    blockers,
     onBack,
     onNext,
-    onSaveDraft,
     onSubmit,
     isSavingDraft,
     isSubmitting,
     disablePrimary = false,
 }: Props) {
     return (
-        <div className="rounded-xl border border-border bg-muted p-4 shadow-card sm:p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="order-3 flex sm:order-1">
+        <footer className="sticky bottom-0 z-20 border-t border-border bg-card shadow-[0_-6px_16px_-8px_color-mix(in_oklab,var(--foreground)_20%,transparent)]">
+            <div className="mx-auto w-full max-w-[1040px] space-y-2 px-4 py-3 md:px-7">
+                {blockers.length > 0 ? (
+                    <p
+                        role="status"
+                        className="animate-fade-in rounded-md bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive"
+                    >
+                        Required to continue: {blockers.join(', ')}
+                    </p>
+                ) : null}
+                <div className="flex items-center gap-3">
                     <Button
                         type="button"
-                        variant="ghost"
-                        className="w-full sm:w-auto"
+                        variant="outline"
+                        className="min-h-12 px-6"
                         onClick={onBack}
                         disabled={isFirstStep || isSavingDraft || isSubmitting}
                     >
                         Back
                     </Button>
-                </div>
-                <div className="order-2 flex sm:order-2 sm:mr-3 sm:ml-auto">
+                    <p className="hidden flex-1 text-center text-sm text-muted-foreground sm:block">
+                        Page {page} of {totalPages}
+                    </p>
                     <Button
                         type="button"
-                        variant="outline"
-                        className="w-full sm:w-auto"
-                        onClick={onSaveDraft}
-                        disabled={isSavingDraft || isSubmitting}
+                        className="min-h-12 flex-1 px-8 font-bold disabled:opacity-45 sm:flex-none"
+                        onClick={isLastStep ? onSubmit : onNext}
+                        disabled={
+                            disablePrimary || isSavingDraft || isSubmitting
+                        }
                     >
-                        {isSavingDraft ? (
-                            <>
-                                <Loader2 className="size-4 animate-spin" />
-                                Saving...
-                            </>
-                        ) : (
-                            'Save draft'
-                        )}
+                        {isSubmitting ? (
+                            <Loader2 className="animate-spin" />
+                        ) : null}
+                        {isLastStep ? 'Submit for Review' : 'Next'}
                     </Button>
                 </div>
-                <div className="order-1 flex sm:order-3">
-                    {isLastStep ? (
-                        <Button
-                            type="button"
-                            className="w-full sm:w-auto"
-                            onClick={onSubmit}
-                            disabled={
-                                disablePrimary || isSavingDraft || isSubmitting
-                            }
-                        >
-                            Submit for Review
-                        </Button>
-                    ) : (
-                        <Button
-                            type="button"
-                            className="w-full sm:w-auto"
-                            onClick={onNext}
-                            disabled={
-                                disablePrimary || isSavingDraft || isSubmitting
-                            }
-                        >
-                            Next
-                        </Button>
-                    )}
-                </div>
             </div>
-        </div>
+        </footer>
     );
 }
 

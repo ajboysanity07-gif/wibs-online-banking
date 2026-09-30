@@ -85,7 +85,7 @@ const NATURE_OF_BUSINESS_OPTIONS = [
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
 ];
-const readOnlyInputClass = 'bg-muted/30 text-muted-foreground/80 border-border';
+const readOnlyInputClass = 'bg-muted text-muted-foreground border-border';
 
 const fieldName = (prefix: string, field: string) => `${prefix}[${field}]`;
 

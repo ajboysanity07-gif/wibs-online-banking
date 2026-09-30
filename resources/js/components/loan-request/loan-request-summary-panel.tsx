@@ -1,18 +1,13 @@
+import { ChevronDown } from 'lucide-react';
+import { useState } from 'react';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import {
     OTHER_LOAN_TYPECODE,
     resolveLoanTypeAbbreviation,
 } from '@/components/loan-request/loan-request-steps';
 import { Badge } from '@/components/ui/badge';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { formatCurrency, formatDisplayText } from '@/lib/formatters';
+import { cn } from '@/lib/utils';
 import type {
     LoanRequestDraft,
     LoanRequestFormData,
@@ -27,11 +22,6 @@ type Props = {
     member: LoanRequestMemberSummary;
     draft: LoanRequestDraft | null;
     draftUpdatedAt: string | null;
-};
-
-type SummaryRowProps = {
-    label: string;
-    value: string;
 };
 
 const displayValue = (value?: string | null): string =>
@@ -53,22 +43,7 @@ const displayName = (person: LoanRequestPersonFormData): string => {
     return fullName !== '' ? fullName : '--';
 };
 
-const SummaryRow = ({ label, value }: SummaryRowProps) => (
-    <div className="flex items-start justify-between gap-3">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <span className="text-right text-sm font-medium break-words">
-            {value}
-        </span>
-    </div>
-);
-
-export function LoanRequestSummaryPanel({
-    data,
-    loanTypes,
-    member,
-    draft,
-    draftUpdatedAt,
-}: Props) {
+const buildSummary = ({ data, loanTypes, member }: Props) => {
     const loanTypeLabel =
         loanTypes.find((type) => type.typecode === data.typecode)?.label ??
         data.typecode;
@@ -80,121 +55,152 @@ export function LoanRequestSummaryPanel({
         data.requested_amount.trim() !== ''
             ? formatCurrency(Number(data.requested_amount))
             : '--';
+    const requestedTerm =
+        data.requested_term.trim() !== ''
+            ? `${data.requested_term} months`
+            : '--';
+
+    const rows: { label: string; value: string }[] = [
+        { label: 'Member', value: displayText(member.name) },
+        {
+            label: 'Loan type',
+            value: loanTypeAbbreviation
+                ? `${displayText(loanTypeLabel)} (${loanTypeAbbreviation})`
+                : displayText(loanTypeLabel),
+        },
+        { label: 'Requested amount', value: requestedAmount },
+        { label: 'Requested term', value: requestedTerm },
+        {
+            label: 'Availment status',
+            value: displayValue(data.availment_status),
+        },
+        ...(data.typecode === OTHER_LOAN_TYPECODE
+            ? [
+                  {
+                      label: 'Loan name',
+                      value: displayText(data.other_loan_type_name),
+                  },
+              ]
+            : []),
+        { label: 'Loan purpose', value: displayText(data.loan_purpose) },
+        { label: 'Applicant', value: displayName(data.applicant) },
+        { label: 'Co-maker 1', value: displayName(data.co_maker_1) },
+        { label: 'Co-maker 2', value: displayName(data.co_maker_2) },
+    ];
+
+    return {
+        rows,
+        headline:
+            requestedAmount === '--'
+                ? 'No amount entered yet'
+                : `${requestedAmount} · ${requestedTerm}`,
+    };
+};
+
+const SummaryRows = ({
+    rows,
+}: {
+    rows: { label: string; value: string }[];
+}) => (
+    <dl className="divide-y divide-border">
+        {rows.map((row) => (
+            <div
+                key={row.label}
+                className="flex items-start justify-between gap-4 py-2.5 text-sm"
+            >
+                <dt className="text-muted-foreground">{row.label}</dt>
+                <dd className="text-right font-semibold break-words">
+                    {row.value}
+                </dd>
+            </div>
+        ))}
+    </dl>
+);
+
+/** >= 900px: right-hand column with the tips box. */
+export function LoanRequestSummaryPanel(props: Props) {
+    const { draft, draftUpdatedAt } = props;
+    const { rows } = buildSummary(props);
 
     return (
-        <div className="space-y-3 lg:sticky lg:top-28">
-            <Card className="border-border bg-muted">
-                <CardHeader className="space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <CardTitle className="min-w-0 text-base">
-                            Application summary
-                        </CardTitle>
-                        {draft ? (
-                            <LoanRequestStatusBadge status={draft.status} />
-                        ) : (
-                            <Badge variant="secondary">New</Badge>
-                        )}
-                    </div>
-                    <CardDescription>
-                        Keep your details in sync before submitting.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                    <div className="rounded-lg border border-border bg-card p-3">
-                        <p className="text-xs text-muted-foreground uppercase">
-                            Member
-                        </p>
-                        <p className="mt-2 font-medium">
-                            {displayText(member.name)}
-                        </p>
-                    </div>
+        <div className="space-y-4 min-[900px]:sticky min-[900px]:top-20">
+            <section className="rounded-xl border border-border bg-card p-5 shadow-card">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-base font-semibold">
+                        Application summary
+                    </h2>
+                    {draft ? (
+                        <LoanRequestStatusBadge status={draft.status} />
+                    ) : (
+                        <Badge variant="secondary">New</Badge>
+                    )}
+                </div>
+                <SummaryRows rows={rows} />
+                {draftUpdatedAt ? (
+                    <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+                        Last saved {draftUpdatedAt}
+                    </p>
+                ) : null}
+            </section>
 
-                    <div className="space-y-2">
-                        <SummaryRow
-                            label="Loan type"
-                            value={
-                                loanTypeAbbreviation
-                                    ? `${displayText(loanTypeLabel)} (${loanTypeAbbreviation})`
-                                    : displayText(loanTypeLabel)
-                            }
-                        />
-                        <SummaryRow
-                            label="Requested amount"
-                            value={requestedAmount}
-                        />
-                    </div>
-
-                    <div className="hidden space-y-3 md:block">
-                        <div className="space-y-2">
-                            <SummaryRow
-                                label="Requested term"
-                                value={
-                                    data.requested_term.trim() !== ''
-                                        ? `${data.requested_term} months`
-                                        : '--'
-                                }
-                            />
-                            <SummaryRow
-                                label="Availment status"
-                                value={displayValue(data.availment_status)}
-                            />
-                            {data.typecode === OTHER_LOAN_TYPECODE && (
-                                <SummaryRow
-                                    label="Loan name"
-                                    value={displayText(
-                                        data.other_loan_type_name,
-                                    )}
-                                />
-                            )}
-                            <SummaryRow
-                                label="Loan purpose"
-                                value={displayText(data.loan_purpose)}
-                            />
-                        </div>
-
-                        <Separator className="bg-border" />
-
-                        <div className="space-y-2">
-                            <SummaryRow
-                                label="Applicant"
-                                value={displayName(data.applicant)}
-                            />
-                            <SummaryRow
-                                label="Co-maker 1"
-                                value={displayName(data.co_maker_1)}
-                            />
-                            <SummaryRow
-                                label="Co-maker 2"
-                                value={displayName(data.co_maker_2)}
-                            />
-                        </div>
-
-                        {draftUpdatedAt ? (
-                            <>
-                                <Separator className="bg-border" />
-                                <p className="text-xs text-muted-foreground">
-                                    Last saved {draftUpdatedAt}
-                                </p>
-                            </>
-                        ) : null}
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card className="hidden border-border bg-muted md:block">
-                <CardHeader>
-                    <CardTitle className="text-base">
-                        Tips for faster approval
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm text-muted-foreground">
-                    <p>Double-check your employment and income details.</p>
-                    <p>
+            <section className="rounded-xl bg-secondary p-5 text-secondary-foreground">
+                <h2 className="text-sm font-semibold">
+                    Tips for faster approval
+                </h2>
+                <ul className="mt-2 space-y-2 text-sm">
+                    <li>Double-check your employment and income details.</li>
+                    <li>
                         Signatures will be collected physically upon loan
                         release.
-                    </p>
-                </CardContent>
-            </Card>
+                    </li>
+                </ul>
+            </section>
         </div>
+    );
+}
+
+/** < 900px: tappable bar above the form that expands the summary in place. */
+export function LoanRequestSummaryBar(props: Props) {
+    const [open, setOpen] = useState(false);
+    const { rows, headline } = buildSummary(props);
+
+    return (
+        <section className="rounded-xl border border-border bg-card shadow-card">
+            <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => setOpen((current) => !current)}
+                className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left"
+            >
+                <span className="min-w-0 flex-1">
+                    <span className="block text-xs text-muted-foreground">
+                        Application summary
+                    </span>
+                    <span className="block truncate text-sm font-semibold">
+                        {headline}
+                    </span>
+                </span>
+                <ChevronDown
+                    aria-hidden="true"
+                    className={cn(
+                        'size-5 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none',
+                        open && 'rotate-180',
+                    )}
+                />
+            </button>
+            <div
+                className={cn(
+                    'grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none',
+                    open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+                )}
+                inert={!open}
+            >
+                <div className="overflow-hidden">
+                    <div className="border-t border-border px-4 pb-2">
+                        <SummaryRows rows={rows} />
+                    </div>
+                </div>
+            </div>
+        </section>
     );
 }

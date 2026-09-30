@@ -14,14 +14,14 @@ import {
 } from '@/components/loan-request/loan-request-wizard-steps';
 import { cn } from '@/lib/utils';
 
-type StepGroup = {
+export type StepGroup = {
     label: string;
     icon: LucideIcon;
     steps: number[];
     stepNames: string[];
 };
 
-type GroupMeta = { label: string; icon: LucideIcon };
+export type GroupMeta = { label: string; icon: LucideIcon };
 
 /**
  * Steps present in the full step list but currently skipped (e.g. insurance
@@ -32,7 +32,7 @@ type GroupMeta = { label: string; icon: LucideIcon };
  */
 type HiddenStepIds = ReadonlySet<string>;
 
-const GROUP_META: Record<LoanRequestWizardGroupId, GroupMeta> = {
+export const GROUP_META: Record<LoanRequestWizardGroupId, GroupMeta> = {
     'loan-details': { label: 'Loan details', icon: FileText },
     'about-you': { label: 'About you', icon: User },
     'co-makers': { label: 'Co-makers', icon: Users },
@@ -54,7 +54,7 @@ const GROUP_META: Record<LoanRequestWizardGroupId, GroupMeta> = {
  * other wizards (e.g. the admin correction dialog) can reuse the same
  * sidebar shell with their own steps.
  */
-function buildStepGroups(
+export function buildStepGroups(
     steps: LoanRequestWizardStep[],
     groupMeta: Record<string, GroupMeta>,
     hiddenStepIds: HiddenStepIds,

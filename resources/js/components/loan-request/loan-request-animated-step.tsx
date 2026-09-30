@@ -1,5 +1,5 @@
-import { Transition } from '@headlessui/react';
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 type Props = {
     show: boolean;
@@ -7,28 +7,23 @@ type Props = {
     children: ReactNode;
 };
 
+// Mounts on `show`, so the entrance animation replays on every step change.
+// The keyframes (and their prefers-reduced-motion gate) live in app.css.
 export function LoanRequestAnimatedStep({ show, direction, children }: Props) {
-    const enterFrom =
-        direction === 'forward'
-            ? 'opacity-0 translate-x-4'
-            : 'opacity-0 -translate-x-4';
-    const leaveTo =
-        direction === 'forward'
-            ? 'opacity-0 -translate-x-4'
-            : 'opacity-0 translate-x-4';
+    if (!show) {
+        return null;
+    }
 
     return (
-        <Transition
-            appear
-            show={show}
-            enter="transition motion-safe:duration-200 motion-safe:ease-out motion-reduce:transition-none"
-            enterFrom={enterFrom}
-            enterTo="opacity-100 translate-x-0"
-            leave="transition motion-safe:duration-150 motion-safe:ease-in motion-reduce:transition-none"
-            leaveFrom="opacity-100 translate-x-0"
-            leaveTo={leaveTo}
+        <div
+            className={cn(
+                'space-y-6',
+                direction === 'forward'
+                    ? 'animate-step-forward'
+                    : 'animate-step-back',
+            )}
         >
-            <div className="space-y-6">{children}</div>
-        </Transition>
+            {children}
+        </div>
     );
 }
