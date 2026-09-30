@@ -5,7 +5,6 @@ import { DateInputWithPicker } from '@/components/loan-request/date-input-with-p
 import { LoanRequestActivityTab } from '@/components/loan-request/loan-request-activity-tab';
 import { LoanRequestApplicantSnapshot } from '@/components/loan-request/loan-request-applicant-snapshot';
 import { LoanRequestAttentionCard } from '@/components/loan-request/loan-request-attention-card';
-import { LoanRequestConditionsCard } from '@/components/loan-request/loan-request-conditions-card';
 import {
     LoanRequestLoanInformationCard,
     displayText,
@@ -29,9 +28,8 @@ import {
     LoanRequestCoMakerCard,
 } from '@/components/loan-request/loan-request-review-people';
 import {
-    LoanRequestHealthCard,
-    LoanRequestReadyCard,
     LoanRequestStatusRailCard,
+    LoanRequestTasksCard,
 } from '@/components/loan-request/loan-request-review-rail';
 import {
     LoanRequestReviewTabs,
@@ -93,7 +91,12 @@ import { staffApprovedDocumentPackageApi } from '@/lib/api/approved-document-pac
 import { formatCurrency, formatDateTime } from '@/lib/formatters';
 import { institutionalEmployerCategoryMismatch } from '@/lib/institutional-employer-category';
 import { buildAttentionRows } from '@/lib/loan-request-attention';
-import { buildRecommendGates } from '@/lib/loan-request-gates';
+import {
+    buildRecommendGates,
+    buildTaskExceptions,
+    summarizeTasks,
+    type TaskExceptionAction,
+} from '@/lib/loan-request-gates';
 import {
     documentPackageCounts,
     hasMissingSignatory,
@@ -383,6 +386,7 @@ export default function StaffLoanRequestShow({
         useState<RecommendationPreviewState | null>(null);
     const [processingEditSignal, setProcessingEditSignal] = useState(0);
     const [signatoriesEditSignal, setSignatoriesEditSignal] = useState(0);
+    const [openRecommendSignal, setOpenRecommendSignal] = useState(0);
     const [tab, setTab] = useReviewTab();
     const [isMemberActionDialogOpen, setIsMemberActionDialogOpen] =
         useState(false);
@@ -569,21 +573,6 @@ export default function StaffLoanRequestShow({
                           label: string;
                       } => item !== null,
                   );
-    const workflowHealthIssues = {
-        processingAge:
-            currentWorkflowHealth.processing_age_days !== null &&
-            currentWorkflowHealth.processing_age_days >=
-                PROCESSING_AGE_ISSUE_THRESHOLD_DAYS,
-        pendingMemberAction: currentWorkflowHealth.pending_member_action,
-        staleDocuments: currentWorkflowHealth.stale_document_count > 0,
-        failedDocuments: currentWorkflowHealth.failed_document_count > 0,
-        legacyBlockers: currentWorkflowHealth.legacy_blocker_count > 0,
-        notificationFailures:
-            currentWorkflowHealth.notification_failure_count > 0,
-        workflowFailedJobs: currentWorkflowHealth.workflow_failed_job_count > 0,
-    };
-    const workflowHealthIssueCount =
-        Object.values(workflowHealthIssues).filter(Boolean).length;
     const isV2Workflow =
         currentRequest.workflow_version === 'document_workflow_v2';
     const canClaim = currentRequest.can_claim;
@@ -1099,13 +1088,14 @@ export default function StaffLoanRequestShow({
                   total: currentConditions.items.length,
               }
             : null;
+    const categoryMismatch = institutionalEmployerCategoryMismatch(
+        currentApplicant?.institutional_employer_category,
+        currentApplicant?.employer_business_name,
+        currentApplicant?.employment_type,
+        currentApplicant?.nature_of_business,
+    );
     const attention = buildAttentionRows({
-        categoryMismatch: institutionalEmployerCategoryMismatch(
-            currentApplicant?.institutional_employer_category,
-            currentApplicant?.employer_business_name,
-            currentApplicant?.employment_type,
-            currentApplicant?.nature_of_business,
-        ),
+        categoryMismatch,
         categoryConfirmed:
             conditionsGate === null
                 ? null
@@ -1389,6 +1379,48 @@ export default function StaffLoanRequestShow({
         setSignatoriesEditSignal((n) => n + 1);
         goToTab('signatories', 'signatories-details');
     };
+    const taskExceptions = buildTaskExceptions({
+        rows: attention.rows,
+        categoryConfirmedAfterMismatch:
+            categoryMismatch && categoryCondition?.verified === true,
+        isSignatoryBlocker: (rowKey) =>
+            hasMissingSignatory(
+                currentDocumentChecklist.filter(
+                    (document) => `blockers-${document.key}` === rowKey,
+                ),
+                dataSectionDefinitions,
+            ),
+    });
+    const taskSummary = summarizeTasks({
+        conditions: currentConditions.available
+            ? {
+                  done: currentConditions.items.filter((item) => item.verified)
+                      .length,
+                  total: currentConditions.items.length,
+              }
+            : null,
+        exceptions: taskExceptions,
+        documents: gates.documents,
+    });
+    const taskNote = blockedReason
+        ? `Clear ${taskSummary.left ?? 'the open tasks'} to recommend. The Loan Manager makes the final decision.`
+        : taskSummary.left === null
+          ? 'All tasks done. The Loan Manager decides after you recommend; the request then locks.'
+          : 'Tasks are advisory on Legacy v1 requests. The Loan Manager makes the final decision.';
+    const runTaskException = (action: TaskExceptionAction) => {
+        if (action === 'confirm-category') {
+            setProcessingEditSignal((n) => n + 1);
+            goToTab('terms', 'processing-details');
+        } else if (action === 'fix-signatories') {
+            openSignatoriesEdit();
+        } else {
+            goToTab('docs', 'document-checklist');
+        }
+    };
+    // Blocking rows live in the task panel; waiting-on-member rows in the Summary strip.
+    const summaryAttentionRows = attention.rows.filter(
+        (row) => row.tone !== 'blocking' && !row.tag,
+    );
     const documentResultsAlert =
         lastDocumentResults !== null ? (
             <Alert className="border-sky-500/30 bg-sky-500/10">
@@ -1437,6 +1469,7 @@ export default function StaffLoanRequestShow({
                         onSelect: () => setIsMemberActionDialogOpen(true),
                     }}
                     recommendBlockedReason={blockedReason}
+                    openRecommendSignal={openRecommendSignal}
                 />
             </LoanRequestRecordHeader>
             <section className="mx-auto my-5 w-full max-w-[1440px] px-4 sm:px-6 lg:px-8">
@@ -1467,21 +1500,31 @@ export default function StaffLoanRequestShow({
                     />
                     <div className="min-w-0">
                         <ReviewTabPanel id="summary" tab={tab}>
-                            <LoanRequestAttentionCard
-                                rows={attention.rows}
-                                blockingCount={attention.blockingCount}
-                                loanStatus={
-                                    currentRequest.applicant_loan_status
-                                }
-                                onAction={(key) => {
-                                    if (key === 'edit-category') {
-                                        setProcessingEditSignal((n) => n + 1);
-                                        goToTab('terms', 'processing-details');
-                                    } else {
-                                        goToTab('docs', 'document-checklist');
+                            {summaryAttentionRows.length > 0 ? (
+                                <LoanRequestAttentionCard
+                                    rows={summaryAttentionRows}
+                                    blockingCount={attention.blockingCount}
+                                    loanStatus={
+                                        currentRequest.applicant_loan_status
                                     }
-                                }}
-                            />
+                                    onAction={(key) => {
+                                        if (key === 'edit-category') {
+                                            setProcessingEditSignal(
+                                                (n) => n + 1,
+                                            );
+                                            goToTab(
+                                                'terms',
+                                                'processing-details',
+                                            );
+                                        } else {
+                                            goToTab(
+                                                'docs',
+                                                'document-checklist',
+                                            );
+                                        }
+                                    }}
+                                />
+                            ) : null}
                             {showProcessingSection ? (
                                 <LoanRequestRecommendationSummary
                                     loanRequest={currentRequest}
@@ -1788,12 +1831,6 @@ export default function StaffLoanRequestShow({
                                     </p>
                                 ) : null}
                             </div>
-
-                            <LoanRequestConditionsCard
-                                conditions={currentConditions}
-                                pendingKey={conditionPendingKey}
-                                onToggle={toggleCondition}
-                            />
                         </ReviewTabPanel>
                         <ReviewTabPanel id="terms" tab={tab}>
                             {showProcessingSection ? (
@@ -2383,24 +2420,34 @@ export default function StaffLoanRequestShow({
                         </ReviewTabPanel>
                     </div>
                     <aside className="min-w-0 space-y-4 lg:col-span-full xl:sticky xl:top-[72px] xl:col-span-1">
-                        <LoanRequestReadyCard
+                        <LoanRequestTasksCard
                             stage={railStage}
-                            gated={isV2Workflow}
-                            gates={gates}
+                            summary={taskSummary}
+                            exceptions={taskExceptions}
+                            onException={runTaskException}
+                            conditions={currentConditions}
+                            conditionPendingKey={conditionPendingKey}
+                            onToggleCondition={toggleCondition}
+                            documents={gates.documents}
+                            onOpenDocuments={() =>
+                                goToTab('docs', 'document-checklist')
+                            }
+                            recommend={
+                                canRecommendApproval
+                                    ? {
+                                          disabledReason: blockedReason,
+                                          note: taskNote,
+                                          onClick: () =>
+                                              setOpenRecommendSignal(
+                                                  (n) => n + 1,
+                                              ),
+                                      }
+                                    : null
+                            }
                         />
                         <LoanRequestStatusRailCard
                             status={currentRequest.status}
                             isV2={isV2Workflow}
-                            assignedTo={
-                                assignedProcessorId === null
-                                    ? null
-                                    : (currentRequest.assigned_processor
-                                          ?.name ??
-                                      currentRequest.assigned_officer?.name ??
-                                      'Assigned processor')
-                            }
-                            ageDays={currentWorkflowHealth.processing_age_days}
-                            ageTargetDays={PROCESSING_AGE_ISSUE_THRESHOLD_DAYS}
                             notificationsSent={
                                 currentNotificationHistory.filter(
                                     (event) => event.status === 'sent',
@@ -2412,14 +2459,6 @@ export default function StaffLoanRequestShow({
                                 )
                                     ? pdfHref
                                     : null
-                            }
-                        />
-                        <LoanRequestHealthCard
-                            issueCount={workflowHealthIssueCount}
-                            ageDays={currentWorkflowHealth.processing_age_days}
-                            ageIssue={workflowHealthIssues.processingAge}
-                            pendingMemberAction={
-                                currentWorkflowHealth.pending_member_action
                             }
                         />
                     </aside>

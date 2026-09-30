@@ -148,6 +148,11 @@ type Props = {
     memberAction?: { show: boolean; onSelect: () => void };
     /** Header layout only: disables Recommend approval and says why. */
     recommendBlockedReason?: string | null;
+    /**
+     * Bumped by the task panel to open this component's Recommend approval
+     * dialog, so there is one submit path.
+     */
+    openRecommendSignal?: number;
 };
 
 const textareaClassName =
@@ -242,6 +247,7 @@ export function LoanRequestWorkflowActions({
     layout = 'panel',
     memberAction,
     recommendBlockedReason = null,
+    openRecommendSignal = 0,
 }: Props) {
     const isPanel = layout === 'panel';
     const [isAssignOpen, setIsAssignOpen] = useState(false);
@@ -250,6 +256,8 @@ export function LoanRequestWorkflowActions({
     const [isRequestRevisionOpen, setIsRequestRevisionOpen] = useState(false);
     const [isRejectOpen, setIsRejectOpen] = useState(false);
     const [isRecommendOpen, setIsRecommendOpen] = useState(false);
+    const [lastRecommendSignal, setLastRecommendSignal] =
+        useState(openRecommendSignal);
     const [isApproveOpen, setIsApproveOpen] = useState(false);
     const [isDeclineOpen, setIsDeclineOpen] = useState(false);
     const [isRejectDuringProcessingOpen, setIsRejectDuringProcessingOpen] =
@@ -451,6 +459,14 @@ export function LoanRequestWorkflowActions({
         );
         setApprovalRemarks(loanRequest.approval_remarks ?? '');
         setDeclineCategory(loanRequest.decline_category ?? '');
+    }
+
+    if (openRecommendSignal !== lastRecommendSignal) {
+        setLastRecommendSignal(openRecommendSignal);
+
+        if (workflow?.recommendApproval?.show && !recommendBlockedReason) {
+            setIsRecommendOpen(true);
+        }
     }
 
     if (effectiveAssignOfficerId !== assignOfficerUserId) {

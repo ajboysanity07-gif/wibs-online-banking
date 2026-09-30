@@ -82,17 +82,101 @@ test('gates only disable: not enforced, or conditions unavailable, never block',
     assert.deepEqual(notApplicable.documents, { done: 1, total: 1 });
 });
 
-test('staff page wires conditions, gates and the review rail without touching permissions', async () => {
+test('task exceptions: blocking rows open, confirmed category resolved, fix routes', async () => {
+    const { buildTaskExceptions, summarizeTasks } = await load(
+        'lib',
+        'loan-request-gates.ts',
+    );
+
+    const exceptions = buildTaskExceptions({
+        rows: [
+            {
+                key: 'blockers-authority_to_deduct',
+                tone: 'blocking',
+                title: 'Authority to Deduct: missing information',
+                description: 'Officer 1 name is required.',
+                action: { key: 'open-documents' },
+            },
+            {
+                key: 'failed-plan_of_payment',
+                tone: 'blocking',
+                title: 'Plan of Payment failed to generate',
+                description: 'Try again.',
+                action: { key: 'open-documents' },
+            },
+            {
+                key: 'stale-documents',
+                tone: 'warning',
+                title: '1 document out of date',
+                description: '',
+            },
+        ],
+        categoryConfirmedAfterMismatch: true,
+        isSignatoryBlocker: (key) => key === 'blockers-authority_to_deduct',
+    });
+
+    // Warnings never become exceptions; resolved category leads.
+    assert.deepEqual(
+        exceptions.map((e) => [e.key, e.open, e.action?.key ?? null]),
+        [
+            ['category-mismatch', false, null],
+            ['blockers-authority_to_deduct', true, 'fix-signatories'],
+            ['failed-plan_of_payment', true, 'open-documents'],
+        ],
+    );
+
+    const category = buildTaskExceptions({
+        rows: [
+            {
+                key: 'category-mismatch',
+                tone: 'blocking',
+                title: 'x',
+                description: 'y',
+                action: { key: 'edit-category' },
+            },
+        ],
+        categoryConfirmedAfterMismatch: false,
+        isSignatoryBlocker: () => false,
+    });
+
+    assert.deepEqual(category[0].action, {
+        key: 'confirm-category',
+        label: 'Confirm',
+    });
+
+    assert.deepEqual(
+        summarizeTasks({
+            conditions: { done: 3, total: 5 },
+            exceptions,
+            documents: { done: 12, total: 13 },
+        }),
+        {
+            done: 4,
+            total: 9,
+            left: '2 conditions, 2 exceptions, the document package',
+        },
+    );
+    assert.deepEqual(
+        summarizeTasks({
+            conditions: null,
+            exceptions: [],
+            documents: { done: 2, total: 2 },
+        }),
+        { done: 1, total: 1, left: null },
+    );
+});
+
+test('staff page wires the task panel without touching permissions', async () => {
     const page = await read('pages', 'staff', 'loan-request-show.tsx');
     const rail = await read(
         'components',
         'loan-request',
         'loan-request-review-rail.tsx',
     );
-    const card = await read(
+    const actions = await read(
         'components',
         'loan-request',
-        'loan-request-conditions-card.tsx',
+        'loan-request-workflow-actions.tsx',
     );
 
     // Gate is derived only for a viewer who can already recommend.
@@ -100,27 +184,34 @@ test('staff page wires conditions, gates and the review rail without touching pe
         page,
         /blockedReason = canRecommendApproval \? gates\.blockedReason : null/,
     );
-    // Conditions gate only while they can actually be signed off.
     assert.match(
         page,
         /currentConditions\.available && currentConditions\.can_verify/,
     );
     assert.match(page, /adminApi\.updateLoanRequestCondition/);
-    assert.match(page, /<LoanRequestConditionsCard/);
-    assert.match(page, /<LoanRequestReadyCard/);
+    assert.match(page, /<LoanRequestTasksCard/);
     assert.match(page, /<LoanRequestStatusRailCard/);
-    assert.match(page, /<LoanRequestHealthCard/);
-    assert.match(page, /categoryConfirmation=/);
+    assert.doesNotMatch(page, /LoanRequestConditionsCard/);
+    assert.doesNotMatch(page, /LoanRequestHealthCard/);
+    // Rail button exists only for viewers who may recommend, uses the same gate,
+    // and opens the header's existing dialog (one submit path).
+    assert.match(
+        page,
+        /recommend=\{\s*canRecommendApproval\s*\?\s*\{\s*disabledReason: blockedReason/,
+    );
+    assert.match(page, /openRecommendSignal=\{openRecommendSignal\}/);
+    assert.match(
+        actions,
+        /workflow\?\.recommendApproval\?\.show && !recommendBlockedReason/,
+    );
 
-    assert.match(rail, /Ready to recommend\?/);
-    assert.match(rail, /gates\.openCount === 1 \? '' : 's'\} open/);
+    assert.match(rail, /Package current/);
+    assert.match(rail, /Not verified/);
+    assert.match(rail, /cursor-not-allowed opacity-45/);
+    assert.match(rail, /aria-disabled=\{recommend\.disabledReason !== null\}/);
     assert.match(rail, /What happens next:/);
-    assert.match(rail, /Loan Manager decides/);
-
-    // Read-only for viewers who lack the permission; pending deployment copy.
-    assert.match(card, /disabled=\{[\s\S]*?readOnly/);
-    assert.match(card, /pending deployment/);
-    assert.match(card, /type="checkbox"/);
+    assert.match(rail, /pending deployment/);
+    assert.match(rail, /disabled=\{[\s\S]*?readOnlyConditions/);
 });
 
 test('audit entries are new only within the last 24 hours and tolerate bad dates', async () => {

@@ -7,7 +7,7 @@ const readSource = (segments) => {
     return readFile(resolve(...segments), 'utf8');
 };
 
-test('workflow health card is a rail card with a badge, processing age and pending member action', async () => {
+test('workflow health is not duplicated in the rail: age lives in the header, issues in Summary', async () => {
     const railFile = await readSource([
         'resources',
         'js',
@@ -23,19 +23,9 @@ test('workflow health card is a rail card with a badge, processing age and pendi
         'loan-request-show.tsx',
     ]);
 
-    const cardStart = railFile.indexOf('export function LoanRequestHealthCard');
-    assert.ok(cardStart !== -1);
-    const cardBlock = railFile.slice(cardStart);
-
-    assert.ok(cardBlock.includes('All clear'));
-    assert.ok(cardBlock.includes("issue{issueCount === 1 ? '' : 's'}"));
-    assert.ok(cardBlock.includes('Processing age'));
-    assert.ok(cardBlock.includes('Member action'));
-    assert.match(
-        pageFile,
-        /<LoanRequestHealthCard[\s\S]*?issueCount=\{workflowHealthIssueCount\}/,
-    );
+    assert.ok(!railFile.includes('export function LoanRequestHealthCard'));
     assert.ok(pageFile.includes('PROCESSING_AGE_ISSUE_THRESHOLD_DAYS'));
+    assert.match(pageFile, /rows=\{summaryAttentionRows\}/);
 });
 
 test('staff page moves Audit trail and Notification history to the History section and keeps the rail out of the section panels', async () => {

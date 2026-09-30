@@ -68,3 +68,88 @@ export function buildRecommendGates(input: {
                 : null,
     };
 }
+
+export type TaskExceptionAction =
+    | 'confirm-category'
+    | 'fix-signatories'
+    | 'open-documents';
+
+export type TaskException = {
+    key: string;
+    title: string;
+    description: string;
+    /** Resolves only when the underlying data does; never dismissed by hand. */
+    open: boolean;
+    action: { key: TaskExceptionAction; label: string } | null;
+};
+
+/**
+ * Exceptions for the task panel: every blocking attention row, plus the
+ * category check shown as resolved once the member confirmed it.
+ */
+export function buildTaskExceptions(input: {
+    rows: {
+        key: string;
+        tone: string;
+        title: string;
+        description: string;
+        action?: { key: string };
+    }[];
+    categoryConfirmedAfterMismatch: boolean;
+    /** Whether a `blockers-{document}` row is about a missing signatory. */
+    isSignatoryBlocker: (rowKey: string) => boolean;
+}): TaskException[] {
+    const open: TaskException[] = input.rows
+        .filter((row) => row.tone === 'blocking')
+        .map((row) => ({
+            key: row.key,
+            title: row.title,
+            description: row.description,
+            open: true,
+            action:
+                row.action?.key === 'edit-category'
+                    ? { key: 'confirm-category', label: 'Confirm' }
+                    : input.isSignatoryBlocker(row.key)
+                      ? { key: 'fix-signatories', label: 'Fix' }
+                      : { key: 'open-documents', label: 'Fix' },
+        }));
+
+    return input.categoryConfirmedAfterMismatch
+        ? [
+              {
+                  key: 'category-mismatch',
+                  title: 'Employer category confirmed',
+                  description: 'Checked with the member.',
+                  open: false,
+                  action: null,
+              },
+              ...open,
+          ]
+        : open;
+}
+
+/** Tasks card totals and the "what is left" phrase ("2 conditions, the document package"). */
+export function summarizeTasks(input: {
+    conditions: GateCount | null;
+    exceptions: TaskException[];
+    documents: GateCount;
+}): { done: number; total: number; left: string | null } {
+    const conditions = input.conditions ?? { done: 0, total: 0 };
+    const openExceptions = input.exceptions.filter((e) => e.open).length;
+    const openConditions = conditions.total - conditions.done;
+    const documentsDone = input.documents.done === input.documents.total;
+    const left = [
+        openConditions > 0 ? plural(openConditions, 'condition') : null,
+        openExceptions > 0 ? plural(openExceptions, 'exception') : null,
+        documentsDone ? null : 'the document package',
+    ].filter((part): part is string => part !== null);
+
+    return {
+        done:
+            conditions.done +
+            (input.exceptions.length - openExceptions) +
+            (documentsDone ? 1 : 0),
+        total: conditions.total + input.exceptions.length + 1,
+        left: left.length > 0 ? left.join(', ') : null,
+    };
+}

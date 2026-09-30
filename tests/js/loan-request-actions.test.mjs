@@ -84,7 +84,7 @@ test('loan request actions group document buttons and separate navigation', asyn
     assert.match(adminPageFile, /Ready for your decision/);
     assert.match(adminPageFile, /isManagerViewer/);
     // Phase 4: the sidebar is replaced by the review rail.
-    assert.match(staffPageFile, /LoanRequestReadyCard/);
+    assert.match(staffPageFile, /LoanRequestTasksCard/);
     assert.doesNotMatch(staffPageFile, /LoanRequestDetailPage/);
     assert.match(staffPageFile, /useLoanRequestWorkflow/);
     assert.match(staffPageFile, /claimLoanRequest/);
