@@ -1,7 +1,4 @@
 import {
-    INSURANCE_RATE_AGE_BANDS,
-    calculateAgeFromBirthdate,
-    resolveDefaultLoanSecurityRate,
     snapshotPercent,
     type RecommendationPreviewState,
 } from '@/components/loan-request/processing-details-panel';
@@ -11,6 +8,11 @@ import {
     institutionalEmployerCategoryMismatch,
     resolveInstitutionalEmployerCategory,
 } from '@/lib/institutional-employer-category';
+import {
+    INSURANCE_RATE_AGE_BANDS,
+    calculateAgeFromBirthdate,
+    resolveDefaultLoanSecurityRate,
+} from '@/lib/loan-charge-defaults';
 import { cn } from '@/lib/utils';
 import type {
     LoanRequestDetail,

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap"><style>body{margin:0}a{color:#176433}a:hover{color:#124d27}button{font-family:inherit}</style></helmet>
+<div style="font-family:'Instrument Sans',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;background:{{ c.bg }};color:{{ c.ink }}">
+<div style="display:flex;gap:8px;align-items:center;padding:10px 16px;background:#14170f;color:#fff;font-size:13px"><span style="font-weight:700;letter-spacing:.08em">LOAN WIZARD</span><span style="flex:1"></span><button onClick="{{ setLight }}" style="border:0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;background:{{ lBg }};color:{{ lFg }}">Light</button><button onClick="{{ setDark }}" style="border:0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;background:{{ dBg }};color:{{ dFg }}">Dark</button></div>
+<div style="display:flex;flex:1;background:{{ c.side }}">
+<aside style="width:250px;flex:none;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;box-sizing:border-box;background:{{ c.side }};border-right:1px solid {{ c.sideBorder }};padding:16px 12px;display:flex;flex-direction:column;gap:18px;color:{{ c.sideInk }}">
+<div style="display:flex;align-items:center;gap:10px;padding:4px 8px"><div style="width:34px;height:34px;border-radius:9px;background:{{ c.accent }};color:{{ c.accentFg }};display:grid;place-items:center;font-weight:700">M</div><div style="font-weight:700;font-size:16px">MRDINC Portal</div></div>
+<div><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:{{ c.sideMuted }};padding:0 8px 8px">Member Portal</div>
+<sc-for list="{{ nav }}" as="n" hint-placeholder-count="5"><div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:14px;font-weight:{{ n.w }};background:{{ n.bg }};color:{{ n.fg }};margin-bottom:2px"><span style="width:15px;height:15px;border:1.6px solid currentColor;border-radius:4px;flex:none"></span>{{ n.t }}</div></sc-for></div>
+<div style="margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border:1px solid {{ c.sideBorder }};border-radius:10px;background:{{ c.sideCard }}"><div style="width:34px;height:34px;border-radius:50%;background:{{ c.accent }};color:{{ c.accentFg }};display:grid;place-items:center;font-weight:700;font-size:13px">M</div><div style="font-size:13px;line-height:1.3"><div style="font-weight:600">maginda.cadelina</div><div style="color:{{ c.sideMuted }}">Member</div></div></div>
+</aside>
+<main style="flex:1;min-width:0;background:{{ c.bg }};border-radius:14px 0 0 0">
+<header style="height:56px;border-bottom:1px solid {{ c.border }};display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:13px;color:{{ c.muted }}"><span>Overview  /  Loan Requests  /  Loan request</span><span style="display:flex;align-items:center;gap:8px;background:{{ c.tint }};color:{{ c.tintFg }};border:1px solid {{ c.tintBorder }};border-radius:999px;padding:4px 12px;font-weight:600"><span style="width:8px;height:8px;border-radius:50%;background:{{ c.primary }}"></span>Secure session</span></header>
+<div style="padding:28px;display:flex;flex-direction:column;gap:24px;max-width:1240px">
+
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};border-radius:{{ rad }}px;padding:28px;box-shadow:{{ sh }};display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap">
+<div style="display:flex;flex-direction:column;gap:8px"><div style="font-size:12px;letter-spacing:.24em;font-weight:700;text-transform:uppercase;color:{{ c.muted }}">Loan request</div><div style="font-size:32px;font-weight:700;letter-spacing:-.025em">Apply for a loan</div><div style="font-size:14px;color:{{ c.muted }};max-width:620px">Complete the application form and save a draft at any time. Signatures will be collected physically upon loan release.</div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="border:1px solid {{ c.borderStrong }};border-radius:6px;padding:3px 10px;font-weight:500">Account No: 005588</span><span style="background:{{ b.a0 }};color:{{ b.a1 }};border-radius:6px;padding:3px 10px;font-weight:700">Draft</span><span style="color:{{ c.muted }}">{{ savedText }}</span></div></div>
+<div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><button style="border:0;background:transparent;color:{{ b.r1 }};border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex:none">Discard draft</button><button style="border:1.5px solid {{ c.borderStrong }};background:transparent;color:{{ c.ink }};border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex:none">← Back to loan requests</button></div></div>
+
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};border-radius:{{ rad }}px;box-shadow:{{ sh }};overflow:hidden;display:flex;flex-wrap:wrap">
+<div style="width:250px;flex:none;background:{{ c.tile }};border-right:1px solid {{ c.border }};display:flex;flex-direction:column;padding:20px 0;box-sizing:border-box">
+<nav style="flex:1;padding:0 12px;display:flex;flex-direction:column;gap:2px"><sc-for list="{{ groups }}" as="g" hint-placeholder-count="5"><div><div onClick="{{ g.go }}" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;background:{{ g.bg }};color:{{ g.fg }}"><span style="width:22px;height:22px;flex:none;display:grid;place-items:center;font-weight:700;font-size:13px;border:1.6px solid currentColor;border-radius:6px;color:{{ g.ic }}">{{ g.icon }}</span><span style="font-size:13px;font-weight:{{ g.w }}">{{ g.label }}</span></div>
+<div style="display:{{ g.subDisplay }};margin:2px 0 6px 20px;padding-left:14px;border-left:1.5px solid {{ c.border }};flex-direction:column;gap:2px"><sc-for list="{{ g.subs }}" as="s" hint-placeholder-count="3"><div onClick="{{ s.go }}" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:{{ s.bg }}"><span style="width:7px;height:7px;border-radius:50%;flex:none;background:{{ s.dot }}"></span><span style="font-size:12px;font-weight:{{ s.w }};color:{{ s.fg }}">{{ s.name }}</span></div></sc-for></div></div></sc-for></nav>
+<div style="padding:16px 20px 0"><div style="display:flex;justify-content:space-between;font-size:11px;color:{{ c.muted }};margin-bottom:6px"><span>Progress</span><span>Step {{ stepNo }} of {{ stepTotal }}</span></div><div style="height:4px;border-radius:999px;background:{{ c.border }};overflow:hidden"><div style="width:{{ pct }};height:100%;background:{{ c.primary }}"></div></div></div></div>
+
+<div style="flex:1 1 340px;min-width:0;padding:28px;display:flex;flex-direction:column;gap:24px;box-sizing:border-box">
+<div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+<div style="display:flex;flex-direction:column;gap:20px;min-width:0;flex:1 1 380px">
+<sc-for list="{{ sections }}" as="s" hint-placeholder-count="1"><div style="background:{{ c.card }};border:1px solid {{ c.border }};border-radius:{{ rad }}px;padding:24px;display:flex;flex-direction:column;gap:20px"><div><div style="font-size:18px;font-weight:600">{{ s.title }}</div><div style="font-size:14px;color:{{ c.muted }};margin-top:2px">{{ s.desc }}</div></div>
+<div style="display:{{ s.fieldsDisplay }};grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px"><sc-for list="{{ s.fields }}" as="f" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;font-weight:600">{{ f.k }}</label><div style="border:1.5px solid {{ c.input }};background:{{ f.bg }};border-radius:8px;padding:11px 12px;font-size:14px;color:{{ f.col }}">{{ f.v }}</div></div></sc-for></div>
+<sc-for list="{{ s.checks }}" as="k" hint-placeholder-count="1"><div onClick="{{ k.go }}" style="cursor:pointer;display:flex;align-items:flex-start;gap:12px"><span style="width:20px;height:20px;border-radius:5px;flex:none;display:grid;place-items:center;font-size:13px;font-weight:700;background:{{ k.bg }};color:{{ k.fg }};border:1.5px solid {{ k.bd }}">{{ k.m }}</span><span style="font-size:14px;font-weight:500">{{ k.t }}</span></div></sc-for></div></sc-for>
+</div>
+<div style="display:{{ summaryDisplay }};flex-direction:column;gap:12px;flex:1 1 260px;max-width:340px;min-width:0">
+<div style="background:{{ c.tile }};border:1px solid {{ c.border }};border-radius:{{ rad }}px;padding:20px;display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px;font-weight:600">Application summary</span><span style="background:{{ b.a0 }};color:{{ b.a1 }};border-radius:6px;padding:2px 9px;font-size:12px;font-weight:700">Draft</span></div><div style="font-size:13px;color:{{ c.muted }}">Keep your details in sync before submitting.</div>
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};border-radius:8px;padding:10px 12px"><div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ c.muted }};font-weight:600">Member</div><div style="font-weight:600;margin-top:2px">Maginda L. Cadeliña</div></div>
+<sc-for list="{{ summary }}" as="r" hint-placeholder-count="6"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span style="color:{{ c.muted }}">{{ r.k }}</span><span style="font-weight:600;text-align:right">{{ r.v }}</span></div></sc-for></div>
+<div style="background:{{ c.tile }};border:1px solid {{ c.border }};border-radius:{{ rad }}px;padding:18px"><div style="font-size:15px;font-weight:600">Tips for faster approval</div><div style="font-size:13px;color:{{ c.muted }};margin-top:6px;line-height:1.5">Double-check your employment and income details. Signatures will be collected physically upon loan release.</div></div>
+</div></div>
+
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-if value="{{ hasBlockers }}" hint-placeholder-val="{{ false }}"><div style="background:{{ b.r0 }};color:{{ b.r1 }};border:1.5px solid {{ b.r1 }};border-radius:10px;padding:12px 16px"><div style="font-weight:700">Complete this step to continue</div><div style="font-size:14px">Required: {{ blockers }}</div></div></sc-if>
+<div style="background:{{ c.tile }};border:1px solid {{ c.border }};border-radius:{{ rad }}px;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><button onClick="{{ back }}" style="border:0;background:transparent;color:{{ c.ink }};border-radius:8px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;opacity:{{ backOp }}">Back</button><span style="flex:1"></span><button onClick="{{ saveDraft }}" style="border:1.5px solid {{ c.borderStrong }};background:transparent;color:{{ c.ink }};border-radius:8px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer">Save draft</button><button onClick="{{ next }}" style="border:0;border-radius:8px;padding:11px 24px;font-size:14px;font-weight:700;background:{{ c.primary }};color:{{ c.primaryFg }};cursor:{{ nextCur }};opacity:{{ nextOp }}">{{ nextLabel }}</button></div></div>
+</div></div>
+</div></main></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;cardShadow&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;soft&quot;,&quot;tsType&quot;:&quot;'none'|'soft'|'raised'&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;soft&quot;,&quot;raised&quot;],&quot;section&quot;:&quot;Cards&quot;},&quot;cardRadius&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:12,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:4,&quot;max&quot;:24,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;section&quot;:&quot;Cards&quot;}}">
+class Component extends DCLogic {
+  state = { step: 0, dark: false, checks: {}, saved: null };
+  renderVals() {
+    const { step, dark, checks, saved } = this.state;
+    const c = dark
+      ? { bg:'#1d2b20', side:'#0f1d14', card:'#2a3b2e', tile:'#233427', ink:'#f4f8ea', muted:'#c5d1b6', border:'#4a6350', borderStrong:'#7f9a80', input:'#7f9a80', link:'#b9d488', primary:'#9abd53', primaryFg:'#14170f', accent:'#9abd53', accentFg:'#14170f', tint:'#3b5a2c', tintFg:'#e3f0c4', tintBorder:'#6f9647', sideInk:'#f4f8ea', sideMuted:'#b3c4a4', sideBorder:'#2a3b2e', sideCard:'#1a2b1f' }
+      : { bg:'#dfe7cb', side:'#176433', card:'#ffffff', tile:'#eef3de', ink:'#14170f', muted:'#4a4f3f', border:'#b7c399', borderStrong:'#7f8f5c', input:'#7f8f5c', link:'#176433', primary:'#176433', primaryFg:'#ffffff', accent:'#9abd53', accentFg:'#14170f', tint:'#d3e6a6', tintFg:'#0f4123', tintBorder:'#93b552', sideInk:'#ffffff', sideMuted:'#cfe3b0', sideBorder:'#0f4123', sideCard:'#124d27' };
+    const b = dark ? { a0:'#5a4310', a1:'#fde9b8', r0:'#5c2626', r1:'#fbd9d9' } : { a0:'#fde9b8', a1:'#6b4200', r0:'#fbd9d9', r1:'#7a1b1b' };
+    const k = dark ? 2.2 : 1, lvl = this.props.cardShadow ?? 'soft', rad = this.props.cardRadius ?? 12;
+    const sh = lvl === 'none' ? 'none' : lvl === 'raised' ? `0 2px 4px rgba(20,23,15,${.1*k}), 0 10px 28px rgba(20,23,15,${.16*k})` : `0 1px 2px rgba(20,23,15,${.08*k}), 0 4px 12px rgba(20,23,15,${.08*k})`;
+    const E = (l) => [l, '~Not yet entered'];
+    const S = [
+      { id:'loan-details', group:0, title:'Loan details', name:'Loan details', blockers:[], sections:[{ title:'Loan details', desc:'Set the loan type, amount, term, and purpose.', fields:[['Loan type','Salary loan'],['Requested amount','PHP 60,000.00'],['Requested term','12 months'],['Availment status','New'],['Payment frequency','Monthly'],['Loan purpose','Tuition and school expenses']] }] },
+      { id:'personal-basic', group:1, title:'Confirm your details', name:'Confirm your details', need:'personal', needText:'Confirmation that your details are correct', sections:[{ title:'Basic information', desc:'Pre-filled from your member profile.', locked:true, fields:[['First name','Maginda'],['Middle name','Lopez'],['Last name','Cadeliña'],['Nickname','Gin'],['Birthdate','1985-04-12'],['Birthplace','Cebu City, Cebu'],['Sex','Female'],['Cell no','09392030940']] },{ title:'Address & family', desc:'Pre-filled from your member profile.', locked:true, fields:[['Home address','Brgy. Lahug, Cebu City'],['Length of stay','12 years'],['Housing status','Owned'],['Civil status','Married'],['Spouse name','Roberto Cadeliña'],['Educational attainment','College']] },{ title:'Confirm your details', desc:'These details were pre-filled from your member profile. Please confirm they are still accurate.', checks:[['personal','These details are still correct']] }] },
+      { id:'work-employment', group:1, title:'Work & income', name:'Work & income', need:'work', needText:'Confirmation of your work & income details', sections:[{ title:'My work & finances', desc:'Share your employment, employer, and income details.', fields:[['Employment type','Government'],['Employer','City Hall'],['Employer address','Osmeña Blvd, Cebu City'],['Current position','Administrative Aide'],['Years in work','9'],['Gross monthly income','PHP 28,000.00'],['Payday','Quincenal']] },{ title:'Confirm work & income', desc:'Pre-filled from your profile.', checks:[['work','My work & income details are correct']] }] },
+      { id:'co1-basic', group:2, title:'Co-maker 1: basic info', name:'Co-maker 1: basic info', sections:[{ title:'Co-maker 1: basic info', desc:'Basic personal details for your first co-maker.', fields:[E('First name'),E('Middle name'),E('Last name'),E('Nickname'),E('Birthdate'),E('Birthplace city'),E('Birthplace province'),E('Sex')] }] },
+      { id:'co1-contact', group:2, title:'Co-maker 1: address & contact', name:'Co-maker 1: address & contact', sections:[{ title:'Co-maker 1: address & contact', desc:'Address and contact details for your first co-maker.', fields:[E('Home address'),E('Length of stay'),E('Housing status'),E('Cell no'),E('Educational attainment')] }] },
+      { id:'co1-work', group:2, title:'Co-maker 1: work & income', name:'Co-maker 1: work & income', sections:[{ title:'Co-maker 1: work & income', desc:'Employment, employer, and income details for your first co-maker.', fields:[E('Employment type'),E('Employer'),E('Position'),E('Gross monthly income'),E('Payday')] }] },
+      { id:'co2-basic', group:2, title:'Co-maker 2: basic info', name:'Co-maker 2: basic info', sections:[{ title:'Co-maker 2: basic info', desc:'Basic personal details for your second co-maker.', fields:[E('First name'),E('Middle name'),E('Last name'),E('Nickname'),E('Birthdate'),E('Sex')] }] },
+      { id:'co2-contact', group:2, title:'Co-maker 2: address & contact', name:'Co-maker 2: address & contact', sections:[{ title:'Co-maker 2: address & contact', desc:'Address and contact details for your second co-maker.', fields:[E('Home address'),E('Length of stay'),E('Housing status'),E('Cell no')] }] },
+      { id:'co2-work', group:2, title:'Co-maker 2: work & income', name:'Co-maker 2: work & income', sections:[{ title:'Co-maker 2: work & income', desc:'Employment, employer, and income details for your second co-maker.', fields:[E('Employment type'),E('Employer'),E('Position'),E('Gross monthly income')] }] },
+      { id:'banking', group:3, title:'Loan Disbursement & Repayment', name:'Disbursement & Repayment', need:'bank', needText:'Confirmation of your bank details', sections:[{ title:'Loan Disbursement & Repayment', desc:"Tell us how you'd like to receive your loan and how you'll repay it. Barangay details are optional.", fields:[['Release method','ATM'],['Release account','BDO Savings •••• 4821'],['Payment option','Salary Deduction'],['Source of funds','Salary / Employment']] },{ title:'Confirm bank details', desc:'Pre-filled from your profile.', checks:[['bank','My bank details are correct']] }] },
+      { id:'declarations', group:4, title:'Declarations', name:'Declarations', needs:[['truth','Truthfulness declaration'],['privacy','Data privacy consent']], sections:[{ title:'Declarations', desc:'Review the required declarations and consent statements.', checks:[['truth','I declare that all information provided is true and correct.'],['privacy','I consent to the collection and processing of my personal data.']] }] },
+      { id:'review', group:4, title:'Review', name:'Review & submit', need:'undertake', needText:'Undertaking', review:true, sections:[{ title:'Review your application', desc:'Check the details below before submitting.', fields:[['Loan type','Salary loan'],['Amount','PHP 60,000.00'],['Term','12 months'],['Applicant','Maginda L. Cadeliña'],['Co-maker 1','--'],['Co-maker 2','--'],['Release','ATM · BDO •••• 4821'],['Repayment','Salary Deduction']], locked:true },{ title:'Undertaking', desc:'Review and confirm the undertaking.', checks:[['undertake','I confirm the information is complete and I agree to the loan terms.']] }] }
+    ];
+    const cur = S[step];
+    const total = S.length;
+    const GL = ['Loan details','About you','Co-makers','Disbursement & Repayment','Declarations & review'];
+    const GI = ['D','A','C','B','R'];
+    const go = (i) => () => this.setState({ step:i });
+    const blockers = [];
+    if (cur.need && !checks[cur.need]) blockers.push(cur.needText);
+    (cur.needs || []).forEach(([key,t]) => { if (!checks[key]) blockers.push(t); });
+    const groups = GL.map((label,gi) => {
+      const idx = S.map((s,i) => s.group===gi ? i : -1).filter(i => i>=0);
+      const active = idx.includes(step), done = idx.every(i => i < step);
+      return { label, icon: done ? '✓' : GI[gi], go: go(idx[0]), bg: active ? c.tint : 'transparent', fg: c.ink, w: active ? 700 : 500, ic: done ? c.link : active ? c.primary : c.muted, subDisplay: active && idx.length>1 ? 'flex' : 'none',
+        subs: idx.map(i => ({ name:S[i].name, go:go(i), bg: i===step ? c.card : 'transparent', dot: i<step ? c.primary : i===step ? c.accent : c.borderStrong, w: i===step ? 700 : 500, fg: i===step ? c.ink : c.muted })) };
+    });
+    const sections = cur.sections.map(s => ({
+      title:s.title, desc:s.desc, fieldsDisplay: s.fields ? 'grid' : 'none',
+      fields:(s.fields||[]).map(([kk,v]) => { const empty = v.startsWith('~'); return { k:kk, v: empty ? v.slice(1) : v, col: empty ? c.muted : c.ink, bg: s.locked ? c.tile : c.card }; }),
+      checks:(s.checks||[]).map(([key,t]) => { const on = !!checks[key]; return { t, go:() => this.setState({ checks:{ ...checks, [key]: !on } }), m: on ? '✓' : '', bg: on ? c.primary : c.card, fg: c.primaryFg, bd: on ? c.primary : c.input }; })
+    }));
+    const isLast = step === total - 1;
+    const disabled = blockers.length > 0;
+    return {
+      c, b, sh, rad, groups, sections,
+      nav: ['Overview','Loans','Loan Security','Loan requests','Settings'].map(t => t==='Loan requests' ? { t, bg:c.accent, fg:c.accentFg, w:700 } : { t, bg:'transparent', fg:c.sideInk, w:500 }),
+      setLight: () => this.setState({ dark:false }), setDark: () => this.setState({ dark:true }),
+      lBg: dark ? '#3a3f34' : '#9abd53', lFg: dark ? '#fff' : '#14170f', dBg: dark ? '#9abd53' : '#3a3f34', dFg: dark ? '#14170f' : '#fff',
+      stepNo: step+1, stepTotal: total, pct: ((step+1)/total*100)+'%',
+      layoutCols: cur.review ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(240px,340px)', summaryDisplay: cur.review ? 'none' : 'flex',
+      summary: [['Loan type','Salary'],['Requested amount','PHP 60,000.00'],['Requested term','12 months'],['Availment status','New'],['Loan purpose','Tuition'],['Applicant','Maginda L. Cadeliña'],['Co-maker 1','--'],['Co-maker 2','--']].map(([kk,v]) => ({k:kk,v})),
+      savedText: saved ? 'Draft saved just now' : 'Last saved 9/28/2026, 4:12 PM',
+      hasBlockers: blockers.length>0, blockers: blockers.join(', '),
+      back: () => step>0 && this.setState({ step: step-1 }), backOp: step===0 ? .4 : 1,
+      next: () => { if (!disabled && !isLast) this.setState({ step: step+1 }); },
+      nextLabel: isLast ? 'Submit for Review' : 'Next', nextOp: disabled ? .45 : 1, nextCur: disabled ? 'not-allowed' : 'pointer',
+      saveDraft: () => this.setState({ saved:true })
+    };
+  }
+}
+</script>
+</body>
+</html>

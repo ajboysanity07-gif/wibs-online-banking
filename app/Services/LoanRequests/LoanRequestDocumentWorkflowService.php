@@ -846,6 +846,7 @@ class LoanRequestDocumentWorkflowService
      *     non_finance_charge_total_raw: float|int|null,
      *     deductions_total_raw: float|int|null,
      *     net_proceeds_raw: float|int|null,
+     *     amortization_total_raw: float|int|null,
      *     suggested_gnthp_raw: float|null,
      *     failure_information: array{message: string, blockers: list<string>}|null,
      * }
@@ -900,19 +901,8 @@ class LoanRequestDocumentWorkflowService
             ? (float) $applicant->gross_monthly_income
             : null;
 
-        // Monthly-equivalent multiplier, matching the day-based convention
-        // resolveAmortizationCount() already uses to derive payment counts
-        // (round(term*30/7) for WEEKLY, etc.) — not calendar-accurate ratios.
-        $monthlyMultiplier = match ($workbookPaymentMode) {
-            'DAILY' => 30.0,
-            'WEEKLY' => 30 / 7,
-            'QUINCENAL' => 2.0,
-            'SEMI-ANNUAL' => 1.0 / 6,
-            'YEARLY' => 1.0 / 12,
-            default => 1.0, // MONTHLY and null
-        };
         $monthlyAmortizationRaw = $amortizationTotalRaw !== null
-            ? $amortizationTotalRaw * $monthlyMultiplier
+            ? $amortizationTotalRaw * app(LoanFiguresCalculator::class)->monthlyMultiplier($workbookPaymentMode)
             : null;
         $suggestedGnthpRaw = ($grossMonthlyIncome !== null && $monthlyAmortizationRaw !== null)
             ? round($grossMonthlyIncome - $monthlyAmortizationRaw, 2)
@@ -947,6 +937,7 @@ class LoanRequestDocumentWorkflowService
             'non_finance_charge_total_raw' => data_get($documentData, 'loan.non_finance_charge_total_raw'),
             'deductions_total_raw' => data_get($documentData, 'loan.deductions_total_raw'),
             'net_proceeds_raw' => $netProceedsRaw,
+            'amortization_total_raw' => $amortizationTotalRaw,
             'suggested_gnthp_raw' => $suggestedGnthpRaw,
             'failure_information' => $blockers === []
                 ? null

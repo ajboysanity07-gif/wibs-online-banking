@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Client\DiscardDraftLoanRequestRequest;
+use App\Http\Requests\Client\LoanEstimateRequest;
 use App\Http\Requests\Client\LoanRequestCancelRequest;
 use App\Http\Requests\Client\LoanRequestDraftRequest;
 use App\Http\Requests\Client\LoanRequestResolveActionRequest;
@@ -19,6 +20,7 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
 use App\Services\LoanRequests\ApprovedLoanDocumentPackageJobService;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\LoanFiguresCalculator;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
@@ -71,7 +73,26 @@ class LoanRequestController extends Controller
 
         $loanRequest = $service->submit($user, $request->validated());
 
-        return redirect()->route('client.loan-requests.show', $loanRequest);
+        return redirect()
+            ->route('client.loan-requests.show', $loanRequest)
+            ->with('loanRequestSubmitted', $loanRequest->id);
+    }
+
+    public function estimate(
+        LoanEstimateRequest $request,
+        LoanFiguresCalculator $calculator,
+    ): JsonResponse {
+        return response()->json([
+            'data' => $calculator->estimate(
+                (float) $request->validated('amount'),
+                (int) $request->validated('term'),
+                $request->validated('typecode'),
+                $request->validated('payment_frequency'),
+                $request->validated('insurance_rate') !== null
+                    ? (float) $request->validated('insurance_rate')
+                    : null,
+            ),
+        ]);
     }
 
     public function draft(
@@ -200,6 +221,7 @@ class LoanRequestController extends Controller
                 ->correctionReports()
                 ->where('status', LoanRequestCorrectionReport::STATUS_OPEN)
                 ->exists(),
+            'justSubmitted' => $request->session()->get('loanRequestSubmitted') === $loanRequestRecord->id,
         ]);
 
         return Inertia::render('client/loan-request-show', $payload);

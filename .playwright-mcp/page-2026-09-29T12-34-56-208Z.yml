@@ -1,0 +1,259 @@
+- generic [ref=f5e2]:
+  - region "Notifications alt+T"
+  - generic [ref=f5e3]:
+    - generic [ref=f5e4]: Member portal · Synced with WIBS Desktop
+    - banner [ref=f5e7]:
+      - generic [ref=f5e8]:
+        - generic [ref=f5e9]:
+          - img "MRDINC Portal - Microfinance for Rural Development Inc." [ref=f5e10]
+          - paragraph [ref=f5e12]: MRDINC Portal
+        - navigation [ref=f5e13]:
+          - link "Services" [ref=f5e14] [cursor=pointer]:
+            - /url: "#services"
+          - link "Loan products" [ref=f5e15] [cursor=pointer]:
+            - /url: "#loans"
+          - link "How it works" [ref=f5e16] [cursor=pointer]:
+            - /url: "#how"
+          - link "About us" [ref=f5e17] [cursor=pointer]:
+            - /url: "#about"
+          - link "FAQ" [ref=f5e18] [cursor=pointer]:
+            - /url: "#faq"
+        - generic [ref=f5e19]:
+          - link "Log in" [ref=f5e20] [cursor=pointer]:
+            - /url: /login
+          - link "Create portal login" [ref=f5e21] [cursor=pointer]:
+            - /url: /register
+    - main [ref=f5e22]:
+      - generic [ref=f5e24]:
+        - generic [ref=f5e25]:
+          - generic [ref=f5e26]: MEMBER PORTAL
+          - heading "Your loan account, one clear request away." [level=1] [ref=f5e27]
+          - paragraph [ref=f5e28]: Request a loan, follow it through approval, and keep an eye on savings and payments — all kept in sync with WIBS Desktop.
+          - generic [ref=f5e29]:
+            - link "Log in" [ref=f5e30] [cursor=pointer]:
+              - /url: /login
+            - link "Create portal login" [ref=f5e31] [cursor=pointer]:
+              - /url: /register
+          - list [ref=f5e32]:
+            - listitem [ref=f5e33]: Verified members only
+            - listitem [ref=f5e36]: Secure session
+            - listitem [ref=f5e39]: Live balances
+        - generic [ref=f5e42]:
+          - generic [ref=f5e43]:
+            - paragraph [ref=f5e44]: Where your request stands
+            - generic [ref=f5e45]: Sample application
+          - generic [ref=f5e46]:
+            - generic [ref=f5e47]:
+              - generic [ref=f5e48]: "1"
+              - generic [ref=f5e51]:
+                - paragraph [ref=f5e52]: Submitted
+                - paragraph [ref=f5e53]: Application and documents received
+            - generic [ref=f5e54]:
+              - generic [ref=f5e55]: "2"
+              - generic [ref=f5e58]:
+                - paragraph [ref=f5e59]: Under review
+                - paragraph [ref=f5e60]: Loan processor checks requirements
+            - generic [ref=f5e61]:
+              - generic [ref=f5e62]: "3"
+              - generic [ref=f5e65]:
+                - paragraph [ref=f5e66]:
+                  - text: Recommended
+                  - generic [ref=f5e67]: In progress
+                - paragraph [ref=f5e68]: Sent to loan manager for approval
+            - generic [ref=f5e69]:
+              - generic [ref=f5e70]: "4"
+              - generic [ref=f5e72]:
+                - paragraph [ref=f5e73]: Approved
+                - paragraph [ref=f5e74]: Ready for release scheduling
+      - generic [ref=f5e76]:
+        - link "Log in Access your account" [ref=f5e77] [cursor=pointer]:
+          - /url: /login
+          - generic [ref=f5e78]: Log in
+          - generic [ref=f5e79]: Access your account
+        - link "Create login For verified members" [ref=f5e80] [cursor=pointer]:
+          - /url: /register
+          - generic [ref=f5e81]: Create login
+          - generic [ref=f5e82]: For verified members
+        - link "Request a loan Guided online form" [ref=f5e83] [cursor=pointer]:
+          - /url: /login?redirect=%2Fclient%2Floans%2Frequest
+          - generic [ref=f5e84]: Request a loan
+          - generic [ref=f5e85]: Guided online form
+        - link "Track a request See every stage" [ref=f5e86] [cursor=pointer]:
+          - /url: /login?redirect=%2Fclient%2Floans%2Frequests
+          - generic [ref=f5e87]: Track a request
+          - generic [ref=f5e88]: See every stage
+      - generic [ref=f5e89]:
+        - generic [ref=f5e90]:
+          - paragraph [ref=f5e91]: Services
+          - heading "Everything your membership needs in one place." [level=2] [ref=f5e92]
+        - generic [ref=f5e93]:
+          - generic [ref=f5e99]:
+            - paragraph [ref=f5e100]: Request a loan online
+            - paragraph [ref=f5e101]: Fill out one guided form — employment, banking, co-makers, and required documents in a single pass. Choose a regular term or a lump-sum payoff for eligible loan types.
+          - generic [ref=f5e109]:
+            - paragraph [ref=f5e110]: Track every application step
+            - paragraph [ref=f5e111]: Follow your request from submission through review, recommendation, and approval, with the reason for any revision request shown inline.
+          - generic [ref=f5e117]:
+            - paragraph [ref=f5e118]: Review savings and loan balances
+            - paragraph [ref=f5e119]: See running balances, payment schedules, and posted transactions synced from WIBS Desktop — no separate statement request needed.
+          - generic [ref=f5e124]:
+            - paragraph [ref=f5e125]: Check payment history
+            - paragraph [ref=f5e126]: Look up dues paid, amounts due, and upcoming schedule dates for every active loan.
+          - generic [ref=f5e134]:
+            - paragraph [ref=f5e135]: Get notified on changes
+            - paragraph [ref=f5e136]: Receive an alert the moment your request moves stages, needs a correction, or is ready for release.
+          - generic [ref=f5e142]:
+            - paragraph [ref=f5e143]: Verified member access only
+            - paragraph [ref=f5e144]: Portal accounts are matched against your membership record before login access is created.
+      - generic [ref=f5e145]:
+        - generic [ref=f5e146]:
+          - paragraph [ref=f5e147]: Loan products
+          - heading "Choose the loan that fits." [level=2] [ref=f5e148]
+        - generic [ref=f5e149]:
+          - generic [ref=f5e150]:
+            - paragraph [ref=f5e151]: BUKO UNLAD LOAN
+            - link "Request this loan" [ref=f5e153] [cursor=pointer]:
+              - /url: /login?redirect=%2Fclient%2Floans%2Frequest%3Ftypecode%3D04
+          - generic [ref=f5e154]:
+            - paragraph [ref=f5e155]: MBL-SBC
+            - link "Request this loan" [ref=f5e157] [cursor=pointer]:
+              - /url: /login?redirect=%2Fclient%2Floans%2Frequest%3Ftypecode%3D03
+          - generic [ref=f5e158]:
+            - paragraph [ref=f5e159]: MICRO BUSINESS LOAN
+            - link "Request this loan" [ref=f5e161] [cursor=pointer]:
+              - /url: /login?redirect=%2Fclient%2Floans%2Frequest%3Ftypecode%3D02
+          - generic [ref=f5e162]:
+            - paragraph [ref=f5e163]: OTHER LOAN
+            - link "Request this loan" [ref=f5e165] [cursor=pointer]:
+              - /url: /login?redirect=%2Fclient%2Floans%2Frequest%3Ftypecode%3D01
+      - generic [ref=f5e166]:
+        - generic [ref=f5e167]:
+          - paragraph [ref=f5e168]: How it works
+          - heading "Verified members only." [level=2] [ref=f5e169]
+          - paragraph [ref=f5e170]: We keep portal access safe by verifying members before registration and onboarding.
+        - generic [ref=f5e171]:
+          - generic [ref=f5e172]:
+            - generic [ref=f5e173]: "1"
+            - generic [ref=f5e174]:
+              - paragraph [ref=f5e175]: Verify membership
+              - paragraph [ref=f5e176]: Confirm your account number and name so we can match you to the records.
+          - generic [ref=f5e177]:
+            - generic [ref=f5e178]: "2"
+            - generic [ref=f5e179]:
+              - paragraph [ref=f5e180]: Create portal login
+              - paragraph [ref=f5e181]: Set your login details to access requests, balances, and account updates.
+          - generic [ref=f5e182]:
+            - generic [ref=f5e183]: "3"
+            - generic [ref=f5e184]:
+              - paragraph [ref=f5e185]: Start onboarding
+              - paragraph [ref=f5e186]: Complete your profile details so you can use every portal feature.
+      - generic [ref=f5e188]:
+        - generic [ref=f5e189]:
+          - paragraph [ref=f5e190]: About us
+          - heading "Built around our members." [level=2] [ref=f5e191]
+          - paragraph [ref=f5e192]: Microfinance for Rural Development Inc. Portal is the member-facing side of our loan system. Everything you see here comes straight from the same records our staff use, so your balances, schedules and request status are always current.
+          - generic [ref=f5e193]:
+            - generic [ref=f5e194]:
+              - paragraph [ref=f5e195]: Transparent
+              - paragraph [ref=f5e196]: Clear balances and terms
+            - generic [ref=f5e197]:
+              - paragraph [ref=f5e198]: Accurate
+              - paragraph [ref=f5e199]: Same records as staff
+            - generic [ref=f5e200]:
+              - paragraph [ref=f5e201]: Supportive
+              - paragraph [ref=f5e202]: Help when you need it
+        - img "Microfinance for Rural Development Inc." [ref=f5e204]
+      - generic [ref=f5e206]:
+        - generic [ref=f5e207]:
+          - paragraph [ref=f5e208]: Security
+          - heading "Your account is protected." [level=2] [ref=f5e209]
+          - paragraph [ref=f5e210]: Microfinance for Rural Development Inc. will never ask for your password or one-time code by phone, text or email.
+        - generic [ref=f5e211]:
+          - generic [ref=f5e212]:
+            - paragraph [ref=f5e213]: Verified access
+            - paragraph [ref=f5e214]: Members are matched to records
+          - generic [ref=f5e215]:
+            - paragraph [ref=f5e216]: Protected sessions
+            - paragraph [ref=f5e217]: Secure login with optional two-factor
+          - generic [ref=f5e218]:
+            - paragraph [ref=f5e219]: Audit trail
+            - paragraph [ref=f5e220]: Every staff action is logged
+          - generic [ref=f5e221]:
+            - paragraph [ref=f5e222]: No password requests
+            - paragraph [ref=f5e223]: We never ask by phone or email
+      - generic [ref=f5e224]:
+        - generic [ref=f5e225]:
+          - paragraph [ref=f5e226]: FAQ
+          - heading "Frequently asked questions" [level=2] [ref=f5e227]
+        - generic [ref=f5e228]:
+          - generic [ref=f5e229]:
+            - paragraph [ref=f5e230]: Using the portal
+            - generic [ref=f5e231]:
+              - heading [level=3] [ref=f5e232]:
+                - button "Who can use the member portal?" [expanded] [ref=f5e233]
+              - region "Who can use the member portal?" [ref=f5e234]:
+                - paragraph [ref=f5e236]: Verified members only. We match your account number and name against your membership record before your login is created.
+          - heading [level=3] [ref=f5e239]:
+            - button "How do I request a loan?" [ref=f5e240]
+          - heading [level=3] [ref=f5e243]:
+            - button "Where do my balances come from?" [ref=f5e244]
+          - heading [level=3] [ref=f5e247]:
+            - button "How will I know when my request changes?" [ref=f5e248]
+          - generic [ref=f5e249]:
+            - paragraph [ref=f5e250]: Rates, terms and fees
+            - heading [level=3] [ref=f5e252]:
+              - button "How much interest will I be charged?" [ref=f5e253]
+          - heading [level=3] [ref=f5e256]:
+            - button "Are there any hidden fees or upfront charges?" [ref=f5e257]
+          - generic [ref=f5e258]:
+            - paragraph [ref=f5e259]: Repayments
+            - heading [level=3] [ref=f5e261]:
+              - button "What are my payment options?" [ref=f5e262]
+          - heading [level=3] [ref=f5e265]:
+            - button "What happens if I miss a payment or am late on my due date?" [ref=f5e266]
+        - paragraph [ref=f5e267]: For more information, please call [phone number] or visit our Facebook page [page link]. Thank you.
+      - generic [ref=f5e269]:
+        - generic [ref=f5e270]:
+          - heading "Ready to get started?" [level=2] [ref=f5e271]
+          - paragraph [ref=f5e272]: Create your portal login in a few minutes, or contact us if you need help.
+        - generic [ref=f5e273]:
+          - link "Create portal login" [ref=f5e274] [cursor=pointer]:
+            - /url: /register
+          - link "Contact support" [ref=f5e275] [cursor=pointer]:
+            - /url: "#contact"
+    - contentinfo [ref=f5e276]:
+      - generic [ref=f5e277]:
+        - generic [ref=f5e278]:
+          - img "MRDINC Portal - Microfinance for Rural Development Inc." [ref=f5e280]
+          - paragraph [ref=f5e281]: Integrated with WIBS Desktop. Your records, always current.
+        - generic [ref=f5e282]:
+          - paragraph [ref=f5e283]: Portal
+          - list [ref=f5e284]:
+            - listitem [ref=f5e285]:
+              - link "Log in" [ref=f5e286] [cursor=pointer]:
+                - /url: /login
+            - listitem [ref=f5e287]:
+              - link "Create portal login" [ref=f5e288] [cursor=pointer]:
+                - /url: /register
+            - listitem [ref=f5e289]:
+              - link "Request a loan" [ref=f5e290] [cursor=pointer]:
+                - /url: /login?redirect=%2Fclient%2Floans%2Frequest
+            - listitem [ref=f5e291]:
+              - link "Track a request" [ref=f5e292] [cursor=pointer]:
+                - /url: /login?redirect=%2Fclient%2Floans%2Frequests
+        - generic [ref=f5e293]:
+          - paragraph [ref=f5e294]: Company
+          - list [ref=f5e295]:
+            - listitem [ref=f5e296]:
+              - link "About us" [ref=f5e297] [cursor=pointer]:
+                - /url: "#about"
+            - listitem [ref=f5e298]:
+              - link "Loan products" [ref=f5e299] [cursor=pointer]:
+                - /url: "#loans"
+            - listitem [ref=f5e300]:
+              - link "FAQ" [ref=f5e301] [cursor=pointer]:
+                - /url: "#faq"
+            - listitem [ref=f5e302]:
+              - link "Contact" [ref=f5e303] [cursor=pointer]:
+                - /url: "#contact"
+      - generic [ref=f5e304]: © 2026 Microfinance for Rural Development Inc.. All rights reserved.

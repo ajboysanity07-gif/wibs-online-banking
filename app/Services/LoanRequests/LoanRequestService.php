@@ -130,6 +130,7 @@ class LoanRequestService
 
         $initialStep = 0;
         $initialStepId = null;
+        $wizardConfirmations = [];
 
         if ($draft !== null) {
             $flatValues = $this->dataService->loadFlatValues($draft);
@@ -143,6 +144,10 @@ class LoanRequestService
 
             if (is_string($stepIdValue) && $stepIdValue !== '') {
                 $initialStepId = $stepIdValue;
+            }
+
+            if (is_array($flatValues['wizard_confirmations'] ?? null)) {
+                $wizardConfirmations = array_values($flatValues['wizard_confirmations']);
             }
         }
 
@@ -187,6 +192,7 @@ class LoanRequestService
             'dataSectionDefinitions' => $this->dataService->sectionDefinitions(),
             'initialStep' => $initialStep,
             'initialStepId' => $initialStepId,
+            'wizardConfirmations' => $wizardConfirmations,
             'autoFilledDeclarations' => $autoFilledDeclarations,
             'draft' => $draft !== null ? $this->serializeLoanRequest($draft) : null,
             'bankingPrefilledFromProfile' => $bankingPrefilledFromProfile,
@@ -195,6 +201,12 @@ class LoanRequestService
             'applicantPrefilledFromProfile' => $applicantPrefilledFromProfile,
             'applicantWorkIncomePrefilledFromProfile' => $applicantWorkIncomePrefilledFromProfile,
             'missingIdentityPrerequisites' => $missingIdentityPrerequisites,
+            'estimateLimits' => [
+                'maxTermMonths' => (int) config('loan_workflow.estimate.max_term_months'),
+                'sliderMaxAmount' => (int) config('loan_workflow.estimate.slider_max_amount'),
+                'includesInterest' => config('loan_workflow.estimate.interest_rate') !== null,
+                'includesServiceCharge' => config('loan_workflow.estimate.service_charge_rate') !== null,
+            ],
         ];
     }
 
@@ -566,6 +578,26 @@ class LoanRequestService
                         'confirmed_by_member_at' => null,
                         'value_json' => ['value' => $payload['wizard_step_id']],
                         'metadata_json' => ['label' => 'Wizard current step id', 'type' => 'string'],
+                    ],
+                );
+            }
+
+            // "These pre-filled details are still correct" ticks, so the
+            // overview can derive section status from the saved draft.
+            if (array_key_exists('wizard_confirmations', $payload)) {
+                LoanRequestDataEntry::query()->updateOrCreate(
+                    [
+                        'loan_request_id' => $loanRequest->id,
+                        'field_key' => 'wizard_confirmations',
+                    ],
+                    [
+                        'section_key' => 'system',
+                        'owner_type' => 'system',
+                        'is_sensitive' => false,
+                        'confirmed_by_member' => false,
+                        'confirmed_by_member_at' => null,
+                        'value_json' => ['value' => array_values(array_unique($payload['wizard_confirmations'] ?? []))],
+                        'metadata_json' => ['label' => 'Wizard confirmations', 'type' => 'array'],
                     ],
                 );
             }

@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
-    "mtime": 1790685648.0530663,
-    "ast_hash": "91d74916eefbf0b681799ab3f81f86f5",
+    "mtime": 1790815610.5230417,
+    "ast_hash": "3682b0cec63fdcba41ad21ce2bd6b1b4",
     "semantic_hash": ""
   },
   ".claude/skills/react-compiler/CARD.manifest.json": {
@@ -7932,6 +7932,11 @@
   "tests/js/loan-request-internal-notes.test.mjs": {
     "mtime": 1790813788.654353,
     "ast_hash": "4187977b6acabdf52dd4056e5cda6c6e",
+    "semantic_hash": ""
+  },
+  "design/WIBS Loan Wizard v3.dc.html": {
+    "mtime": 1790814696.4479935,
+    "ast_hash": "426985547ab95262a94ee662c0f695df",
     "semantic_hash": ""
   }
 }

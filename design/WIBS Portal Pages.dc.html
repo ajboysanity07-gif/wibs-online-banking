@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap"><style>body{margin:0}a{color:#176433}a:hover{color:#124d27}button{font-family:inherit}</style></helmet>
+<div style="font-family:'Instrument Sans',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;background:{{ c.bg }};color:{{ c.ink }}">
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#14170f;color:#fff;font-size:13px">
+<span style="opacity:.85;margin-right:4px">Page</span>
+<sc-for list="{{ pageBtns }}" as="p" hint-placeholder-count="6"><button onClick="{{ p.go }}" style="border:0;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer;background:{{ p.bg }};color:{{ p.fg }}">{{ p.label }}</button></sc-for>
+<span style="flex:1"></span>
+<button onClick="{{ setLight }}" style="border:0;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer;background:{{ lBg }};color:{{ lFg }}">Light</button>
+<button onClick="{{ setDark }}" style="border:0;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer;background:{{ dBg }};color:{{ dFg }}">Dark</button>
+</div>
+
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
+<div style="background:{{ c.side }};color:{{ c.sideInk }};padding:48px;display:flex;flex-direction:column;justify-content:space-between;min-height:560px">
+<div style="display:flex;align-items:center;gap:10px"><div style="width:38px;height:38px;border-radius:10px;background:{{ c.accent }};color:{{ c.accentFg }};display:grid;place-items:center;font-weight:700">M</div><div style="font-weight:700;font-size:18px">MRDINC Portal</div></div>
+<div><div style="font-size:40px;font-weight:700;letter-spacing:-.025em;line-height:1.1;max-width:420px">Your loans and loan security, in one place.</div><div style="font-size:16px;margin-top:14px;color:{{ c.sideMuted }};max-width:400px">Check balances, payment schedules and loan requests anytime.</div></div>
+<div style="font-size:13px;color:{{ c.sideMuted }}">© MRDINC · Member portal</div>
+</div>
+<div style="display:grid;place-items:center;padding:32px;background:{{ c.bg }}">
+<div style="width:100%;max-width:400px;background:{{ c.card }};border:1px solid {{ c.border }};box-shadow:{{ sh }};border-radius:{{ rad }}px;padding:32px;display:flex;flex-direction:column;gap:18px">
+<div><div style="font-size:24px;font-weight:700;letter-spacing:-.02em">Log in to your account</div><div style="font-size:14px;color:{{ c.muted }};margin-top:4px">Enter your email or username and password.</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;font-weight:600">Email address or username</label><div style="border:1.5px solid {{ c.input }};background:{{ c.tile }};border-radius:8px;padding:11px 12px;font-size:14px;color:{{ c.muted }}">email@example.com or username</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;font-weight:600">Password</label><div style="border:1.5px solid {{ c.input }};background:{{ c.tile }};border-radius:8px;padding:11px 12px;font-size:14px;color:{{ c.muted }}">Password</div></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px"><span style="display:flex;gap:8px;align-items:center"><span style="width:16px;height:16px;border:1.5px solid {{ c.input }};border-radius:4px;background:{{ c.card }}"></span>Remember me</span><a href="#" style="color:{{ c.link }};font-weight:600">Forgot password?</a></div>
+<button style="border:0;border-radius:8px;padding:13px;font-size:15px;font-weight:700;background:{{ c.primary }};color:{{ c.primaryFg }};cursor:pointer">Log in</button>
+<div style="text-align:center;font-size:13px;color:{{ c.muted }}">Don't have an account? <a href="#" style="color:{{ c.link }};font-weight:600">Sign up</a></div>
+</div></div></div>
+</sc-if>
+
+<sc-if value="{{ notLogin }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex:1;background:{{ c.side }}">
+<aside style="width:250px;flex:none;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;box-sizing:border-box;background:{{ c.side }};border-right:1px solid {{ c.sideBorder }};padding:16px 12px;display:flex;flex-direction:column;gap:18px;color:{{ c.sideInk }}">
+<div style="display:flex;align-items:center;gap:10px;padding:4px 8px"><div style="width:34px;height:34px;border-radius:9px;background:{{ c.accent }};color:{{ c.accentFg }};display:grid;place-items:center;font-weight:700">M</div><div style="font-weight:700;font-size:16px">MRDINC Portal</div></div>
+<div><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:{{ c.sideMuted }};padding:0 8px 8px">Member Portal</div>
+<sc-for list="{{ nav }}" as="n" hint-placeholder-count="5"><div onClick="{{ n.go }}" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:14px;font-weight:{{ n.w }};background:{{ n.bg }};color:{{ n.fg }};margin-bottom:2px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="{{ n.d }}"></path></svg>{{ n.t }}</div></sc-for></div>
+<div style="margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border:1px solid {{ c.sideBorder }};border-radius:10px;background:{{ c.sideCard }}"><div style="width:34px;height:34px;border-radius:50%;background:{{ c.accent }};color:{{ c.accentFg }};display:grid;place-items:center;font-weight:700;font-size:13px">M</div><div style="font-size:13px;line-height:1.3"><div style="font-weight:600">maginda.cadelina</div><div style="color:{{ c.sideMuted }}">Member</div></div></div>
+</aside>
+<main style="flex:1;min-width:0;background:{{ c.bg }};border-radius:{{ radL }}px 0 0 0">
+<header style="height:56px;border-bottom:1px solid {{ c.border }};display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:13px;color:{{ c.muted }}"><span>{{ crumb }}</span><span style="display:flex;align-items:center;gap:8px;background:{{ c.tint }};color:{{ c.tintFg }};border:1px solid {{ c.tintBorder }};border-radius:999px;padding:4px 12px;font-weight:600"><span style="width:8px;height:8px;border-radius:50%;background:{{ c.primary }}"></span>Secure session</span></header>
+<div style="padding:28px;display:flex;flex-direction:column;gap:20px;max-width:1080px">
+
+<sc-if value="{{ isOverview }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap"><div><div style="font-size:13px;color:{{ c.muted }}">Last login: Sep 29, 2026 · 9:12 AM</div><div style="font-size:32px;font-weight:700;letter-spacing:-.025em;line-height:1.15">Good day, Maginda</div></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap"><button onClick="{{ toggleHide }}" style="border:1.5px solid {{ c.borderStrong }};background:{{ c.card }};color:{{ c.ink }};border-radius:8px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;flex:none">{{ hideLabel }}</button><button style="border:0;border-radius:8px;padding:11px 20px;font-size:14px;font-weight:700;background:{{ c.accent }};color:{{ c.accentFg }};cursor:pointer;white-space:nowrap;flex:none">Request a loan</button></div></div>
+<div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:{{ c.muted }}">Your accounts</div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch">
+<sc-for list="{{ accounts }}" as="a" hint-placeholder-count="2"><div style="background:{{ a.bg }};color:{{ a.fg }};border:1px solid {{ a.bd }};box-shadow:{{ sh }};border-radius:{{ radL }}px;padding:24px;display:flex;flex-direction:column;gap:16px;min-height:250px">
+<div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:15px;font-weight:700">{{ a.type }}</div><div style="font-size:13px;letter-spacing:.08em;font-variant-numeric:tabular-nums;color:{{ a.sub }};margin-top:2px">{{ a.mask }}</div></div><span style="background:{{ a.pillBg }};color:{{ a.pillFg }};border-radius:6px;padding:3px 10px;font-size:11px;letter-spacing:.14em;font-weight:700">ACTIVE</span></div>
+<div><div style="font-size:12px;font-weight:600;color:{{ a.sub }}">{{ a.balLabel }}</div><div style="font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums">{{ a.bal }}</div><div style="font-size:13px;color:{{ a.sub }};margin-top:4px">{{ a.note }}</div></div>
+<div style="display:{{ a.barDisplay }}"><div style="height:8px;border-radius:999px;background:rgba(255,255,255,.28)"><div style="width:{{ a.pct }};height:100%;border-radius:999px;background:{{ c.accent }}"></div></div></div>
+<div style="display:flex;gap:10px;margin-top:auto;flex-wrap:wrap"><button onClick="{{ a.go }}" style="border:0;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:700;background:{{ a.btnBg }};color:{{ a.btnFg }};cursor:pointer">{{ a.btn1 }}</button><button style="border:1.5px solid {{ a.btnBd }};background:transparent;color:{{ a.fg }};border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer">{{ a.btn2 }}</button></div>
+</div></sc-for></div>
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};box-shadow:{{ sh }};border-radius:{{ radL }}px;overflow:hidden"><div style="display:flex;justify-content:space-between;align-items:center;padding:18px 22px"><div style="font-size:18px;font-weight:600">Recent transactions</div><a href="#" style="font-size:13px;font-weight:700;color:{{ c.link }}">View all</a></div>
+<sc-for list="{{ txns }}" as="t" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:14px;padding:14px 22px;border-top:1px solid {{ c.border }}"><div style="width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;font-size:16px;background:{{ t.bg }};color:{{ t.fg }}">{{ t.icon }}</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">{{ t.title }}</div><div style="font-size:13px;color:{{ c.muted }}">{{ t.sub }} · {{ t.date }}</div></div><div style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:{{ t.amtCol }}">{{ t.amt }}</div></div></sc-for></div>
+<div style="display:flex;align-items:center;gap:12px;background:{{ c.tint }};color:{{ c.tintFg }};border:1px solid {{ c.tintBorder }};border-radius:10px;padding:12px 16px;font-size:13px;font-weight:500"><span style="font-weight:700">Stay safe.</span>MRDINC will never ask for your password or one-time code by phone, text or email.</div>
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};box-shadow:{{ sh }};border-radius:{{ radL }}px;padding:22px;display:flex;flex-direction:column;gap:14px"><div style="font-size:18px;font-weight:600">Account holder</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px"><sc-for list="{{ details }}" as="d" hint-placeholder-count="6"><div style="border:1px solid {{ c.border }};background:{{ c.tile }};border-radius:10px;padding:12px 14px"><div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:{{ c.muted }}">{{ d.k }}</div><div style="font-size:15px;font-weight:600;margin-top:3px">{{ d.v }}</div></div></sc-for></div></div>
+</sc-if>
+
+<sc-if value="{{ isLoans }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap"><div><div style="font-size:32px;font-weight:700;letter-spacing:-.025em">Loans</div><div style="font-size:15px;color:{{ c.muted }}">Track your active loans and payment history.</div><span style="display:inline-block;margin-top:8px;border:1px solid {{ c.borderStrong }};border-radius:6px;padding:3px 10px;font-size:12px;background:{{ c.card }}">Account No: 005588</span></div><button style="border:1.5px solid {{ c.borderStrong }};background:transparent;color:{{ c.ink }};border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer">Back to profile</button></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch"><div style="background:{{ c.primary }};color:{{ c.primaryFg }};box-shadow:{{ sh }};border-radius:{{ rad }}px;padding:24px"><div style="font-size:13px;font-weight:600">Total outstanding loan balance</div><div style="font-size:36px;font-weight:700;margin:8px 0 4px;font-variant-numeric:tabular-nums">PHP 300,000.00</div><div style="font-size:13px">Sum of outstanding loan balances.</div></div><div style="background:{{ c.card }};border:1px solid {{ c.border }};box-shadow:{{ sh }};border-radius:{{ rad }}px;padding:24px"><div style="font-size:13px;font-weight:600;color:{{ c.muted }}">Last loan transaction</div><div style="font-size:36px;font-weight:700;margin:8px 0 4px">9/3/2026</div><div style="font-size:13px;color:{{ c.muted }}">Most recent loan activity date.</div></div></div>
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};box-shadow:{{ sh }};border-radius:{{ rad }}px;overflow:hidden"><div style="padding:18px 22px;font-size:18px;font-weight:600">Loan records</div>
+<div style="overflow-x:auto"><div style="min-width:720px">
+<div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1.2fr .9fr 1.4fr;gap:12px;padding:10px 22px;background:{{ c.tile }};border-top:1px solid {{ c.border }};border-bottom:1px solid {{ c.border }};font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:{{ c.muted }}"><span>Loan no</span><span>Type</span><span>Released</span><span style="text-align:right">Balance</span><span>Status</span><span></span></div>
+<sc-for list="{{ loans }}" as="l" hint-placeholder-count="3"><div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1.2fr .9fr 1.4fr;gap:12px;padding:14px 22px;align-items:center;border-bottom:1px solid {{ c.border }};font-size:14px"><span style="font-weight:600">{{ l.no }}</span><span>{{ l.type }}</span><span>{{ l.date }}</span><span style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">{{ l.bal }}</span><span><span style="background:{{ l.sBg }};color:{{ l.sFg }};border-radius:6px;padding:2px 9px;font-size:12px;font-weight:700">{{ l.status }}</span></span><span style="display:flex;gap:8px"><button style="border:1.5px solid {{ c.borderStrong }};background:transparent;color:{{ c.ink }};border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">Schedule</button><button style="border:1.5px solid {{ c.borderStrong }};background:transparent;color:{{ c.ink }};border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer">Payments</button></span></div></sc-for>
+</div></div></div>
+</sc-if>
+
+<sc-if value="{{ isSecurity }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap"><div><div style="font-size:32px;font-weight:700;letter-spacing:-.025em">Loan Security</div><div style="font-size:15px;color:{{ c.muted }}">Your loan security ledger activity.</div><div style="display:flex;gap:8px;margin-top:8px"><span style="border:1px solid {{ c.borderStrong }};border-radius:6px;padding:3px 10px;font-size:12px;background:{{ c.card }}">Account No: 005588</span><span style="border:1px solid {{ c.borderStrong }};border-radius:6px;padding:3px 10px;font-size:12px;background:{{ c.card }}">Loan Security No: SV-0451</span></div></div><button style="border:1.5px solid {{ c.borderStrong }};background:transparent;color:{{ c.ink }};border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer">Back to profile</button></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch"><div style="background:{{ c.accent }};color:{{ c.accentFg }};box-shadow:{{ sh }};border-radius:{{ rad }}px;padding:24px"><div style="font-size:13px;font-weight:700">Loan security balance</div><div style="font-size:36px;font-weight:700;margin:8px 0 4px;font-variant-numeric:tabular-nums">PHP 6,000.00</div><div style="font-size:13px;font-weight:500">Latest loan security balance.</div></div><div style="background:{{ c.card }};border:1px solid {{ c.border }};box-shadow:{{ sh }};border-radius:{{ rad }}px;padding:24px"><div style="font-size:13px;font-weight:600;color:{{ c.muted }}">Last loan security transaction</div><div style="font-size:36px;font-weight:700;margin:8px 0 4px">9/3/2026</div><div style="font-size:13px;color:{{ c.muted }}">Most recent activity date.</div></div></div>
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};box-shadow:{{ sh }};border-radius:{{ rad }}px;overflow:hidden"><div style="padding:18px 22px;font-size:18px;font-weight:600">Ledger</div>
+<div style="overflow-x:auto"><div style="min-width:640px">
+<div style="display:grid;grid-template-columns:1fr 1fr 1.2fr 1.2fr 1.2fr;gap:12px;padding:10px 22px;background:{{ c.tile }};border-top:1px solid {{ c.border }};border-bottom:1px solid {{ c.border }};font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:{{ c.muted }}"><span>Date</span><span>SV no</span><span>Type</span><span style="text-align:right">Amount</span><span style="text-align:right">Balance</span></div>
+<sc-for list="{{ ledger }}" as="r" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:1fr 1fr 1.2fr 1.2fr 1.2fr;gap:12px;padding:14px 22px;align-items:center;border-bottom:1px solid {{ c.border }};font-size:14px;font-variant-numeric:tabular-nums"><span>{{ r.d }}</span><span>{{ r.n }}</span><span>{{ r.t }}</span><span style="text-align:right;font-weight:700;color:{{ r.col }}">{{ r.a }}</span><span style="text-align:right;font-weight:600">{{ r.b }}</span></div></sc-for>
+</div></div></div>
+</sc-if>
+
+<sc-if value="{{ isRequests }}" hint-placeholder-val="{{ false }}">
+<div style="background:{{ c.primary }};color:{{ c.primaryFg }};box-shadow:{{ sh }};border-radius:{{ rad }}px;padding:26px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap"><div><div style="font-size:11px;letter-spacing:.2em;font-weight:700;text-transform:uppercase">Loan applications</div><div style="font-size:32px;font-weight:700;letter-spacing:-.025em;margin:4px 0">Loan Requests</div><div style="font-size:15px;max-width:520px">Track drafts, queued reviews, requests that need revision, and final loan decisions.</div></div><button style="border:0;border-radius:8px;padding:12px 22px;font-size:14px;font-weight:700;background:{{ c.accent }};color:{{ c.accentFg }};cursor:pointer">Request loan</button></div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px"><sc-for list="{{ stats }}" as="s" hint-placeholder-count="4"><div style="background:{{ c.card }};border:1px solid {{ c.border }};box-shadow:{{ sh }};border-radius:{{ rad }}px;padding:16px;border-top:4px solid {{ s.bar }}"><div style="font-size:12px;font-weight:600;color:{{ c.muted }}">{{ s.k }}</div><div style="font-size:30px;font-weight:700;color:{{ s.fg }}">{{ s.v }}</div></div></sc-for></div>
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};box-shadow:{{ sh }};border-radius:{{ rad }}px;padding:16px;display:flex;flex-direction:column;gap:12px"><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ chips }}" as="ch" hint-placeholder-count="5"><span style="border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;background:{{ ch.bg }};color:{{ ch.fg }};border:1px solid {{ ch.bd }}">{{ ch.t }}</span></sc-for></div><div style="border:1.5px solid {{ c.input }};background:{{ c.tile }};border-radius:8px;padding:10px 12px;font-size:14px;color:{{ c.muted }}">Search by reference, loan type, or status</div></div>
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};box-shadow:{{ sh }};border-radius:{{ rad }}px;overflow:hidden"><div style="overflow-x:auto"><div style="min-width:680px">
+<div style="display:grid;grid-template-columns:1.3fr 1.3fr 1.2fr 1.6fr;gap:12px;padding:10px 22px;background:{{ c.tile }};border-bottom:1px solid {{ c.border }};font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:{{ c.muted }}"><span>Reference</span><span>Loan type</span><span style="text-align:right">Amount</span><span>Status</span></div>
+<sc-for list="{{ reqs }}" as="q" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:1.3fr 1.3fr 1.2fr 1.6fr;gap:12px;padding:14px 22px;align-items:center;border-bottom:1px solid {{ c.border }};font-size:14px"><span style="font-weight:600">{{ q.ref }}</span><span>{{ q.type }}</span><span style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">{{ q.amt }}</span><span><span style="background:{{ q.bg }};color:{{ q.fg }};border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700">{{ q.status }}</span></span></div></sc-for>
+</div></div></div>
+</sc-if>
+
+<sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+<div><div style="font-size:32px;font-weight:700;letter-spacing:-.025em">Settings</div><div style="font-size:15px;color:{{ c.muted }}">Manage your profile, security and preferences.</div></div>
+<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+<nav style="flex:0 0 250px;max-width:100%;background:{{ c.card }};border:1px solid {{ c.border }};border-radius:{{ rad }}px;box-shadow:{{ sh }};padding:10px;display:flex;flex-direction:column;gap:4px;box-sizing:border-box">
+<sc-for list="{{ sGroups }}" as="g" hint-placeholder-count="3"><div style="display:flex;flex-direction:column;gap:2px"><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:{{ c.muted }};padding:12px 12px 6px">{{ g.h }}</div><sc-for list="{{ g.items }}" as="i" hint-placeholder-count="4"><button onClick="{{ i.go }}" style="border:0;text-align:left;cursor:pointer;background:{{ i.bg }};color:{{ i.fg }};border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px"><span style="width:4px;align-self:stretch;border-radius:4px;background:{{ i.bar }}"></span><span style="width:36px;height:36px;border-radius:9px;flex:none;display:grid;place-items:center;background:{{ i.tileBg }};color:{{ i.tileFg }}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ i.d }}"></path></svg></span><span><span style="display:block;font-size:14px;font-weight:{{ i.w }}">{{ i.t }}</span><span style="display:block;font-size:12px;color:{{ i.sub }}">{{ i.d }}</span></span></button></sc-for></div></sc-for></nav>
+<div style="flex:1 1 480px;min-width:0;display:flex;flex-direction:column;gap:20px">
+<div style="display:{{ profileDisplay }};background:{{ c.card }};border:1px solid {{ c.border }};border-radius:{{ rad }}px;box-shadow:{{ sh }};padding:22px 24px;align-items:center;gap:18px;flex-wrap:wrap"><div style="width:64px;height:64px;border-radius:50%;background:{{ c.tint }};color:{{ c.tintFg }};border:1px solid {{ c.tintBorder }};display:grid;place-items:center;font-weight:700;font-size:22px">MC</div><div style="flex:1;min-width:200px"><div style="font-size:20px;font-weight:700">Maginda L. Cadeliña</div><div style="font-size:14px;color:{{ c.muted }}">Account No: 005588 · maginda.cadelina</div></div><span style="background:{{ c.primary }};color:{{ c.primaryFg }};border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700">Profile complete</span><button style="border:1.5px solid {{ c.borderStrong }};background:transparent;color:{{ c.ink }};border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Change photo</button></div>
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};border-radius:{{ rad }}px;box-shadow:{{ sh }};overflow:hidden"><div style="padding:22px 24px"><div style="font-size:20px;font-weight:700">{{ sTitle }}</div><div style="font-size:14px;color:{{ c.muted }};margin-top:2px">{{ sDesc }}</div></div>
+<div style="display:{{ choicesDisplay }};gap:12px;padding:0 24px 22px;flex-wrap:wrap"><sc-for list="{{ sChoices }}" as="ch" hint-placeholder-count="3"><div onClick="{{ ch.go }}" style="box-shadow:none;cursor:pointer;flex:1 1 0;min-width:140px;border:2px solid {{ ch.bd }};background:{{ ch.bg }};border-radius:10px;padding:16px"><div style="font-size:15px;font-weight:700">{{ ch.t }}</div><div style="font-size:13px;color:{{ c.muted }};margin-top:2px">{{ ch.d }}</div></div></sc-for></div>
+<sc-for list="{{ sRows }}" as="w" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:minmax(130px,210px) minmax(0,1fr) auto;gap:16px;align-items:center;padding:16px 24px;border-top:1px solid {{ c.border }}"><span style="font-size:14px;font-weight:600;color:{{ c.muted }}">{{ w.label }}</span>
+<div><span style="display:{{ w.valueDisplay }};font-size:15px;font-weight:500">{{ w.value }}</span><div style="display:{{ w.inputDisplay }};border:1.5px solid {{ c.primary }};background:{{ c.card }};border-radius:8px;padding:10px 12px;font-size:15px;box-shadow:0 0 0 3px {{ c.tint }}">{{ w.value }}</div></div>
+<div style="display:flex;gap:8px;align-items:center;justify-content:flex-end"><button onClick="{{ w.edit }}" style="display:{{ w.editDisplay }};border:1.5px solid {{ c.primary }};background:transparent;color:{{ c.link }};border-radius:8px;padding:7px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">{{ w.action }}</button><button onClick="{{ w.cancel }}" style="display:{{ w.saveDisplay }};border:1.5px solid {{ c.borderStrong }};background:transparent;color:{{ c.ink }};border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">Cancel</button><button onClick="{{ w.cancel }}" style="display:{{ w.saveDisplay }};border:0;background:{{ c.primary }};color:{{ c.primaryFg }};border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">Save</button><div onClick="{{ w.toggle }}" style="display:{{ w.toggleDisplay }};cursor:pointer;width:46px;height:26px;border-radius:999px;background:{{ w.swBg }};padding:3px;box-sizing:border-box;justify-content:{{ w.swJust }};align-items:center"><span style="width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span></div></div></div></sc-for>
+</div></div></div>
+</sc-if>
+
+</div></main></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;cardShadow&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;soft&quot;,&quot;tsType&quot;:&quot;'none'|'soft'|'raised'&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;soft&quot;,&quot;raised&quot;],&quot;section&quot;:&quot;Cards&quot;},&quot;cardRadius&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:12,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:4,&quot;max&quot;:24,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;section&quot;:&quot;Cards&quot;}}">
+class Component extends DCLogic {
+  state = { page: 'overview', dark: false, tab: 'Account', hide: false, sec: 'account', editing: null, tg: { twofa:true, nReq:true, nEmail:true, nSms:false }, theme: 'light' };
+  renderVals() {
+    const { page, dark, tab } = this.state;
+    const c = dark
+      ? { bg:'#1d2b20', side:'#0f1d14', card:'#2a3b2e', tile:'#233427', ink:'#f4f8ea', muted:'#c5d1b6', border:'#4a6350', borderStrong:'#7f9a80', input:'#7f9a80', link:'#b9d488', primary:'#9abd53', primaryFg:'#14170f', accent:'#9abd53', accentFg:'#14170f', tint:'#3b5a2c', tintFg:'#e3f0c4', tintBorder:'#6f9647', sideInk:'#f4f8ea', sideMuted:'#b3c4a4', sideBorder:'#2a3b2e', sideCard:'#1a2b1f' }
+      : { bg:'#dfe7cb', side:'#176433', card:'#ffffff', tile:'#eef3de', ink:'#14170f', muted:'#4a4f3f', border:'#b7c399', borderStrong:'#7f8f5c', input:'#7f8f5c', link:'#176433', primary:'#176433', primaryFg:'#ffffff', accent:'#9abd53', accentFg:'#14170f', tint:'#d3e6a6', tintFg:'#0f4123', tintBorder:'#93b552', sideInk:'#ffffff', sideMuted:'#cfe3b0', sideBorder:'#0f4123', sideCard:'#124d27' };
+    const B = dark
+      ? { g:['#3b5a2c','#e3f0c4'], a:['#5a4310','#fde9b8'], b:['#1f3f5c','#d4e6f7'], r:['#5c2626','#fbd9d9'], x:['#3a3f34','#e4e6dc'] }
+      : { g:['#d3e6a6','#0f4123'], a:['#fde9b8','#6b4200'], b:['#d4e6f7','#0b3c66'], r:['#fbd9d9','#7a1b1b'], x:['#e4e6dc','#33362c'] };
+    const lvl = this.props.cardShadow ?? 'soft';
+    const rad = this.props.cardRadius ?? 12;
+    const k = dark ? 2.2 : 1;
+    const sh = lvl === 'none' ? 'none' : lvl === 'raised' ? `0 2px 4px rgba(20,23,15,${.1*k}), 0 10px 28px rgba(20,23,15,${.16*k})` : `0 1px 2px rgba(20,23,15,${.08*k}), 0 4px 12px rgba(20,23,15,${.08*k})`;
+    const radL = rad + 2;
+    const IC = {
+      overview:'M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z',
+      loans:'M2 6h20v12H2z M12 15a3 3 0 100-6 3 3 0 000 6z M6 12h.01 M18 12h.01',
+      security:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M9 12l2 2 4-4',
+      requests:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M8 13h8 M8 17h8 M8 9h2',
+      settings:'M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M1 14h6 M9 8h6 M17 16h6',
+      account:'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z',
+      personal:'M3 5h18v14H3z M8 12a2 2 0 100-4 2 2 0 000 4z M5 16c.5-1.5 1.7-2 3-2s2.5.5 3 2 M14 9h4 M14 13h4',
+      work:'M3 7h18v13H3z M8 7V4h8v3 M3 13h18',
+      bank:'M3 21h18 M5 21V10 M9 21V10 M15 21V10 M19 21V10 M12 3l9 5H3z',
+      dependents:'M17 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2 M9.5 11a4 4 0 100-8 4 4 0 000 8z M22 21v-2a4 4 0 00-3-3.9 M16 3.1a4 4 0 010 7.8',
+      password:'M5 11h14v10H5z M8 11V7a4 4 0 018 0v4',
+      twofa:'M7 2h10a1 1 0 011 1v18a1 1 0 01-1 1H7a1 1 0 01-1-1V3a1 1 0 011-1z M12 18h.01',
+      sessions:'M3 4h18v12H3z M8 20h8 M12 16v4',
+      appearance:'M12 17a5 5 0 100-10 5 5 0 000 10z M12 1v2 M12 21v2 M4.2 4.2l1.4 1.4 M18.4 18.4l1.4 1.4 M1 12h2 M21 12h2 M4.2 19.8l1.4-1.4 M18.4 5.6l1.4-1.4',
+      notifs:'M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.7 21a2 2 0 01-3.4 0'
+    };
+    const set = (p) => () => this.setState({ page: p });
+    const pages = [['login','Login'],['overview','Overview'],['loans','Loans'],['security','Loan Security'],['requests','Loan requests'],['settings','Settings']];
+    const pageBtns = pages.map(([k,label]) => ({ label, go:set(k), bg: page===k ? '#9abd53' : '#3a3f34', fg: page===k ? '#14170f' : '#fff' }));
+    const navItems = [['overview','Overview'],['loans','Loans'],['security','Loan Security'],['requests','Loan requests'],['settings','Settings']];
+    const NIK = { overview:'overview', loans:'loans', security:'security', requests:'requests', settings:'settings' };
+    const nav = navItems.map(([k,t]) => ({ t, d:IC[NIK[k]], go:set(k), ...(page===k ? { bg:c.accent, fg:c.accentFg, w:700 } : { bg:'transparent', fg:c.sideInk, w:500 }) }));
+    const crumbs = { overview:'Member profile', loans:'Loans', security:'Member profile  /  Loan Security', requests:'Overview  /  Loan Requests', settings:'Profile settings' };
+    const bd = (k) => ({ bg:B[k][0], fg:B[k][1] });
+    const ledger = [['9/3/2026','SV-0451','Deposit','+ 2,000.00','b1'],['8/3/2026','SV-0451','Deposit','+ 2,000.00','b2'],['7/3/2026','SV-0451','Deposit','+ 2,000.00','b3']].map(([d,n,t,a],i) => ({ d,n,t,a, col:c.link, b:['6,000.00','4,000.00','2,000.00'][i] }));
+    const stat = (k,v,s) => ({ k, v, bar:B[s][1], fg:c.ink });
+    const chips = ['All','Draft','Pending Processing','In Processing','Approved'].map((t,i) => i===0 ? { t, bg:c.primary, fg:c.primaryFg, bd:c.primary } : { t, bg:c.tile, fg:c.ink, bd:c.border });
+    const rq = (ref,type,amt,status,k) => ({ ref, type, amt, status, ...bd(k) });
+    const tabsL = ['Account','Personal','Work','Bank','Dependents'];
+    const F = {
+      Account:[['Full name','Maginda L. Cadeliña'],['Username','maginda.cadelina'],['Email','magindacadelina@gmail.com'],['Phone','09392030940']],
+      Personal:[['Nickname','Gin'],['Birthplace','Cebu City, Cebu'],['Civil status','Married'],['Housing status','Owned'],['Length of stay','12 years'],['Educational attainment','College']],
+      Work:[['Employment type','Government'],['Employer','City Hall'],['Position','Administrative Aide'],['Gross monthly income','PHP 28,000.00'],['Payday','Quincenal'],['Years in work','9']],
+      Bank:[['Release method','ATM'],['Payment option','Salary Deduction'],['Source of funds','Salary / Employment'],['ID type','UMID'],['ID number','0000-0000000-0'],['Height / Weight','160 cm / 58 kg']],
+      Dependents:[['Spouse name','Roberto Cadeliña'],['Child 1','Anna Cadeliña'],['Child 1 birthdate','3/14/2012'],['Child 2','Mark Cadeliña'],['Child 2 birthdate','9/02/2015']]
+    };
+    return {
+      sh, rad, radL, c, pageBtns, nav, crumb: crumbs[page] || '',
+      isLogin: page==='login', notLogin: page!=='login',
+      isOverview: page==='overview', isLoans: page==='loans', isSecurity: page==='security', isRequests: page==='requests', isSettings: page==='settings',
+      toLoans: set('loans'), toSecurity: set('security'),
+      setLight: () => this.setState({ dark:false }), setDark: () => this.setState({ dark:true }),
+      lBg: dark ? '#3a3f34' : '#9abd53', lFg: dark ? '#fff' : '#14170f', dBg: dark ? '#9abd53' : '#3a3f34', dFg: dark ? '#14170f' : '#fff',
+      hideLabel: this.state.hide ? 'Show balances' : 'Hide balances', toggleHide: () => this.setState({ hide: !this.state.hide }),
+      accounts: [{ type:'Loan account', mask:'0103 •••• 0039', bal: this.state.hide ? 'PHP ••••••' : 'PHP 300,000.00', balLabel:'Outstanding balance', note:'Released 9/3/2026 · MBL-SBC', pct:'0%', barDisplay:'block', bg:c.primary, fg:c.primaryFg, sub:dark?'#3f4a2a':'#e3efc9', bd:c.primary, pillBg:c.accent, pillFg:c.accentFg, btn1:'View loans', btn2:'Schedule', btnBg:c.accent, btnFg:c.accentFg, btnBd:'#ffffff', go:set('loans') },{ type:'Loan security', mask:'SV •••• 0451', bal: this.state.hide ? 'PHP ••••••' : 'PHP 6,000.00', balLabel:'Available balance', note:'Last transaction 9/3/2026', pct:'0%', barDisplay:'none', bg:c.card, fg:c.ink, sub:c.muted, bd:c.border, pillBg:c.tint, pillFg:c.tintFg, btn1:'View ledger', btn2:'Statement', btnBg:c.primary, btnFg:c.primaryFg, btnBd:c.borderStrong, go:set('security') }],
+      txns: [['Loan proceeds released','MBL-SBC 0103-000039','9/3/2026','+ PHP 300,000.00','c'],['Loan security deposit','SV-0451','9/3/2026','+ PHP 6,000.00','c'],['Processing fee','0103-000039','9/3/2026','− PHP 1,500.00','d']].map(([title,sub,date,amt,k]) => ({ title, sub, date, amt: this.state.hide ? 'PHP ••••••' : amt, icon: k==='c' ? '↓' : '↑', bg: k==='c' ? c.tint : (dark?'#5c2626':'#fbd9d9'), fg: k==='c' ? c.tintFg : (dark?'#fbd9d9':'#7a1b1b'), amtCol: k==='c' ? c.link : c.ink })),
+      ...(() => {
+        const { sec, editing, tg, theme } = this.state;
+        const S = {
+          account:['Account','Sign-in, photo and contact',[['username','Username','maginda.cadelina','Edit'],['email','Email address','magindacadelina@gmail.com','Edit'],['cell','Cell number','09392030940','Edit'],['onfile','Contact number on file','09392030940 (from membership record)','']]],
+          personal:['Personal','Name, birthdate and civil status',[['nick','Nickname','Gin','Edit'],['bday','Birthdate','April 12, 1985','Edit'],['bplace','Birthplace','Cebu City, Cebu','Edit'],['civil','Civil status','Married','Edit'],['addr','Home address','Brgy. Lahug, Cebu City','Edit'],['edu','Educational attainment','College','Edit']]],
+          work:['Work & Finances','Employment and income',[['emp','Employment type','Government','Edit'],['er','Employer','City Hall','Edit'],['pos','Current position','Administrative Aide','Edit'],['inc','Gross monthly income','PHP 28,000.00','Edit'],['pay','Payday','Quincenal','Edit']]],
+          bank:['Release Method','Bank and payout details',[['rel','Release method','ATM','Edit'],['acct','Release account','BDO Savings •••• 4821','Edit'],['payopt','Payment option','Salary Deduction','Edit'],['idt','ID type','UMID','Edit']]],
+          dependents:['Dependents','Spouse and family',[['sp','Spouse','Roberto Cadeliña','Edit'],['c1','Child 1','Anna Cadeliña · 3/14/2012','Edit'],['c2','Child 2','Mark Cadeliña · 9/02/2015','Edit']]],
+          password:['Password','Keep your account secure',[['pw','Password','Last changed 3 months ago','Change']]],
+          twofa:['Two-factor authentication','Add a second step at log in',[['twofa','Two-factor authentication','Authenticator app','','tg']]],
+          sessions:['Active sessions','Devices signed in to your account',[['s1','This device','Cebu City · Chrome on Windows · Active now',''],['s2','Mobile','Cebu City · Safari on iPhone · 2 days ago','Sign out']]],
+          appearance:['Appearance','Choose how the portal looks',[]],
+          notifs:['Notifications','Choose what we tell you about',[['nReq','Loan request updates','Stage changes, corrections and release','','tg'],['nEmail','Email alerts','Sent to magindacadelina@gmail.com','','tg'],['nSms','Text messages','Sent to 09392030940','','tg']]]
+        };
+        const G = [['Profile',['account','personal','work','bank','dependents']],['Security',['password','twofa','sessions']],['Preferences',['appearance','notifs']]];
+        const cur = S[sec];
+        const on = (k) => !!tg[k];
+        return {
+          sGroups: G.map(([hh,ids]) => ({ h:hh, items: ids.map(id => ({ t:S[id][0], d:S[id][1], go:() => this.setState({ sec:id, editing:null }), bg: sec===id ? c.tint : 'transparent', fg:c.ink, sub:c.muted, w: sec===id ? 700 : 600, bar: sec===id ? c.primary : 'transparent', d:IC[id], tileBg: sec===id ? c.primary : c.tile, tileFg: sec===id ? c.primaryFg : c.tintFg })) })),
+          profileDisplay: ['account','personal','work','bank','dependents'].includes(sec) ? 'flex' : 'none',
+          sTitle: cur[0], sDesc: cur[1],
+          choicesDisplay: sec==='appearance' ? 'flex' : 'none',
+          sChoices: [['light','Light','Bright surfaces'],['dark','Dark','Easy on the eyes'],['system','Match device','Follows your system']].map(([id,t,d]) => ({ t, d, go:() => this.setState({ theme:id }), bd: theme===id ? c.primary : c.border, bg: theme===id ? c.tint : c.card })),
+          sRows: cur[2].map(([id,label,value,action,kind]) => { const ed = editing===id, isTg = kind==='tg'; return { label, value, action, valueDisplay: ed ? 'none' : 'block', inputDisplay: ed ? 'block' : 'none', editDisplay: action && !ed ? 'inline-block' : 'none', saveDisplay: ed ? 'inline-block' : 'none', toggleDisplay: isTg ? 'flex' : 'none', swBg: on(id) ? c.primary : c.borderStrong, swJust: on(id) ? 'flex-end' : 'flex-start', edit:() => this.setState({ editing:id }), cancel:() => this.setState({ editing:null }), toggle:() => this.setState({ tg:{ ...tg, [id]: !on(id) } }) }; })
+        };
+      })(),
+      details: [['Member name','Maginda L. Cadeliña'],['Username','maginda.cadelina'],['Email','magindacadelina@gmail.com'],['Phone','09392030940'],['Account no','005588'],['Created','9/15/2026']].map(([k,v]) => ({k,v})),
+      loans: [{ no:'0103-000039', type:'MBL-SBC', date:'9/3/2026', bal:'PHP 300,000.00', status:'ACTIVE', sBg:B.g[0], sFg:B.g[1] }],
+      ledger,
+      stats: [stat('Total',6,'x'),stat('Draft',1,'a'),stat('In Processing',2,'b'),stat('Awaiting Member Action',1,'r'),stat('Approved/Converted',2,'g')],
+      chips,
+      reqs: [rq('LR-2026-0042','MBL-SBC','PHP 300,000.00','Converted to Loan','g'),rq('LR-2026-0051','Emergency','PHP 40,000.00','In Processing','b'),rq('LR-2026-0055','Salary','PHP 60,000.00','Awaiting Member Correction','r'),rq('LR-2026-0058','Salary','PHP 25,000.00','Draft','a')],
+      tabs: tabsL.map(t => ({ t, d:{Account:'Photo, username, contact',Personal:'Birthplace, address, civil status',Work:'Employer and income',Bank:'Release, payment, ID',Dependents:'Spouse and children'}[t], go:() => this.setState({ tab:t }), bg: tab===t ? c.primary : 'transparent', fg: tab===t ? c.primaryFg : c.ink })),
+      fields: F[tab].map(([k,v]) => ({k,v}))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -8,6 +8,20 @@ return [
     ),
     'report_aging_threshold_days' => (int) env('LOAN_WORKFLOW_REPORT_AGING_DAYS', 3),
     'wibs_encoding_stale_days' => (int) env('LOAN_WORKFLOW_WIBS_STALE_DAYS', 5),
+    // Member loan calculator. Interest and service charge are set per request
+    // by the loan processor; leave these unset and the estimate excludes them
+    // (and says so) instead of guessing a rate.
+    'estimate' => [
+        'interest_rate' => env('LOAN_ESTIMATE_INTEREST_RATE') !== null
+            ? (float) env('LOAN_ESTIMATE_INTEREST_RATE')
+            : null,
+        'service_charge_rate' => env('LOAN_ESTIMATE_SERVICE_CHARGE_RATE') !== null
+            ? (float) env('LOAN_ESTIMATE_SERVICE_CHARGE_RATE')
+            : null,
+        'max_term_months' => (int) env('LOAN_ESTIMATE_MAX_TERM_MONTHS', 36),
+        // Slider range only -- the typed amount is not capped.
+        'slider_max_amount' => (int) env('LOAN_ESTIMATE_SLIDER_MAX_AMOUNT', 500000),
+    ],
     'documents' => [
         'disk' => env('LOAN_WORKFLOW_DOCUMENT_DISK', 'local'),
         'directory' => env(

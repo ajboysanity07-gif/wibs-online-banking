@@ -297,6 +297,10 @@ Route::post('client/loans/request', [LoanRequestController::class, 'store'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.store');
 
+Route::post('client/loans/request/estimate', [LoanRequestController::class, 'estimate'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete', 'throttle:120,1'])
+    ->name('client.loan-requests.estimate');
+
 Route::patch('client/loans/request', [LoanRequestController::class, 'draft'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.draft');

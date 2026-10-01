@@ -79,6 +79,7 @@ import {
     INSTITUTIONAL_PAYROLL_CATEGORIES,
     resolveInstitutionalEmployerCategory,
 } from '@/lib/institutional-employer-category';
+import type { ApplicationSection } from '@/lib/loan-application-flow';
 import type {
     LoanRequestDataFieldDefinition,
     LoanRequestDataFieldValue,
@@ -186,6 +187,10 @@ type LoanDetailsProps = {
     errors: Record<string, string | undefined>;
     loanTypes: LoanTypeOption[];
     onChange: (field: LoanDetailField, value: string) => void;
+    /** Mobile split: amount & term first, then purpose. Default shows all. */
+    part?: 'all' | 'terms' | 'purpose';
+    /** Rendered after the amount & term fields (the live estimate). */
+    termsFooter?: ReactNode;
 };
 
 export function LoanRequestLoanDetailsStep({
@@ -193,7 +198,11 @@ export function LoanRequestLoanDetailsStep({
     errors,
     loanTypes,
     onChange,
+    part = 'all',
+    termsFooter = null,
 }: LoanDetailsProps) {
+    const showTerms = part !== 'purpose';
+    const showPurpose = part !== 'terms';
     const isOtherLoan = data.typecode === OTHER_LOAN_TYPECODE;
     const loanPurposeCategory = (
         LOAN_PURPOSE_PRESETS as readonly string[]
@@ -223,233 +232,298 @@ export function LoanRequestLoanDetailsStep({
     }, [isMicroBusinessLoan, data.kind_of_loan, onChange]);
 
     return (
-        <LoanRequestSectionCard
-            title="Loan details"
-            description="Select your preferred loan type and request details."
-            errors={errors}
-        >
-            <div className="grid gap-4 md:grid-cols-2">
-                <div className="grid gap-2">
-                    <Label htmlFor="loan_type">Loan type</Label>
-                    <Select
-                        value={data.typecode || undefined}
-                        onValueChange={(value) => onChange('typecode', value)}
-                    >
-                        <SelectTrigger
-                            id="loan_type"
-                            className="mt-1 w-full"
-                            aria-invalid={Boolean(errors.typecode)}
-                        >
-                            <SelectValue placeholder="Select loan type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {loanTypes.map((option) => (
-                                <SelectItem
-                                    key={option.typecode}
-                                    value={option.typecode}
+        <>
+            <LoanRequestSectionCard
+                title="Loan details"
+                description="Select your preferred loan type and request details."
+                errors={errors}
+            >
+                <div className="grid gap-4 md:grid-cols-2">
+                    {showTerms ? (
+                        <>
+                            <div className="grid gap-2">
+                                <Label htmlFor="loan_type">Loan type</Label>
+                                <Select
+                                    value={data.typecode || undefined}
+                                    onValueChange={(value) =>
+                                        onChange('typecode', value)
+                                    }
                                 >
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                {isOtherLoan && (
-                    <div className="grid gap-2">
-                        <Label htmlFor="other_loan_type_name">
-                            Name this loan
-                        </Label>
-                        <Input
-                            id="other_loan_type_name"
-                            value={data.other_loan_type_name}
-                            className="mt-1 block w-full"
-                            placeholder="e.g. Motorcycle Loan"
-                            required
-                            onChange={(event) =>
-                                onChange(
-                                    'other_loan_type_name',
-                                    event.target.value,
-                                )
-                            }
-                            aria-invalid={Boolean(errors.other_loan_type_name)}
-                        />
-                    </div>
-                )}
-
-                {isMicroBusinessLoan && (
-                    <>
-                        <div className="grid gap-2">
-                            <Label htmlFor="kind_of_loan">Kind of loan</Label>
-                            <Select
-                                value={data.kind_of_loan || undefined}
-                                onValueChange={(value) =>
-                                    onChange('kind_of_loan', value)
-                                }
-                            >
-                                <SelectTrigger
-                                    id="kind_of_loan"
-                                    className="mt-1 w-full"
-                                    aria-invalid={Boolean(errors.kind_of_loan)}
-                                >
-                                    <SelectValue placeholder="Select kind of loan" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {KIND_OF_LOAN_OPTIONS.map((option) => (
-                                        <SelectItem key={option} value={option}>
-                                            {option}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        {loanTypeAbbreviation && (
-                            <div className="grid gap-1 md:col-span-2">
-                                <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-                                    Shown as{' '}
-                                    <Badge variant="secondary">
-                                        {loanTypeAbbreviation}
-                                    </Badge>
-                                </p>
+                                    <SelectTrigger
+                                        id="loan_type"
+                                        className="mt-1 w-full"
+                                        aria-invalid={Boolean(errors.typecode)}
+                                    >
+                                        <SelectValue placeholder="Select loan type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {loanTypes.map((option) => (
+                                            <SelectItem
+                                                key={option.typecode}
+                                                value={option.typecode}
+                                            >
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
-                        )}
-                    </>
-                )}
 
-                <div className="grid gap-2">
-                    <Label htmlFor="requested_amount">Requested amount</Label>
-                    <CurrencyInput
-                        id="requested_amount"
-                        value={data.requested_amount}
-                        onValueChange={(value) =>
-                            onChange('requested_amount', value)
-                        }
-                        aria-invalid={Boolean(errors.requested_amount)}
-                    />
-                </div>
+                            {isOtherLoan && (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="other_loan_type_name">
+                                        Name this loan
+                                    </Label>
+                                    <Input
+                                        id="other_loan_type_name"
+                                        value={data.other_loan_type_name}
+                                        className="mt-1 block w-full"
+                                        placeholder="e.g. Motorcycle Loan"
+                                        required
+                                        onChange={(event) =>
+                                            onChange(
+                                                'other_loan_type_name',
+                                                event.target.value,
+                                            )
+                                        }
+                                        aria-invalid={Boolean(
+                                            errors.other_loan_type_name,
+                                        )}
+                                    />
+                                </div>
+                            )}
 
-                <div className="grid gap-2">
-                    <Label htmlFor="requested_term">Loan term</Label>
-                    <MonthsInput
-                        id="requested_term"
-                        value={data.requested_term}
-                        placeholder="e.g. 12"
-                        required
-                        onChange={(value) => onChange('requested_term', value)}
-                        aria-invalid={Boolean(errors.requested_term)}
-                    />
-                </div>
+                            {isMicroBusinessLoan && (
+                                <>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="kind_of_loan">
+                                            Kind of loan
+                                        </Label>
+                                        <Select
+                                            value={
+                                                data.kind_of_loan || undefined
+                                            }
+                                            onValueChange={(value) =>
+                                                onChange('kind_of_loan', value)
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                id="kind_of_loan"
+                                                className="mt-1 w-full"
+                                                aria-invalid={Boolean(
+                                                    errors.kind_of_loan,
+                                                )}
+                                            >
+                                                <SelectValue placeholder="Select kind of loan" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {KIND_OF_LOAN_OPTIONS.map(
+                                                    (option) => (
+                                                        <SelectItem
+                                                            key={option}
+                                                            value={option}
+                                                        >
+                                                            {option}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    {loanTypeAbbreviation && (
+                                        <div className="grid gap-1 md:col-span-2">
+                                            <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                                                Shown as{' '}
+                                                <Badge variant="secondary">
+                                                    {loanTypeAbbreviation}
+                                                </Badge>
+                                            </p>
+                                        </div>
+                                    )}
+                                </>
+                            )}
 
-                <div className="grid gap-2">
-                    <Label htmlFor="availment_status">Availment status</Label>
-                    <Select
-                        value={data.availment_status || undefined}
-                        onValueChange={(value) =>
-                            onChange('availment_status', value)
-                        }
-                    >
-                        <SelectTrigger
-                            id="availment_status"
-                            className="mt-1 w-full"
-                            aria-invalid={Boolean(errors.availment_status)}
-                        >
-                            <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {AVAILMENT_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                    {option}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="requested_amount">
+                                    Requested amount
+                                </Label>
+                                <CurrencyInput
+                                    id="requested_amount"
+                                    value={data.requested_amount}
+                                    onValueChange={(value) =>
+                                        onChange('requested_amount', value)
+                                    }
+                                    aria-invalid={Boolean(
+                                        errors.requested_amount,
+                                    )}
+                                />
+                            </div>
 
-                <div className="grid gap-2 md:col-span-2">
-                    <Label htmlFor="loan_purpose">Loan purpose</Label>
-                    <Select
-                        value={loanPurposeCategory}
-                        onValueChange={(value) => {
-                            if (value === LOAN_PURPOSE_OTHERS) {
-                                onChange('loan_purpose', '');
-                            } else {
-                                onChange('loan_purpose', value);
-                            }
-                        }}
-                    >
-                        <SelectTrigger
-                            id="loan_purpose"
-                            className="mt-1 w-full"
-                            aria-invalid={Boolean(errors.loan_purpose)}
-                        >
-                            <SelectValue placeholder="Select loan purpose" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {LOAN_PURPOSE_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                    {option}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {isOtherLoanPurpose && (
-                        <Input
-                            id="loan_purpose_other"
-                            value={data.loan_purpose}
-                            className="mt-1 block w-full"
-                            placeholder="Describe your loan purpose"
-                            required
-                            onChange={(event) =>
-                                onChange('loan_purpose', event.target.value)
-                            }
-                            aria-invalid={Boolean(errors.loan_purpose)}
-                        />
-                    )}
-                </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="requested_term">
+                                    Loan term
+                                </Label>
+                                <MonthsInput
+                                    id="requested_term"
+                                    value={data.requested_term}
+                                    placeholder="e.g. 12"
+                                    required
+                                    onChange={(value) =>
+                                        onChange('requested_term', value)
+                                    }
+                                    aria-invalid={Boolean(
+                                        errors.requested_term,
+                                    )}
+                                />
+                            </div>
+                        </>
+                    ) : null}
 
-                {isOtherLoan && (
-                    <div className="grid gap-2">
-                        <Label htmlFor="requested_payment_frequency">
-                            Preferred repayment frequency
-                        </Label>
-                        <Select
-                            value={
-                                data.requested_payment_frequency || undefined
-                            }
-                            onValueChange={(value) =>
-                                onChange('requested_payment_frequency', value)
-                            }
-                        >
-                            <SelectTrigger
-                                id="requested_payment_frequency"
-                                className="mt-1 w-full"
-                                aria-invalid={Boolean(
-                                    errors.requested_payment_frequency,
+                    {showPurpose ? (
+                        <>
+                            <div className="grid gap-2">
+                                <Label htmlFor="availment_status">
+                                    Availment status
+                                </Label>
+                                <Select
+                                    value={data.availment_status || undefined}
+                                    onValueChange={(value) =>
+                                        onChange('availment_status', value)
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id="availment_status"
+                                        className="mt-1 w-full"
+                                        aria-invalid={Boolean(
+                                            errors.availment_status,
+                                        )}
+                                    >
+                                        <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {AVAILMENT_OPTIONS.map((option) => (
+                                            <SelectItem
+                                                key={option}
+                                                value={option}
+                                            >
+                                                {option}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="grid gap-2 md:col-span-2">
+                                <Label htmlFor="loan_purpose">
+                                    Loan purpose
+                                </Label>
+                                <Select
+                                    value={loanPurposeCategory}
+                                    onValueChange={(value) => {
+                                        if (value === LOAN_PURPOSE_OTHERS) {
+                                            onChange('loan_purpose', '');
+                                        } else {
+                                            onChange('loan_purpose', value);
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        id="loan_purpose"
+                                        className="mt-1 w-full"
+                                        aria-invalid={Boolean(
+                                            errors.loan_purpose,
+                                        )}
+                                    >
+                                        <SelectValue placeholder="Select loan purpose" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {LOAN_PURPOSE_OPTIONS.map((option) => (
+                                            <SelectItem
+                                                key={option}
+                                                value={option}
+                                            >
+                                                {option}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {isOtherLoanPurpose && (
+                                    <Input
+                                        id="loan_purpose_other"
+                                        value={data.loan_purpose}
+                                        className="mt-1 block w-full"
+                                        placeholder="Describe your loan purpose"
+                                        required
+                                        onChange={(event) =>
+                                            onChange(
+                                                'loan_purpose',
+                                                event.target.value,
+                                            )
+                                        }
+                                        aria-invalid={Boolean(
+                                            errors.loan_purpose,
+                                        )}
+                                    />
                                 )}
-                            >
-                                <SelectValue placeholder="Select repayment frequency" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {REPAYMENT_FREQUENCY_OPTIONS.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                        {option}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
+                            </div>
 
-                {data.requested_payment_frequency === 'Due date' && (
-                    <div className="grid gap-2 md:col-span-2">
-                        <p className="text-sm text-muted-foreground">
-                            Due date is repaid as a single payment after the
-                            loan term above.
-                        </p>
-                    </div>
-                )}
-            </div>
-        </LoanRequestSectionCard>
+                            {isOtherLoan && (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="requested_payment_frequency">
+                                        Preferred repayment frequency
+                                    </Label>
+                                    <Select
+                                        value={
+                                            data.requested_payment_frequency ||
+                                            undefined
+                                        }
+                                        onValueChange={(value) =>
+                                            onChange(
+                                                'requested_payment_frequency',
+                                                value,
+                                            )
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            id="requested_payment_frequency"
+                                            className="mt-1 w-full"
+                                            aria-invalid={Boolean(
+                                                errors.requested_payment_frequency,
+                                            )}
+                                        >
+                                            <SelectValue placeholder="Select repayment frequency" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {REPAYMENT_FREQUENCY_OPTIONS.map(
+                                                (option) => (
+                                                    <SelectItem
+                                                        key={option}
+                                                        value={option}
+                                                    >
+                                                        {option}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
+                            {data.requested_payment_frequency ===
+                                'Due date' && (
+                                <div className="grid gap-2 md:col-span-2">
+                                    <p className="text-sm text-muted-foreground">
+                                        Due date is repaid as a single payment
+                                        after the loan term above.
+                                    </p>
+                                </div>
+                            )}
+                        </>
+                    ) : null}
+                </div>
+            </LoanRequestSectionCard>
+            {showTerms ? termsFooter : null}
+        </>
     );
 }
 
@@ -738,6 +812,8 @@ type ReviewStepProps = {
     // shows every unresolved error from the whole form), so clicking one
     // needs to navigate to the right step rather than just focus in place.
     onErrorClick?: (key: string) => void;
+    /** Reopens a section from review; omitted = no Change buttons. */
+    onChangeSection?: (section: ApplicationSection) => void;
 };
 
 type SummaryItem = {
@@ -808,15 +884,27 @@ type SummaryCardProps = {
     title: string;
     description?: string;
     children: ReactNode;
+    /** e.g. a "Change" button that reopens the section. */
+    action?: ReactNode;
 };
 
-const SummaryCard = ({ title, description, children }: SummaryCardProps) => (
+const SummaryCard = ({
+    title,
+    description,
+    children,
+    action = null,
+}: SummaryCardProps) => (
     <div className="rounded-lg border border-border bg-card p-4">
-        <div className="space-y-1">
-            <h3 className="text-sm font-semibold">{title}</h3>
-            {description ? (
-                <p className="text-xs text-muted-foreground">{description}</p>
-            ) : null}
+        <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+                <h3 className="text-sm font-semibold">{title}</h3>
+                {description ? (
+                    <p className="text-xs text-muted-foreground">
+                        {description}
+                    </p>
+                ) : null}
+            </div>
+            {action}
         </div>
         <div className="mt-4">{children}</div>
     </div>
@@ -834,21 +922,25 @@ const AccordionSummaryCard = ({
     title,
     description,
     children,
+    action = null,
 }: AccordionSummaryCardProps) => (
     <AccordionItem
         value={value}
         className="rounded-lg border border-b-0 border-border bg-card px-4"
     >
-        <AccordionTrigger className="py-4 hover:no-underline">
-            <div className="space-y-1 text-left">
-                <h3 className="text-sm font-semibold">{title}</h3>
-                {description ? (
-                    <p className="text-xs font-normal text-muted-foreground">
-                        {description}
-                    </p>
-                ) : null}
-            </div>
-        </AccordionTrigger>
+        <div className="flex items-center gap-3">
+            <AccordionTrigger className="flex-1 py-4 hover:no-underline">
+                <div className="space-y-1 text-left">
+                    <h3 className="text-sm font-semibold">{title}</h3>
+                    {description ? (
+                        <p className="text-xs font-normal text-muted-foreground">
+                            {description}
+                        </p>
+                    ) : null}
+                </div>
+            </AccordionTrigger>
+            {action}
+        </div>
         <AccordionContent>{children}</AccordionContent>
     </AccordionItem>
 );
@@ -1892,7 +1984,20 @@ export function LoanRequestReviewStep({
     updateProfile,
     onUpdateProfileChange,
     onErrorClick,
+    onChangeSection,
 }: ReviewStepProps) {
+    const changeButton = (section: ApplicationSection, label: string) =>
+        onChangeSection ? (
+            <Button
+                type="button"
+                variant="link"
+                className="min-h-11 shrink-0 px-2 font-bold"
+                aria-label={`Change ${label}`}
+                onClick={() => onChangeSection(section)}
+            >
+                Change
+            </Button>
+        ) : null;
     const loanTypeLabel =
         loanTypes.find((type) => type.typecode === data.typecode)?.label ??
         data.typecode;
@@ -2298,6 +2403,7 @@ export function LoanRequestReviewStep({
             <SummaryCard
                 title="Loan details"
                 description="Review the requested loan information."
+                action={changeButton('loan', 'loan details')}
             >
                 <SummaryGrid items={loanSummary} />
             </SummaryCard>
@@ -2305,6 +2411,7 @@ export function LoanRequestReviewStep({
             <SummaryCard
                 title="Applicant personal data"
                 description="Confirm personal information."
+                action={changeButton('about', 'personal data')}
             >
                 <SummaryGrid items={applicantPersonal} />
             </SummaryCard>
@@ -2312,6 +2419,7 @@ export function LoanRequestReviewStep({
             <SummaryCard
                 title="Applicant work & finances"
                 description="Verify employment and income details."
+                action={changeButton('about', 'work and finances')}
             >
                 <SummaryGrid items={applicantWork} />
             </SummaryCard>
@@ -2321,6 +2429,7 @@ export function LoanRequestReviewStep({
                     value="co_maker_1"
                     title="Co-maker 1"
                     description="Review the proposed details for your first co-maker."
+                    action={changeButton('co', 'co-maker 1')}
                 >
                     <SummaryGrid
                         items={buildCoMakerSummary(
@@ -2334,6 +2443,7 @@ export function LoanRequestReviewStep({
                     value="co_maker_2"
                     title="Co-maker 2"
                     description="Review the proposed details for your second co-maker."
+                    action={changeButton('co', 'co-maker 2')}
                 >
                     <SummaryGrid
                         items={buildCoMakerSummary(
@@ -2396,6 +2506,13 @@ export function LoanRequestReviewStep({
                         value={section.key}
                         title={section.title}
                         description="Review the member-provided document details."
+                        action={
+                            section.key === 'banking'
+                                ? changeButton('disb', section.title)
+                                : section.key === 'declarations'
+                                  ? changeButton('decl', section.title)
+                                  : null
+                        }
                     >
                         {section.key === 'banking' ? (
                             <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">

@@ -91,44 +91,7 @@ export function LoanRequestRecordHeader({
             </dl>
 
             <div className="mx-auto w-full max-w-[1440px] px-4 pb-3.5 sm:px-6 lg:px-8">
-                <ol
-                    aria-label="Stage"
-                    className="scrollbar-hide flex gap-[3px] overflow-x-auto"
-                >
-                    {PROGRESS_STEPS.map((label, index) => {
-                        const done = index < step;
-                        const current = index === step;
-
-                        return (
-                            <li
-                                key={label}
-                                aria-current={current ? 'step' : undefined}
-                                className={cn(
-                                    'flex flex-[1_0_120px] items-center justify-center gap-1 px-[18px] py-[9px] text-[13px] whitespace-nowrap',
-                                    chevron,
-                                    done &&
-                                        'bg-secondary font-semibold text-secondary-foreground',
-                                    current &&
-                                        'bg-primary font-bold text-primary-foreground',
-                                    !done &&
-                                        !current &&
-                                        'bg-muted font-semibold text-muted-foreground',
-                                )}
-                            >
-                                {done ? (
-                                    <Check
-                                        aria-hidden="true"
-                                        className="size-3.5"
-                                    />
-                                ) : null}
-                                {label}
-                                {done ? (
-                                    <span className="sr-only">(done)</span>
-                                ) : null}
-                            </li>
-                        );
-                    })}
-                </ol>
+                <LoanRequestStagePath step={step} />
                 <p className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
                     {held || step < 0 ? (
                         <>
@@ -144,5 +107,44 @@ export function LoanRequestRecordHeader({
                 </p>
             </div>
         </div>
+    );
+}
+
+/** The 5-stage chevron path (Draft → Release); `step` from resolveLoanRequestProgress(). */
+export function LoanRequestStagePath({ step }: { step: number }) {
+    return (
+        <ol
+            aria-label="Stage"
+            className="scrollbar-hide flex gap-[3px] overflow-x-auto"
+        >
+            {PROGRESS_STEPS.map((label, index) => {
+                const done = index < step;
+                const current = index === step;
+
+                return (
+                    <li
+                        key={label}
+                        aria-current={current ? 'step' : undefined}
+                        className={cn(
+                            'flex flex-[1_0_120px] items-center justify-center gap-1 px-[18px] py-[9px] text-[13px] whitespace-nowrap',
+                            chevron,
+                            done &&
+                                'bg-secondary font-semibold text-secondary-foreground',
+                            current &&
+                                'bg-primary font-bold text-primary-foreground',
+                            !done &&
+                                !current &&
+                                'bg-muted font-semibold text-muted-foreground',
+                        )}
+                    >
+                        {done ? (
+                            <Check aria-hidden="true" className="size-3.5" />
+                        ) : null}
+                        {label}
+                        {done ? <span className="sr-only">(done)</span> : null}
+                    </li>
+                );
+            })}
+        </ol>
     );
 }

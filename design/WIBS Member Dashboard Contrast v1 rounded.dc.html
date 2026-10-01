@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap"><style>body{margin:0}a{color:#176433}a:hover{color:#124d27}</style></helmet>
+<div style="font-family:'Instrument Sans',system-ui,sans-serif;background:#fff;min-height:100vh;display:flex;flex-direction:column">
+<div style="display:flex;gap:8px;align-items:center;padding:10px 16px;background:#181818;color:#fff;font-size:13px">
+<span style="opacity:.8">Member dashboard · theme</span>
+<button onClick="{{ setBefore }}" style="border:0;border-radius:6px;padding:5px 12px;font:inherit;cursor:pointer;background:{{ bBg }};color:{{ bFg }}">Before (neutral grays)</button>
+<button onClick="{{ setAfter }}" style="border:0;border-radius:6px;padding:5px 12px;font:inherit;cursor:pointer;background:{{ aBg }};color:{{ aFg }}">After (org palette)</button>
+</div>
+<div style="display:flex;flex:1;background:{{ c.side }}">
+<aside style="width:250px;flex:none;background:{{ c.side }};border-right:1px solid {{ c.border }};padding:16px 12px;display:flex;flex-direction:column;gap:18px;color:{{ c.ink }}">
+<div style="display:flex;align-items:center;gap:10px;padding:4px 8px"><div style="width:34px;height:34px;border-radius:9px;background:{{ c.primary }};color:{{ c.primaryFg }};display:grid;place-items:center;font-weight:700">W</div><div style="font-weight:700;font-size:16px">WIBS Portal</div></div>
+<div>
+<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:{{ c.muted }};padding:0 8px 8px">Member Portal</div>
+<sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:14px;font-weight:{{ n.w }};background:{{ n.bg }};color:{{ n.fg }};margin-bottom:2px"><span style="width:15px;height:15px;border:1.6px solid currentColor;border-radius:4px;flex:none"></span>{{ n.t }}</div>
+</sc-for>
+</div>
+<div style="margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border:1px solid {{ c.border }};border-radius:10px;background:{{ c.card }}">
+<div style="width:34px;height:34px;border-radius:50%;background:{{ c.accent }};color:{{ c.accentFg }};display:grid;place-items:center;font-weight:700;font-size:13px">MS</div>
+<div style="font-size:13px;line-height:1.3"><div style="font-weight:600">Maria Santos</div><div style="color:{{ c.muted }}">maria@example.ph</div></div></div>
+</aside>
+<main style="flex:1;min-width:0;background:{{ c.bg }};border-radius:14px 0 0 0;color:{{ c.ink }}">
+<header style="height:56px;border-bottom:1px solid {{ c.border }};display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:13px;color:{{ c.muted }}"><span>Member profile</span><span style="width:32px;height:32px;border-radius:50%;border:1px solid {{ c.border }};background:{{ c.card }}"></span></header>
+<div style="padding:28px;display:flex;flex-direction:column;gap:20px;max-width:1040px">
+<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+<div style="width:60px;height:60px;border-radius:50%;background:{{ c.primary }};color:{{ c.primaryFg }};display:grid;place-items:center;font-weight:700;font-size:20px">MS</div>
+<div style="flex:1;min-width:200px"><div style="font-size:11px;letter-spacing:.2em;font-weight:600;color:{{ c.muted }};text-transform:uppercase">Member</div><div style="font-size:34px;font-weight:700;letter-spacing:-.025em;line-height:1.1">Hi, Maria</div><div style="font-size:15px;color:{{ c.muted }}">Here's where your loans stand today.</div></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><span style="background:{{ c.tint }};color:{{ c.tintFg }};border:1px solid {{ c.tintBorder }};border-radius:6px;padding:3px 10px;font-size:11px;letter-spacing:.18em;font-weight:700">ACTIVE</span><span style="border:1px solid {{ c.borderStrong }};border-radius:6px;padding:3px 10px;font-size:12px;font-weight:500;background:{{ c.card }}">Account No: 00214</span></div>
+<button style="border:0;border-radius:8px;padding:10px 18px;font:600 14px inherit;font-family:inherit;background:{{ c.accent }};color:{{ c.accentFg }};cursor:pointer">Apply for a loan</button>
+</div>
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:16px">
+<div><div style="font-size:18px;font-weight:600">Profile summary</div><div style="font-size:14px;color:{{ c.muted }}">Key account details and access status.</div></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+<sc-for list="{{ details }}" as="d" hint-placeholder-count="6">
+<div style="border:1px solid {{ c.border }};background:{{ c.bg }};border-radius:10px;padding:12px 14px"><div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:{{ c.muted }}">{{ d.k }}</div><div style="font-size:15px;font-weight:500;margin-top:3px">{{ d.v }}</div></div>
+</sc-for></div></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+<div style="background:{{ c.primary }};color:{{ c.primaryFg }};border-radius:22px;padding:26px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:600">Outstanding balance</span><span style="background:{{ c.accent }};color:{{ c.accentFg }};border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700">Due Oct 15</span></div>
+<div style="font-size:42px;font-weight:700;letter-spacing:-.02em;line-height:1">₱ 48,500<span style="font-size:22px;opacity:.85">.00</span></div>
+<div><div style="height:10px;border-radius:999px;background:rgba(255,255,255,.28);overflow:hidden"><div style="width:62%;height:100%;background:{{ c.accent }};border-radius:999px"></div></div><div style="display:flex;justify-content:space-between;font-size:13px;margin-top:8px"><span>62% repaid</span><span>14 of 24 payments</span></div></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap"><button style="border:0;border-radius:999px;padding:11px 20px;font:700 14px 'Instrument Sans',sans-serif;background:{{ c.accent }};color:{{ c.accentFg }};cursor:pointer">View schedule</button><button style="border:1.5px solid #fff;border-radius:999px;padding:10px 20px;font:600 14px 'Instrument Sans',sans-serif;background:transparent;color:{{ c.primaryFg }};cursor:pointer">Loan details</button></div>
+</div>
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};border-radius:22px;padding:26px;display:flex;flex-direction:column;gap:14px">
+<div style="font-size:13px;font-weight:600;color:{{ c.muted }}">Loan security</div>
+<div style="font-size:42px;font-weight:700;letter-spacing:-.02em;line-height:1">₱ 12,000<span style="font-size:22px;color:{{ c.muted }}">.00</span></div>
+<div style="font-size:14px;color:{{ c.muted }}">Covers your active loans · 1 account</div>
+<div style="margin-top:auto"><button style="border:0;border-radius:999px;padding:11px 20px;font:700 14px 'Instrument Sans',sans-serif;background:{{ c.primary }};color:{{ c.primaryFg }};cursor:pointer">View loan security</button></div>
+</div>
+</div>
+<div style="background:{{ c.card }};border:1px solid {{ c.border }};border-radius:14px;overflow:hidden">
+<div style="padding:18px 22px;font-size:18px;font-weight:600">Recent account actions</div>
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;gap:14px;padding:13px 22px;border-top:1px solid {{ c.border }}"><div style="flex:1"><div style="font-size:14px;font-weight:600">{{ r.t }}</div><div style="font-size:13px;color:{{ c.muted }}">{{ r.d }}</div></div><span style="background:{{ c.tint }};color:{{ c.tintFg }};border:1px solid {{ c.tintBorder }};border-radius:6px;padding:2px 9px;font-size:12px;font-weight:600">{{ r.s }}</span></div>
+</sc-for></div>
+</div></main></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { v: 'after' };
+  renderVals() {
+    const after = this.state.v === 'after';
+    const c = after
+      ? { bg:'#f3f2ea', side:'#ffffff', card:'#ffffff', ink:'#181818', muted:'#55564d', border:'#d9d7c8', borderStrong:'#a9a794', primary:'#176433', primaryFg:'#ffffff', accent:'#9abd53', accentFg:'#181818', tint:'#e3efc9', tintFg:'#124d27', tintBorder:'#b9d488' }
+      : { bg:'#f7f7f7', side:'#f5f5f5', card:'#fcfcfc', ink:'#171717', muted:'#737373', border:'#e5e5e5', borderStrong:'#e2e2e2', primary:'#171717', primaryFg:'#fafafa', accent:'#f2f2f2', accentFg:'#171717', tint:'#f2f2f2', tintFg:'#737373', tintBorder:'#e5e5e5' };
+    const names = ['Overview','Loans','Loan Security','Loan requests','Settings'];
+    const nav = names.map((t,i) => i === 0
+      ? { t, bg: c.accent, fg: c.accentFg, w: 600 }
+      : { t, bg: 'transparent', fg: c.ink, w: 500 });
+    const on = '#181818', off = '#3a3a3a';
+    return {
+      c, nav,
+      details: [['Member name','Maria Santos'],['Username','msantos'],['Email','maria@example.ph'],['Phone','0917 555 0142'],['Account No','00214'],['Created','Jan 12, 2024']].map(([k,v]) => ({k,v})),
+      rows: [['Loan payment posted','Sep 26, 2026 · Ref 88214','Posted'],['Loan request updated','Sep 20, 2026 · Ref 88101','Approved'],['Security deposit','Sep 02, 2026 · Ref 87960','Posted']].map(([t,d,s]) => ({t,d,s})),
+      setBefore: () => this.setState({ v:'before' }),
+      setAfter: () => this.setState({ v:'after' }),
+      bBg: after ? '#3a3a3a' : '#fff', bFg: after ? '#fff' : '#181818',
+      aBg: after ? '#9abd53' : '#3a3a3a', aFg: after ? '#181818' : '#fff'
+    };
+  }
+}
+</script>
+</body>
+</html>

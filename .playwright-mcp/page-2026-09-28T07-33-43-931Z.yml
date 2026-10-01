@@ -1,0 +1,16 @@
+- generic [ref=f1e2]:
+  - generic [ref=f1e3]:
+    - paragraph [ref=f1e4]: Requested amount
+    - paragraph [ref=f1e5]: PHP 100,000.00
+  - generic [ref=f1e6]:
+    - paragraph [ref=f1e7]: Loan type
+    - paragraph [ref=f1e8]: Micro Business Loan
+  - generic [ref=f1e9]:
+    - paragraph [ref=f1e10]: Requested term
+    - paragraph [ref=f1e11]: 1 months
+  - generic [ref=f1e12]:
+    - paragraph [ref=f1e13]: Availment status
+    - paragraph [ref=f1e14]: Re-Loan
+  - generic [ref=f1e15]:
+    - paragraph [ref=f1e16]: Loan purpose
+    - paragraph [ref=f1e17]: Additional Capital

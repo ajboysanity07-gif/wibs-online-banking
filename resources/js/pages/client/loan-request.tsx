@@ -1,44 +1,73 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
-import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
+import { CoMakerSheet } from '@/components/loan-request/co-maker-sheet';
+import { LoanApplicationCalculator } from '@/components/loan-request/loan-application-calculator';
+import {
+    LoanEstimateBreakdown,
+    LoanEstimateFigures,
+    LoanEstimateWarnings,
+    loanEstimateNote,
+    loanEstimateWarnings,
+} from '@/components/loan-request/loan-application-estimate';
+import {
+    LoanApplicationOverview,
+    SectionStatusBadge,
+} from '@/components/loan-request/loan-application-overview';
+import { LoanApplicationProgress } from '@/components/loan-request/loan-application-progress';
 import { LoanRequestCheckRow } from '@/components/loan-request/loan-request-check-row';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
-import { GROUP_META } from '@/components/loan-request/loan-request-step-indicator';
-import { LoanRequestStepper } from '@/components/loan-request/loan-request-stepper';
 import {
     LoanRequestApplicantPersonalStep,
     LoanRequestApplicantWorkStep,
-    LoanRequestCoMakerStep,
     LoanRequestDataSectionStep,
     LoanRequestLoanDetailsStep,
     LoanRequestReviewStep,
 } from '@/components/loan-request/loan-request-steps';
-import {
-    LoanRequestSummaryBar,
-    LoanRequestSummaryPanel,
-} from '@/components/loan-request/loan-request-summary-panel';
-import { LoanRequestWizardActions } from '@/components/loan-request/loan-request-wizard-footer';
 import { LoanRequestWizardHeader } from '@/components/loan-request/loan-request-wizard-header';
-import {
-    buildStepIndex,
-    getVisibleWizardSteps,
-} from '@/components/loan-request/loan-request-wizard-steps';
 import {
     closeInlineRows,
     InlineEditProvider,
 } from '@/components/settings/inline-edit-row';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { focusField } from '@/components/ui/form-error-summary';
+import { useLoanEstimate } from '@/hooks/loan-request/use-loan-estimate';
+import { useIsMobile } from '@/hooks/use-mobile';
 import client from '@/lib/api/client';
-import { formatDateTime, toDateInputValue } from '@/lib/formatters';
+import {
+    formatCurrency,
+    formatDateTime,
+    toDateInputValue,
+} from '@/lib/formatters';
+import {
+    APPLICATION_SECTIONS,
+    deriveSectionStatus,
+    nextIncompleteSection,
+    SECTION_LABELS,
+    sectionForErrorKey,
+    type ApplicationSection,
+    type SectionStatus,
+} from '@/lib/loan-application-flow';
 import { getStepMissingFields } from '@/lib/loan-request-step-validation';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
 import { edit as editProfile } from '@/routes/profile';
 import type {
     AutoFilledDeclarations,
+    LoanEstimateLimits,
     LoanRequestDataSectionDefinitions,
     LoanRequestDataSections,
     LoanRequestDataSectionValues,
@@ -49,16 +78,11 @@ import type {
     LoanRequestPersonFormData,
     LoanRequestReadOnlyMap,
     LoanTypeOption,
+    LoanWizardConfirmation,
     SavedCoMakerOption,
 } from '@/types/loan-requests';
 
 const loanRequestsIndexHref = loanRequestsIndex().url;
-
-/**
- * No wizard steps are currently skipped. Kept as infrastructure in case a
- * future step needs conditional skipping again.
- */
-const EMPTY_SKIPPED_STEP_IDS: ReadonlySet<string> = new Set();
 
 type Props = {
     loanTypes: LoanTypeOption[];
@@ -71,8 +95,8 @@ type Props = {
     dataSections: LoanRequestDataSections;
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
     draft: LoanRequestDraft | null;
-    initialStep: number;
-    initialStepId?: string | null;
+    wizardConfirmations: LoanWizardConfirmation[];
+    estimateLimits: LoanEstimateLimits;
     autoFilledDeclarations: AutoFilledDeclarations;
     bankingPrefilledFromProfile: boolean;
     applicantPrefilledFromProfile: boolean;
@@ -90,58 +114,33 @@ type LoanDetailField =
     | 'requested_payment_frequency'
     | 'kind_of_loan';
 
-const applicantBasicFields = new Set([
-    'first_name',
-    'last_name',
-    'middle_name',
-    'nickname',
-    'birthdate',
-    'birthplace_city',
-    'birthplace_province',
-    'sex',
-]);
+type CoMakerSlot = 'co_maker_1' | 'co_maker_2';
 
-const applicantContactFields = new Set([
-    'address1',
-    'address2',
-    'address3',
-    'length_of_stay',
-    'housing_status',
-    'cell_no',
-]);
+/** calc -> hub (overview) -> a section -> review. */
+type View = 'calc' | 'hub' | ApplicationSection | 'review';
 
-const applicantFamilyFields = new Set([
-    'civil_status',
-    'educational_attainment',
-    'number_of_children',
-    'spouse_name',
-    'spouse_birthdate',
-    'spouse_cell_no',
-]);
+/**
+ * Where a section was opened from: `flow` = guided first pass (progress bar,
+ * "Save and continue"), otherwise save returns to that screen.
+ */
+type Origin = 'flow' | 'hub' | 'review';
 
-const personWorkFields = new Set([
-    'employment_type',
-    'employer_business_name',
-    'employer_business_address1',
-    'employer_business_address2',
-    'employer_business_address3',
-    'telephone_no',
-    'current_position',
-    'nature_of_business',
-    'years_in_work_business',
-    'employer_date_employed',
-    'gross_monthly_income',
-    'payday',
-]);
+const SECTION_DESCRIPTIONS: Record<ApplicationSection, string> = {
+    loan: 'Choose the amount, term and purpose. Your estimate updates as you type.',
+    about: 'Pre-filled from your member profile. Check each group, then confirm.',
+    co: 'Your loan needs two co-makers. They sign the documents with you at release.',
+    disb: 'How you receive the loan and how you pay it back.',
+    decl: 'Read and accept each statement before you submit.',
+};
 
-const applicantEmploymentFields = new Set([
-    'employment_type',
-    'employer_business_name',
-    'employer_business_address1',
-    'employer_business_address2',
-    'employer_business_address3',
-]);
-
+const CO_MAKER_STEP_IDS = [
+    'co-maker-1-basic',
+    'co-maker-1-contact',
+    'co-maker-1-employment',
+    'co-maker-2-basic',
+    'co-maker-2-contact',
+    'co-maker-2-employment',
+];
 const toStringValue = (
     value?: string | number | null,
     options?: { emptyIfZero?: boolean },
@@ -256,107 +255,6 @@ const toPersonForm = (
         payday: person.payday ?? '',
     };
 };
-
-type ApplicantConfirmSectionKey = 'basic' | 'contact' | 'family' | 'income';
-
-// Classifies an `applicant.*` field into the confirm-step section it belongs
-// to, shared between error-to-step routing and the auto-unlock-on-error
-// logic (a validation error on a hidden/locked field must both navigate to
-// its step AND unlock that section so the field is actually visible).
-const classifyApplicantField = (field: string): ApplicantConfirmSectionKey => {
-    if (applicantBasicFields.has(field)) return 'basic';
-    if (applicantContactFields.has(field)) return 'contact';
-    if (applicantFamilyFields.has(field)) return 'family';
-    if (applicantEmploymentFields.has(field)) return 'income';
-    if (personWorkFields.has(field)) return 'income';
-    return 'basic';
-};
-
-const resolveStepForErrorKey = (
-    key: string,
-    stepIndex: Record<string, number>,
-): number | null => {
-    if (
-        key === 'typecode' ||
-        key === 'requested_amount' ||
-        key === 'requested_term' ||
-        key === 'loan_purpose' ||
-        key === 'other_loan_type_name' ||
-        key === 'availment_status'
-    ) {
-        return stepIndex['loan-details'];
-    }
-
-    if (key.startsWith('applicant.')) {
-        const field = key.replace('applicant.', '');
-        const section = classifyApplicantField(field);
-        const stepId =
-            section === 'basic'
-                ? 'personal-basic'
-                : section === 'contact'
-                  ? 'personal-contact'
-                  : section === 'family'
-                    ? 'personal-family'
-                    : 'work-employment';
-
-        // personal-contact/personal-family are absent from stepIndex when
-        // collapsed into the "Confirm your details" step, and work-income is
-        // always absent (collapsed into work-employment) -- fall back to
-        // wherever that content actually lives now.
-        return (
-            stepIndex[stepId] ??
-            stepIndex['personal-basic'] ??
-            stepIndex['work-employment']
-        );
-    }
-
-    if (key.startsWith('co_maker_1.')) {
-        const field = key.replace('co_maker_1.', '');
-        return applicantBasicFields.has(field)
-            ? stepIndex['co-maker-1-basic']
-            : applicantContactFields.has(field) ||
-                field === 'educational_attainment'
-              ? stepIndex['co-maker-1-contact']
-              : stepIndex['co-maker-1-employment'];
-    }
-
-    if (key.startsWith('co_maker_2.')) {
-        const field = key.replace('co_maker_2.', '');
-        return applicantBasicFields.has(field)
-            ? stepIndex['co-maker-2-basic']
-            : applicantContactFields.has(field) ||
-                field === 'educational_attainment'
-              ? stepIndex['co-maker-2-contact']
-              : stepIndex['co-maker-2-employment'];
-    }
-
-    if (key.startsWith('banking.')) {
-        return stepIndex['banking'];
-    }
-
-    if (key.startsWith('declarations.')) {
-        return stepIndex['declarations'];
-    }
-
-    if (key === 'undertaking_accepted') {
-        return stepIndex['review'];
-    }
-
-    return null;
-};
-
-const resolveStepFromErrors = (
-    errors: Record<string, string | undefined>,
-    stepIndex: Record<string, number>,
-): number | null => {
-    const stepMatches = Object.keys(errors)
-        .filter((key) => Boolean(errors[key]))
-        .map((key) => resolveStepForErrorKey(key, stepIndex))
-        .filter((step): step is number => step !== null);
-
-    return stepMatches.length > 0 ? Math.min(...stepMatches) : null;
-};
-
 /** Preselects the loan type linked from the welcome page (?typecode=). */
 function queryTypecode(loanTypes: LoanTypeOption[]): string | undefined {
     if (typeof window === 'undefined') {
@@ -367,7 +265,6 @@ function queryTypecode(loanTypes: LoanTypeOption[]): string | undefined {
 
     return loanTypes.find((type) => type.typecode === value)?.typecode;
 }
-
 export default function LoanRequestPage({
     loanTypes,
     applicant,
@@ -379,61 +276,50 @@ export default function LoanRequestPage({
     dataSections,
     dataSectionDefinitions,
     draft,
-    initialStep,
-    initialStepId = null,
+    wizardConfirmations,
+    estimateLimits,
     autoFilledDeclarations,
     bankingPrefilledFromProfile,
     applicantPrefilledFromProfile,
     applicantWorkIncomePrefilledFromProfile,
     missingIdentityPrerequisites,
 }: Props) {
-    const steps = useMemo(() => getVisibleWizardSteps(), []);
-    const STEP_INDEX = useMemo(() => buildStepIndex(steps), [steps]);
-
-    // Resume on the step the member last worked on. The id survives step
-    // list changes; a legacy draft only has an index, which may be past the
-    // end of today's list.
-    const savedStepIndex = initialStepId
-        ? steps.findIndex((step) => step.id === initialStepId)
-        : -1;
-    const clampedStep = Math.min(initialStep, steps.length - 1);
-    const startStep = savedStepIndex >= 0 ? savedStepIndex : clampedStep;
-    const [currentStep, setCurrentStep] = useState(startStep);
-    const [highestStepReached, setHighestStepReached] = useState(
-        Math.max(startStep, clampedStep),
+    const isPhone = useIsMobile(640);
+    // A returning applicant (saved draft) lands on the overview; a first-time
+    // applicant starts at the calculator.
+    const [view, setView] = useState<View>(draft ? 'hub' : 'calc');
+    const [origin, setOrigin] = useState<Origin | null>(null);
+    // Mobile only: Loan details is split into amount & term, then purpose.
+    const [loanPart, setLoanPart] = useState<0 | 1>(0);
+    const [coMakerSlot, setCoMakerSlot] = useState<CoMakerSlot | null>(null);
+    const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
+    const [confirmations, setConfirmations] = useState(
+        () => new Set<LoanWizardConfirmation>(wizardConfirmations),
     );
-    const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>(
-        'forward',
-    );
-    const [bankAccountConfirmed, setBankAccountConfirmed] = useState(
-        !bankingPrefilledFromProfile,
-    );
-    const [applicantPersonalConfirmed, setApplicantPersonalConfirmed] =
-        useState(!applicantPrefilledFromProfile);
-    const [applicantWorkIncomeConfirmed, setApplicantWorkIncomeConfirmed] =
-        useState(!applicantWorkIncomePrefilledFromProfile);
     const [updateProfile, setUpdateProfile] = useState(true);
     const [activeAction, setActiveAction] = useState<'draft' | 'submit' | null>(
         null,
     );
-    const [, setLastAction] = useState<'draft' | 'submit' | null>(null);
     const [draftState, setDraftState] = useState<LoanRequestDraft | null>(
         draft,
     );
     const [savedCoMakers, setSavedCoMakers] =
         useState<SavedCoMakerOption[]>(initialSavedCoMakers);
-    const [savingCoMakerSlot, setSavingCoMakerSlot] = useState<
-        'co_maker_1' | 'co_maker_2' | null
-    >(null);
+    const [isSavingCoMakerForReuse, setIsSavingCoMakerForReuse] =
+        useState(false);
+    const [isDiscardingDraft, setIsDiscardingDraft] = useState(false);
 
-    const initialFormData: LoanRequestFormData = {
+    const form = useForm<LoanRequestFormData>({
         typecode:
             draft?.typecode ??
             queryTypecode(loanTypes) ??
             loanTypes[0]?.typecode ??
             '',
         requested_amount: toStringValue(draft?.requested_amount),
-        requested_term: toStringValue(draft?.requested_term),
+        // Calculator starting point only; nothing is saved until "Apply".
+        requested_term:
+            toStringValue(draft?.requested_term) ||
+            String(Math.min(12, estimateLimits.maxTermMonths)),
         loan_purpose: draft?.loan_purpose ?? '',
         other_loan_type_name: draft?.other_loan_type_name ?? '',
         availment_status: draft?.availment_status ?? '',
@@ -443,397 +329,246 @@ export default function LoanRequestPage({
         applicant: toPersonForm(applicant),
         co_maker_1: toPersonForm(coMakerOne),
         co_maker_2: toPersonForm(coMakerTwo),
-        insurance: {
-            ...dataSections.insurance,
-        },
-        banking: {
-            ...dataSections.banking,
-        },
+        insurance: { ...dataSections.insurance },
+        banking: { ...dataSections.banking },
         declarations: {
             ...dataSections.declarations,
             ...autoFilledDeclarations,
         },
-        dependents: {
-            ...dataSections.dependents,
-        },
-    };
-
-    const form = useForm<LoanRequestFormData>(initialFormData);
+        dependents: { ...dataSections.dependents },
+    });
     // Applicant values as last saved to the draft -- "Cancel" on an About you
     // row restores them.
     const savedApplicantRef = useRef(form.data.applicant);
-    const isFirstStep = currentStep === 0;
-    const isLastStep = currentStep === steps.length - 1;
-    const isReviewStep = isLastStep;
     const isSavingDraft = activeAction === 'draft';
     const isSubmitting = form.processing && activeAction === 'submit';
-    const hasLoanTypes = loanTypes.length > 0;
-
-    const skippedStepIds = EMPTY_SKIPPED_STEP_IDS;
-
-    const isBankingComplete = useMemo(() => {
-        const banking = form.data.banking;
-        const releaseMethod = banking.release_method;
-        const paymentOption = banking.payment_option;
-
-        if (!releaseMethod || !paymentOption) {
-            return false;
-        }
-
-        if (
-            (releaseMethod === 'ATM' || releaseMethod === 'Bank Transfer') &&
-            !banking.release_saved_account_id
-        ) {
-            return false;
-        }
-
-        if (
-            (paymentOption === 'ATM Deduction' ||
-                paymentOption === 'Bank Transfer') &&
-            !banking.payment_saved_account_id
-        ) {
-            return false;
-        }
-
-        return true;
-    }, [form.data.banking]);
-
-    const isApplicantPersonalComplete = useMemo(() => {
-        if (!applicantPrefilledFromProfile) return true;
-        return applicantPersonalConfirmed;
-    }, [applicantPrefilledFromProfile, applicantPersonalConfirmed]);
-
-    const isApplicantWorkIncomeComplete = useMemo(() => {
-        if (!applicantWorkIncomePrefilledFromProfile) return true;
-        return applicantWorkIncomeConfirmed;
-    }, [applicantWorkIncomePrefilledFromProfile, applicantWorkIncomeConfirmed]);
-
-    const isDeclarationsComplete = useMemo(() => {
-        const declarations = form.data.declarations;
-        return (
-            declarations.declaration_truth_confirmation === true &&
-            declarations.declaration_data_privacy_consent === true
-        );
-    }, [form.data.declarations]);
+    const hasSavedDraft = draftState?.status === 'draft';
 
     useEffect(() => {
         setDraftState(draft);
     }, [draft]);
 
-    // If the member skips insurance/health after already having navigated
-    // into that group (or a restored draft lands there), jump forward past
-    // it so a skipped step is never left showing.
-    useEffect(() => {
-        if (!skippedStepIds.has(steps[currentStep]?.id)) {
-            return;
-        }
+    const { estimate, isLoading: isEstimating } = useLoanEstimate({
+        amount: form.data.requested_amount,
+        term: form.data.requested_term,
+        maxTerm: estimateLimits.maxTermMonths,
+        typecode: form.data.typecode,
+        paymentFrequency:
+            form.data.requested_payment_frequency || form.data.applicant.payday,
+        applicantBirthdate: form.data.applicant.birthdate || null,
+    });
+    const estimateWarnings = loanEstimateWarnings({
+        amount: form.data.requested_amount,
+        term: form.data.requested_term,
+        maxTerm: estimateLimits.maxTermMonths,
+        grossMonthlyIncome: form.data.applicant.gross_monthly_income,
+        estimate,
+    });
 
-        let adjusted = currentStep;
-        while (
-            adjusted < steps.length - 1 &&
-            skippedStepIds.has(steps[adjusted].id)
-        ) {
-            adjusted += 1;
-        }
+    // --- Section status, derived from the (saved) form data -------------
 
-        if (adjusted !== currentStep) {
-            setCurrentStep(adjusted);
-        }
-    }, [skippedStepIds, currentStep, steps]);
+    const validationContext = {
+        applicantPrefilledFromProfile,
+        applicantWorkIncomePrefilledFromProfile,
+    };
+    const missingFor = (stepId: string) =>
+        getStepMissingFields(stepId, form.data, validationContext);
+    const isConfirmed = (key: LoanWizardConfirmation, prefilled: boolean) =>
+        !prefilled || confirmations.has(key);
+    const personalConfirmed = isConfirmed(
+        'applicant_personal',
+        applicantPrefilledFromProfile,
+    );
+    const workIncomeConfirmed = isConfirmed(
+        'applicant_work_income',
+        applicantWorkIncomePrefilledFromProfile,
+    );
+    const needsBankConfirmation =
+        bankingPrefilledFromProfile &&
+        (form.data.banking.release_method === 'Bank Transfer' ||
+            form.data.banking.release_method === 'ATM');
+    const bankConfirmed =
+        !needsBankConfirmation || confirmations.has('bank_account');
+    const banking = form.data.banking;
+    const isBankingComplete =
+        Boolean(banking.release_method && banking.payment_option) &&
+        !(
+            (banking.release_method === 'ATM' ||
+                banking.release_method === 'Bank Transfer') &&
+            !banking.release_saved_account_id
+        ) &&
+        !(
+            (banking.payment_option === 'ATM Deduction' ||
+                banking.payment_option === 'Bank Transfer') &&
+            !banking.payment_saved_account_id
+        );
+    const declarations = form.data.declarations;
+    const coMakerMissing = (slot: CoMakerSlot) =>
+        CO_MAKER_STEP_IDS.filter((id) =>
+            id.startsWith(slot === 'co_maker_1' ? 'co-maker-1' : 'co-maker-2'),
+        ).flatMap(missingFor);
+    const hasCoMaker = (slot: CoMakerSlot) =>
+        form.data[slot].first_name.trim() !== '' ||
+        form.data[slot].last_name.trim() !== '';
 
-    const handleStepChange = (step: number) => {
-        if (step === currentStep) {
-            return;
-        }
+    // What still blocks each section; [] = done.
+    const blockers: Record<ApplicationSection, string[]> = {
+        loan: missingFor('loan-details'),
+        about: [
+            ...missingFor('personal-basic'),
+            ...(personalConfirmed
+                ? []
+                : ['Confirmation that your details are correct']),
+            ...(workIncomeConfirmed
+                ? []
+                : ['Confirmation of your work & income details']),
+            ...(missingIdentityPrerequisites.length > 0
+                ? [
+                      'Profile details: ' +
+                          missingIdentityPrerequisites.join(', '),
+                  ]
+                : []),
+        ],
+        co: [
+            ...(hasCoMaker('co_maker_1')
+                ? coMakerMissing('co_maker_1').map((f) => `Co-maker 1: ${f}`)
+                : ['Co-maker 1']),
+            ...(hasCoMaker('co_maker_2')
+                ? coMakerMissing('co_maker_2').map((f) => `Co-maker 2: ${f}`)
+                : ['Co-maker 2']),
+        ],
+        disb: [
+            ...(isBankingComplete
+                ? []
+                : ['Release method, payment option, and saved accounts']),
+            ...(bankConfirmed ? [] : ['Confirmation of your bank details']),
+        ],
+        decl: [
+            ...(declarations.declaration_truth_confirmation === true
+                ? []
+                : ['Truthfulness declaration']),
+            ...(declarations.declaration_data_privacy_consent === true
+                ? []
+                : ['Data privacy consent']),
+        ],
+    };
+    const started: Record<ApplicationSection, boolean> = {
+        loan: Boolean(
+            draftState &&
+            (form.data.requested_amount || form.data.loan_purpose),
+        ),
+        about:
+            confirmations.has('applicant_personal') ||
+            confirmations.has('applicant_work_income') ||
+            (!applicantPrefilledFromProfile &&
+                form.data.applicant.first_name !== ''),
+        co: hasCoMaker('co_maker_1') || hasCoMaker('co_maker_2'),
+        disb: Boolean(banking.release_method || banking.payment_option),
+        decl:
+            declarations.declaration_truth_confirmation === true ||
+            declarations.declaration_data_privacy_consent === true,
+    };
+    const errorKeys = Object.keys(form.errors).filter((key) =>
+        Boolean(form.errors[key as keyof typeof form.errors]),
+    );
+    const statuses = Object.fromEntries(
+        APPLICATION_SECTIONS.map((section) => [
+            section,
+            deriveSectionStatus({
+                complete: blockers[section].length === 0,
+                started: started[section],
+                hasErrors:
+                    errorKeys.some(
+                        (key) => sectionForErrorKey(key) === section,
+                    ) ||
+                    (section === 'about' &&
+                        missingIdentityPrerequisites.length > 0),
+            }),
+        ]),
+    ) as Record<ApplicationSection, SectionStatus>;
+    const allDone = nextIncompleteSection(statuses) === null;
 
-        setStepDirection(step > currentStep ? 'forward' : 'backward');
-        setCurrentStep(step);
+    const loanTypeLabel =
+        loanTypes.find((type) => type.typecode === form.data.typecode)?.label ??
+        'Loan';
+    const coMakerName = (slot: CoMakerSlot) =>
+        [form.data[slot].first_name, form.data[slot].last_name]
+            .filter(Boolean)
+            .join(' ');
+    const coMakerNames = (['co_maker_1', 'co_maker_2'] as const)
+        .filter(hasCoMaker)
+        .map(coMakerName);
+    const summaries: Record<ApplicationSection, string> = {
+        loan:
+            statuses.loan === 'done'
+                ? `${formatCurrency(Number(form.data.requested_amount))} · ${form.data.requested_term} months · ${form.data.loan_purpose}`
+                : 'Amount, term and purpose',
+        about: `${member.name}${statuses.about === 'done' ? ' · details confirmed' : ' · confirm your details'}`,
+        co:
+            coMakerNames.length > 0
+                ? coMakerNames.join(', ') +
+                  (coMakerNames.length < 2 ? ' · 1 more needed' : '')
+                : 'Add 2 co-makers',
+        disb:
+            banking.release_method || banking.payment_option
+                ? [banking.release_method, banking.payment_option]
+                      .filter(Boolean)
+                      .join(' · ')
+                : 'How you receive and repay',
+        decl:
+            statuses.decl === 'done'
+                ? 'All statements accepted'
+                : 'Truthfulness and data privacy',
     };
 
-    // The review step lists errors from every step at once, so clicking one
-    // may need to jump to a different step before the erroring field exists
-    // in the DOM to focus. The animated step transition mounts the target
-    // step's content as soon as `currentStep` changes, so a short delay
-    // after navigating is enough for the field to be focusable.
-    const handleErrorClick = (key: string) => {
-        const step = resolveStepForErrorKey(key, STEP_INDEX);
+    // --- Navigation ------------------------------------------------------
 
-        if (step === null || step === currentStep) {
-            focusField(key);
-            return;
+    const go = (next: View, from: Origin | null = null) => {
+        setView(next);
+        setOrigin(from);
+        setLoanPart(0);
+        window.scrollTo(0, 0);
+    };
+
+    const handleErrorClick = (key: string) => {
+        const section = sectionForErrorKey(key);
+
+        if (section !== null && section !== view) {
+            go(section, 'review');
         }
 
-        handleStepChange(step);
         window.setTimeout(() => focusField(key), 250);
     };
 
-    const currentStepMissingFields = useMemo(
-        () =>
-            getStepMissingFields(steps[currentStep]?.id, form.data, {
-                applicantPrefilledFromProfile,
-                applicantWorkIncomePrefilledFromProfile,
-            }),
-        [
-            steps,
-            currentStep,
-            form.data,
-            applicantPrefilledFromProfile,
-            applicantWorkIncomePrefilledFromProfile,
-        ],
-    );
+    // --- Persistence -----------------------------------------------------
 
-    // Everything that must be satisfied before leaving the current step:
-    // missing required fields plus the "confirm pre-filled data" checkboxes
-    // and completeness flags. Drives the footer alert, the Next button, and
-    // the sidebar step navigation so none of them can bypass a gate.
-    const currentStepId = steps[currentStep]?.id;
-    const currentStepBlockers = [...currentStepMissingFields];
-
-    if (
-        currentStepId === 'personal-basic' &&
-        applicantPrefilledFromProfile &&
-        !applicantPersonalConfirmed
-    ) {
-        currentStepBlockers.push('Confirmation that your details are correct');
-    }
-
-    if (
-        currentStepId === 'personal-basic' &&
-        applicantWorkIncomePrefilledFromProfile &&
-        !applicantWorkIncomeConfirmed
-    ) {
-        currentStepBlockers.push('Confirmation of your work & income details');
-    }
-
-    if (currentStepId === 'banking') {
-        if (!isBankingComplete) {
-            currentStepBlockers.push(
-                'Release method, payment option, and saved accounts',
-            );
-        }
-
-        if (
-            bankingPrefilledFromProfile &&
-            (form.data.banking.release_method === 'Bank Transfer' ||
-                form.data.banking.release_method === 'ATM') &&
-            !bankAccountConfirmed
-        ) {
-            currentStepBlockers.push('Confirmation of your bank details');
-        }
-    }
-
-    if (currentStepId === 'declarations') {
-        if (form.data.declarations.declaration_truth_confirmation !== true) {
-            currentStepBlockers.push('Truthfulness declaration');
-        }
-
-        if (form.data.declarations.declaration_data_privacy_consent !== true) {
-            currentStepBlockers.push('Data privacy consent');
-        }
-    }
-
-    // Sidebar clicks: going back is always free; going forward requires the
-    // current step to be clear and the target to be a step already reached
-    // (later steps must be unlocked via Next).
-    const handleSidebarStepClick = (step: number) => {
-        if (
-            step > currentStep &&
-            (currentStepBlockers.length > 0 || step > highestStepReached)
-        ) {
-            return;
-        }
-
-        handleStepChange(step);
-    };
-
-    const handleNextStep = () => {
-        if (currentStep >= steps.length - 1) {
-            return;
-        }
-
-        if (currentStepBlockers.length > 0) {
-            return;
-        }
-
-        let nextStep = currentStep + 1;
-        while (
-            nextStep < steps.length - 1 &&
-            skippedStepIds.has(steps[nextStep].id)
-        ) {
-            nextStep += 1;
-        }
-
-        handleStepChange(nextStep);
-        setHighestStepReached((prev) => Math.max(prev, nextStep));
-    };
-
-    const handlePreviousStep = () => {
-        if (currentStep === 0) {
-            return;
-        }
-
-        let prevStep = currentStep - 1;
-        while (prevStep > 0 && skippedStepIds.has(steps[prevStep].id)) {
-            prevStep -= 1;
-        }
-
-        handleStepChange(prevStep);
-    };
-
-    const handleLoanDetailChange = (field: LoanDetailField, value: string) => {
-        form.setData(field, value);
-    };
-
-    const updatePersonField =
-        (personKey: 'applicant' | 'co_maker_1' | 'co_maker_2') =>
-        (field: keyof LoanRequestPersonFormData, value: string) => {
-            form.setData((previousData) => ({
-                ...previousData,
-                [personKey]: {
-                    ...previousData[personKey],
-                    [field]: value,
-                },
-            }));
-        };
-
-    // Explicit opt-in only: loading a saved co-maker fills the fields as a
-    // starting point (still fully editable), and saving one back for reuse
-    // requires its own separate checkbox -- nothing here is silent. See
-    // SavedCoMakersService.
-    const loadSavedCoMaker =
-        (personKey: 'co_maker_1' | 'co_maker_2') => async (id: number) => {
-            try {
-                const response = await client.get<{
-                    ok: boolean;
-                    data: LoanRequestPersonData & { label: string | null };
-                }>(`/client/co-makers/${id}`);
-                const record = response.data.data;
-
-                form.setData(personKey, {
-                    ...toPersonForm(record),
-                    save_for_reuse: form.data[personKey].save_for_reuse,
-                    saved_co_maker_id: String(id),
-                    saved_co_maker_label: record.label ?? '',
-                });
-            } catch (error) {
-                showErrorToast(error, 'Unable to load that saved co-maker.');
-            }
-        };
-
-    const removeSavedCoMaker = async (id: number) => {
-        try {
-            await client.delete(`/client/co-makers/${id}`);
-            setSavedCoMakers((current) =>
-                current.filter((option) => option.id !== id),
-            );
-        } catch (error) {
-            showErrorToast(error, 'Unable to remove that saved co-maker.');
-        }
-    };
-
-    // Explicit action only: saving a co-maker for reuse is a direct button
-    // press, not a passive checkbox that silently applies at submit time.
-    // The backend matches on normalized name + birthdate/cell number to
-    // avoid forking a duplicate contact when the member re-enters the same
-    // person's details from scratch instead of loading them from the saved
-    // list. See SavedCoMakersService::findDuplicate().
-    const saveCoMakerNow =
-        (personKey: 'co_maker_1' | 'co_maker_2') => async () => {
-            const person = form.data[personKey];
-
-            setSavingCoMakerSlot(personKey);
-
-            try {
-                const response = await client.post<{
-                    ok: boolean;
-                    data: LoanRequestPersonData & {
-                        id: number;
-                        label: string | null;
-                    };
-                    duplicate: boolean;
-                }>('/client/co-makers', {
-                    ...person,
-                    saved_co_maker_id: person.saved_co_maker_id || null,
-                    label: person.saved_co_maker_label || null,
-                });
-                const record = response.data.data;
-                const isDuplicate = response.data.duplicate;
-
-                form.setData(personKey, {
-                    ...person,
-                    saved_co_maker_id: String(record.id),
-                    saved_co_maker_label: record.label ?? '',
-                });
-
-                setSavedCoMakers((current) => {
-                    const option: SavedCoMakerOption = {
-                        id: record.id,
-                        label: record.label ?? '',
-                        last_used_at: new Date().toISOString(),
-                    };
-                    const withoutExisting = current.filter(
-                        (existing) => existing.id !== record.id,
-                    );
-
-                    return [option, ...withoutExisting];
-                });
-
-                showSuccessToast(
-                    isDuplicate
-                        ? "Already saved -- updated this co-maker's details."
-                        : 'Co-maker saved for reuse.',
-                );
-            } catch (error) {
-                showErrorToast(error, 'Unable to save this co-maker.');
-            } finally {
-                setSavingCoMakerSlot(null);
-            }
-        };
-
-    const updateDataSection =
-        (
-            sectionKey: keyof Pick<
-                LoanRequestFormData,
-                'insurance' | 'banking' | 'declarations'
-            >,
-        ) =>
-        (field: string, value: string | number | boolean | null) => {
-            form.setData((current) => ({
-                ...current,
-                [sectionKey]: {
-                    ...(current[sectionKey] as LoanRequestDataSectionValues),
-                    [field]: value,
-                },
-            }));
-        };
-
-    const handleSaveDraft = async (): Promise<boolean> => {
+    const handleSaveDraft = async (
+        extra: Partial<{ confirmations: Set<LoanWizardConfirmation> }> = {},
+    ): Promise<boolean> => {
         setActiveAction('draft');
+        const payload = {
+            ...form.data,
+            wizard_confirmations: [...(extra.confirmations ?? confirmations)],
+        };
 
         try {
             if (!draftState) {
                 const response = await client.patch<LoanRequestDraft>(
                     LoanRequestController.draft().url,
-                    {
-                        ...form.data,
-                        wizard_step: highestStepReached,
-                        wizard_step_id: steps[currentStep]?.id,
-                    },
+                    payload,
                 );
                 setDraftState(response.data);
             } else {
                 await client.patch(
                     LoanRequestController.saveDraft(draftState).url,
-                    {
-                        ...form.data,
-                        wizard_step: highestStepReached,
-                        wizard_step_id: steps[currentStep]?.id,
-                    },
+                    payload,
                 );
+                setDraftState({
+                    ...draftState,
+                    updated_at: new Date().toISOString(),
+                });
             }
             savedApplicantRef.current = form.data.applicant;
-            showSuccessToast('Draft saved.', { id: 'manual-save-draft' });
-            setLastAction('draft');
 
             return true;
         } catch {
@@ -847,52 +582,92 @@ export default function LoanRequestPage({
         }
     };
 
-    const handleSubmit = () => {
-        setActiveAction('submit');
-        form.transform((data) => ({
-            ...data,
-            update_profile: updateProfile,
-        }));
-        form.post(LoanRequestController.store().url, {
-            onSuccess: () => {
-                showSuccessToast('Loan request submitted for review.', {
-                    id: 'loan-request-submit',
-                });
-            },
-            onError: (errors) => {
-                if (errors.loan_prerequisites) {
-                    showErrorToast(
-                        errors.loan_prerequisites,
-                        errors.loan_prerequisites,
-                        {
-                            id: 'loan-request-submit',
-                        },
-                    );
+    const toggleConfirmation =
+        (key: LoanWizardConfirmation) => (checked: boolean) =>
+            setConfirmations((current) => {
+                const next = new Set(current);
 
-                    return;
+                if (checked) {
+                    next.add(key);
+                } else {
+                    next.delete(key);
                 }
 
-                const step = resolveStepFromErrors(errors, STEP_INDEX);
+                return next;
+            });
 
-                if (step !== null) {
-                    handleStepChange(step);
-                }
+    const handleApplyCalculator = async () => {
+        const wasReturning = hasSavedDraft;
 
-                if (Object.keys(errors).length === 0) {
-                    showErrorToast(null, 'Unable to submit the loan request.', {
-                        id: 'loan-request-submit',
-                    });
-                }
-            },
-            onFinish: () => setActiveAction(null),
-        });
+        if (!(await handleSaveDraft())) {
+            return;
+        }
+
+        showSuccessToast('Your terms are in.', { id: 'manual-save-draft' });
+
+        if (wasReturning) {
+            go('hub');
+
+            return;
+        }
+
+        // Guided first pass. Amount & term are set, so on a phone skip
+        // straight to the purpose half of Loan details.
+        go('loan', 'flow');
+        setLoanPart(1);
     };
 
-    const draftUpdatedAt = draftState?.updated_at
-        ? formatDateTime(draftState.updated_at)
-        : null;
+    // "Save and continue" / "Save and return to ...": always saves (an
+    // incomplete section is kept as In progress), then moves on.
+    const handleSaveSection = async () => {
+        if (view === 'calc' || view === 'hub' || view === 'review') {
+            return;
+        }
 
-    const [isDiscardingDraft, setIsDiscardingDraft] = useState(false);
+        if (isPhone && view === 'loan' && loanPart === 0) {
+            setLoanPart(1);
+            window.scrollTo(0, 0);
+
+            return;
+        }
+
+        if (!(await handleSaveDraft())) {
+            return;
+        }
+
+        showSuccessToast(
+            `${SECTION_LABELS[view]} ${blockers[view].length === 0 ? 'saved.' : 'saved as in progress.'}`,
+            { id: 'manual-save-draft' },
+        );
+
+        if (origin === 'review') {
+            go(allDone ? 'review' : 'hub');
+        } else if (origin === 'flow') {
+            const next = nextIncompleteSection(statuses, view);
+
+            go(next ?? 'review', next ? 'flow' : null);
+        } else {
+            go('hub');
+        }
+    };
+
+    const handleSaveAboutYouRow = async () => {
+        if (await handleSaveDraft()) {
+            closeInlineRows();
+        }
+    };
+
+    const handleCancelAboutYouRow = () => {
+        form.setData('applicant', savedApplicantRef.current);
+        closeInlineRows();
+    };
+
+    const handleSaveAndExit = async () => {
+        if (await handleSaveDraft()) {
+            showSuccessToast('Draft saved.', { id: 'manual-save-draft' });
+            router.visit(loanRequestsIndexHref);
+        }
+    };
 
     const handleDiscardDraft = async () => {
         if (!draftState) {
@@ -914,41 +689,210 @@ export default function LoanRequestPage({
         }
     };
 
-    const handleSaveAboutYouRow = async () => {
-        if (await handleSaveDraft()) {
-            closeInlineRows();
-        }
-    };
+    const handleSubmit = () => {
+        setConfirmSubmitOpen(false);
+        setActiveAction('submit');
+        form.transform((data) => ({
+            ...data,
+            update_profile: updateProfile,
+        }));
+        // Success redirects to the request page, which shows the
+        // confirmation (reference number) and then tracks the request.
+        form.post(LoanRequestController.store().url, {
+            onError: (errors) => {
+                if (errors.loan_prerequisites) {
+                    showErrorToast(
+                        errors.loan_prerequisites,
+                        errors.loan_prerequisites,
+                        {
+                            id: 'loan-request-submit',
+                        },
+                    );
 
-    const handleCancelAboutYouRow = () => {
-        const saved = savedApplicantRef.current;
+                    return;
+                }
 
-        (Object.keys(saved) as (keyof typeof saved)[]).forEach((field) => {
-            if (form.data.applicant[field] !== saved[field]) {
-                updatePersonField('applicant')(field, saved[field] as string);
-            }
+                const section = APPLICATION_SECTIONS.find((candidate) =>
+                    Object.keys(errors).some(
+                        (key) => sectionForErrorKey(key) === candidate,
+                    ),
+                );
+
+                if (section) {
+                    go(section, 'review');
+                }
+
+                if (Object.keys(errors).length === 0) {
+                    showErrorToast(null, 'Unable to submit the loan request.', {
+                        id: 'loan-request-submit',
+                    });
+                }
+            },
+            onFinish: () => setActiveAction(null),
         });
-        closeInlineRows();
     };
 
-    const handleSaveAndExit = async () => {
-        if (await handleSaveDraft()) {
-            router.visit(loanRequestsIndexHref);
+    // --- Form field handlers ---------------------------------------------
+
+    const handleLoanDetailChange = (field: LoanDetailField, value: string) => {
+        form.setData(field, value);
+    };
+
+    const updateApplicantField = (
+        field: keyof LoanRequestPersonFormData,
+        value: string,
+    ) =>
+        form.setData((previous) => ({
+            ...previous,
+            applicant: { ...previous.applicant, [field]: value },
+        }));
+
+    const updateDataSection =
+        (sectionKey: 'banking' | 'declarations') =>
+        (field: string, value: string | number | boolean | null) => {
+            form.setData((current) => ({
+                ...current,
+                [sectionKey]: {
+                    ...(current[sectionKey] as LoanRequestDataSectionValues),
+                    [field]: value,
+                },
+            }));
+        };
+
+    // Explicit opt-in only: loading a saved co-maker fills the fields as a
+    // starting point, and saving one for reuse is its own button press. See
+    // SavedCoMakersService.
+    const loadSavedCoMaker = async (
+        id: number,
+    ): Promise<LoanRequestPersonFormData | null> => {
+        try {
+            const response = await client.get<{
+                ok: boolean;
+                data: LoanRequestPersonData & { label: string | null };
+            }>(`/client/co-makers/${id}`);
+            const record = response.data.data;
+
+            return {
+                ...toPersonForm(record),
+                saved_co_maker_id: String(id),
+                saved_co_maker_label: record.label ?? '',
+            };
+        } catch (error) {
+            showErrorToast(error, 'Unable to load that saved co-maker.');
+
+            return null;
         }
     };
 
-    const currentStepMeta = steps[currentStep];
-    const groupSteps = steps.filter(
-        (step) => step.group === currentStepMeta.group,
+    const removeSavedCoMaker = async (id: number) => {
+        try {
+            await client.delete(`/client/co-makers/${id}`);
+            setSavedCoMakers((current) =>
+                current.filter((option) => option.id !== id),
+            );
+        } catch (error) {
+            showErrorToast(error, 'Unable to remove that saved co-maker.');
+        }
+    };
+
+    // The backend dedupes on normalized name + birthdate/cell number. See
+    // SavedCoMakersService::findDuplicate().
+    const saveCoMakerForReuse = async (person: LoanRequestPersonFormData) => {
+        setIsSavingCoMakerForReuse(true);
+
+        try {
+            const response = await client.post<{
+                ok: boolean;
+                data: LoanRequestPersonData & {
+                    id: number;
+                    label: string | null;
+                };
+                duplicate: boolean;
+            }>('/client/co-makers', {
+                ...person,
+                saved_co_maker_id: person.saved_co_maker_id || null,
+                label: person.saved_co_maker_label || null,
+            });
+            const record = response.data.data;
+
+            setSavedCoMakers((current) => [
+                {
+                    id: record.id,
+                    label: record.label ?? '',
+                    last_used_at: new Date().toISOString(),
+                },
+                ...current.filter((existing) => existing.id !== record.id),
+            ]);
+            showSuccessToast(
+                response.data.duplicate
+                    ? "Already saved -- updated this co-maker's details."
+                    : 'Co-maker saved for reuse.',
+            );
+        } catch (error) {
+            showErrorToast(error, 'Unable to save this co-maker.');
+        } finally {
+            setIsSavingCoMakerForReuse(false);
+        }
+    };
+
+    const saveCoMaker = (
+        slot: CoMakerSlot,
+        person: LoanRequestPersonFormData,
+    ) => {
+        form.setData(slot, person);
+        setCoMakerSlot(null);
+    };
+
+    const removeCoMaker = (slot: CoMakerSlot) =>
+        form.setData(slot, toPersonForm(null));
+
+    // --- Render ----------------------------------------------------------
+
+    const draftUpdatedAt = draftState?.updated_at
+        ? formatDateTime(draftState.updated_at)
+        : null;
+    const estimateNote = loanEstimateNote(estimateLimits);
+    const isSection = view !== 'calc' && view !== 'hub' && view !== 'review';
+    const loanSplit = isPhone && view === 'loan';
+    const showProgress = isSection && origin === 'flow';
+    const sectionIndex = isSection ? APPLICATION_SECTIONS.indexOf(view) : -1;
+    const currentBlockers = isSection ? blockers[view] : [];
+    const nextInFlow = isSection ? nextIncompleteSection(statuses, view) : null;
+    const primaryLabel =
+        loanSplit && loanPart === 0
+            ? 'Next: purpose'
+            : origin === 'review'
+              ? 'Save and return to review'
+              : origin === 'flow'
+                ? nextInFlow === null
+                    ? 'Save and check answers'
+                    : 'Save and continue'
+                : 'Save and return to overview';
+    const barNote =
+        loanSplit && loanPart === 0
+            ? ''
+            : currentBlockers.length > 0
+              ? `Still needed: ${currentBlockers.join(', ')}`
+              : origin === 'flow' && nextInFlow !== null
+                ? `Next: ${SECTION_LABELS[nextInFlow]}`
+                : '';
+    const estimateCard = (
+        <section className="space-y-3 rounded-xl border border-border bg-card p-5 shadow-card">
+            <div className="flex items-center justify-between gap-2">
+                <h3 className="text-base font-bold">Your estimate</h3>
+                <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-secondary-foreground">
+                    Updates as you type
+                </span>
+            </div>
+            <LoanEstimateFigures estimate={estimate} isLoading={isEstimating} />
+            <LoanEstimateBreakdown
+                amount={Number(form.data.requested_amount) || 0}
+                estimate={estimate}
+            />
+            <LoanEstimateWarnings warnings={estimateWarnings} />
+            <p className="text-xs text-muted-foreground">{estimateNote}</p>
+        </section>
     );
-    const groupLabel =
-        GROUP_META[currentStepMeta.group as keyof typeof GROUP_META]?.label ??
-        currentStepMeta.title;
-    const eyebrow =
-        groupSteps.length > 1
-            ? `${groupLabel} · Part ${groupSteps.indexOf(currentStepMeta) + 1} of ${groupSteps.length}`
-            : groupLabel;
-    const hasSavedDraft = draftState?.status === 'draft';
 
     return (
         <div className="flex min-h-svh flex-col bg-background text-foreground">
@@ -964,436 +908,532 @@ export default function LoanRequestPage({
                 onSaveAndExit={handleSaveAndExit}
                 onDiscard={handleDiscardDraft}
             />
-            <div className="border-b border-border bg-card">
-                <div className="mx-auto w-full max-w-[1040px] px-4 py-4 md:px-7 md:py-5">
-                    <LoanRequestStepper
-                        steps={steps}
-                        currentStep={currentStep}
-                        highestStepReached={highestStepReached}
-                        onStepClick={handleSidebarStepClick}
-                    />
-                </div>
-            </div>
 
-            <main className="wizard-fields mx-auto w-full max-w-[1040px] flex-1 px-4 py-6 md:px-7 md:py-8">
-                <div className="mb-5 space-y-1">
-                    <p className="text-xs font-bold tracking-wide text-primary uppercase">
-                        {eyebrow}
-                    </p>
-                    <h2 className="text-2xl font-bold tracking-tight md:text-[30px]">
-                        {currentStepMeta.title}
-                    </h2>
-                </div>
-
-                {!isReviewStep ? (
-                    <div className="mb-5 min-[900px]:hidden">
-                        <LoanRequestSummaryBar
-                            data={form.data}
-                            loanTypes={loanTypes}
-                            member={member}
-                            draft={draftState}
-                            draftUpdatedAt={draftUpdatedAt}
-                        />
-                    </div>
+            <main className="wizard-fields mx-auto flex w-full max-w-[760px] flex-1 flex-col gap-4 px-4 py-6 sm:px-7 sm:py-7">
+                {loanTypes.length === 0 ? (
+                    <Alert variant="destructive">
+                        <AlertTitle>Loan types unavailable</AlertTitle>
+                        <AlertDescription>
+                            Please contact support to load available loan
+                            options before submitting a request.
+                        </AlertDescription>
+                    </Alert>
                 ) : null}
 
-                <div
-                    className={
-                        isReviewStep
-                            ? 'grid gap-8'
-                            : 'grid gap-6 min-[900px]:grid-cols-[minmax(0,1fr)_320px]'
-                    }
-                >
-                    <div className="min-w-0 space-y-8">
-                        {loanTypes.length === 0 ? (
+                {view === 'calc' ? (
+                    <LoanApplicationCalculator
+                        loanTypes={loanTypes}
+                        typecode={form.data.typecode}
+                        amount={form.data.requested_amount}
+                        term={form.data.requested_term}
+                        limits={estimateLimits}
+                        estimate={estimate}
+                        isEstimating={isEstimating}
+                        warnings={estimateWarnings}
+                        hasDraft={hasSavedDraft}
+                        isSaving={isSavingDraft}
+                        onTypecodeChange={(value) =>
+                            form.setData('typecode', value)
+                        }
+                        onAmountChange={(value) =>
+                            form.setData('requested_amount', value)
+                        }
+                        onTermChange={(value) =>
+                            form.setData('requested_term', value)
+                        }
+                        onApply={handleApplyCalculator}
+                        onContinueDraft={() => go('hub')}
+                    />
+                ) : null}
+
+                {view === 'hub' ? (
+                    <LoanApplicationOverview
+                        statuses={statuses}
+                        summaries={summaries}
+                        headline={{
+                            title: `${loanTypeLabel} · ${form.data.requested_term || '--'} months`,
+                            amount: formatCurrency(
+                                Number(form.data.requested_amount) || null,
+                            ),
+                        }}
+                        estimate={estimate}
+                        isEstimating={isEstimating}
+                        estimateNote={estimateNote}
+                        onOpenSection={(section) => go(section, 'hub')}
+                        onStart={(section) => go(section, 'flow')}
+                        onReview={() => go('review')}
+                        onRecalculate={() => go('calc')}
+                    />
+                ) : null}
+
+                {isSection || view === 'review' ? (
+                    <>
+                        <Button
+                            type="button"
+                            variant="link"
+                            className="min-h-11 self-start px-0 font-bold md:min-h-11"
+                            onClick={() =>
+                                loanSplit && loanPart === 1
+                                    ? setLoanPart(0)
+                                    : go('hub')
+                            }
+                        >
+                            <ChevronLeft aria-hidden="true" />
+                            {loanSplit && loanPart === 1
+                                ? 'Amount & term'
+                                : 'Application overview'}
+                        </Button>
+
+                        {showProgress ? (
+                            <LoanApplicationProgress
+                                section={view as ApplicationSection}
+                                substep={
+                                    loanSplit
+                                        ? loanPart + 1
+                                        : view === 'co'
+                                          ? coMakerNames.length
+                                          : 1
+                                }
+                                substeps={loanSplit ? 2 : view === 'co' ? 2 : 1}
+                            />
+                        ) : null}
+
+                        <div className="space-y-1.5 px-0.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-xs font-bold tracking-[0.16em] text-primary uppercase">
+                                    {view === 'review'
+                                        ? 'Last step'
+                                        : `Section ${sectionIndex + 1} of ${APPLICATION_SECTIONS.length}${loanSplit ? ` · Part ${loanPart + 1} of 2` : ''}`}
+                                </p>
+                                {isSection && !showProgress ? (
+                                    <SectionStatusBadge
+                                        status={statuses[view]}
+                                    />
+                                ) : null}
+                            </div>
+                            <h2 className="text-2xl font-bold tracking-tight sm:text-[30px]">
+                                {view === 'review'
+                                    ? 'Check your answers'
+                                    : SECTION_LABELS[
+                                          view as ApplicationSection
+                                      ]}
+                            </h2>
+                            <p className="text-[15px] text-muted-foreground">
+                                {view === 'review'
+                                    ? 'Make sure everything is right. You cannot edit the application after submitting.'
+                                    : SECTION_DESCRIPTIONS[
+                                          view as ApplicationSection
+                                      ]}
+                            </p>
+                        </div>
+                    </>
+                ) : null}
+
+                {view === 'loan' ? (
+                    <LoanRequestLoanDetailsStep
+                        data={form.data}
+                        errors={form.errors}
+                        loanTypes={loanTypes}
+                        onChange={handleLoanDetailChange}
+                        part={
+                            loanSplit
+                                ? loanPart === 0
+                                    ? 'terms'
+                                    : 'purpose'
+                                : 'all'
+                        }
+                        termsFooter={estimateCard}
+                    />
+                ) : null}
+
+                {view === 'about' ? (
+                    <>
+                        {missingIdentityPrerequisites.length > 0 ? (
                             <Alert variant="destructive">
-                                <AlertTitle>Loan types unavailable</AlertTitle>
-                                <AlertDescription>
-                                    Please contact support to load available
-                                    loan options before submitting a request.
+                                <AlertTitle>
+                                    Complete your profile before continuing
+                                </AlertTitle>
+                                <AlertDescription className="space-y-2">
+                                    <p>
+                                        Please add these details in your Profile
+                                        Settings before submitting a loan
+                                        request:{' '}
+                                        {missingIdentityPrerequisites.join(
+                                            ', ',
+                                        )}
+                                        .
+                                    </p>
+                                    <Button asChild size="sm">
+                                        <Link href={editProfile().url}>
+                                            Go to Profile Settings
+                                        </Link>
+                                    </Button>
                                 </AlertDescription>
                             </Alert>
                         ) : null}
-
-                        <LoanRequestAnimatedStep
-                            show={currentStep === 0}
-                            direction={stepDirection}
-                        >
-                            <LoanRequestLoanDetailsStep
-                                data={form.data}
-                                errors={form.errors}
-                                loanTypes={loanTypes}
-                                onChange={handleLoanDetailChange}
-                            />
-                        </LoanRequestAnimatedStep>
-
-                        <LoanRequestAnimatedStep
-                            show={currentStep === STEP_INDEX['personal-basic']}
-                            direction={stepDirection}
-                        >
-                            {missingIdentityPrerequisites.length > 0 ? (
-                                <Alert variant="destructive" className="mb-5">
-                                    <AlertTitle>
-                                        Complete your profile before continuing
-                                    </AlertTitle>
-                                    <AlertDescription className="space-y-2">
-                                        <p>
-                                            Please add these details in your
-                                            Profile Settings before submitting a
-                                            loan request:{' '}
-                                            {missingIdentityPrerequisites.join(
-                                                ', ',
-                                            )}
-                                            .
-                                        </p>
-                                        <Button asChild size="sm">
-                                            <Link href={editProfile().url}>
-                                                Go to Profile Settings
-                                            </Link>
-                                        </Button>
-                                    </AlertDescription>
-                                </Alert>
-                            ) : null}
-                            <InlineEditProvider
-                                rowMode
-                                processing={isSavingDraft}
-                                onSave={handleSaveAboutYouRow}
-                                onDiscard={handleCancelAboutYouRow}
-                            >
-                                <div className="space-y-5">
-                                    <LoanRequestApplicantPersonalStep
-                                        section="basic"
-                                        values={form.data.applicant}
-                                        errors={form.errors}
-                                        readOnly={applicantReadOnly}
-                                        onChange={updatePersonField(
-                                            'applicant',
-                                        )}
-                                    />
-                                    <LoanRequestApplicantPersonalStep
-                                        section="contact"
-                                        values={form.data.applicant}
-                                        errors={form.errors}
-                                        readOnly={applicantReadOnly}
-                                        onChange={updatePersonField(
-                                            'applicant',
-                                        )}
-                                        contactNumberOnFile={member.telephone}
-                                    />
-                                    <LoanRequestApplicantPersonalStep
-                                        section="family"
-                                        values={form.data.applicant}
-                                        errors={form.errors}
-                                        readOnly={applicantReadOnly}
-                                        onChange={updatePersonField(
-                                            'applicant',
-                                        )}
-                                    />
-                                    {applicantPrefilledFromProfile ? (
-                                        <LoanRequestSectionCard
-                                            title="Confirm your details"
-                                            description="These details were pre-filled from your member profile. Please confirm they are still accurate."
-                                        >
-                                            <LoanRequestCheckRow
-                                                id="applicant_personal_confirmed"
-                                                checked={
-                                                    applicantPersonalConfirmed
-                                                }
-                                                onCheckedChange={
-                                                    setApplicantPersonalConfirmed
-                                                }
-                                            >
-                                                These details are still correct
-                                            </LoanRequestCheckRow>
-                                        </LoanRequestSectionCard>
-                                    ) : null}
-                                    <LoanRequestApplicantWorkStep
-                                        values={form.data.applicant}
-                                        errors={form.errors}
-                                        onChange={updatePersonField(
-                                            'applicant',
-                                        )}
-                                    />
-                                    {applicantWorkIncomePrefilledFromProfile ? (
-                                        <LoanRequestSectionCard
-                                            title="Confirm work & income details"
-                                            description="These details were pre-filled from a previous loan request. Please confirm they are still accurate."
-                                        >
-                                            <LoanRequestCheckRow
-                                                id="applicant_work_income_confirmed"
-                                                checked={
-                                                    applicantWorkIncomeConfirmed
-                                                }
-                                                onCheckedChange={
-                                                    setApplicantWorkIncomeConfirmed
-                                                }
-                                            >
-                                                Confirm these details are still
-                                                correct
-                                            </LoanRequestCheckRow>
-                                        </LoanRequestSectionCard>
-                                    ) : null}
-                                </div>
-                            </InlineEditProvider>
-                        </LoanRequestAnimatedStep>
-
-                        <LoanRequestAnimatedStep
-                            show={
-                                currentStep === STEP_INDEX['co-maker-1-basic']
-                            }
-                            direction={stepDirection}
-                        >
-                            <LoanRequestCoMakerStep
-                                title="Co-maker 1 — basic info"
-                                description="Basic personal details for your first co-maker."
-                                prefix="co_maker_1"
-                                section="basic"
-                                values={form.data.co_maker_1}
-                                errors={form.errors}
-                                onChange={updatePersonField('co_maker_1')}
-                                savedCoMakers={savedCoMakers.filter(
-                                    (option) =>
-                                        String(option.id) !==
-                                        form.data.co_maker_2.saved_co_maker_id,
-                                )}
-                                onLoadSavedCoMaker={loadSavedCoMaker(
-                                    'co_maker_1',
-                                )}
-                                onRemoveSavedCoMaker={removeSavedCoMaker}
-                            />
-                        </LoanRequestAnimatedStep>
-
-                        <LoanRequestAnimatedStep
-                            show={
-                                currentStep === STEP_INDEX['co-maker-1-contact']
-                            }
-                            direction={stepDirection}
-                        >
-                            <LoanRequestCoMakerStep
-                                title="Co-maker 1 — address & contact"
-                                description="Address and contact details for your first co-maker."
-                                prefix="co_maker_1"
-                                section="contact"
-                                values={form.data.co_maker_1}
-                                errors={form.errors}
-                                onChange={updatePersonField('co_maker_1')}
-                            />
-                        </LoanRequestAnimatedStep>
-
-                        <LoanRequestAnimatedStep
-                            show={
-                                currentStep ===
-                                STEP_INDEX['co-maker-1-employment']
-                            }
-                            direction={stepDirection}
-                        >
-                            <LoanRequestCoMakerStep
-                                title="Co-maker 1 — work & income"
-                                description="Employment, employer, and income details for your first co-maker."
-                                prefix="co_maker_1"
-                                section="all"
-                                values={form.data.co_maker_1}
-                                errors={form.errors}
-                                onChange={updatePersonField('co_maker_1')}
-                                onSaveCoMaker={saveCoMakerNow('co_maker_1')}
-                                isSavingCoMaker={
-                                    savingCoMakerSlot === 'co_maker_1'
-                                }
-                            />
-                        </LoanRequestAnimatedStep>
-
-                        <LoanRequestAnimatedStep
-                            show={
-                                currentStep === STEP_INDEX['co-maker-2-basic']
-                            }
-                            direction={stepDirection}
-                        >
-                            <LoanRequestCoMakerStep
-                                title="Co-maker 2 — basic info"
-                                description="Basic personal details for your second co-maker."
-                                prefix="co_maker_2"
-                                section="basic"
-                                values={form.data.co_maker_2}
-                                errors={form.errors}
-                                onChange={updatePersonField('co_maker_2')}
-                                savedCoMakers={savedCoMakers.filter(
-                                    (option) =>
-                                        String(option.id) !==
-                                        form.data.co_maker_1.saved_co_maker_id,
-                                )}
-                                onLoadSavedCoMaker={loadSavedCoMaker(
-                                    'co_maker_2',
-                                )}
-                                onRemoveSavedCoMaker={removeSavedCoMaker}
-                            />
-                        </LoanRequestAnimatedStep>
-
-                        <LoanRequestAnimatedStep
-                            show={
-                                currentStep === STEP_INDEX['co-maker-2-contact']
-                            }
-                            direction={stepDirection}
-                        >
-                            <LoanRequestCoMakerStep
-                                title="Co-maker 2 — address & contact"
-                                description="Address and contact details for your second co-maker."
-                                prefix="co_maker_2"
-                                section="contact"
-                                values={form.data.co_maker_2}
-                                errors={form.errors}
-                                onChange={updatePersonField('co_maker_2')}
-                            />
-                        </LoanRequestAnimatedStep>
-
-                        <LoanRequestAnimatedStep
-                            show={
-                                currentStep ===
-                                STEP_INDEX['co-maker-2-employment']
-                            }
-                            direction={stepDirection}
-                        >
-                            <LoanRequestCoMakerStep
-                                title="Co-maker 2 — work & income"
-                                description="Employment, employer, and income details for your second co-maker."
-                                prefix="co_maker_2"
-                                section="all"
-                                values={form.data.co_maker_2}
-                                errors={form.errors}
-                                onChange={updatePersonField('co_maker_2')}
-                                onSaveCoMaker={saveCoMakerNow('co_maker_2')}
-                                isSavingCoMaker={
-                                    savingCoMakerSlot === 'co_maker_2'
-                                }
-                            />
-                        </LoanRequestAnimatedStep>
-
-                        <LoanRequestAnimatedStep
-                            show={currentStep === STEP_INDEX['banking']}
-                            direction={stepDirection}
+                        <InlineEditProvider
+                            rowMode
+                            processing={isSavingDraft}
+                            onSave={handleSaveAboutYouRow}
+                            onDiscard={handleCancelAboutYouRow}
                         >
                             <div className="space-y-5">
-                                <LoanRequestDataSectionStep
-                                    sectionKey="banking"
-                                    title="Loan Disbursement & Repayment"
-                                    description="Tell us how you'd like to receive your loan and how you'll repay it."
-                                    values={form.data.banking}
-                                    definition={dataSectionDefinitions.banking}
-                                    errors={form.errors}
-                                    onChange={updateDataSection('banking')}
-                                    applicantFullName={member.name}
-                                    applicantEmployerBusinessName={
-                                        form.data.applicant
-                                            .employer_business_name
-                                    }
-                                    applicantEmploymentType={
-                                        form.data.applicant.employment_type
-                                    }
-                                    applicantNatureOfBusiness={
-                                        form.data.applicant.nature_of_business
-                                    }
-                                    applicantInstitutionalEmployerCategory={
-                                        form.data.applicant
-                                            .institutional_employer_category
-                                    }
-                                />
-
-                                {bankingPrefilledFromProfile &&
-                                (form.data.banking.release_method ===
-                                    'Bank Transfer' ||
-                                    form.data.banking.release_method ===
-                                        'ATM') ? (
-                                    <LoanRequestSectionCard
-                                        title="Confirm bank details"
-                                        description="These details were pre-filled from your member profile."
-                                    >
-                                        <LoanRequestCheckRow
-                                            id="bank_account_confirmed"
-                                            checked={bankAccountConfirmed}
-                                            onCheckedChange={
-                                                setBankAccountConfirmed
+                                {(['basic', 'contact', 'family'] as const).map(
+                                    (section) => (
+                                        <LoanRequestApplicantPersonalStep
+                                            key={section}
+                                            section={section}
+                                            values={form.data.applicant}
+                                            errors={form.errors}
+                                            readOnly={applicantReadOnly}
+                                            onChange={updateApplicantField}
+                                            contactNumberOnFile={
+                                                section === 'contact'
+                                                    ? member.telephone
+                                                    : undefined
                                             }
+                                        />
+                                    ),
+                                )}
+                                <LoanRequestApplicantWorkStep
+                                    values={form.data.applicant}
+                                    errors={form.errors}
+                                    onChange={updateApplicantField}
+                                />
+                            </div>
+                        </InlineEditProvider>
+                        {applicantPrefilledFromProfile ||
+                        applicantWorkIncomePrefilledFromProfile ? (
+                            <LoanRequestSectionCard
+                                title="Confirm your details"
+                                description="These details were pre-filled from your member profile or a previous request."
+                            >
+                                <div className="space-y-3">
+                                    {applicantPrefilledFromProfile ? (
+                                        <LoanRequestCheckRow
+                                            id="applicant_personal_confirmed"
+                                            checked={personalConfirmed}
+                                            onCheckedChange={toggleConfirmation(
+                                                'applicant_personal',
+                                            )}
                                         >
-                                            Confirm this bank account is still
+                                            My personal details are correct
+                                        </LoanRequestCheckRow>
+                                    ) : null}
+                                    {applicantWorkIncomePrefilledFromProfile ? (
+                                        <LoanRequestCheckRow
+                                            id="applicant_work_income_confirmed"
+                                            checked={workIncomeConfirmed}
+                                            onCheckedChange={toggleConfirmation(
+                                                'applicant_work_income',
+                                            )}
+                                        >
+                                            My work &amp; income details are
                                             correct
                                         </LoanRequestCheckRow>
-                                    </LoanRequestSectionCard>
-                                ) : null}
-                            </div>
-                        </LoanRequestAnimatedStep>
+                                    ) : null}
+                                </div>
+                            </LoanRequestSectionCard>
+                        ) : null}
+                        <p className="text-sm text-muted-foreground">
+                            Something wrong?{' '}
+                            <Link
+                                href={editProfile().url}
+                                className="font-semibold text-primary underline underline-offset-4"
+                            >
+                                Update your profile
+                            </Link>{' '}
+                            first; this application picks up the change.
+                        </p>
+                    </>
+                ) : null}
 
-                        <LoanRequestAnimatedStep
-                            show={currentStep === STEP_INDEX['declarations']}
-                            direction={stepDirection}
-                        >
-                            <LoanRequestDataSectionStep
-                                sectionKey="declarations"
-                                title="Personal declarations and consent"
-                                description="Complete the declarations and consent items required before processing can begin."
-                                values={form.data.declarations}
-                                definition={dataSectionDefinitions.declarations}
-                                errors={form.errors}
-                                onChange={updateDataSection('declarations')}
-                            />
-                        </LoanRequestAnimatedStep>
+                {view === 'co'
+                    ? (['co_maker_1', 'co_maker_2'] as const).map(
+                          (slot, index) => {
+                              const filled = hasCoMaker(slot);
+                              const person = form.data[slot];
+                              const missing = coMakerMissing(slot);
 
-                        <LoanRequestAnimatedStep
-                            show={currentStep === STEP_INDEX['review']}
-                            direction={stepDirection}
-                        >
-                            <LoanRequestReviewStep
-                                data={form.data}
-                                loanTypes={loanTypes}
-                                member={member}
-                                errors={form.errors}
-                                sectionDefinitions={dataSectionDefinitions}
-                                onUndertakingChange={(value) =>
-                                    form.setData('undertaking_accepted', value)
-                                }
-                                updateProfile={updateProfile}
-                                onUpdateProfileChange={setUpdateProfile}
-                                onErrorClick={handleErrorClick}
-                            />
-                        </LoanRequestAnimatedStep>
-                    </div>
+                              return (
+                                  <section
+                                      key={slot}
+                                      className={cn(
+                                          'flex flex-wrap items-center gap-3.5 rounded-xl border-[1.5px] p-4 sm:px-5',
+                                          filled
+                                              ? 'border-border bg-card shadow-card'
+                                              : 'border-dashed border-input bg-muted',
+                                      )}
+                                  >
+                                      <div className="min-w-0 flex-[1_1_200px]">
+                                          <div className="mb-0.5 flex items-center gap-2">
+                                              <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                                                  Co-maker {index + 1}
+                                              </span>
+                                              <SectionStatusBadge
+                                                  status={
+                                                      !filled
+                                                          ? 'not_started'
+                                                          : missing.length > 0
+                                                            ? 'in_progress'
+                                                            : 'done'
+                                                  }
+                                              />
+                                          </div>
+                                          <p className="text-[17px] font-bold">
+                                              {filled
+                                                  ? coMakerName(slot)
+                                                  : 'Not added yet'}
+                                          </p>
+                                          <p className="text-[13px] text-muted-foreground">
+                                              {filled
+                                                  ? missing.length > 0
+                                                      ? `Still needed: ${missing.join(', ')}`
+                                                      : [
+                                                            person.current_position,
+                                                            person.employer_business_name,
+                                                            person.cell_no,
+                                                        ]
+                                                            .filter(Boolean)
+                                                            .join(' · ')
+                                                  : 'Name, contact and work details'}
+                                          </p>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                          {filled ? (
+                                              <Button
+                                                  type="button"
+                                                  variant="link"
+                                                  className="min-h-11 px-2 text-muted-foreground underline md:min-h-11"
+                                                  aria-label={`Remove co-maker ${index + 1}`}
+                                                  onClick={() =>
+                                                      removeCoMaker(slot)
+                                                  }
+                                              >
+                                                  Remove
+                                              </Button>
+                                          ) : null}
+                                          <Button
+                                              type="button"
+                                              variant={
+                                                  filled ? 'outline' : 'default'
+                                              }
+                                              className="min-h-11 font-bold md:min-h-11"
+                                              onClick={() =>
+                                                  setCoMakerSlot(slot)
+                                              }
+                                          >
+                                              {filled ? 'Edit' : 'Add co-maker'}
+                                          </Button>
+                                      </div>
+                                  </section>
+                              );
+                          },
+                      )
+                    : null}
 
-                    {!isReviewStep && (
-                        <aside className="hidden min-[900px]:block">
-                            <LoanRequestSummaryPanel
-                                data={form.data}
-                                loanTypes={loanTypes}
-                                member={member}
-                                draft={draftState}
-                                draftUpdatedAt={draftUpdatedAt}
-                            />
-                        </aside>
-                    )}
-                </div>
+                {view === 'disb' ? (
+                    <>
+                        <LoanRequestDataSectionStep
+                            sectionKey="banking"
+                            title="Loan disbursement & repayment"
+                            description="Tell us how you'd like to receive your loan and how you'll repay it."
+                            values={form.data.banking}
+                            definition={dataSectionDefinitions.banking}
+                            errors={form.errors}
+                            onChange={updateDataSection('banking')}
+                            applicantFullName={member.name}
+                            applicantEmployerBusinessName={
+                                form.data.applicant.employer_business_name
+                            }
+                            applicantEmploymentType={
+                                form.data.applicant.employment_type
+                            }
+                            applicantNatureOfBusiness={
+                                form.data.applicant.nature_of_business
+                            }
+                            applicantInstitutionalEmployerCategory={
+                                form.data.applicant
+                                    .institutional_employer_category
+                            }
+                        />
+                        {needsBankConfirmation ? (
+                            <LoanRequestSectionCard
+                                title="Confirm bank details"
+                                description="These details were pre-filled from your member profile."
+                            >
+                                <LoanRequestCheckRow
+                                    id="bank_account_confirmed"
+                                    checked={bankConfirmed}
+                                    onCheckedChange={toggleConfirmation(
+                                        'bank_account',
+                                    )}
+                                >
+                                    My bank details are correct
+                                </LoanRequestCheckRow>
+                            </LoanRequestSectionCard>
+                        ) : null}
+                    </>
+                ) : null}
+
+                {view === 'decl' ? (
+                    <LoanRequestDataSectionStep
+                        sectionKey="declarations"
+                        title="Personal declarations and consent"
+                        description="Complete the declarations and consent items required before processing can begin."
+                        values={form.data.declarations}
+                        definition={dataSectionDefinitions.declarations}
+                        errors={form.errors}
+                        onChange={updateDataSection('declarations')}
+                    />
+                ) : null}
+
+                {view === 'review' ? (
+                    <>
+                        <LoanRequestReviewStep
+                            data={form.data}
+                            loanTypes={loanTypes}
+                            member={member}
+                            errors={form.errors}
+                            sectionDefinitions={dataSectionDefinitions}
+                            onUndertakingChange={(value) =>
+                                form.setData('undertaking_accepted', value)
+                            }
+                            updateProfile={updateProfile}
+                            onUpdateProfileChange={setUpdateProfile}
+                            onErrorClick={handleErrorClick}
+                            onChangeSection={(section) => go(section, 'review')}
+                        />
+                        <p className="rounded-xl bg-secondary px-4 py-3.5 text-[13px] leading-relaxed text-secondary-foreground">
+                            <b>Good to know:</b> documents are collected and
+                            signed at release. Signatures will be collected
+                            physically upon loan release. Nothing to upload or
+                            print now.
+                        </p>
+                    </>
+                ) : null}
             </main>
 
-            <LoanRequestWizardActions
-                isFirstStep={isFirstStep}
-                isLastStep={isLastStep}
-                page={currentStep + 1}
-                totalPages={steps.length}
-                blockers={currentStepBlockers}
-                onBack={handlePreviousStep}
-                onNext={handleNextStep}
-                onSubmit={handleSubmit}
-                isSavingDraft={isSavingDraft}
-                isSubmitting={isSubmitting}
-                disablePrimary={
-                    !hasLoanTypes ||
-                    currentStepBlockers.length > 0 ||
-                    (currentStep === STEP_INDEX['personal-basic'] &&
-                        missingIdentityPrerequisites.length > 0) ||
-                    (isLastStep &&
-                        (!isBankingComplete ||
-                            !isDeclarationsComplete ||
-                            !isApplicantPersonalComplete ||
-                            !isApplicantWorkIncomeComplete ||
-                            missingIdentityPrerequisites.length > 0))
-                }
+            {isSection || view === 'review' ? (
+                <div className="sticky bottom-0 z-20 border-t border-border bg-card shadow-[0_-4px_16px_rgba(20,23,15,0.08)]">
+                    <div className="mx-auto flex w-full max-w-[760px] flex-col gap-2 px-4 py-3 sm:px-7">
+                        {view === 'review' && !allDone ? (
+                            <p
+                                role="status"
+                                className="text-[13px] font-semibold text-amber-900 dark:text-amber-100"
+                            >
+                                Finish every section before you submit.
+                            </p>
+                        ) : barNote ? (
+                            <p
+                                role="status"
+                                className={cn(
+                                    'text-[13px] font-semibold',
+                                    currentBlockers.length > 0
+                                        ? 'text-amber-900 dark:text-amber-100'
+                                        : 'text-muted-foreground',
+                                )}
+                            >
+                                {barNote}
+                            </p>
+                        ) : null}
+                        <div className="flex items-center gap-2.5">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="hidden h-12 px-4 text-[15px] sm:inline-flex md:h-12"
+                                onClick={() => go('hub')}
+                            >
+                                Back to overview
+                            </Button>
+                            <span className="flex-1" />
+                            {view === 'review' ? (
+                                <Button
+                                    type="button"
+                                    className="h-12 flex-1 px-7 text-[15px] font-bold sm:flex-none md:h-12"
+                                    disabled={
+                                        !allDone ||
+                                        isSubmitting ||
+                                        loanTypes.length === 0
+                                    }
+                                    onClick={() => setConfirmSubmitOpen(true)}
+                                >
+                                    {isSubmitting ? (
+                                        <Loader2 className="animate-spin" />
+                                    ) : null}
+                                    Submit for review
+                                </Button>
+                            ) : (
+                                <Button
+                                    type="button"
+                                    className="h-12 flex-1 px-7 text-[15px] font-bold sm:flex-none md:h-12"
+                                    disabled={isSavingDraft}
+                                    onClick={handleSaveSection}
+                                >
+                                    {isSavingDraft ? (
+                                        <Loader2 className="animate-spin" />
+                                    ) : null}
+                                    {primaryLabel}
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            <CoMakerSheet
+                slot={coMakerSlot}
+                initial={coMakerSlot ? form.data[coMakerSlot] : null}
+                errors={form.errors}
+                savedCoMakers={savedCoMakers.filter(
+                    (option) =>
+                        String(option.id) !==
+                        form.data[
+                            coMakerSlot === 'co_maker_1'
+                                ? 'co_maker_2'
+                                : 'co_maker_1'
+                        ].saved_co_maker_id,
+                )}
+                guided={origin === 'flow'}
+                isSaving={isSavingDraft}
+                isSavingForReuse={isSavingCoMakerForReuse}
+                onLoadSaved={loadSavedCoMaker}
+                onRemoveSaved={removeSavedCoMaker}
+                onSaveForReuse={saveCoMakerForReuse}
+                onSave={saveCoMaker}
+                onClose={() => setCoMakerSlot(null)}
             />
+
+            <AlertDialog
+                open={confirmSubmitOpen}
+                onOpenChange={setConfirmSubmitOpen}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Submit your application?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            You are applying for{' '}
+                            {formatCurrency(Number(form.data.requested_amount))}{' '}
+                            over {form.data.requested_term} months. After
+                            submitting you cannot edit it; a loan processor
+                            reviews it next.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="min-h-11 md:min-h-11">
+                            Keep editing
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="min-h-11 md:min-h-11"
+                            onClick={handleSubmit}
+                        >
+                            Submit for review
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

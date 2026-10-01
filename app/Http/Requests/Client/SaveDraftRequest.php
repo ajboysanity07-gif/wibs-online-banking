@@ -407,6 +407,8 @@ class SaveDraftRequest extends FormRequest
             ],
             'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:23'],
             'wizard_step_id' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[a-z0-9-]+$/'],
+            'wizard_confirmations' => ['sometimes', 'nullable', 'array'],
+            'wizard_confirmations.*' => ['string', 'in:applicant_personal,applicant_work_income,bank_account'],
             'insurance' => ['sometimes', 'nullable', 'array'],
             'insurance.beneficiary_primary_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'insurance.beneficiary_primary_relationship' => ['sometimes', 'nullable', 'string', 'max:255'],

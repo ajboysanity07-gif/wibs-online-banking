@@ -401,6 +401,8 @@ class LoanRequestDraftRequest extends FormRequest
             'undertaking_accepted' => ['sometimes', 'boolean'],
             'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:23'],
             'wizard_step_id' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[a-z0-9-]+$/'],
+            'wizard_confirmations' => ['sometimes', 'nullable', 'array'],
+            'wizard_confirmations.*' => ['string', 'in:applicant_personal,applicant_work_income,bank_account'],
             'requested_payment_frequency' => ['sometimes', 'nullable', 'string', Rule::in(LoanPaydayOption::values())],
             'kind_of_loan' => ['sometimes', 'nullable', 'string', Rule::in(['Regular', 'Emergency'])],
             'insurance' => ['sometimes', 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship,beneficiary_secondary_birthdate'],

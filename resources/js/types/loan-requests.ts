@@ -759,3 +759,35 @@ export type LoanRequestMemberActionResolutionResult = {
     dataSections: LoanRequestDataSections;
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
 };
+
+/** LoanFiguresCalculator::estimate() -- the member calculator's figures. */
+export type LoanEstimate = {
+    amortization_count: number | null;
+    interest_not_deducted_raw: number | null;
+    service_charge_amount_raw: number | null;
+    insurance_premium_raw: number | null;
+    loan_security_amount_raw: number | null;
+    documentary_stamp_amount_raw: number | null;
+    notarial_fee_raw: number | null;
+    finance_charge_total_raw: number | null;
+    non_finance_charge_total_raw: number | null;
+    deductions_total_raw: number | null;
+    net_proceeds_raw: number | null;
+    amortization_total_raw: number | null;
+    monthly_amortization_raw: number | null;
+    interest_rate: number | null;
+    service_charge_rate: number | null;
+    loan_security_rate: number;
+};
+
+export type LoanEstimateLimits = {
+    maxTermMonths: number;
+    sliderMaxAmount: number;
+    includesInterest: boolean;
+    includesServiceCharge: boolean;
+};
+
+export type LoanWizardConfirmation =
+    | 'applicant_personal'
+    | 'applicant_work_income'
+    | 'bank_account';

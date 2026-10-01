@@ -25,26 +25,7 @@ use Throwable;
  */
 class ApprovedLoanDocumentDataBuilder
 {
-    // Documentary stamp tax under TRAIN is ₱1.50 for every ₱200 (or fractional
-    // part thereof) of the loan amount; 1.5/200 = 0.75% is the institutional
-    // constant recorded on the request, but the amount must follow the banding
-    // rule rather than a flat percentage.
-    private const DOCUMENTARY_STAMP_INSTITUTIONAL_RATE = 0.0075;
-
-    private const DOCUMENTARY_STAMP_PESO_PER_BAND = 1.5;
-
-    private const DOCUMENTARY_STAMP_BAND_SIZE = 200;
-
-    // Mirrors WIBS desktop's loanpay.SCT: loansec = IIF(typc='01', prn*.02, prn*.05).
-    // Typecode '01' ("Other Loan") carries a 2% Loan Security rate; every other
-    // loan type (Micro Business, Micro Buko, Buko Unlad, ...) carries 5%. This
-    // is a hardcoded WIBS rule, not a configurable rate, so it's the default
-    // here too -- only an explicit override should ever change it per loan.
     private const OTHER_LOAN_TYPECODE = '01';
-
-    private const LOAN_SECURITY_RATE_OTHER_LOAN = 0.02;
-
-    private const LOAN_SECURITY_RATE_DEFAULT = 0.05;
 
     public function __construct(
         private LoanRequestDataService $loanRequestDataService,
@@ -52,6 +33,7 @@ class ApprovedLoanDocumentDataBuilder
         private OfficialLoanManagerResolver $officialLoanManagerResolver,
         private LoanRequestCycleStateService $cycleStateService,
         private SavedPaymentAccountsService $savedPaymentAccountsService,
+        private LoanFiguresCalculator $figuresCalculator,
     ) {}
 
     /**
@@ -179,7 +161,7 @@ class ApprovedLoanDocumentDataBuilder
             ?? $loanRequest->assignedProcessor?->name
             ?? $loanRequest->assignedProcessor?->username;
         $processorDisplayName = $this->normalizeText($processorName);
-        $amortizationCount = $this->resolveAmortizationCount(
+        $amortizationCount = $this->figuresCalculator->amortizationCount(
             $approvedTerm,
             $paymentMode,
             $lumpsumMonths,
@@ -214,32 +196,12 @@ class ApprovedLoanDocumentDataBuilder
                 ?? null,
             0,
         );
-        $interestNotDeductedRaw = $this->roundCurrency(
-            $approvedAmountRaw !== null && $approvedTerm !== null && $interestRateRaw !== null
-                ? ($approvedAmountRaw * $interestRateRaw / 12) * $approvedTerm
-                : null,
-        );
-        $serviceChargeAmountRaw = $this->roundCurrency(
-            $approvedAmountRaw !== null && $serviceChargeRateRaw !== null
-                ? $approvedAmountRaw * $serviceChargeRateRaw
-                : null,
-        );
-        $insurancePremiumRaw = $this->roundCurrency(
-            $approvedAmountRaw !== null && $insuranceTerm !== null && $insuranceRateRaw !== null
-                ? ($approvedAmountRaw / 1000) * $insuranceTerm * $insuranceRateRaw
-                : null,
-        );
-        $defaultLoanSecurityRate = $this->defaultLoanSecurityRate($loanRequest);
+        $defaultLoanSecurityRate = $this->figuresCalculator->defaultLoanSecurityRate((string) $loanRequest->typecode);
         $loanSecurityRateRaw = $isLumpsum ? 0.0 : $this->resolveNumericOverride(
             $overrideLoan['loan_security_rate_raw']
                 ?? $flatValues['loan_security_rate']
                 ?? null,
             $defaultLoanSecurityRate,
-        );
-        $loanSecurityAmountRaw = $this->roundCurrency(
-            $approvedAmountRaw !== null && $loanSecurityRateRaw !== null
-                ? $approvedAmountRaw * $loanSecurityRateRaw
-                : null,
         );
         $savingsRateRaw = $isLumpsum ? 0.0 : $this->resolveNumericOverride(
             $overrideLoan['savings_rate_raw']
@@ -251,18 +213,13 @@ class ApprovedLoanDocumentDataBuilder
             $overrideLoan['documentary_stamp_rate_raw']
                 ?? $flatValues['documentary_stamp_rate']
                 ?? null,
-            self::DOCUMENTARY_STAMP_INSTITUTIONAL_RATE,
-        );
-        $documentaryStampAmountRaw = $this->roundCurrency(
-            $approvedAmountRaw !== null && $documentaryStampRateRaw !== null
-                ? $this->resolveDocumentaryStampAmount($approvedAmountRaw, $documentaryStampRateRaw)
-                : null,
+            LoanFiguresCalculator::DOCUMENTARY_STAMP_INSTITUTIONAL_RATE,
         );
         $notarialFeeRaw = $this->resolveNumericOverride(
             $overrideLoan['notarial_fee_raw']
                 ?? $flatValues['notarial_fee']
                 ?? null,
-            100.0,
+            LoanFiguresCalculator::NOTARIAL_FEE_DEFAULT,
         );
         $otherChargesAmountRaw = $this->resolveNumericOverride(
             $overrideLoan['other_charges_amount_raw']
@@ -275,62 +232,34 @@ class ApprovedLoanDocumentDataBuilder
                 ?? $flatValues['other_charges_description']
                 ?? null,
         );
-        $principalAmortizationRaw = $this->roundCurrency(
-            $approvedAmountRaw !== null && $amortizationCount !== null && $amortizationCount > 0
-                ? $approvedAmountRaw / $amortizationCount
-                : null,
-        );
-        $interestAmortizationRaw = $this->roundCurrency(
-            $interestNotDeductedRaw !== null && $amortizationCount !== null && $amortizationCount > 0
-                ? $interestNotDeductedRaw / $amortizationCount
-                : null,
-        );
-        $loanSecurityAmortizationRaw = $this->roundCurrency(
-            $principalAmortizationRaw !== null && $savingsRateRaw !== null
-                ? $principalAmortizationRaw * $savingsRateRaw
-                : null,
-        );
-        $amortizationTotalRaw = $this->roundCurrency(
-            $this->sumAmounts(
-                $principalAmortizationRaw,
-                $interestAmortizationRaw,
-                $loanSecurityAmortizationRaw,
-            ),
-        );
-        // Net proceeds follows the Disclosure Statement workbook (R.A. 3765):
-        //
-        // Monthly-amortized loans: interest is disclosed under "Not Deducted
-        // From Proceeds of Loan" (it is amortized into the payment schedule
-        // instead), so only the service charge counts as a deducted finance
-        // charge.
-        //
-        // Lumpsum / Due-date loans: interest is advance interest — deducted
-        // upfront from the loan proceeds because the borrower repays it in
-        // full at maturity. This matches the practice of GSIS and Philippine
-        // cooperatives (advance interest as a standard deduction).
-        $financeChargeTotalRaw = $this->roundCurrency(
-            $this->sumAmounts(
-                $serviceChargeAmountRaw,
-                $isLumpsum ? $interestNotDeductedRaw : null,
-            ),
-        );
-        $nonFinanceChargeTotalRaw = $this->roundCurrency(
-            $this->sumAmounts(
-                $insurancePremiumRaw,
-                $loanSecurityAmountRaw,
-                $documentaryStampAmountRaw,
-                $notarialFeeRaw,
-                $otherChargesAmountRaw,
-            ),
-        );
-        $deductionsTotalRaw = $this->roundCurrency(
-            $this->sumAmounts($financeChargeTotalRaw, $nonFinanceChargeTotalRaw),
-        );
-        $netProceedsRaw = $this->roundCurrency(
-            $approvedAmountRaw !== null && $deductionsTotalRaw !== null
-                ? $approvedAmountRaw - $deductionsTotalRaw
-                : null,
-        );
+        $figures = $this->figuresCalculator->calculate([
+            'amount' => $approvedAmountRaw,
+            'term' => $approvedTerm,
+            'payment_mode' => $paymentMode,
+            'lumpsum_months' => $lumpsumMonths,
+            'interest_rate' => $interestRateRaw,
+            'service_charge_rate' => $serviceChargeRateRaw,
+            'insurance_rate' => $insuranceRateRaw,
+            'insurance_term' => $insuranceTerm,
+            'loan_security_rate' => $loanSecurityRateRaw,
+            'savings_rate' => $savingsRateRaw,
+            'documentary_stamp_rate' => $documentaryStampRateRaw,
+            'notarial_fee' => $notarialFeeRaw,
+            'other_charges_amount' => $otherChargesAmountRaw,
+        ]);
+        $interestNotDeductedRaw = $figures['interest_not_deducted_raw'];
+        $serviceChargeAmountRaw = $figures['service_charge_amount_raw'];
+        $insurancePremiumRaw = $figures['insurance_premium_raw'];
+        $loanSecurityAmountRaw = $figures['loan_security_amount_raw'];
+        $documentaryStampAmountRaw = $figures['documentary_stamp_amount_raw'];
+        $principalAmortizationRaw = $figures['amortization_principal_raw'];
+        $interestAmortizationRaw = $figures['amortization_interest_raw'];
+        $loanSecurityAmortizationRaw = $figures['amortization_loan_security_raw'];
+        $amortizationTotalRaw = $figures['amortization_total_raw'];
+        $financeChargeTotalRaw = $figures['finance_charge_total_raw'];
+        $nonFinanceChargeTotalRaw = $figures['non_finance_charge_total_raw'];
+        $deductionsTotalRaw = $figures['deductions_total_raw'];
+        $netProceedsRaw = $figures['net_proceeds_raw'];
         $penaltyRateRaw = $this->resolveNumericOverride(
             $overrideLoan['penalty_rate_raw']
                 ?? $flatValues['penalty_rate_per_month']
@@ -1314,35 +1243,6 @@ class ApprovedLoanDocumentDataBuilder
             : $otherLoanName;
     }
 
-    private function defaultLoanSecurityRate(LoanRequest $loanRequest): float
-    {
-        return (string) $loanRequest->typecode === self::OTHER_LOAN_TYPECODE
-            ? self::LOAN_SECURITY_RATE_OTHER_LOAN
-            : self::LOAN_SECURITY_RATE_DEFAULT;
-    }
-
-    /**
-     * Computes the documentary stamp tax. When the institutional rate is in
-     * effect the client's given formula applies — ₱1.50 for every ₱200 of the
-     * loan amount, with fractional parts rounded up to a full ₱200 band — so
-     * non-multiple-of-₱200 loans still land on the correct BIR figure. An
-     * explicit staff-entered rate (legacy data) is honored as a flat percentage.
-     */
-    private function resolveDocumentaryStampAmount(
-        float|int $approvedAmount,
-        float|int $documentaryStampRate,
-    ): float {
-        if (
-            abs((float) $documentaryStampRate - self::DOCUMENTARY_STAMP_INSTITUTIONAL_RATE)
-            < PHP_FLOAT_EPSILON
-        ) {
-            return ceil((float) $approvedAmount / self::DOCUMENTARY_STAMP_BAND_SIZE)
-                * self::DOCUMENTARY_STAMP_PESO_PER_BAND;
-        }
-
-        return (float) $approvedAmount * (float) $documentaryStampRate;
-    }
-
     private function resolveIntegerOverride(
         mixed $value,
         ?int $default,
@@ -1587,29 +1487,6 @@ class ApprovedLoanDocumentDataBuilder
         return $this->resolveWorkbookPaymentModeValue($applicant?->payday);
     }
 
-    private function resolveAmortizationCount(
-        ?int $approvedTerm,
-        ?string $paymentMode,
-        ?int $lumpsumMonths = null,
-    ): ?int {
-        if ($paymentMode === 'DUE-DATE') {
-            return $lumpsumMonths ?? 1;
-        }
-
-        if ($approvedTerm === null || $approvedTerm <= 0) {
-            return null;
-        }
-
-        return match ($paymentMode) {
-            'DAILY' => $approvedTerm * 30,
-            'QUINCENAL' => $approvedTerm * 2,
-            'SEMI-ANNUAL' => max(1, (int) round($approvedTerm / 6)),
-            'WEEKLY' => max(1, (int) round(($approvedTerm * 30) / 7)),
-            'YEARLY' => max(1, (int) round($approvedTerm / 12)),
-            default => $approvedTerm,
-        };
-    }
-
     private function resolveMaturityDate(
         ?CarbonInterface $approvedAt,
         ?int $approvedTerm,
@@ -1773,32 +1650,6 @@ class ApprovedLoanDocumentDataBuilder
         } catch (Throwable) {
             return $percentageLabel.' PERCENT ('.$percentageLabel.'%)';
         }
-    }
-
-    private function sumAmounts(float|int|null ...$values): ?float
-    {
-        $sum = 0.0;
-        $hasValue = false;
-
-        foreach ($values as $value) {
-            if ($value === null) {
-                continue;
-            }
-
-            $sum += (float) $value;
-            $hasValue = true;
-        }
-
-        return $hasValue ? $sum : null;
-    }
-
-    private function roundCurrency(float|int|null $value): ?float
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        return round((float) $value, 2);
     }
 
     private function personFullName(?LoanRequestPerson $person): ?string

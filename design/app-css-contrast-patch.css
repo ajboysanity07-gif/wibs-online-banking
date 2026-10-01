@@ -1,0 +1,62 @@
+/* Stronger contrast: tinted page (sage) vs white cards, deep-green sidebar, non-black dark mode.
+   IMPORTANT: if the deployed app still looks white, a theme injector (resources/js/theme/*) or hard-coded
+   bg-white/bg-background classes is overriding these variables. */
+:root {
+    --background: #dfe7cb;
+    --foreground: #14170f;
+    --card: #ffffff;
+    --card-foreground: #14170f;
+    --popover: #ffffff;
+    --popover-foreground: #14170f;
+    --primary: #176433;
+    --primary-foreground: #ffffff;
+    --secondary: #d3e6a6;
+    --secondary-foreground: #0f4123;
+    --muted: #eef3de;
+    --muted-foreground: #4a4f3f;
+    --accent: #9abd53;
+    --accent-foreground: #14170f;
+    --destructive: oklch(0.55 0.22 27);
+    --destructive-foreground: #ffffff;
+    --border: #b7c399;
+    --input: #7f8f5c;
+    --ring: #176433;
+    --sidebar: #176433;
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #9abd53;
+    --sidebar-primary-foreground: #14170f;
+    --sidebar-accent: #9abd53;
+    --sidebar-accent-foreground: #14170f;
+    --sidebar-border: #0f4123;
+    --sidebar-ring: #9abd53;
+}
+
+.dark {
+    --background: #1d2b20;
+    --foreground: #f4f8ea;
+    --card: #2a3b2e;
+    --card-foreground: #f4f8ea;
+    --popover: #2a3b2e;
+    --popover-foreground: #f4f8ea;
+    --primary: #9abd53;
+    --primary-foreground: #14170f;
+    --secondary: #3b5a2c;
+    --secondary-foreground: #e3f0c4;
+    --muted: #233427;
+    --muted-foreground: #c5d1b6;
+    --accent: #9abd53;
+    --accent-foreground: #14170f;
+    --destructive: oklch(0.7 0.19 25);
+    --destructive-foreground: #14170f;
+    --border: #4a6350;
+    --input: #7f9a80;
+    --ring: #9abd53;
+    --sidebar: #0f1d14;
+    --sidebar-foreground: #f4f8ea;
+    --sidebar-primary: #9abd53;
+    --sidebar-primary-foreground: #14170f;
+    --sidebar-accent: #9abd53;
+    --sidebar-accent-foreground: #14170f;
+    --sidebar-border: #2a3b2e;
+    --sidebar-ring: #9abd53;
+}
