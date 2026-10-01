@@ -59,6 +59,7 @@ class LoanRequestPayloadSerializer
         LoanRequestChange::ACTION_MEMBER_PROFILE_INCOME_SYNCED => 'Profile Income Synced',
         LoanRequestChange::ACTION_CONDITION_VERIFIED => 'Condition Verified',
         LoanRequestChange::ACTION_CONDITION_UNVERIFIED => 'Condition Unverified',
+        LoanRequestChange::ACTION_INTERNAL_NOTE_ADDED => 'Internal Note Added',
     ];
 
     private const AUDIT_STATUS_LABELS = [

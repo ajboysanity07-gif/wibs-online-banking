@@ -21,6 +21,7 @@ use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestDocumentStorage;
 use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
+use App\Services\LoanRequests\LoanRequestNoteService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
 use App\Services\LoanRequests\LoanRequestService;
@@ -57,6 +58,7 @@ class LoanRequestController extends Controller
         LoanRequestCycleStateService $cycleStateService,
         LoanRequestService $loanRequestService,
         LoanRequestConditionService $conditionService,
+        LoanRequestNoteService $noteService,
     ): Response {
         if ($this->isDraft($loanRequest)) {
             abort(404);
@@ -115,6 +117,10 @@ class LoanRequestController extends Controller
                     $loanRequest,
                 ),
             ],
+            // Staff-only; never loaded for a viewer who may not read them.
+            'internalNotes' => Gate::forUser($actor)->allows('manageInternalNotes', $loanRequest)
+                ? [...$noteService->serialize($loanRequest), 'can_add' => true]
+                : ['available' => false, 'can_add' => false, 'items' => []],
             'memberAction' => [
                 'type' => $loanRequest->member_action_type,
                 'message' => $loanRequest->member_action_message,

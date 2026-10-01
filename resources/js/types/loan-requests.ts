@@ -449,6 +449,27 @@ export type LoanRequestConditionUpdateResult = {
     auditTrail: LoanRequestAuditEntry[];
 };
 
+/** Staff-only note; never sent to members. */
+export type LoanRequestInternalNote = {
+    id: number;
+    author: string | null;
+    body: string;
+    created_at: string | null;
+};
+
+export type LoanRequestInternalNotes = {
+    /** False until the notes table is deployed, or for viewers who may not read them. */
+    available: boolean;
+    can_add: boolean;
+    /** Newest first. */
+    items: LoanRequestInternalNote[];
+};
+
+export type LoanRequestNoteCreateResult = {
+    notes: Omit<LoanRequestInternalNotes, 'can_add'>;
+    auditTrail: LoanRequestAuditEntry[];
+};
+
 export type LoanRequestCompleteness = {
     percentage: number;
     completed: string[];

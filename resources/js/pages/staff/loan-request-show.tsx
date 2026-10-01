@@ -28,6 +28,7 @@ import {
     LoanRequestCoMakerCard,
 } from '@/components/loan-request/loan-request-review-people';
 import {
+    LoanRequestInternalNotesCard,
     LoanRequestStatusRailCard,
     LoanRequestTasksCard,
 } from '@/components/loan-request/loan-request-review-rail';
@@ -130,6 +131,7 @@ import type {
     LoanRequestDetail,
     LoanRequestDocumentChecklistItem,
     LoanRequestDocumentKey,
+    LoanRequestInternalNotes,
     LoanRequestMemberAction,
     LoanRequestNotificationHistoryItem,
     LoanRequestPersonData,
@@ -154,6 +156,7 @@ type Props = {
     cycleState: LoanRequestCycleState;
     documentChecklist: LoanRequestDocumentChecklistItem[];
     conditions: LoanRequestConditions;
+    internalNotes: LoanRequestInternalNotes;
     memberAction: LoanRequestMemberAction;
     notificationHistory: LoanRequestNotificationHistoryItem[];
     workflowPermissions: LoanRequestWorkflowPermission[];
@@ -315,6 +318,7 @@ export default function StaffLoanRequestShow({
     cycleState,
     documentChecklist,
     conditions,
+    internalNotes,
     notificationHistory,
     workflowPermissions,
     workflowContext,
@@ -337,6 +341,8 @@ export default function StaffLoanRequestShow({
         useState<LoanRequestAuditEntry[]>(auditTrail);
     const [currentConditions, setCurrentConditions] =
         useState<LoanRequestConditions>(conditions);
+    const [currentInternalNotes, setCurrentInternalNotes] =
+        useState<LoanRequestInternalNotes>(internalNotes);
     const [conditionPendingKey, setConditionPendingKey] = useState<
         string | null
     >(null);
@@ -1145,6 +1151,26 @@ export default function StaffLoanRequestShow({
             showErrorToast(error, 'Could not update the condition.');
         } finally {
             setConditionPendingKey(null);
+        }
+    };
+    const addInternalNote = async (body: string): Promise<boolean> => {
+        try {
+            const result = await adminApi.addLoanRequestNote(
+                currentRequest.id,
+                body,
+            );
+
+            setCurrentInternalNotes((current) => ({
+                ...current,
+                ...result.notes,
+            }));
+            setCurrentAuditTrail(result.auditTrail);
+
+            return true;
+        } catch (error) {
+            showErrorToast(error, 'Could not add the note.');
+
+            return false;
         }
     };
     const railStage = [
@@ -2444,6 +2470,10 @@ export default function StaffLoanRequestShow({
                                       }
                                     : null
                             }
+                        />
+                        <LoanRequestInternalNotesCard
+                            notes={currentInternalNotes}
+                            onAdd={addInternalNote}
                         />
                         <LoanRequestStatusRailCard
                             status={currentRequest.status}

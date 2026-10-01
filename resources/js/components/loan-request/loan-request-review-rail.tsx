@@ -1,10 +1,11 @@
 import { Check, Download } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import {
     nextStepCopy,
     statusDescriptions,
 } from '@/components/loan-request/loan-request-detail-page';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { formatDateTime } from '@/lib/formatters';
 import type {
     GateCount,
@@ -14,6 +15,7 @@ import type {
 import { cn } from '@/lib/utils';
 import type {
     LoanRequestConditions,
+    LoanRequestInternalNotes,
     LoanRequestStatusValue,
 } from '@/types/loan-requests';
 
@@ -348,6 +350,90 @@ export function LoanRequestStatusRailCard({
                     Download PDF
                 </a>
             ) : null}
+        </section>
+    );
+}
+
+type NotesProps = {
+    notes: LoanRequestInternalNotes;
+    /** Resolves true when saved, so the input clears only then. */
+    onAdd: (body: string) => Promise<boolean>;
+};
+
+/** Staff-only notes; the page never receives them for members or the applicant. */
+export function LoanRequestInternalNotesCard({ notes, onAdd }: NotesProps) {
+    const [draft, setDraft] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+
+    if (!notes.available) {
+        return null;
+    }
+
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        const body = draft.trim();
+
+        if (body === '' || isSaving) {
+            return;
+        }
+
+        setIsSaving(true);
+
+        if (await onAdd(body)) {
+            setDraft('');
+        }
+
+        setIsSaving(false);
+    };
+
+    return (
+        <section
+            aria-label="Internal notes"
+            className={cn(cardClassName, 'flex flex-col gap-2.5 px-[18px]')}
+        >
+            <h2 className="text-base font-semibold">Internal notes</h2>
+            {notes.can_add ? (
+                <form className="flex gap-2" onSubmit={submit}>
+                    <Input
+                        aria-label="New internal note"
+                        placeholder="Add a note for staff"
+                        maxLength={2000}
+                        value={draft}
+                        onChange={(event) => setDraft(event.target.value)}
+                        className="h-11 min-w-0 flex-1 text-[13px] lg:h-[38px]"
+                    />
+                    <Button
+                        type="submit"
+                        className="h-11 bg-foreground px-3 text-[13px] font-bold text-background hover:bg-foreground/90 lg:h-[38px]"
+                        disabled={draft.trim() === '' || isSaving}
+                    >
+                        Add
+                    </Button>
+                </form>
+            ) : null}
+            {notes.items.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No notes yet.</p>
+            ) : (
+                <ul>
+                    {notes.items.map((note) => (
+                        <li
+                            key={note.id}
+                            className="border-t border-border pt-2 pb-1"
+                        >
+                            <p className="text-[11px] text-muted-foreground">
+                                {note.author ?? 'Staff'}
+                                {note.created_at
+                                    ? ` · ${formatDateTime(note.created_at)}`
+                                    : ''}
+                            </p>
+                            <p className="text-[13px] leading-[1.45] break-words whitespace-pre-line">
+                                {note.body}
+                            </p>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </section>
     );
 }

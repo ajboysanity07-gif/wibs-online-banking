@@ -21,6 +21,7 @@ import {
 } from '@/routes/spa/workflow/loan-requests';
 import { update as workflowAssignmentUpdateRoute } from '@/routes/spa/workflow/loan-requests/assignment';
 import { update as workflowConditionUpdateRoute } from '@/routes/spa/workflow/loan-requests/conditions';
+import { store as workflowNoteStoreRoute } from '@/routes/spa/workflow/loan-requests/notes';
 import type {
     DashboardSummary,
     EditableStaffRoleName,
@@ -48,6 +49,7 @@ import type {
     LoanRequestDecisionResult,
     LoanRequestCancellationResult,
     LoanRequestConditionUpdateResult,
+    LoanRequestNoteCreateResult,
     LoanRequestWorkflowResult,
 } from '@/types/loan-requests';
 
@@ -597,6 +599,16 @@ export const adminApi = {
         >(workflowConditionUpdateRoute([loanRequestId, condition]).url, {
             verified,
         });
+
+        return unwrap(response);
+    },
+    async addLoanRequestNote(
+        loanRequestId: number,
+        body: string,
+    ): Promise<LoanRequestNoteCreateResult> {
+        const response = await client.post<
+            ApiResponse<LoanRequestNoteCreateResult>
+        >(workflowNoteStoreRoute(loanRequestId).url, { body });
 
         return unwrap(response);
     },

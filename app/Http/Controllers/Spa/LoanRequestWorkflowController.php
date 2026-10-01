@@ -9,6 +9,7 @@ use App\Http\Requests\Workflow\LoanRequestChecklistPreviewRequest;
 use App\Http\Requests\Workflow\LoanRequestClaimRequest;
 use App\Http\Requests\Workflow\LoanRequestConditionUpdateRequest;
 use App\Http\Requests\Workflow\LoanRequestGenerateDocumentsRequest;
+use App\Http\Requests\Workflow\LoanRequestNoteStoreRequest;
 use App\Http\Requests\Workflow\LoanRequestProcessingUpdateRequest;
 use App\Http\Requests\Workflow\LoanRequestRecommendApprovalRequest;
 use App\Http\Requests\Workflow\LoanRequestRecommendationPreviewRequest;
@@ -32,6 +33,7 @@ use App\Services\LoanRequests\LoanRequestConditionService;
 use App\Services\LoanRequests\LoanRequestCycleStateService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
+use App\Services\LoanRequests\LoanRequestNoteService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestProcessingService;
 use App\Services\LoanRequests\LoanRequestWorkflowService;
@@ -439,6 +441,39 @@ class LoanRequestWorkflowController extends Controller
                 'auditTrail' => $serializer->serializeAuditTrail($loanRequest),
             ],
         ]);
+    }
+
+    public function indexNotes(
+        LoanRequest $loanRequest,
+        LoanRequestNoteService $noteService,
+    ): JsonResponse {
+        Gate::authorize('manageInternalNotes', $loanRequest);
+
+        return response()->json([
+            'ok' => true,
+            'data' => ['notes' => $noteService->serialize($loanRequest)],
+        ]);
+    }
+
+    public function storeNote(
+        LoanRequestNoteStoreRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestNoteService $noteService,
+        LoanRequestPayloadSerializer $serializer,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        $noteService->add($loanRequest, $actor, $request->validated('body'));
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'notes' => $noteService->serialize($loanRequest),
+                'auditTrail' => $serializer->serializeAuditTrail($loanRequest),
+            ],
+        ], 201);
     }
 
     public function rejectDuringProcessing(

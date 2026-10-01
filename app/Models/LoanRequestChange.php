@@ -93,6 +93,8 @@ class LoanRequestChange extends Model
 
     public const ACTION_CONDITION_UNVERIFIED = 'condition_unverified';
 
+    public const ACTION_INTERNAL_NOTE_ADDED = 'internal_note_added';
+
     /**
      * @var list<string>
      */

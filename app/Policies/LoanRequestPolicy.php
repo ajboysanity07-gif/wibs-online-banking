@@ -216,6 +216,18 @@ class LoanRequestPolicy
         ], true);
     }
 
+    /**
+     * Internal notes are staff-only: any staff member who may monitor other
+     * members' requests, never the applicant (even when the applicant is staff).
+     */
+    public function manageInternalNotes(
+        AppUser $user,
+        LoanRequest $loanRequest,
+    ): bool {
+        return ! $this->ownsLoanRequest($user, $loanRequest)
+            && $this->canMonitorOtherUsersRequest($user);
+    }
+
     public function rejectDuringProcessing(
         AppUser $user,
         LoanRequest $loanRequest,
