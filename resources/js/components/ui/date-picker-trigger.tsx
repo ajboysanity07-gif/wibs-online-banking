@@ -52,6 +52,7 @@ export function DatePickerTrigger({
                     type="button"
                     variant="outline"
                     size="icon"
+                    data-slot="date-picker-trigger"
                     className="shrink-0"
                     disabled={disabled}
                     aria-label={ariaLabel}

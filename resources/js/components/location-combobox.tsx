@@ -160,6 +160,7 @@ export function LocationCombobox({
             <div className="relative">
                 <PopoverTrigger asChild>
                     <button
+                        data-slot="combobox-trigger"
                         id={id}
                         type="button"
                         role="combobox"

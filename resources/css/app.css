@@ -258,10 +258,17 @@
 /* Loan wizard fields: 48px, 10px radius, 15px text. Scoped to the wizard page
    so app-wide inputs keep their size. Unlayered, so it beats the utilities. */
 .wizard-fields [data-slot='input'],
-.wizard-fields [data-slot='select-trigger'] {
+.wizard-fields [data-slot='select-trigger'],
+.wizard-fields [data-slot='combobox-trigger'] {
     height: 3rem;
     border-radius: 10px;
     font-size: 15px;
+}
+
+.wizard-fields [data-slot='date-picker-trigger'] {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 10px;
 }
 
 .wizard-fields textarea {
