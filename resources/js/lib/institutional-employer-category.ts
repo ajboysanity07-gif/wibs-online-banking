@@ -37,7 +37,7 @@ export function isBarangayEmployer(
 
     const needle = employerBusinessName.toLowerCase();
 
-    if (needle.includes('barangay')) {
+    if (needle.includes('barangay') || needle.includes('blgu')) {
         return true;
     }
 

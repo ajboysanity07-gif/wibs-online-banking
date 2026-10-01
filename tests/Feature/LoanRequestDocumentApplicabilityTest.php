@@ -12,6 +12,7 @@ use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
 use App\Models\Role;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\InstitutionalEmployerCategoryResolver;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
 use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
@@ -115,6 +116,11 @@ test('undertaking barangay becomes applicable for a government worker whose empl
     $catalog = app(LoanRequestDocumentCatalog::class);
 
     expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest->fresh(), []))->toBeTrue();
+});
+
+test('an employer name containing "blgu" resolves as a barangay employer even without the government sector fields', function (): void {
+    expect(InstitutionalEmployerCategoryResolver::isBarangayEmployer('Blgu-Ban-As', 'Government', 'Government'))->toBeTrue()
+        ->and(InstitutionalEmployerCategoryResolver::isBarangayEmployer('BLGU Ban-as', null, null))->toBeTrue();
 });
 
 test('undertaking barangay stays not applicable for the "brgy" abbreviation when employment/nature of business are not both government', function (): void {

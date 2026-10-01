@@ -82,7 +82,7 @@ class InstitutionalEmployerCategoryResolver
 
         $needle = mb_strtolower($employerBusinessName);
 
-        if (str_contains($needle, 'barangay')) {
+        if (str_contains($needle, 'barangay') || str_contains($needle, 'blgu')) {
             return true;
         }
 
