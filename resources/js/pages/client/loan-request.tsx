@@ -1,6 +1,6 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ChevronLeft, Loader2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { CoMakerSheet } from '@/components/loan-request/co-maker-sheet';
 import { LoanApplicationCalculator } from '@/components/loan-request/loan-application-calculator';
@@ -16,20 +16,15 @@ import {
     SectionStatusBadge,
 } from '@/components/loan-request/loan-application-overview';
 import { LoanApplicationProgress } from '@/components/loan-request/loan-application-progress';
+import { LoanRequestAboutYouAccordion } from '@/components/loan-request/loan-request-about-you-accordion';
 import { LoanRequestCheckRow } from '@/components/loan-request/loan-request-check-row';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import {
-    LoanRequestApplicantPersonalStep,
-    LoanRequestApplicantWorkStep,
     LoanRequestDataSectionStep,
     LoanRequestLoanDetailsStep,
     LoanRequestReviewStep,
 } from '@/components/loan-request/loan-request-steps';
 import { LoanRequestWizardHeader } from '@/components/loan-request/loan-request-wizard-header';
-import {
-    closeInlineRows,
-    InlineEditProvider,
-} from '@/components/settings/inline-edit-row';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
     AlertDialog,
@@ -270,7 +265,6 @@ export default function LoanRequestPage({
     applicant,
     coMakerOne,
     coMakerTwo,
-    applicantReadOnly,
     savedCoMakers: initialSavedCoMakers,
     member,
     dataSections,
@@ -337,9 +331,6 @@ export default function LoanRequestPage({
         },
         dependents: { ...dataSections.dependents },
     });
-    // Applicant values as last saved to the draft -- "Cancel" on an About you
-    // row restores them.
-    const savedApplicantRef = useRef(form.data.applicant);
     const isSavingDraft = activeAction === 'draft';
     const isSubmitting = form.processing && activeAction === 'submit';
     const hasSavedDraft = draftState?.status === 'draft';
@@ -568,7 +559,6 @@ export default function LoanRequestPage({
                     updated_at: new Date().toISOString(),
                 });
             }
-            savedApplicantRef.current = form.data.applicant;
 
             return true;
         } catch {
@@ -651,17 +641,6 @@ export default function LoanRequestPage({
         }
     };
 
-    const handleSaveAboutYouRow = async () => {
-        if (await handleSaveDraft()) {
-            closeInlineRows();
-        }
-    };
-
-    const handleCancelAboutYouRow = () => {
-        form.setData('applicant', savedApplicantRef.current);
-        closeInlineRows();
-    };
-
     const handleSaveAndExit = async () => {
         if (await handleSaveDraft()) {
             showSuccessToast('Draft saved.', { id: 'manual-save-draft' });
@@ -737,15 +716,6 @@ export default function LoanRequestPage({
     const handleLoanDetailChange = (field: LoanDetailField, value: string) => {
         form.setData(field, value);
     };
-
-    const updateApplicantField = (
-        field: keyof LoanRequestPersonFormData,
-        value: string,
-    ) =>
-        form.setData((previous) => ({
-            ...previous,
-            applicant: { ...previous.applicant, [field]: value },
-        }));
 
     const updateDataSection =
         (sectionKey: 'banking' | 'declarations') =>
@@ -1071,69 +1041,35 @@ export default function LoanRequestPage({
                                 </AlertDescription>
                             </Alert>
                         ) : null}
-                        <InlineEditProvider
-                            rowMode
-                            processing={isSavingDraft}
-                            onSave={handleSaveAboutYouRow}
-                            onDiscard={handleCancelAboutYouRow}
-                        >
-                            <div className="space-y-5">
-                                {(['basic', 'contact', 'family'] as const).map(
-                                    (section) => (
-                                        <LoanRequestApplicantPersonalStep
-                                            key={section}
-                                            section={section}
-                                            values={form.data.applicant}
-                                            errors={form.errors}
-                                            readOnly={applicantReadOnly}
-                                            onChange={updateApplicantField}
-                                            contactNumberOnFile={
-                                                section === 'contact'
-                                                    ? member.telephone
-                                                    : undefined
-                                            }
-                                        />
-                                    ),
-                                )}
-                                <LoanRequestApplicantWorkStep
-                                    values={form.data.applicant}
-                                    errors={form.errors}
-                                    onChange={updateApplicantField}
-                                />
-                            </div>
-                        </InlineEditProvider>
+                        <LoanRequestAboutYouAccordion
+                            values={form.data.applicant}
+                        />
                         {applicantPrefilledFromProfile ||
                         applicantWorkIncomePrefilledFromProfile ? (
-                            <LoanRequestSectionCard
-                                title="Confirm your details"
-                                description="These details were pre-filled from your member profile or a previous request."
-                            >
-                                <div className="space-y-3">
-                                    {applicantPrefilledFromProfile ? (
-                                        <LoanRequestCheckRow
-                                            id="applicant_personal_confirmed"
-                                            checked={personalConfirmed}
-                                            onCheckedChange={toggleConfirmation(
-                                                'applicant_personal',
-                                            )}
-                                        >
-                                            My personal details are correct
-                                        </LoanRequestCheckRow>
-                                    ) : null}
-                                    {applicantWorkIncomePrefilledFromProfile ? (
-                                        <LoanRequestCheckRow
-                                            id="applicant_work_income_confirmed"
-                                            checked={workIncomeConfirmed}
-                                            onCheckedChange={toggleConfirmation(
-                                                'applicant_work_income',
-                                            )}
-                                        >
-                                            My work &amp; income details are
-                                            correct
-                                        </LoanRequestCheckRow>
-                                    ) : null}
-                                </div>
-                            </LoanRequestSectionCard>
+                            <div className="flex flex-col gap-2.5">
+                                {applicantPrefilledFromProfile ? (
+                                    <LoanRequestCheckRow
+                                        id="applicant_personal_confirmed"
+                                        checked={personalConfirmed}
+                                        onCheckedChange={toggleConfirmation(
+                                            'applicant_personal',
+                                        )}
+                                    >
+                                        My personal details are correct
+                                    </LoanRequestCheckRow>
+                                ) : null}
+                                {applicantWorkIncomePrefilledFromProfile ? (
+                                    <LoanRequestCheckRow
+                                        id="applicant_work_income_confirmed"
+                                        checked={workIncomeConfirmed}
+                                        onCheckedChange={toggleConfirmation(
+                                            'applicant_work_income',
+                                        )}
+                                    >
+                                        My work &amp; income details are correct
+                                    </LoanRequestCheckRow>
+                                ) : null}
+                            </div>
                         ) : null}
                         <p className="text-sm text-muted-foreground">
                             Something wrong?{' '}
@@ -1341,7 +1277,7 @@ export default function LoanRequestPage({
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="hidden h-12 px-4 text-[15px] sm:inline-flex md:h-12"
+                                className="hidden h-12 rounded-lg px-4 text-[15px] font-semibold sm:inline-flex md:h-12"
                                 onClick={() => go('hub')}
                             >
                                 Back to overview
@@ -1350,7 +1286,7 @@ export default function LoanRequestPage({
                             {view === 'review' ? (
                                 <Button
                                     type="button"
-                                    className="h-12 flex-1 px-7 text-[15px] font-bold sm:flex-none md:h-12"
+                                    className="h-12 flex-1 rounded-lg px-7 text-[15px] font-bold sm:flex-none md:h-12"
                                     disabled={
                                         !allDone ||
                                         isSubmitting ||
@@ -1366,7 +1302,7 @@ export default function LoanRequestPage({
                             ) : (
                                 <Button
                                     type="button"
-                                    className="h-12 flex-1 px-7 text-[15px] font-bold sm:flex-none md:h-12"
+                                    className="h-12 flex-1 rounded-lg px-7 text-[15px] font-bold sm:flex-none md:h-12"
                                     disabled={isSavingDraft}
                                     onClick={handleSaveSection}
                                 >

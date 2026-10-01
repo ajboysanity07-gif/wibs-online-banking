@@ -8,29 +8,34 @@ const pageFile = await readFile(
     'utf8',
 );
 
-test('client wizard sidebar clicks go through the gated handler', () => {
-    assert.match(pageFile, /onStepClick=\{handleSidebarStepClick\}/);
-    assert.doesNotMatch(pageFile, /onStepClick=\{handleStepChange\}/);
-    assert.match(
-        pageFile,
-        /step > currentStep &&\s*\(currentStepBlockers\.length > 0 \|\| step > highestStepReached\)/,
-    );
-});
-
-test('client wizard blocks Next and shows why for unchecked confirm checkboxes', () => {
+test('section status lists why a section is not done yet', () => {
     for (const message of [
         'Confirmation that your details are correct',
         'Confirmation of your work & income details',
         'Confirmation of your bank details',
+        'Truthfulness declaration',
+        'Data privacy consent',
     ]) {
         assert.ok(pageFile.includes(message), `missing blocker: ${message}`);
     }
 
-    assert.match(pageFile, /currentStepBlockers\.length > 0 \?/);
+    assert.match(pageFile, /complete: blockers\[section\]\.length === 0/);
+});
+
+test('submit stays disabled until every section is done', () => {
     assert.match(
         pageFile,
-        /if \(currentStepBlockers\.length > 0\) \{\s*return;/,
+        /const allDone = nextIncompleteSection\(statuses\) === null/,
     );
+    assert.match(pageFile, /!allDone \|\|\s*isSubmitting/);
+});
+
+test('confirmation ticks are saved with the draft', () => {
+    assert.match(pageFile, /wizard_confirmations: \[/);
+});
+
+test('returning applicants land on the overview, first-time on the calculator', () => {
+    assert.match(pageFile, /useState<View>\(draft \? 'hub' : 'calc'\)/);
 });
 
 test('dependents step is not part of the member wizard', async () => {
@@ -46,6 +51,5 @@ test('dependents step is not part of the member wizard', async () => {
     );
 
     assert.doesNotMatch(stepsFile, /id: 'dependents'/);
-    assert.doesNotMatch(pageFile, /STEP_INDEX\['dependents'\]/);
     assert.doesNotMatch(pageFile, /LoanRequestDependentsStep/);
 });

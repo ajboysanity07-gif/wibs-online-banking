@@ -180,7 +180,7 @@ function FieldRow({
     children,
 }: FieldRowProps) {
     if (!rows) {
-        return <div className={cn('grid gap-2', className)}>{children}</div>;
+        return <div className={cn('grid min-w-0 gap-2', className)}>{children}</div>;
     }
 
     const blank =
@@ -355,7 +355,7 @@ export function LoanRequestPersonalFields({
                 </div>
             ) : null}
             {section === 'all' || section === 'basic' ? (
-                <div className={rows ? undefined : 'grid gap-5 md:grid-cols-2'}>
+                <div className={rows ? undefined : 'grid min-w-0 gap-5 md:grid-cols-2'}>
                     <FieldRow
                         rows={rows}
                         label="First name"
@@ -637,7 +637,7 @@ export function LoanRequestPersonalFields({
             {section === 'all' ? <Separator className="bg-border/40" /> : null}
 
             {section === 'all' || section === 'contact' ? (
-                <div className={rows ? undefined : 'grid gap-5 md:grid-cols-2'}>
+                <div className={rows ? undefined : 'grid min-w-0 gap-5 md:grid-cols-2'}>
                     <FieldRow
                         rows={rows}
                         label="Province"
@@ -824,7 +824,6 @@ export function LoanRequestPersonalFields({
                         field="address1"
                         values={values}
                         readOnlyFields={readOnly}
-                        className="md:col-span-2"
                     >
                         <FieldLabel
                             htmlFor={`${prefix}_address1`}
@@ -1039,7 +1038,7 @@ export function LoanRequestPersonalFields({
             {section === 'all' ? <Separator className="bg-border/40" /> : null}
 
             {section === 'all' || section === 'family' ? (
-                <div className={rows ? undefined : 'grid gap-5 md:grid-cols-2'}>
+                <div className={rows ? undefined : 'grid min-w-0 gap-5 md:grid-cols-2'}>
                     {includeCivilHousing ? (
                         <FieldRow
                             rows={rows}
@@ -1412,7 +1411,7 @@ export function LoanRequestWorkFields({
     return (
         <div className="space-y-7">
             {section === 'all' || section === 'employment' ? (
-                <div className={rows ? undefined : 'grid gap-5 md:grid-cols-2'}>
+                <div className={rows ? undefined : 'grid min-w-0 gap-5 md:grid-cols-2'}>
                     <FieldRow
                         rows={rows}
                         label="Employment"
@@ -1720,7 +1719,6 @@ export function LoanRequestWorkFields({
                             label="Employer/Business address (street)"
                             field="employer_business_address1"
                             values={values}
-                            className="md:col-span-2"
                         >
                             <Label
                                 htmlFor={`${prefix}_employer_business_address1`}
@@ -1955,7 +1953,7 @@ export function LoanRequestWorkFields({
             ) : null}
 
             {section === 'all' || section === 'income' ? (
-                <div className={rows ? undefined : 'grid gap-5 md:grid-cols-2'}>
+                <div className={rows ? undefined : 'grid min-w-0 gap-5 md:grid-cols-2'}>
                     <FieldRow
                         rows={rows}
                         label="Gross monthly income"

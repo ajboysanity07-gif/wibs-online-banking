@@ -53,6 +53,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { FormErrorSummary } from '@/components/ui/form-error-summary';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -621,7 +622,7 @@ export function LoanRequestApplicantWorkStep({
                 onChange={onChange}
             />
             <Separator className="bg-border/40" />
-            <Alert className="border-border bg-muted/10">
+            <Alert className="rounded-lg border-border bg-muted">
                 <AlertTitle>Physical signatures</AlertTitle>
                 <AlertDescription>
                     Signatures will be collected physically upon loan release.
@@ -644,6 +645,8 @@ type CoMakerStepProps = {
     onRemoveSavedCoMaker?: (id: number) => void;
     onSaveCoMaker?: () => void;
     isSavingCoMaker?: boolean;
+    /** Render without the card wrapper — for use inside a sheet/drawer. */
+    bare?: boolean;
 };
 
 // "Load a saved co-maker" only appears on the first (basic) step of each
@@ -663,9 +666,9 @@ function SavedCoMakerPicker({
     }
 
     return (
-        <div className="space-y-3 rounded-md border border-border bg-muted/10 p-3">
+        <div className="space-y-3 rounded-xl border border-border bg-muted p-4">
             <div>
-                <p className="text-sm font-medium">Load a saved co-maker</p>
+                <p className="text-sm font-semibold">Load a saved co-maker</p>
                 <p className="text-xs text-muted-foreground">
                     Pick someone you&apos;ve used as a co-maker before to fill
                     in their details below. You can still edit anything after
@@ -676,7 +679,7 @@ function SavedCoMakerPicker({
                 {savedCoMakers.map((option) => (
                     <div
                         key={option.id}
-                        className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2"
+                        className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2"
                     >
                         <div>
                             <p className="text-sm font-medium">
@@ -729,17 +732,13 @@ export function LoanRequestCoMakerStep({
     onRemoveSavedCoMaker,
     onSaveCoMaker,
     isSavingCoMaker,
+    bare = false,
 }: CoMakerStepProps) {
-    const icon =
+    const Icon =
         section === 'basic' ? User : section === 'contact' ? MapPin : Briefcase;
 
-    return (
-        <LoanRequestSectionCard
-            title={title}
-            description={description}
-            icon={icon}
-            errors={errors}
-        >
+    const content = (
+        <>
             {section === 'basic' && savedCoMakers ? (
                 <SavedCoMakerPicker
                     savedCoMakers={savedCoMakers}
@@ -767,7 +766,7 @@ export function LoanRequestCoMakerStep({
                     {section === 'all' || section === 'income' ? (
                         <>
                             <Separator className="bg-border/40" />
-                            <Alert className="border-border bg-muted/10">
+                            <Alert className="rounded-lg border-border bg-muted">
                                 <AlertTitle>Physical signatures</AlertTitle>
                                 <AlertDescription>
                                     Signatures will be collected physically upon
@@ -795,6 +794,36 @@ export function LoanRequestCoMakerStep({
                     ) : null}
                 </>
             )}
+        </>
+    );
+
+    if (bare) {
+        return (
+            <div className="space-y-4">
+                <div className="border-b border-border pb-2">
+                    <h4 className="flex items-center gap-2 text-sm font-bold tracking-widest text-muted-foreground uppercase">
+                        {Icon ? (
+                            <Icon className="size-4 shrink-0" />
+                        ) : null}
+                        {title}
+                    </h4>
+                </div>
+                {errors ? (
+                    <FormErrorSummary errors={errors} onEntryClick={undefined} />
+                ) : null}
+                {content}
+            </div>
+        );
+    }
+
+    return (
+        <LoanRequestSectionCard
+            title={title}
+            description={description}
+            icon={Icon}
+            errors={errors}
+        >
+            {content}
         </LoanRequestSectionCard>
     );
 }
@@ -865,14 +894,11 @@ const resolveEmployerBusinessAddress = (
     );
 
 const SummaryGrid = ({ items }: { items: SummaryItem[] }) => (
-    <dl className="divide-y divide-border">
+    <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         {items.map((item) => (
-            <div
-                key={item.label}
-                className="flex items-start justify-between gap-4 py-2.5 text-sm"
-            >
-                <dt className="text-muted-foreground">{item.label}</dt>
-                <dd className="text-right font-semibold wrap-break-word">
+            <div key={item.label} className="min-w-0">
+                <dt className="text-xs text-muted-foreground">{item.label}</dt>
+                <dd className="text-sm font-semibold wrap-break-word">
                     {item.value}
                 </dd>
             </div>
@@ -894,12 +920,12 @@ const SummaryCard = ({
     children,
     action = null,
 }: SummaryCardProps) => (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-xl border border-border bg-card p-5 shadow-card">
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
-                <h3 className="text-sm font-semibold">{title}</h3>
+                <h3 className="text-base font-semibold">{title}</h3>
                 {description ? (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[13px] text-muted-foreground">
                         {description}
                     </p>
                 ) : null}
@@ -926,14 +952,14 @@ const AccordionSummaryCard = ({
 }: AccordionSummaryCardProps) => (
     <AccordionItem
         value={value}
-        className="rounded-lg border border-b-0 border-border bg-card px-4"
+        className="rounded-xl border border-border bg-card px-5 shadow-card"
     >
         <div className="flex items-center gap-3">
             <AccordionTrigger className="flex-1 py-4 hover:no-underline">
                 <div className="space-y-1 text-left">
-                    <h3 className="text-sm font-semibold">{title}</h3>
+                    <h3 className="text-base font-semibold">{title}</h3>
                     {description ? (
-                        <p className="text-xs font-normal text-muted-foreground">
+                        <p className="text-[13px] font-normal text-muted-foreground">
                             {description}
                         </p>
                     ) : null}
@@ -980,7 +1006,7 @@ const QuestionAnswerList = ({
                     </div>
                 </div>
                 {item.children.length > 0 ? (
-                    <div className="ml-4 space-y-3 rounded-md border-l-4 border-primary/25 bg-muted/10 py-3 pl-4">
+                    <div className="ml-4 space-y-3 rounded-lg border-l-4 border-primary/25 bg-muted p-3">
                         <QuestionAnswerList
                             items={item.children}
                             depth={depth + 1}
@@ -1206,7 +1232,7 @@ function BankingSectionFields({
                 </div>
 
                 <div
-                    className="flex flex-wrap items-center gap-3 rounded-md border border-input p-3 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20"
+                    className="flex flex-wrap items-center gap-3 rounded-xl border-[1.5px] border-input bg-card p-4 shadow-card aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20"
                     aria-invalid={Boolean(
                         errors[`${sectionKey}.release_method`] ||
                         errors[`${sectionKey}.release_saved_account_id`],
@@ -1254,7 +1280,7 @@ function BankingSectionFields({
                 </div>
 
                 <div
-                    className="flex flex-wrap items-center gap-3 rounded-md border border-input p-3 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20"
+                    className="flex flex-wrap items-center gap-3 rounded-xl border-[1.5px] border-input bg-card p-4 shadow-card aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20"
                     aria-invalid={Boolean(
                         errors[`${sectionKey}.payment_option`] ||
                         errors[`${sectionKey}.payment_saved_account_id`],
@@ -1536,7 +1562,7 @@ export function LoanRequestDataSectionStep({
                     );
                 })}
             </div>
-            <Alert className="border-border bg-muted/10">
+            <Alert className="rounded-lg border-border bg-muted">
                 <AlertTitle>Member-provided details</AlertTitle>
                 <AlertDescription>
                     Complete the applicable fields in this section before
@@ -1663,7 +1689,7 @@ export function LoanRequestInsuranceBeneficiariesStep({
                     {SECONDARY_BENEFICIARY_KEYS.map(renderField)}
                 </div>
             </div>
-            <Alert className="border-border bg-muted/10">
+            <Alert className="rounded-lg border-border bg-muted">
                 <AlertTitle>Member-provided details</AlertTitle>
                 <AlertDescription>
                     Complete the applicable fields in this section before
@@ -2390,8 +2416,8 @@ export function LoanRequestReviewStep({
             errors={errors}
             onErrorClick={onErrorClick}
         >
-            <div className="rounded-lg border border-border bg-muted/20 p-4 text-sm">
-                <p className="text-xs text-muted-foreground uppercase">
+            <div className="rounded-xl border border-border bg-muted p-4 text-sm">
+                <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                     Member
                 </p>
                 <p className="mt-2 font-medium">{displayText(member.name)}</p>
@@ -2552,7 +2578,7 @@ export function LoanRequestReviewStep({
                 ))}
             </Accordion>
 
-            <Alert className="border-border bg-muted/10">
+            <Alert className="rounded-lg border-border bg-muted">
                 <AlertTitle>Physical signatures</AlertTitle>
                 <AlertDescription>
                     Signatures will be collected physically upon loan release.

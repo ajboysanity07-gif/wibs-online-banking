@@ -100,6 +100,17 @@ test('loan request actions group document buttons and separate navigation', asyn
         clientPageFile,
         /\['submitted', 'pending_review', 'under_review'\]\.includes/,
     );
-    assert.match(clientPageFile, /Reason \(optional\)/);
-    assert.match(clientPageFile, /Confirm Cancellation/);
+    // The member cancel dialog lives in the detail view component.
+    const memberDetailFile = await readFile(
+        resolve(
+            'resources',
+            'js',
+            'components',
+            'loan-request',
+            'loan-request-detail.tsx',
+        ),
+        'utf8',
+    );
+    assert.match(memberDetailFile, /Reason \(optional\)/);
+    assert.match(memberDetailFile, /Keep application/);
 });

@@ -75,7 +75,7 @@ export function BirthdateInput({
     }
 
     return (
-        <div className="mt-1 flex gap-2">
+        <div className="mt-1 flex w-full gap-2">
             <PatternFormat
                 id={id}
                 name={name}

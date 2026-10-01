@@ -15,7 +15,6 @@ type ResolveMemberActionPayload = {
     insurance?: Record<string, unknown>;
     authorization?: Record<string, unknown>;
     banking?: Record<string, unknown>;
-    barangay?: Record<string, unknown>;
     declarations?: Record<string, unknown>;
 };
 

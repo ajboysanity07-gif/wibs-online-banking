@@ -87,7 +87,7 @@ export function LoanRequestSectionCard({
     return (
         <Card
             className={cn(
-                'animate-in border-border bg-card duration-200 fade-in slide-in-from-top-2',
+                'rounded-xl border border-border bg-card shadow-card',
                 className,
             )}
         >

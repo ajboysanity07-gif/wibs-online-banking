@@ -116,10 +116,10 @@ function CoMakerForm({
     return (
         <>
             <SheetHeader className="border-b border-border pr-14">
-                <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                <p className="text-[11px] font-bold tracking-[0.14em] text-muted-foreground uppercase">
                     Co-maker {number}
                 </p>
-                <SheetTitle className="text-lg font-bold">
+                <SheetTitle className="text-xl font-bold">
                     Co-maker details
                 </SheetTitle>
                 <SheetDescription className="sr-only">
@@ -133,7 +133,7 @@ function CoMakerForm({
                             substeps={STEPS.length}
                         />
                     ) : (
-                        <p className="text-sm font-semibold">
+                        <p className="text-sm font-semibold text-muted-foreground">
                             Step {step + 1} of {STEPS.length} ·{' '}
                             {STEPS[step].title}
                         </p>
@@ -165,6 +165,7 @@ function CoMakerForm({
                         onRemoveSavedCoMaker={onRemoveSaved}
                         onSaveCoMaker={() => onSaveForReuse(person)}
                         isSavingCoMaker={isSavingForReuse}
+                        bare
                     />
                 ))}
             </div>
