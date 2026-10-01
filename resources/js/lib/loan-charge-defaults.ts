@@ -13,6 +13,15 @@ export const resolveDefaultLoanSecurityRate = (
     typecode: string | null | undefined,
 ): number => (typecode === OTHER_LOAN_TYPECODE ? 0.02 : 0.05);
 
+// Mirrors LoanFiguresCalculator::insuranceTerm(): insurance covers the loan
+// term up to 12 months; a term under two months carries no insurance.
+export const INSURANCE_TERM_MAX_MONTHS = 12;
+
+export const resolveInsuranceTerm = (term: number): number =>
+    Number.isFinite(term) && term >= 2
+        ? Math.min(Math.trunc(term), INSURANCE_TERM_MAX_MONTHS)
+        : 0;
+
 // Insurer's senior-age insurance rate bands (from the loan processors'
 // reference table). Only these two bands are currently known; applicants
 // outside them are locked to a fixed rate of 1 (see withProcessingChargeDefaults).

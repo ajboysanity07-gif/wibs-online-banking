@@ -190,12 +190,9 @@ class ApprovedLoanDocumentDataBuilder
                 ?? null,
             0.0,
         );
-        $insuranceTerm = $isDueDateNoInsurance ? 0 : $this->resolveIntegerOverride(
-            $overrideLoan['insurance_term']
-                ?? $flatValues['insurance_term']
-                ?? null,
-            0,
-        );
+        // Always derived from the term (capped at 12 months); any saved or
+        // posted insurance_term is ignored.
+        $insuranceTerm = $this->figuresCalculator->insuranceTerm($approvedTerm);
         $defaultLoanSecurityRate = $this->figuresCalculator->defaultLoanSecurityRate((string) $loanRequest->typecode);
         $loanSecurityRateRaw = $isLumpsum ? 0.0 : $this->resolveNumericOverride(
             $overrideLoan['loan_security_rate_raw']

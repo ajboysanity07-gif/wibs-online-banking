@@ -23,6 +23,8 @@ class LoanFiguresCalculator
 
     public const NOTARIAL_FEE_DEFAULT = 100.0;
 
+    public const INSURANCE_TERM_MAX_MONTHS = 12;
+
     // Mirrors WIBS desktop's loanpay.SCT: loansec = IIF(typc='01', prn*.02, prn*.05).
     // Typecode '01' ("Other Loan") carries a 2% Loan Security rate; every other
     // loan type (Micro Business, Micro Buko, Buko Unlad, ...) carries 5%. This
@@ -39,6 +41,19 @@ class LoanFiguresCalculator
         return $typecode === self::OTHER_LOAN_TYPECODE
             ? self::LOAN_SECURITY_RATE_OTHER_LOAN
             : self::LOAN_SECURITY_RATE_DEFAULT;
+    }
+
+    /**
+     * Insurance covers the loan term up to 12 months; a term under two months
+     * carries no insurance at all. Always derived, never entered.
+     */
+    public function insuranceTerm(?int $term): int
+    {
+        if ($term === null || $term < 2) {
+            return 0;
+        }
+
+        return min($term, self::INSURANCE_TERM_MAX_MONTHS);
     }
 
     /**
@@ -170,7 +185,7 @@ class LoanFiguresCalculator
     /**
      * The member calculator's estimate: the same calculate() call staff
      * preview runs, fed the institutional defaults a processor starts from.
-     * Insurance covers the whole term (skipped under two months, like
+     * Insurance covers the term up to 12 months (skipped under two months, like
      * ApprovedLoanDocumentDataBuilder); interest and service charge come from
      * config and stay null (excluded) until configured.
      *
@@ -201,7 +216,7 @@ class LoanFiguresCalculator
                 'interest_rate' => $interestRate,
                 'service_charge_rate' => $serviceChargeRate,
                 'insurance_rate' => $skipsInsurance ? 0.0 : ($insuranceRate ?? 1.0),
-                'insurance_term' => $skipsInsurance ? 0 : $term,
+                'insurance_term' => $this->insuranceTerm($term),
                 'loan_security_rate' => $loanSecurityRate,
                 'savings_rate' => $loanSecurityRate,
                 'documentary_stamp_rate' => self::DOCUMENTARY_STAMP_INSTITUTIONAL_RATE,

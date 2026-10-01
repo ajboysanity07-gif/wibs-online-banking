@@ -52,6 +52,7 @@ import {
     calculateAgeFromBirthdate,
     resolveAgeBandedInsuranceRate,
     resolveDefaultLoanSecurityRate,
+    resolveInsuranceTerm,
 } from '@/lib/loan-charge-defaults';
 import { missingSignatoryFields } from '@/lib/loan-request-review-tab';
 import { cn } from '@/lib/utils';
@@ -282,7 +283,7 @@ const PAYMENT_FREQUENCY_OPTIONS = [...PAYDAY_OPTIONS, 'Due date'] as const;
 const withProcessingChargeDefaults = (
     processing: Record<string, string | number | boolean | null>,
     applicantBirthdate: string | null = null,
-    isInsuranceSkipped = false,
+    recommendedTerm = 0,
     typecode: string | null | undefined = null,
 ): Record<string, string | number | boolean | null> => {
     let next = processing;
@@ -306,18 +307,19 @@ const withProcessingChargeDefaults = (
         }
     }
 
-    // insurance_rate is always system-controlled, never manually entered:
-    // table-driven when the applicant falls in a known senior-age band,
-    // otherwise fixed at 1 -- unless insurance itself is skipped (term under
-    // two months), in which case both insurance_rate and insurance_term are
-    // locked to 0, mirroring ApprovedLoanDocumentDataBuilder's
-    // $isDueDateNoInsurance. Force these every time (not just when blank) so
-    // a stale saved value never survives a re-render.
+    // insurance_rate and insurance_term are always system-controlled, never
+    // manually entered. The rate is table-driven when the applicant falls in
+    // a known senior-age band, otherwise fixed at 1; the term is the
+    // recommended term capped at 12 months. Both are 0 when insurance is
+    // skipped (term under two months), mirroring ApprovedLoanDocumentDataBuilder.
+    // Force these every time (not just when blank) so a stale saved value
+    // never survives a re-render.
+    const insuranceTerm = resolveInsuranceTerm(recommendedTerm);
     const ageBandedRate = resolveAgeBandedInsuranceRate(applicantBirthdate);
     next = {
         ...next,
-        insurance_rate: isInsuranceSkipped ? 0 : (ageBandedRate ?? 1),
-        insurance_term: isInsuranceSkipped ? 0 : next.insurance_term,
+        insurance_rate: insuranceTerm === 0 ? 0 : (ageBandedRate ?? 1),
+        insurance_term: insuranceTerm,
     };
 
     // penalty_rate_per_month is likewise always locked to its institutional
@@ -429,6 +431,7 @@ const PREVIEW_PROCESSING_KEYS = [
 const DERIVED_PROCESSING_KEYS = [
     'savings_rate',
     'insurance_rate',
+    'insurance_term',
     'penalty_rate_per_month',
     'guaranteed_net_take_home_pay',
     'witness_two_id',
@@ -582,7 +585,7 @@ export function ProcessingDetailsPanel({
                         loanRequest.assigned_processor,
                     ),
                     applicant?.birthdate ?? null,
-                    Number(loanRequest.recommended_term ?? '') < 2,
+                    Number(loanRequest.recommended_term ?? ''),
                     loanRequest.typecode,
                 ),
                 dataSections.dependents,
@@ -677,11 +680,13 @@ export function ProcessingDetailsPanel({
     // term under two months carries no insurance premium, regardless of
     // payment frequency or kind_of_loan, regardless of what staff enter here.
     const isInsuranceSkipped = Number(processingForm.recommended_term) < 2;
+    const derivedInsuranceTerm = resolveInsuranceTerm(
+        Number(processingForm.recommended_term),
+    );
 
-    // Keeps insurance_rate/insurance_term locked at 0 as staff live-edit the
-    // payment frequency Select and/or the Recommended term input -- these
-    // are two independently-editable fields, so neither one's onChange
-    // handler alone can recompute the combined condition.
+    // Keeps insurance_rate/insurance_term in sync as staff live-edit the
+    // Recommended term: the term follows it (capped at 12 months), and both
+    // lock to 0 when insurance is skipped.
     useEffect(() => {
         const ageBandedRate = resolveAgeBandedInsuranceRate(
             applicant?.birthdate ?? null,
@@ -691,7 +696,7 @@ export function ProcessingDetailsPanel({
         setProcessingForm((current) => {
             const currentRate = current.processing.insurance_rate;
             const currentTerm = current.processing.insurance_term;
-            const nextTerm = isInsuranceSkipped ? 0 : currentTerm;
+            const nextTerm = derivedInsuranceTerm;
 
             // Bail out with the same reference when nothing changed -- this
             // effect both reads and writes these two fields, so an
@@ -709,7 +714,7 @@ export function ProcessingDetailsPanel({
                 },
             };
         });
-    }, [isInsuranceSkipped, applicant?.birthdate]);
+    }, [isInsuranceSkipped, derivedInsuranceTerm, applicant?.birthdate]);
 
     useEffect(() => {
         setProcessingForm(buildInitialProcessingForm());
@@ -2077,10 +2082,10 @@ export function ProcessingDetailsPanel({
                     </div>
                 ) : null}
                 {renderProcessingField('insurance_term', {
-                    disabled: isInsuranceSkipped,
+                    disabled: true,
                     tooltip: isInsuranceSkipped
                         ? 'No insurance premium applies to this loan (recommended term under 2 months) — locked at 0.'
-                        : undefined,
+                        : 'Automatic: follows the recommended term, up to 12 months.',
                 })}
                 {renderProcessingField('notarial_fee', {
                     placeholder: 'Enter notarial fee',
@@ -2091,6 +2096,7 @@ export function ProcessingDetailsPanel({
             <p className="text-xs text-muted-foreground">
                 Insurance rate, documentary stamp and penalty rate are set by
                 policy; they stay in the charges table and are not edited here.
+                Insurance term follows the recommended term, up to 12 months.
             </p>
 
             {loanRequest.waiver_applicability?.deped.applicable && (

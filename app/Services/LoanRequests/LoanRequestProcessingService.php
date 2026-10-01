@@ -25,6 +25,7 @@ class LoanRequestProcessingService
         private LoanManagerWitnessResolver $loanManagerWitnessResolver,
         private LoanRequestCycleStateService $cycleStateService,
         private SavedPaymentAccountsService $savedPaymentAccountsService,
+        private LoanFiguresCalculator $figuresCalculator,
     ) {}
 
     /**
@@ -283,6 +284,12 @@ class LoanRequestProcessingService
             if ($processorDisplayName !== null) {
                 $processingPayload['witness_one_name'] = $processorDisplayName;
             }
+
+            // Insurance term is system-controlled: the recommended term capped
+            // at 12 months (0 under two months), whatever the client submitted.
+            $processingPayload['insurance_term'] = $this->figuresCalculator->insuranceTerm(
+                $lockedLoanRequest->recommended_term !== null ? (int) $lockedLoanRequest->recommended_term : null,
+            );
 
             // Witness 2 is the loan manager who will witness the documents.
             // With a single active loan manager the name is forced server-side

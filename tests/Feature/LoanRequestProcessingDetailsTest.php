@@ -806,7 +806,8 @@ test('processing update round-trips all Charges & Fees fields through save respo
             'guaranteed_net_take_home_pay' => '21333.34',
         ],
         'recommended_amount' => null,
-        'recommended_term' => null,
+        // insurance_term is derived from this (capped at 12 months).
+        'recommended_term' => 12,
         'recommended_interest_rate' => null,
         'recommended_payment_frequency' => null,
     ];
@@ -851,6 +852,37 @@ test('processing update round-trips all Charges & Fees fields through save respo
             ->and($rawEntries->get($field)->value_json['value'] ?? null)->toBe($expected);
     }
 });
+
+test('processing update derives insurance term from the recommended term, capped at 12 months', function (int $term, int $expected): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950006');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['gross_monthly_income' => 15000]);
+
+    $this->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Insurance term check',
+            // A hand-entered value is ignored in favor of the derived one.
+            'processing' => ['insurance_term' => $term < 2 ? 0 : 5],
+            'recommended_term' => $term,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.dataSections.processing.insurance_term', $expected);
+})->with([
+    'under two months' => [1, 0],
+    'six months' => [6, 6],
+    'twenty-four months' => [24, 12],
+]);
 
 test('processing update no longer requires an information source', function (): void {
     $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
