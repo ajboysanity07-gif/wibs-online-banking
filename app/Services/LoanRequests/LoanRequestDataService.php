@@ -890,46 +890,6 @@ class LoanRequestDataService
             'section' => 'processing',
             'type' => 'integer',
         ],
-        'barangay_official_name' => [
-            'label' => 'Barangay official name',
-            'owner' => self::OWNER_STAFF,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'processing',
-            'type' => 'string',
-        ],
-        'barangay_official_title' => [
-            'label' => 'Barangay official title',
-            'owner' => self::OWNER_STAFF,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'processing',
-            'type' => 'string',
-        ],
-        'barangay_official_designation' => [
-            'label' => 'Barangay official designation',
-            'owner' => self::OWNER_STAFF,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'processing',
-            'type' => 'string',
-        ],
-        'barangay_agency_name' => [
-            'label' => 'Agency name',
-            'owner' => self::OWNER_STAFF,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'processing',
-            'type' => 'string',
-        ],
-        'barangay_agency_address' => [
-            'label' => 'Agency address',
-            'owner' => self::OWNER_STAFF,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'processing',
-            'type' => 'string',
-        ],
         'authority_to_deduct_institution_name' => [
             'label' => 'Authority to Deduct: institution name',
             'owner' => self::OWNER_STAFF,
@@ -1640,7 +1600,6 @@ class LoanRequestDataService
             $sections['processing']['authority_to_deduct_institution_name'] =
                 (new LoanRequestDocumentCatalog)->suggestedAuthorityToDeductInstitutionName(
                     $loanRequest,
-                    $flatValues,
                 );
         }
 

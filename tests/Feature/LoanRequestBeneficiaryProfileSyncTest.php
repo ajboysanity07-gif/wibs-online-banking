@@ -205,11 +205,6 @@ test('submit writes back validated beneficiary fields to the member profile', fu
             'payment_option' => LoanPaymentOption::AtmDeduction->value,
             'payment_saved_account_id' => $account->id,
         ],
-        'barangay' => [
-            'barangay_official_designation' => null,
-            'barangay_agency_name' => null,
-            'barangay_agency_address' => null,
-        ],
         'declarations' => [
             'declaration_existing_loans' => false,
             'declaration_pending_cases' => false,

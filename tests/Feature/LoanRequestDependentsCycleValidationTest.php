@@ -197,11 +197,6 @@ test('store endpoint accepts cycle status without cycle number (auto-computed se
                 'payment_option' => LoanPaymentOption::AtmDeduction->value,
                 'payment_saved_account_id' => $member->memberApplicationProfile->payment_saved_account_id,
             ],
-            'barangay' => [
-                'barangay_official_designation' => null,
-                'barangay_agency_name' => null,
-                'barangay_agency_address' => null,
-            ],
             'declarations' => [
                 'declaration_existing_loans' => false,
                 'declaration_pending_cases' => false,
@@ -283,11 +278,6 @@ function submitLoanRequestForCycleStatusTest(
                 'release_saved_account_id' => $member->memberApplicationProfile->release_saved_account_id,
                 'payment_option' => LoanPaymentOption::AtmDeduction->value,
                 'payment_saved_account_id' => $member->memberApplicationProfile->payment_saved_account_id,
-            ],
-            'barangay' => [
-                'barangay_official_designation' => null,
-                'barangay_agency_name' => null,
-                'barangay_agency_address' => null,
             ],
             'declarations' => [
                 'declaration_existing_loans' => false,

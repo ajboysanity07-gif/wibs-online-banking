@@ -1169,11 +1169,6 @@ function acceptanceLoanRequestPayload(AppUser $member): array
             'payment_option' => 'ATM Deduction',
             'payment_saved_account_id' => $savedAccountId,
         ],
-        'barangay' => [
-            'barangay_official_designation' => null,
-            'barangay_agency_name' => null,
-            'barangay_agency_address' => null,
-        ],
         'declarations' => [
             'declaration_existing_loans' => false,
             'declaration_pending_cases' => false,
@@ -1291,8 +1286,6 @@ function acceptanceProcessingPayload(): array
             'notarial_fee' => 250,
             'penalty_rate_per_month' => 3,
             'witness_one_name' => 'Witness One',
-            'barangay_official_name' => 'Barangay Captain',
-            'barangay_official_title' => 'Punong Barangay',
             'guaranteed_net_take_home_pay' => 15000,
         ],
         'recommended_amount' => 25000,

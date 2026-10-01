@@ -128,11 +128,6 @@ function submitPaymentMethodTestLoan(AppUser $member): LoanRequest
             'release_method' => 'Check',
             'payment_option' => 'Salary Deduction',
         ],
-        'barangay' => [
-            'barangay_official_designation' => null,
-            'barangay_agency_name' => null,
-            'barangay_agency_address' => null,
-        ],
         'declarations' => [
             'declaration_existing_loans' => false,
             'declaration_pending_cases' => false,

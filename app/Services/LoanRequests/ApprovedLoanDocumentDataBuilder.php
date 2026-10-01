@@ -438,23 +438,6 @@ class ApprovedLoanDocumentDataBuilder
                     $overrideProcessing['pdc_drawee_bank'] ?? $flatValues['pdc_drawee_bank'] ?? null,
                 ),
             ],
-            'barangay' => [
-                'official_name' => $this->normalizeText(
-                    $overrideProcessing['barangay_official_name'] ?? $flatValues['barangay_official_name'] ?? null,
-                ),
-                'official_title' => $this->normalizeText(
-                    $overrideProcessing['barangay_official_title'] ?? $flatValues['barangay_official_title'] ?? null,
-                ),
-                'official_designation' => $this->normalizeText(
-                    $overrideProcessing['barangay_official_designation'] ?? $flatValues['barangay_official_designation'] ?? null,
-                ),
-                'agency_name' => $this->normalizeText(
-                    $overrideProcessing['barangay_agency_name'] ?? $flatValues['barangay_agency_name'] ?? null,
-                ),
-                'agency_address' => $this->normalizeText(
-                    $overrideProcessing['barangay_agency_address'] ?? $flatValues['barangay_agency_address'] ?? null,
-                ),
-            ],
             'authority_to_deduct' => [
                 'institution_name' => $this->normalizeText(
                     $overrideProcessing['authority_to_deduct_institution_name'] ?? $flatValues['authority_to_deduct_institution_name'] ?? null,

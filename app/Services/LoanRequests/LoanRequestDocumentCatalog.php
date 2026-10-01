@@ -303,13 +303,7 @@ class LoanRequestDocumentCatalog
                 'guaranteed_net_take_home_pay',
             ],
             'source_fields' => [
-                // barangay_official_designation/agency_name/agency_address are staff-entered
-                // (processing section) and feed the PDF's official_designation/agency_name/
-                // agency_address content directly -- see ApprovedLoanDocumentDataBuilder.
                 'guaranteed_net_take_home_pay',
-                'barangay_official_designation',
-                'barangay_agency_name',
-                'barangay_agency_address',
             ],
             'source_paths' => [
                 'loan_request.recommended_amount',
@@ -712,25 +706,13 @@ class LoanRequestDocumentCatalog
      * category detection already used to decide waiver-document applicability
      * (barangay/DepEd/pensioner) -- a display-time default only, staff can still
      * edit or clear it before saving.
-     *
-     * @param  array<string, mixed>  $flatValues
      */
     public function suggestedAuthorityToDeductInstitutionName(
         LoanRequest $loanRequest,
-        array $flatValues,
     ): ?string {
         $employer = $loanRequest->applicant?->employer_business_name;
-        $employer = is_string($employer) && trim($employer) !== '' ? trim($employer) : null;
 
-        if ($this->authorityToDeductCategory($loanRequest, $flatValues) === LoanInstitutionalEmployerCategory::Blgu) {
-            $barangayAgencyName = $flatValues['barangay_agency_name'] ?? null;
-
-            if (is_string($barangayAgencyName) && trim($barangayAgencyName) !== '') {
-                return trim($barangayAgencyName);
-            }
-        }
-
-        return $employer;
+        return is_string($employer) && trim($employer) !== '' ? trim($employer) : null;
     }
 
     /**
@@ -924,7 +906,7 @@ class LoanRequestDocumentCatalog
         $institutionName = $flatValues['authority_to_deduct_institution_name'] ?? null;
         $institutionName = is_string($institutionName) && trim($institutionName) !== ''
             ? trim($institutionName)
-            : $this->suggestedAuthorityToDeductInstitutionName($loanRequest, $flatValues);
+            : $this->suggestedAuthorityToDeductInstitutionName($loanRequest);
 
         if ($institutionName === null) {
             return null;

@@ -236,14 +236,6 @@ const withWitnessTwoAutoFill = (
     };
 };
 
-const SNAPSHOT_BARANGAY_FIELDS = [
-    'barangay_official_name',
-    'barangay_official_title',
-    'barangay_official_designation',
-    'barangay_agency_name',
-    'barangay_agency_address',
-];
-
 const SNAPSHOT_DEPED_FIELDS = [
     'deped_school_id_number',
     'deped_deduction_amount',
@@ -2236,16 +2228,6 @@ export function ProcessingDetailsPanel({
                                 : "Recorded automatically using the approving manager's name when the request is approved.",
                     })
                 )}
-                {loanRequest.authority_to_deduct_guidance?.category ===
-                    'blgu' && (
-                    <>
-                        {renderProcessingField('barangay_official_name')}
-                        {renderProcessingField('barangay_official_title')}
-                        {renderProcessingField('barangay_official_designation')}
-                        {renderProcessingField('barangay_agency_name')}
-                        {renderProcessingField('barangay_agency_address')}
-                    </>
-                )}
             </div>
 
             {loanRequest.authority_to_deduct_guidance?.applicable !== false && (
@@ -2684,11 +2666,6 @@ export function ProcessingDetailsPanel({
                             : `${processingValue('witness_two_name')}`
                     }
                 />
-                {loanRequest.authority_to_deduct_guidance?.category ===
-                    'blgu' &&
-                    SNAPSHOT_BARANGAY_FIELDS.map((fieldKey) =>
-                        renderSnapshotField(fieldKey),
-                    )}
             </SnapshotGroup>
 
             {loanRequest.authority_to_deduct_guidance?.applicable !== false && (

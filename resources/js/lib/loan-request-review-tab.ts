@@ -63,8 +63,6 @@ const SIGNATORY_FIELDS = [
     'authority_to_deduct_officer_1_title',
     'authority_to_deduct_officer_2_name',
     'authority_to_deduct_officer_2_title',
-    'barangay_official_name',
-    'barangay_official_title',
 ];
 
 /**

@@ -13,7 +13,6 @@ use App\Models\LoanRequestPerson;
 use App\Models\Role;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\InstitutionalEmployerCategoryResolver;
-use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
 use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
 
@@ -79,13 +78,7 @@ test('undertaking barangay becomes applicable once staff enter the barangay agen
 
     $catalog = app(LoanRequestDocumentCatalog::class);
 
-    applicabilityPersistDataEntries($loanRequest, [
-        'barangay_agency_name' => ['string', 'Barangay San Isidro'],
-    ]);
-
-    $flatValues = app(LoanRequestDataService::class)->loadFlatValues($loanRequest);
-
-    expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest->fresh(), $flatValues))->toBeTrue();
+    expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest->fresh(), []))->toBeTrue();
 });
 
 test('undertaking barangay becomes applicable when the applicant employer name contains "barangay"', function (): void {
@@ -196,10 +189,6 @@ test('undertaking barangay surfaces incomplete when applicable but its required 
         ->role(LoanRequestPersonRole::Applicant)
         ->create(['employment_type' => 'Government', 'employer_business_name' => 'Barangay San Isidro']);
 
-    applicabilityPersistDataEntries($loanRequest, [
-        'barangay_agency_name' => ['string', 'Barangay San Isidro'],
-    ]);
-
     $entry = applicabilityChecklistEntry($loanRequest->fresh(), LoanRequestDocumentKey::UndertakingBarangay);
 
     expect($entry['is_applicable'])->toBeTrue()
@@ -219,7 +208,6 @@ test('undertaking barangay becomes ready to generate once applicable and its req
         ->create(['employment_type' => 'Government', 'employer_business_name' => 'Barangay San Isidro']);
 
     applicabilityPersistDataEntries($loanRequest, [
-        'barangay_agency_name' => ['string', 'Barangay San Isidro'],
         'guaranteed_net_take_home_pay' => ['number', 15000],
     ]);
 

@@ -46,9 +46,7 @@ class UndertakingBarangayPdfFieldMap implements ApprovedLoanPdfFieldMap
             // were dropped here in the artwork rebuild (loan.approved_date now lives only
             // on the signature line below; loan.type and organization.company_name have no
             // remaining slot in the rewritten paragraph text).
-            // Age/Civil Status/Nationality -- new row occupying the space vacated by the
-            // three dead barangay.* fields (removed, see LoanRequestDocumentCatalog and
-            // buildDocumentData()). Column boundaries: 27-82, 88-142, 148-196.
+            // Age/Civil Status/Nationality row. Column boundaries: 27-82, 88-142, 148-196.
             [
                 'page' => 1,
                 'x' => 37,
@@ -73,9 +71,7 @@ class UndertakingBarangayPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'style' => 'B',
                 'value' => 'applicant.nationality',
             ],
-            // Designation/Agency/Agency Address now source from the applicant's own
-            // employment record, not a staff-entered barangay.* override -- confirmed bug
-            // fix, position unchanged.
+            // Designation/Agency/Agency Address come from the applicant's own employment record.
             [
                 'page' => 1,
                 'x' => 65,

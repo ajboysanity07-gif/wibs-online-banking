@@ -426,11 +426,6 @@ test('draft endpoint accepts full form.data shape with empty strings and returns
             'payment_option' => null,
             'payment_saved_account_id' => null,
         ],
-        'barangay' => [
-            'barangay_official_designation' => null,
-            'barangay_agency_name' => null,
-            'barangay_agency_address' => null,
-        ],
         'declarations' => [
             'declaration_existing_loans' => null,
             'declaration_pending_cases' => null,

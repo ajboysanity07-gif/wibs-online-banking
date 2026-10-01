@@ -1438,9 +1438,6 @@ test('undertaking barangay field map pins all field coordinates to calibrated va
     expect($findOrNull('barangay.name'))->toBeNull();
     expect($findOrNull('barangay.clearance_reference'))->toBeNull();
     expect($findOrNull('barangay.locality'))->toBeNull();
-    expect($findOrNull('barangay.official_designation'))->toBeNull();
-    expect($findOrNull('barangay.agency_name'))->toBeNull();
-    expect($findOrNull('barangay.agency_address'))->toBeNull();
 
     // GNTHP sits inline in paragraph 1, off its old collision with loan.approved_amount
     // at (107,62) -- a new position distinct from both amount fields above.
@@ -2381,14 +2378,12 @@ test('loan information pdf omits the header image gracefully when unconfigured',
     expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBe(0);
 })->skip('Temporarily disabled - see LoanRequestDocumentKey::temporarilyDisabled()');
 
-test('undertaking barangay pdf prints applicant employment details, not staff barangay overrides', function () {
+test('undertaking barangay pdf prints applicant employment details', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
 
-    // Bug fix under test: Designation/Agency/Agency Address now come from the applicant's
-    // own employment record, not a barangay_* staff override.
     $loanRequest->applicant()->first()->update([
         'current_position' => 'Barangay Health Worker',
         'employer_business_name' => 'Barangay San Isidro',
@@ -2398,10 +2393,6 @@ test('undertaking barangay pdf prints applicant employment details, not staff ba
     ]);
 
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'guaranteed_net_take_home_pay', 'number', 15000);
-    // Staff barangay_* overrides are persisted too, to prove they no longer surface on UB.
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_name', 'string', 'BARANGAY SAN PEDRO');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_official_designation', 'string', 'PUNONG BARANGAY');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'BARANGAY HALL');
 
     $response = $this
         ->actingAs($admin)
@@ -2414,10 +2405,7 @@ test('undertaking barangay pdf prints applicant employment details, not staff ba
         ->toContain('Barangay Health Worker')
         ->toContain('Barangay San Isidro')
         ->toContain('Purok 3, Tagum City, Davao del Norte')
-        ->toContain('15,000.00')
-        ->not->toContain('BARANGAY SAN PEDRO')
-        ->not->toContain('PUNONG BARANGAY')
-        ->not->toContain('BARANGAY HALL');
+        ->toContain('15,000.00');
 });
 
 test('undertaking barangay pdf prints age, civil status, and nationality', function () {
@@ -4084,8 +4072,6 @@ function approvedLoanDocumentsCreateDataEntries(LoanRequest $loanRequest): void
         'barangay_name' => ['string', 'Barangay San Isidro'],
         'barangay_clearance_reference' => ['string', 'BCL-2026-030'],
         'barangay_locality' => ['string', 'Tagum City, Davao del Norte'],
-        'barangay_official_name' => ['string', 'Hon. Pedro Santos'],
-        'barangay_official_title' => ['string', 'Barangay Captain'],
     ] as $fieldKey => [$valueType, $value]) {
         approvedLoanDocumentsPersistDataEntry(
             $loanRequest,

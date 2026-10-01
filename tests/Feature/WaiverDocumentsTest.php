@@ -513,15 +513,14 @@ test('pension deduction waiver downloads as a real pdf for an applicable pension
     expect($content)->toStartWith('%PDF');
 });
 
-test('authority to deduct institution name suggests the barangay agency name for a barangay-payroll applicant', function () {
+test('authority to deduct institution name suggests the employer name for a barangay-payroll applicant', function () {
     $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
         'employer_business_name' => 'Barangay Banahao',
     ]);
-    waiverDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay Banahao LGU');
 
     $sections = app(LoanRequestDataService::class)->serializeSections($loanRequest->fresh());
 
-    expect($sections['processing']['authority_to_deduct_institution_name'])->toBe('Barangay Banahao LGU');
+    expect($sections['processing']['authority_to_deduct_institution_name'])->toBe('Barangay Banahao');
 });
 
 test('authority to deduct institution name suggests the employer name for a deped applicant', function () {

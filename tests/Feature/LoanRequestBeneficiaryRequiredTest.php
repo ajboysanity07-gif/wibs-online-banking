@@ -111,11 +111,6 @@ function beneficiaryRequiredTestPayload(?MemberApplicationProfile $profile, arra
             'payment_option' => 'ATM Deduction',
             'payment_saved_account_id' => $profile?->payment_saved_account_id,
         ],
-        'barangay' => [
-            'barangay_official_designation' => null,
-            'barangay_agency_name' => null,
-            'barangay_agency_address' => null,
-        ],
         'declarations' => [
             'declaration_existing_loans' => false,
             'declaration_pending_cases' => false,

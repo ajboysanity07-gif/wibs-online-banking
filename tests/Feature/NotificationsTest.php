@@ -1049,11 +1049,6 @@ function notificationLoanRequestPayload(MemberApplicationProfile $profile): arra
             'release_saved_account_id' => $profile->release_saved_account_id,
             'payment_option' => 'Salary Deduction',
         ],
-        'barangay' => [
-            'barangay_official_designation' => null,
-            'barangay_agency_name' => null,
-            'barangay_agency_address' => null,
-        ],
         'declarations' => [
             'declaration_existing_loans' => false,
             'declaration_pending_cases' => false,

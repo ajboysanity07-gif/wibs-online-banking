@@ -796,8 +796,6 @@ class LoanRequestDocumentWorkflowService
                     'payment_mode_workbook' => $loanRequest->recommended_payment_frequency,
                 ],
                 'processing' => [
-                    'barangay_official_name' => $flatValues['barangay_official_name'] ?? null,
-                    'barangay_official_title' => $flatValues['barangay_official_title'] ?? null,
                     'authority_to_deduct_institution_name' => $flatValues['authority_to_deduct_institution_name'] ?? null,
                     'authority_to_deduct_officer_1_name' => $flatValues['authority_to_deduct_officer_1_name'] ?? null,
                     'authority_to_deduct_officer_1_title' => $flatValues['authority_to_deduct_officer_1_title'] ?? null,
