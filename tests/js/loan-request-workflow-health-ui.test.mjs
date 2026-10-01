@@ -26,6 +26,11 @@ test('workflow health is not duplicated in the rail: age lives in the header, is
     assert.ok(!railFile.includes('export function LoanRequestHealthCard'));
     assert.ok(pageFile.includes('PROCESSING_AGE_ISSUE_THRESHOLD_DAYS'));
     assert.match(pageFile, /rows=\{summaryAttentionRows\}/);
+    // Blocking rows only leave Summary while the task panel shows them.
+    assert.match(
+        pageFile,
+        /row\.tone !== 'blocking' \|\| railStage !== 'processing'/,
+    );
 });
 
 test('staff page moves Audit trail and Notification history to the History section and keeps the rail out of the section panels', async () => {

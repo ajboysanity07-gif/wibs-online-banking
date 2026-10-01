@@ -1443,9 +1443,11 @@ export default function StaffLoanRequestShow({
             goToTab('docs', 'document-checklist');
         }
     };
-    // Blocking rows live in the task panel; waiting-on-member rows in the Summary strip.
+    // Blocking rows live in the task panel while it shows (processing stage);
+    // waiting-on-member rows always have the Summary strip.
     const summaryAttentionRows = attention.rows.filter(
-        (row) => row.tone !== 'blocking' && !row.tag,
+        (row) =>
+            !row.tag && (row.tone !== 'blocking' || railStage !== 'processing'),
     );
     const documentResultsAlert =
         lastDocumentResults !== null ? (
