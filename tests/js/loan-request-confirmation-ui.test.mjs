@@ -92,16 +92,20 @@ test('confirmation uses only tokens defined in the WIBS theme', async () => {
 test('confirmation actions wire up navigation correctly', async () => {
     const source = await read(...componentPath);
 
-    // Track my application clears the justSubmitted flash and reloads data.
+    // Track my application revisits the request page (the one-time submit
+    // flash is gone, so the server renders the tracking view) and replaces the
+    // history entry so Back doesn't reopen the success screen.
     assert.match(
         source,
-        /router\.reload\(\{\s*only: \['currentLoanRequest'\],\s*data: \{ justSubmitted: false \},\s*\}\)/,
+        /router\.visit\(loanRequestShow\(loanRequestId\)\.url, \{ replace: true \}\)/,
     );
+    assert.doesNotMatch(source, /router\.reload/);
+    assert.doesNotMatch(source, /justSubmitted/);
 
-    // Applying again goes through the Wayfinder route, not ziggy.
+    // Both actions go through Wayfinder routes, not ziggy.
     assert.match(
         source,
-        /import \{ create as loanRequestCreate \} from '@\/routes\/client\/loan-requests'/,
+        /import \{\s*create as loanRequestCreate,\s*show as loanRequestShow,\s*\} from '@\/routes\/client\/loan-requests'/,
     );
     assert.match(source, /router\.visit\(loanRequestCreate\(\)\.url\)/);
     assert.doesNotMatch(source, /ziggy-js/);
@@ -119,7 +123,16 @@ test('loan request show page renders the confirmation after submitting', async (
         /\{justSubmitted \? \([\s\S]{0,60}<LoanRequestConfirmation/,
     );
 
+    // The success screen replaces the tracking view instead of stacking on
+    // top of it.
+    assert.match(
+        page,
+        /submittedDate=\{currentLoanRequest\.submitted_at\}\s*\/>\s*\) : \(\s*<>\s*<LoanRequestDetailView/,
+    );
+    assert.doesNotMatch(page, /\) : null\}\s*<LoanRequestDetailView/);
+
     // Props come from the loan request payload.
+    assert.match(page, /loanRequestId=\{currentLoanRequest\.id\}/);
     assert.match(page, /reference=\{currentLoanRequest\.reference\}/);
     assert.match(
         page,

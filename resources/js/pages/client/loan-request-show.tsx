@@ -595,6 +595,7 @@ export default function LoanRequestShow({
             <Head title="Loan request" />
             {justSubmitted ? (
                 <LoanRequestConfirmation
+                    loanRequestId={currentLoanRequest.id}
                     reference={currentLoanRequest.reference}
                     requestedAmount={Number(
                         currentLoanRequest.requested_amount,
@@ -602,437 +603,487 @@ export default function LoanRequestShow({
                     requestedTerm={Number(currentLoanRequest.requested_term)}
                     submittedDate={currentLoanRequest.submitted_at}
                 />
-            ) : null}
-            <LoanRequestDetailView
-                loanRequest={currentLoanRequest}
-                auditTrail={currentAuditTrail}
-                releaseMethod={bankingReleaseMethod}
-                repaymentMethod={bankingPaymentOption}
-                releaseAccountLabel={
-                    bankingReleaseMethod === 'ATM' ||
-                    bankingReleaseMethod === 'Bank Transfer'
-                        ? (bankingReleaseAccountLabel ?? 'No account selected')
-                        : undefined
-                }
-                repaymentAccountLabel={
-                    bankingPaymentOption === 'ATM Deduction' ||
-                    bankingPaymentOption === 'Bank Transfer'
-                        ? (bankingPaymentAccountLabel ?? 'No account selected')
-                        : undefined
-                }
-                canChangePaymentMethod={canEditPaymentMethod}
-                onChangeReleaseMethod={openReleaseMethodSheet}
-                onChangeRepaymentMethod={openPaymentMethodSheet}
-                backHref={loanRequestsIndexHref}
-                pdfHref={
-                    currentLoanRequest.status !== null &&
-                    canDownloadLoanRequestPdf(currentLoanRequest.status) &&
-                    approvedDocumentHrefs === null
-                        ? pdfHref
-                        : null
-                }
-                editHref={editApplicationHref}
-                applicant={applicant}
-                coMakerOne={coMakerOne}
-                coMakerTwo={coMakerTwo}
-                cancellation={{
-                    show: canCancelApplication,
-                    isProcessing: isCancellationSubmitting,
-                    onConfirm: async (reason: string | null) =>
-                        (await cancelLoanRequest(currentLoanRequest.id, {
-                            cancellation_reason: reason,
-                        })) !== null,
-                }}
-            >
-                {currentLoanRequest.status === 'approved' ? (
-                    <section>
-                        {hasOpenReportState ? (
-                            <Alert className="border-amber-500/30 bg-amber-500/10">
-                                <CircleAlert className="size-4 text-amber-700 dark:text-amber-200" />
-                                <AlertTitle>
-                                    Correction report pending
-                                </AlertTitle>
-                                <AlertDescription>
-                                    An admin will review your reported
-                                    correction.
-                                </AlertDescription>
-                            </Alert>
-                        ) : (
-                            <div className="rounded-xl border border-border bg-card p-4">
-                                <p className="text-sm text-muted-foreground">
-                                    Found incorrect details in this approved
-                                    request?
-                                </p>
-                                <Button
-                                    type="button"
-                                    className="mt-3"
-                                    onClick={() => setIsReportDialogOpen(true)}
-                                >
-                                    Report incorrect details
-                                </Button>
-                            </div>
-                        )}
-                    </section>
-                ) : null}
-                {currentLoanRequest.status === 'awaiting_member_information' ? (
-                    <section>
-                        <Card className="border-amber-500/30 bg-card">
-                            <CardHeader>
-                                <CardTitle>
-                                    Awaiting member information
-                                </CardTitle>
-                                <CardDescription>
-                                    {currentLoanRequest.member_action_message ??
-                                        'Please complete the requested fields so processing can continue.'}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <form
-                                    className="space-y-5"
-                                    onSubmit={submitMemberInformation}
-                                >
-                                    {memberActionFields.length > 0 ? (
-                                        <div className="grid gap-4 md:grid-cols-2">
-                                            {memberActionFields.map((field) => (
-                                                <div
-                                                    key={field.key}
-                                                    className={
-                                                        field.definition
-                                                            .type ===
-                                                            'string' &&
-                                                        field.key.includes(
-                                                            'notes',
-                                                        )
-                                                            ? 'grid gap-2 md:col-span-2'
-                                                            : 'grid gap-2'
-                                                    }
-                                                >
-                                                    <Label
-                                                        htmlFor={`member_action_${field.key}`}
-                                                    >
-                                                        {field.definition.label}
-                                                    </Label>
-                                                    {field.definition.type ===
-                                                    'boolean' ? (
-                                                        <Select
-                                                            value={booleanSelectValue(
-                                                                field.value,
-                                                            )}
-                                                            onValueChange={(
-                                                                nextValue,
-                                                            ) =>
-                                                                updateMemberActionField(
-                                                                    field.sectionKey,
-                                                                    field.key,
-                                                                    nextValue ===
-                                                                        'Yes',
-                                                                )
-                                                            }
-                                                        >
-                                                            <SelectTrigger
-                                                                id={`member_action_${field.key}`}
+            ) : (
+                <>
+                    <LoanRequestDetailView
+                        loanRequest={currentLoanRequest}
+                        auditTrail={currentAuditTrail}
+                        releaseMethod={bankingReleaseMethod}
+                        repaymentMethod={bankingPaymentOption}
+                        releaseAccountLabel={
+                            bankingReleaseMethod === 'ATM' ||
+                            bankingReleaseMethod === 'Bank Transfer'
+                                ? (bankingReleaseAccountLabel ??
+                                  'No account selected')
+                                : undefined
+                        }
+                        repaymentAccountLabel={
+                            bankingPaymentOption === 'ATM Deduction' ||
+                            bankingPaymentOption === 'Bank Transfer'
+                                ? (bankingPaymentAccountLabel ??
+                                  'No account selected')
+                                : undefined
+                        }
+                        canChangePaymentMethod={canEditPaymentMethod}
+                        onChangeReleaseMethod={openReleaseMethodSheet}
+                        onChangeRepaymentMethod={openPaymentMethodSheet}
+                        backHref={loanRequestsIndexHref}
+                        pdfHref={
+                            currentLoanRequest.status !== null &&
+                            canDownloadLoanRequestPdf(
+                                currentLoanRequest.status,
+                            ) &&
+                            approvedDocumentHrefs === null
+                                ? pdfHref
+                                : null
+                        }
+                        editHref={editApplicationHref}
+                        applicant={applicant}
+                        coMakerOne={coMakerOne}
+                        coMakerTwo={coMakerTwo}
+                        cancellation={{
+                            show: canCancelApplication,
+                            isProcessing: isCancellationSubmitting,
+                            onConfirm: async (reason: string | null) =>
+                                (await cancelLoanRequest(
+                                    currentLoanRequest.id,
+                                    {
+                                        cancellation_reason: reason,
+                                    },
+                                )) !== null,
+                        }}
+                    >
+                        {currentLoanRequest.status === 'approved' ? (
+                            <section>
+                                {hasOpenReportState ? (
+                                    <Alert className="border-amber-500/30 bg-amber-500/10">
+                                        <CircleAlert className="size-4 text-amber-700 dark:text-amber-200" />
+                                        <AlertTitle>
+                                            Correction report pending
+                                        </AlertTitle>
+                                        <AlertDescription>
+                                            An admin will review your reported
+                                            correction.
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : (
+                                    <div className="rounded-xl border border-border bg-card p-4">
+                                        <p className="text-sm text-muted-foreground">
+                                            Found incorrect details in this
+                                            approved request?
+                                        </p>
+                                        <Button
+                                            type="button"
+                                            className="mt-3"
+                                            onClick={() =>
+                                                setIsReportDialogOpen(true)
+                                            }
+                                        >
+                                            Report incorrect details
+                                        </Button>
+                                    </div>
+                                )}
+                            </section>
+                        ) : null}
+                        {currentLoanRequest.status ===
+                        'awaiting_member_information' ? (
+                            <section>
+                                <Card className="border-amber-500/30 bg-card">
+                                    <CardHeader>
+                                        <CardTitle>
+                                            Awaiting member information
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {currentLoanRequest.member_action_message ??
+                                                'Please complete the requested fields so processing can continue.'}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <form
+                                            className="space-y-5"
+                                            onSubmit={submitMemberInformation}
+                                        >
+                                            {memberActionFields.length > 0 ? (
+                                                <div className="grid gap-4 md:grid-cols-2">
+                                                    {memberActionFields.map(
+                                                        (field) => (
+                                                            <div
+                                                                key={field.key}
+                                                                className={
+                                                                    field
+                                                                        .definition
+                                                                        .type ===
+                                                                        'string' &&
+                                                                    field.key.includes(
+                                                                        'notes',
+                                                                    )
+                                                                        ? 'grid gap-2 md:col-span-2'
+                                                                        : 'grid gap-2'
+                                                                }
                                                             >
-                                                                <SelectValue placeholder="Select an option" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="Yes">
-                                                                    Yes
-                                                                </SelectItem>
-                                                                <SelectItem value="No">
-                                                                    No
-                                                                </SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    ) : field.key.includes(
-                                                          'notes',
-                                                      ) ? (
-                                                        <textarea
-                                                            id={`member_action_${field.key}`}
-                                                            className={
-                                                                textareaClassName
-                                                            }
-                                                            value={
-                                                                field.value
-                                                                    ? `${field.value}`
-                                                                    : ''
-                                                            }
-                                                            onChange={(event) =>
-                                                                updateMemberActionField(
-                                                                    field.sectionKey,
-                                                                    field.key,
-                                                                    event.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                        />
-                                                    ) : (
-                                                        <Input
-                                                            id={`member_action_${field.key}`}
-                                                            type={
-                                                                field.definition
+                                                                <Label
+                                                                    htmlFor={`member_action_${field.key}`}
+                                                                >
+                                                                    {
+                                                                        field
+                                                                            .definition
+                                                                            .label
+                                                                    }
+                                                                </Label>
+                                                                {field
+                                                                    .definition
                                                                     .type ===
-                                                                    'number' ||
-                                                                field.definition
-                                                                    .type ===
-                                                                    'integer'
-                                                                    ? 'number'
-                                                                    : 'text'
-                                                            }
-                                                            value={
-                                                                field.value
-                                                                    ? `${field.value}`
-                                                                    : ''
-                                                            }
-                                                            onChange={(event) =>
-                                                                updateMemberActionField(
-                                                                    field.sectionKey,
-                                                                    field.key,
-                                                                    event.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                        />
+                                                                'boolean' ? (
+                                                                    <Select
+                                                                        value={booleanSelectValue(
+                                                                            field.value,
+                                                                        )}
+                                                                        onValueChange={(
+                                                                            nextValue,
+                                                                        ) =>
+                                                                            updateMemberActionField(
+                                                                                field.sectionKey,
+                                                                                field.key,
+                                                                                nextValue ===
+                                                                                    'Yes',
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <SelectTrigger
+                                                                            id={`member_action_${field.key}`}
+                                                                        >
+                                                                            <SelectValue placeholder="Select an option" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="Yes">
+                                                                                Yes
+                                                                            </SelectItem>
+                                                                            <SelectItem value="No">
+                                                                                No
+                                                                            </SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                ) : field.key.includes(
+                                                                      'notes',
+                                                                  ) ? (
+                                                                    <textarea
+                                                                        id={`member_action_${field.key}`}
+                                                                        className={
+                                                                            textareaClassName
+                                                                        }
+                                                                        value={
+                                                                            field.value
+                                                                                ? `${field.value}`
+                                                                                : ''
+                                                                        }
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) =>
+                                                                            updateMemberActionField(
+                                                                                field.sectionKey,
+                                                                                field.key,
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                ) : (
+                                                                    <Input
+                                                                        id={`member_action_${field.key}`}
+                                                                        type={
+                                                                            field
+                                                                                .definition
+                                                                                .type ===
+                                                                                'number' ||
+                                                                            field
+                                                                                .definition
+                                                                                .type ===
+                                                                                'integer'
+                                                                                ? 'number'
+                                                                                : 'text'
+                                                                        }
+                                                                        value={
+                                                                            field.value
+                                                                                ? `${field.value}`
+                                                                                : ''
+                                                                        }
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) =>
+                                                                            updateMemberActionField(
+                                                                                field.sectionKey,
+                                                                                field.key,
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        ),
                                                     )}
                                                 </div>
-                                            ))}
+                                            ) : (
+                                                <Alert>
+                                                    <AlertTitle>
+                                                        Requested information
+                                                    </AlertTitle>
+                                                    <AlertDescription>
+                                                        This request is waiting
+                                                        for your updated
+                                                        confirmation. Review the
+                                                        note above and submit
+                                                        once you have completed
+                                                        the required details.
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
+                                            <div className="flex flex-wrap items-center gap-3">
+                                                <Button
+                                                    type="submit"
+                                                    disabled={
+                                                        isMemberActionSubmitting
+                                                    }
+                                                >
+                                                    Submit requested information
+                                                </Button>
+                                                <Button
+                                                    asChild
+                                                    variant="outline"
+                                                    disabled={
+                                                        isMemberActionSubmitting
+                                                    }
+                                                >
+                                                    <Link
+                                                        href={
+                                                            loanRequestShow(
+                                                                currentLoanRequest.id,
+                                                            ).url
+                                                        }
+                                                    >
+                                                        Refresh request
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                        </form>
+                                    </CardContent>
+                                </Card>
+                            </section>
+                        ) : null}
+                        {currentLoanRequest.status ===
+                        'awaiting_member_acceptance' ? (
+                            <section>
+                                <Card className="border-indigo-500/30 bg-card">
+                                    <CardHeader>
+                                        <CardTitle>
+                                            Awaiting member acceptance
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {currentLoanRequest.member_action_message ??
+                                                'Review the revised loan terms before continuing.'}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-5">
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <div className="rounded-lg border border-border bg-muted p-4">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Revised amount
+                                                </p>
+                                                <p className="mt-1 text-sm font-semibold">
+                                                    {termsSummaryValue(
+                                                        currentLoanRequest.recommended_amount,
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border border-border bg-muted p-4">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Revised term
+                                                </p>
+                                                <p className="mt-1 text-sm font-semibold">
+                                                    {termsSummaryValue(
+                                                        currentLoanRequest.recommended_term,
+                                                    )}{' '}
+                                                    months
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border border-border bg-muted p-4">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Revised interest rate
+                                                </p>
+                                                <p className="mt-1 text-sm font-semibold">
+                                                    {termsSummaryValue(
+                                                        currentLoanRequest.recommended_interest_rate,
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border border-border bg-muted p-4">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Payment frequency
+                                                </p>
+                                                <p className="mt-1 text-sm font-semibold">
+                                                    {termsSummaryValue(
+                                                        currentLoanRequest.recommended_payment_frequency,
+                                                    )}
+                                                </p>
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <Alert>
-                                            <AlertTitle>
-                                                Requested information
-                                            </AlertTitle>
-                                            <AlertDescription>
-                                                This request is waiting for your
-                                                updated confirmation. Review the
-                                                note above and submit once you
-                                                have completed the required
-                                                details.
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
-                                    <div className="flex flex-wrap items-center gap-3">
-                                        <Button
-                                            type="submit"
-                                            disabled={isMemberActionSubmitting}
-                                        >
-                                            Submit requested information
-                                        </Button>
-                                        <Button
-                                            asChild
-                                            variant="outline"
-                                            disabled={isMemberActionSubmitting}
-                                        >
-                                            <Link
-                                                href={
-                                                    loanRequestShow(
-                                                        currentLoanRequest.id,
-                                                    ).url
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="member_action_reason">
+                                                Optional note
+                                            </Label>
+                                            <textarea
+                                                id="member_action_reason"
+                                                className={textareaClassName}
+                                                maxLength={1000}
+                                                value={memberActionReason}
+                                                onChange={(event) =>
+                                                    setMemberActionReason(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <Button
+                                                type="button"
+                                                disabled={
+                                                    isMemberActionSubmitting
+                                                }
+                                                onClick={() =>
+                                                    submitTermsDecision(
+                                                        'accept',
+                                                    )
                                                 }
                                             >
-                                                Refresh request
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
-                    </section>
-                ) : null}
-                {currentLoanRequest.status === 'awaiting_member_acceptance' ? (
-                    <section>
-                        <Card className="border-indigo-500/30 bg-card">
-                            <CardHeader>
-                                <CardTitle>
-                                    Awaiting member acceptance
-                                </CardTitle>
-                                <CardDescription>
-                                    {currentLoanRequest.member_action_message ??
-                                        'Review the revised loan terms before continuing.'}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-5">
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="rounded-lg border border-border bg-muted p-4">
-                                        <p className="text-xs text-muted-foreground">
-                                            Revised amount
-                                        </p>
-                                        <p className="mt-1 text-sm font-semibold">
-                                            {termsSummaryValue(
-                                                currentLoanRequest.recommended_amount,
-                                            )}
-                                        </p>
-                                    </div>
-                                    <div className="rounded-lg border border-border bg-muted p-4">
-                                        <p className="text-xs text-muted-foreground">
-                                            Revised term
-                                        </p>
-                                        <p className="mt-1 text-sm font-semibold">
-                                            {termsSummaryValue(
-                                                currentLoanRequest.recommended_term,
-                                            )}{' '}
-                                            months
-                                        </p>
-                                    </div>
-                                    <div className="rounded-lg border border-border bg-muted p-4">
-                                        <p className="text-xs text-muted-foreground">
-                                            Revised interest rate
-                                        </p>
-                                        <p className="mt-1 text-sm font-semibold">
-                                            {termsSummaryValue(
-                                                currentLoanRequest.recommended_interest_rate,
-                                            )}
-                                        </p>
-                                    </div>
-                                    <div className="rounded-lg border border-border bg-muted p-4">
-                                        <p className="text-xs text-muted-foreground">
-                                            Payment frequency
-                                        </p>
-                                        <p className="mt-1 text-sm font-semibold">
-                                            {termsSummaryValue(
-                                                currentLoanRequest.recommended_payment_frequency,
-                                            )}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="member_action_reason">
-                                        Optional note
-                                    </Label>
-                                    <textarea
-                                        id="member_action_reason"
-                                        className={textareaClassName}
-                                        maxLength={1000}
-                                        value={memberActionReason}
-                                        onChange={(event) =>
-                                            setMemberActionReason(
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                </div>
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <Button
-                                        type="button"
-                                        disabled={isMemberActionSubmitting}
-                                        onClick={() =>
-                                            submitTermsDecision('accept')
-                                        }
-                                    >
-                                        Accept revised terms
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        disabled={isMemberActionSubmitting}
-                                        onClick={() =>
-                                            submitTermsDecision('decline')
-                                        }
-                                    >
-                                        Decline revised terms
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </section>
-                ) : null}
-                {[
-                    'for_wibs_encoding',
-                    'wibs_loan_created',
-                    'release_scheduled',
-                    'released',
-                ].includes(currentLoanRequest.status ?? '') ? (
-                    <section>
-                        <LoanRequestSectionCard
-                            title="Loan Release Status"
-                            icon={PackageCheck}
-                        >
-                            <p className="text-sm text-muted-foreground">
-                                {currentLoanRequest.status ===
-                                'for_wibs_encoding'
-                                    ? 'Your loan is currently being processed for release in the WIBS system.'
-                                    : currentLoanRequest.status ===
-                                        'wibs_loan_created'
-                                      ? 'Your loan has been created in WIBS. A release date will be scheduled soon.'
-                                      : currentLoanRequest.status ===
-                                          'release_scheduled'
-                                        ? `Your loan release has been scheduled${currentLoanRequest.wibs_release_date ? ' for ' + currentLoanRequest.wibs_release_date : ''}. Please coordinate with your branch.`
-                                        : 'Your loan has been released. Please coordinate with your branch for the next steps.'}
-                            </p>
-                        </LoanRequestSectionCard>
-                    </section>
-                ) : null}
-            </LoanRequestDetailView>
-            {canEditPaymentMethod ? (
-                <>
-                    <PaymentAccountPickerSheet
-                        open={isReleaseMethodSheetOpen}
-                        onOpenChange={setIsReleaseMethodSheetOpen}
-                        title="Choose release method"
-                        description="Select how you'd like to receive your loan proceeds."
-                        accounts={savedPaymentAccounts}
-                        methodOptions={releaseMethodOptions}
-                        initialMethod={bankingReleaseMethod || null}
-                        initialAccountId={bankingReleaseAccountId}
-                        isSaving={
-                            isSavingPaymentMethod ||
-                            isSavingPaymentAccount ||
-                            isLoadingSavedPaymentAccounts
+                                                Accept revised terms
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="destructive"
+                                                disabled={
+                                                    isMemberActionSubmitting
+                                                }
+                                                onClick={() =>
+                                                    submitTermsDecision(
+                                                        'decline',
+                                                    )
+                                                }
+                                            >
+                                                Decline revised terms
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </section>
+                        ) : null}
+                        {[
+                            'for_wibs_encoding',
+                            'wibs_loan_created',
+                            'release_scheduled',
+                            'released',
+                        ].includes(currentLoanRequest.status ?? '') ? (
+                            <section>
+                                <LoanRequestSectionCard
+                                    title="Loan Release Status"
+                                    icon={PackageCheck}
+                                >
+                                    <p className="text-sm text-muted-foreground">
+                                        {currentLoanRequest.status ===
+                                        'for_wibs_encoding'
+                                            ? 'Your loan is currently being processed for release in the WIBS system.'
+                                            : currentLoanRequest.status ===
+                                                'wibs_loan_created'
+                                              ? 'Your loan has been created in WIBS. A release date will be scheduled soon.'
+                                              : currentLoanRequest.status ===
+                                                  'release_scheduled'
+                                                ? `Your loan release has been scheduled${currentLoanRequest.wibs_release_date ? ' for ' + currentLoanRequest.wibs_release_date : ''}. Please coordinate with your branch.`
+                                                : 'Your loan has been released. Please coordinate with your branch for the next steps.'}
+                                    </p>
+                                </LoanRequestSectionCard>
+                            </section>
+                        ) : null}
+                    </LoanRequestDetailView>
+                    {canEditPaymentMethod ? (
+                        <>
+                            <PaymentAccountPickerSheet
+                                open={isReleaseMethodSheetOpen}
+                                onOpenChange={setIsReleaseMethodSheetOpen}
+                                title="Choose release method"
+                                description="Select how you'd like to receive your loan proceeds."
+                                accounts={savedPaymentAccounts}
+                                methodOptions={releaseMethodOptions}
+                                initialMethod={bankingReleaseMethod || null}
+                                initialAccountId={bankingReleaseAccountId}
+                                isSaving={
+                                    isSavingPaymentMethod ||
+                                    isSavingPaymentAccount ||
+                                    isLoadingSavedPaymentAccounts
+                                }
+                                onConfirm={confirmReleaseMethod}
+                                onCreateAccount={createSavedPaymentAccount}
+                                onUpdateAccount={updateSavedPaymentAccount}
+                            />
+                            <PaymentAccountPickerSheet
+                                open={isPaymentMethodSheetOpen}
+                                onOpenChange={setIsPaymentMethodSheetOpen}
+                                title="Choose repayment method"
+                                description="Select how you'd like to repay this loan."
+                                accounts={savedPaymentAccounts}
+                                methodOptions={paymentMethodOptions}
+                                initialMethod={bankingPaymentOption || null}
+                                initialAccountId={bankingPaymentAccountId}
+                                isSaving={
+                                    isSavingPaymentMethod ||
+                                    isSavingPaymentAccount ||
+                                    isLoadingSavedPaymentAccounts
+                                }
+                                onConfirm={confirmPaymentMethod}
+                                onCreateAccount={createSavedPaymentAccount}
+                                onUpdateAccount={updateSavedPaymentAccount}
+                            />
+                        </>
+                    ) : null}
+                    <LoanRequestDetailPage
+                        loanRequest={currentLoanRequest}
+                        applicant={applicant}
+                        coMakerOne={coMakerOne}
+                        coMakerTwo={coMakerTwo}
+                        backHref={loanRequestsIndexHref}
+                        backLabel="Back to loan requests"
+                        hideSummaryHeader
+                        hideGuidance
+                        hideMainColumn
+                        hideStatusCard
+                        hideRoutineActions
+                        actionsTitle="Documents"
+                        pdfHref={pdfHref}
+                        releaseMethod={
+                            bankingReleaseMethod
+                                ? bankingReleaseMethod
+                                : undefined
                         }
-                        onConfirm={confirmReleaseMethod}
-                        onCreateAccount={createSavedPaymentAccount}
-                        onUpdateAccount={updateSavedPaymentAccount}
-                    />
-                    <PaymentAccountPickerSheet
-                        open={isPaymentMethodSheetOpen}
-                        onOpenChange={setIsPaymentMethodSheetOpen}
-                        title="Choose repayment method"
-                        description="Select how you'd like to repay this loan."
-                        accounts={savedPaymentAccounts}
-                        methodOptions={paymentMethodOptions}
-                        initialMethod={bankingPaymentOption || null}
-                        initialAccountId={bankingPaymentAccountId}
-                        isSaving={
-                            isSavingPaymentMethod ||
-                            isSavingPaymentAccount ||
-                            isLoadingSavedPaymentAccounts
+                        paymentOption={
+                            bankingPaymentOption
+                                ? bankingPaymentOption
+                                : undefined
                         }
-                        onConfirm={confirmPaymentMethod}
-                        onCreateAccount={createSavedPaymentAccount}
-                        onUpdateAccount={updateSavedPaymentAccount}
+                        accountNumber={
+                            bankingAccountNumber
+                                ? bankingAccountNumber
+                                : undefined
+                        }
+                        approvedDocumentHrefs={approvedDocumentHrefs}
+                        packageZipDownload={
+                            approvedDocumentHrefs ? packageZipDownload : null
+                        }
+                        correctedRequestHref={correctedRequestHref}
+                        auditTrail={currentAuditTrail}
+                        auditTrailAudience="member"
                     />
                 </>
-            ) : null}
-            <LoanRequestDetailPage
-                loanRequest={currentLoanRequest}
-                applicant={applicant}
-                coMakerOne={coMakerOne}
-                coMakerTwo={coMakerTwo}
-                backHref={loanRequestsIndexHref}
-                backLabel="Back to loan requests"
-                hideSummaryHeader
-                hideGuidance
-                hideMainColumn
-                hideStatusCard
-                hideRoutineActions
-                actionsTitle="Documents"
-                pdfHref={pdfHref}
-                releaseMethod={
-                    bankingReleaseMethod ? bankingReleaseMethod : undefined
-                }
-                paymentOption={
-                    bankingPaymentOption ? bankingPaymentOption : undefined
-                }
-                accountNumber={
-                    bankingAccountNumber ? bankingAccountNumber : undefined
-                }
-                approvedDocumentHrefs={approvedDocumentHrefs}
-                packageZipDownload={
-                    approvedDocumentHrefs ? packageZipDownload : null
-                }
-                correctedRequestHref={correctedRequestHref}
-                auditTrail={currentAuditTrail}
-                auditTrailAudience="member"
-            />
+            )}
             <Dialog
                 open={isReportDialogOpen}
                 onOpenChange={(open) => {
