@@ -14,8 +14,6 @@
         ['name' => $coMakerTwoName, 'label' => 'Co Borrower'],
     ];
 
-    $deductionAmount = trim((string) ($loan['amortization_total'] ?? ''));
-    $deductionAmountWords = trim((string) ($loan['amortization_total_words'] ?? ''));
     $deductionStartDate = trim((string) ($loan['deduction_start_date'] ?? ''));
     $institutionName = trim((string) ($institution['name'] ?? ''));
     $officers = is_array($institution['officers'] ?? null) ? $institution['officers'] : [];
@@ -235,7 +233,8 @@
             <p class="paragraph">
                 THIS IS TO AUTHORIZE {!! $renderValue($institutionName, '14em', true) !!}, represented by
                 {!! $renderValue($representationClause, '18em', true) !!}, to deduct from my salary the amount of
-                Pesos: {!! $renderValue($deductionAmountWords, '16em') !!} ({!! $renderValue($deductionAmount, '8em') !!}),
+                {{-- The amortization amount stays blank for hand-fill; it is not system-printed. --}}
+                Pesos: {!! $renderValue(null, '16em') !!} ({!! $renderValue(null, '8em') !!}),
                 starting {!! $renderValue($deductionStartDate, '9em') !!} and every quincena/month thereafter until my
                 loan obligation with MICRO FINANCE FOR RURAL DEVELOPMENT INC. shall have been paid in full.
             </p>
