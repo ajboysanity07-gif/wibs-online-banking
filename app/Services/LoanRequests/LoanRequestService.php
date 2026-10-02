@@ -119,7 +119,11 @@ class LoanRequestService
             ? $this->serializePerson($draft, LoanRequestPersonRole::CoMakerTwo)
             : null;
 
-        $applicant = $this->applyApplicantProfileDefaults($applicant, $user);
+        $applicant = $this->applyApplicantProfileDefaults(
+            $applicant,
+            $user,
+            $draft !== null && $this->statusValue($draft) === LoanRequestStatus::Draft->value,
+        );
         $applicant = $this->normalizePersonSelectValues($applicant);
         $coMakerOne = $coMakerOne !== null
             ? $this->normalizePersonSelectValues($coMakerOne)
@@ -2124,21 +2128,24 @@ class LoanRequestService
     }
 
     /**
-     * Refresh a draft's applicant from the member's live profile/wmaster
-     * snapshot. The wizard's About you section is read-only ("update your
-     * profile first; this application picks up the change"), so the draft's
-     * LoanRequestPerson row is only a copy taken when the draft was created:
-     * every field the live snapshot has a value for wins, and the draft
-     * value is kept only where the snapshot is blank.
+     * Bring a resumed request's applicant up to date with the member's live
+     * profile/wmaster snapshot.
      *
-     * Without this, a field the member fills in Profile Settings after
-     * starting a draft (e.g. date employed) never reaches the application,
-     * and submission fails validation on a field they cannot edit here.
+     * While the request is still a draft, the snapshot wins for every field
+     * it has a value for: the wizard's About you section is read-only
+     * ("update your profile first; this application picks up the change"),
+     * so the draft's LoanRequestPerson row is only a copy taken when the
+     * draft was started. Without this, a field the member fills in Profile
+     * Settings afterwards (e.g. date employed) never reaches the application.
+     *
+     * Once the request has been submitted (e.g. returned as Needs revision),
+     * staff may have corrected applicant fields during processing, so the
+     * snapshot only fills fields that are still blank.
      *
      * @param  array<string, mixed>  $applicant
      * @return array<string, mixed>
      */
-    private function applyApplicantProfileDefaults(array $applicant, AppUser $user): array
+    private function applyApplicantProfileDefaults(array $applicant, AppUser $user, bool $isDraft): array
     {
         if ($applicant === []) {
             return $applicant;
@@ -2146,6 +2153,12 @@ class LoanRequestService
 
         foreach ($this->buildApplicantSnapshot($user) as $field => $snapshotValue) {
             if ($snapshotValue === null || $snapshotValue === '') {
+                continue;
+            }
+
+            $current = $applicant[$field] ?? null;
+
+            if (! $isDraft && $current !== null && $current !== '') {
                 continue;
             }
 

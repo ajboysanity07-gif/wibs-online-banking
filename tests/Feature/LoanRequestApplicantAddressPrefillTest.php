@@ -252,3 +252,30 @@ test('a draft applicant picks up profile fields filled in after the draft was st
         ->and($formData['applicant']['employer_date_employed'])->toBe('2020-11-27')
         ->and($formData['applicant']['years_in_work_business'])->toBe('6');
 });
+
+test('a request returned for revision keeps staff-corrected applicant fields and only fills blanks from the profile', function (): void {
+    $member = createAddressPrefillTestMember('970011', [], [
+        'employer_business_name' => 'Profile Employer',
+        'employer_date_employed' => '2020-11-27',
+    ]);
+
+    $request = LoanRequest::factory()->create([
+        'user_id' => $member->user_id,
+        'acctno' => $member->acctno,
+        'status' => LoanRequestStatus::NeedsRevision,
+    ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($request)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            // Corrected by the processor during review.
+            'employer_business_name' => 'Staff Corrected Employer',
+            'employer_date_employed' => null,
+        ]);
+
+    $formData = app(LoanRequestService::class)->getFormData($member);
+
+    expect($formData['draft']['id'])->toBe($request->id)
+        ->and($formData['applicant']['employer_business_name'])->toBe('Staff Corrected Employer')
+        ->and($formData['applicant']['employer_date_employed'])->toBe('2020-11-27');
+});
