@@ -7,6 +7,7 @@ const {
     deriveSectionStatus,
     guidedProgress,
     nextIncompleteSection,
+    sectionErrorMessages,
     sectionForErrorKey,
 } = await import(
     pathToFileURL(resolve('resources', 'js', 'lib', 'loan-application-flow.ts'))
@@ -88,4 +89,24 @@ test('validation errors map back to their section', () => {
         'decl',
     );
     assert.equal(sectionForErrorKey('undertaking_accepted'), null);
+});
+
+test('section error messages are listed for read-only sections', () => {
+    assert.deepEqual(
+        sectionErrorMessages(
+            {
+                'applicant.cell_no': 'The cell no. field format is invalid.',
+                loan_prerequisites: 'Please complete your profile.',
+                'applicant.address1': 'The cell no. field format is invalid.',
+                'co_maker_1.first_name': 'The first name field is required.',
+                'applicant.payday': undefined,
+            },
+            'about',
+        ),
+        [
+            'The cell no. field format is invalid.',
+            'Please complete your profile.',
+        ],
+    );
+    assert.deepEqual(sectionErrorMessages({}, 'about'), []);
 });

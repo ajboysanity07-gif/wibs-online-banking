@@ -242,3 +242,18 @@ test('loan request submission rejects invalid spouse cell numbers', function (st
     '12 digits' => '091234567890',
     'non digits' => '09123abc789',
 ]);
+
+test('applicant validation errors use readable field names', function () {
+    $payload = loanRequestPayload((int) $this->user->memberApplicationProfile->release_saved_account_id);
+    $payload['applicant']['cell_no'] = '0912345678';
+
+    $response = $this
+        ->actingAs($this->user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    // The wizard's About you section is read-only, so this message is all
+    // the member sees -- it must not leak the "applicant.cell no" key.
+    $response->assertSessionHasErrors([
+        'applicant.cell_no' => 'The cell no. field format is invalid.',
+    ]);
+});

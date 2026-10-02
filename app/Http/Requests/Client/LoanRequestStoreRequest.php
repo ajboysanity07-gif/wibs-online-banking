@@ -569,6 +569,58 @@ class LoanRequestStoreRequest extends FormRequest
         ];
     }
 
+    /**
+     * Readable names for the applicant's fields. The wizard shows them
+     * read-only (they come from the member's profile), so their errors are
+     * listed as plain messages rather than under an input.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return collect([
+            'first_name' => 'first name',
+            'last_name' => 'last name',
+            'middle_name' => 'middle name',
+            'nickname' => 'nickname',
+            'birthdate' => 'birthdate',
+            'birthplace_city' => 'birthplace city/municipality',
+            'birthplace_province' => 'birthplace province',
+            'address1' => 'home address (street)',
+            'address_barangay' => 'home address barangay',
+            'address2' => 'home address city/municipality',
+            'address3' => 'home address province',
+            'address_zip' => 'home address zip code',
+            'length_of_stay' => 'length of stay',
+            'cell_no' => 'cell no.',
+            'educational_attainment' => 'educational attainment',
+            'employment_type' => 'employment type',
+            'employer_business_name' => 'employer/business name',
+            'employer_business_address1' => 'employer/business address (street)',
+            'employer_business_address_barangay' => 'employer/business address barangay',
+            'employer_business_address2' => 'employer/business address city/municipality',
+            'employer_business_address3' => 'employer/business address province',
+            'employer_business_address_zip' => 'employer/business address zip code',
+            'employer_date_employed' => 'date employed',
+            'telephone_no' => 'telephone no.',
+            'current_position' => 'current position',
+            'nature_of_business' => 'nature of business',
+            'institutional_employer_category' => 'employer category',
+            'years_in_work_business' => 'years in work/business',
+            'gross_monthly_income' => 'gross monthly income',
+            'payday' => 'payday',
+            'housing_status' => 'housing status',
+            'civil_status' => 'civil status',
+            'sex' => 'sex',
+            'number_of_children' => 'number of children',
+            'spouse_name' => 'spouse name',
+            'spouse_birthdate' => 'spouse birthdate',
+            'spouse_cell_no' => 'spouse cell no.',
+        ])->mapWithKeys(fn (string $label, string $field): array => [
+            "applicant.{$field}" => $label,
+        ])->all();
+    }
+
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {

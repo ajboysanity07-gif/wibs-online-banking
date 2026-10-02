@@ -84,6 +84,25 @@ export function sectionForErrorKey(key: string): ApplicationSection | null {
 }
 
 /**
+ * Distinct server error messages belonging to `section`, in key order. The
+ * About you section is read-only (profile data), so its errors have no field
+ * to render under -- the page lists these instead.
+ */
+export function sectionErrorMessages(
+    errors: Record<string, string | undefined>,
+    section: ApplicationSection,
+): string[] {
+    const messages = Object.entries(errors)
+        .filter(
+            ([key, message]) =>
+                Boolean(message) && sectionForErrorKey(key) === section,
+        )
+        .map(([, message]) => message as string);
+
+    return [...new Set(messages)];
+}
+
+/**
  * Next section still not done, searching forward from `after` and wrapping
  * around (so skipping ahead never strands an earlier section). Null when
  * every section is done.

@@ -51,6 +51,7 @@ import {
     deriveSectionStatus,
     nextIncompleteSection,
     SECTION_LABELS,
+    sectionErrorMessages,
     sectionForErrorKey,
     type ApplicationSection,
     type SectionStatus,
@@ -478,6 +479,7 @@ export default function LoanRequestPage({
         ]),
     ) as Record<ApplicationSection, SectionStatus>;
     const allDone = nextIncompleteSection(statuses) === null;
+    const aboutErrors = sectionErrorMessages(form.errors, 'about');
 
     const loanTypeLabel =
         loanTypes.find((type) => type.typecode === form.data.typecode)?.label ??
@@ -1032,6 +1034,30 @@ export default function LoanRequestPage({
                                             ', ',
                                         )}
                                         .
+                                    </p>
+                                    <Button asChild size="sm">
+                                        <Link href={editProfile().url}>
+                                            Go to Profile Settings
+                                        </Link>
+                                    </Button>
+                                </AlertDescription>
+                            </Alert>
+                        ) : null}
+                        {aboutErrors.length > 0 ? (
+                            <Alert variant="destructive">
+                                <AlertTitle>
+                                    Some of your details need fixing
+                                </AlertTitle>
+                                <AlertDescription className="space-y-2">
+                                    <ul className="list-disc space-y-1 pl-5">
+                                        {aboutErrors.map((message) => (
+                                            <li key={message}>{message}</li>
+                                        ))}
+                                    </ul>
+                                    <p>
+                                        These come from your profile. Update
+                                        them in Profile Settings, then come back
+                                        to submit.
                                     </p>
                                     <Button asChild size="sm">
                                         <Link href={editProfile().url}>
