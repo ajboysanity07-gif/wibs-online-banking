@@ -2,11 +2,14 @@
 
 namespace App\Domains\MemberAccounts\Repositories;
 
+use App\Models\Amortsched;
+use App\Models\Wlnled;
 use App\Models\Wlnmaster;
 use App\Models\Wsavled;
 use App\Models\Wsvmaster;
 use App\Support\SchemaCapabilities;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -148,6 +151,114 @@ class MemberAccountsRepository
             ->select($select)
             ->orderByDesc($orderBy)
             ->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Next repayment due date and installment amount per loan, derived from the
+     * Amortsched schedule. Returns an empty array when the schedule table is absent.
+     *
+     * @param  list<string>  $loanNumbers
+     * @return array<string, array{dueDate: ?string, monthlyDue: ?float}>
+     */
+    public function getLoanRepaymentSummaries(array $loanNumbers): array
+    {
+        $loanNumbers = array_values(array_filter(
+            array_map(static fn (mixed $value): string => trim((string) $value), $loanNumbers),
+            static fn (string $value): bool => $value !== '',
+        ));
+
+        if ($loanNumbers === [] || ! $this->hasTable('Amortsched')) {
+            return [];
+        }
+
+        $hasDatePay = $this->hasColumn('Amortsched', 'Date_pay');
+        $hasAmortization = $this->hasColumn('Amortsched', 'Amortization');
+
+        if (! $hasDatePay && ! $hasAmortization) {
+            return [];
+        }
+
+        $dateColumn = $hasDatePay ? 'Date_pay' : null;
+        $amortizationColumn = $hasAmortization ? 'Amortization' : null;
+
+        $rows = Amortsched::query()
+            ->whereIn('lnnumber', $loanNumbers)
+            ->when($dateColumn !== null, static fn ($query) => $query->orderBy('Date_pay'))
+            ->get()
+            ->sortBy('Date_pay')
+            ->values();
+
+        $today = Carbon::now()->startOfDay();
+        $summaries = [];
+
+        foreach ($loanNumbers as $loanNumber) {
+            $scheduledRows = $rows->where('lnnumber', (string) $loanNumber)->values();
+
+            if ($scheduledRows->isEmpty()) {
+                continue;
+            }
+
+            // Prefer the earliest unpaid (future or today) installment as the next due.
+            $next = $scheduledRows->first(function ($row) use ($today) {
+                $date = $this->toDate($row->Date_pay ?? null);
+
+                return $date !== null && $date->greaterThanOrEqualTo($today);
+            });
+
+            $next ??= $scheduledRows->first();
+
+            if ($next === null) {
+                continue;
+            }
+
+            $summaries[(string) $loanNumber] = [
+                'dueDate' => $this->formatDateValue($next->Date_pay ?? null),
+                'monthlyDue' => $amortizationColumn !== null
+                    ? $this->castNumber($next->Amortization ?? null)
+                    : null,
+            ];
+        }
+
+        return $summaries;
+    }
+
+    /**
+     * Recent loan payments across all loans for an account, newest first.
+     *
+     * @return \Illuminate\Support\Collection<int, \App\Models\Wlnled>
+     */
+    public function getRecentLoanPayments(string $acctno, int $limit = 8): Collection
+    {
+        if (! $this->hasTable('wlnled')) {
+            return collect();
+        }
+
+        $limit = max(1, min($limit, 50));
+
+        $select = [
+            $this->selectColumnOrDefault('wlnled', 'lnnumber', "''"),
+            $this->selectColumnOrDefault('wlnled', 'lntype', "''"),
+            $this->hasColumn('wlnled', 'date_in')
+                ? 'wlnled.date_in'
+                : DB::raw('null as date_in'),
+            $this->selectColumnOrDefault('wlnled', 'payments', '0'),
+            $this->selectColumnOrDefault('wlnled', 'principal', '0'),
+            $this->selectColumnOrDefault('wlnled', 'accruedint', '0'),
+        ];
+
+        $query = Wlnled::query()
+            ->where('acctno', $acctno)
+            ->select($select);
+
+        if ($this->hasColumn('wlnled', 'payments')) {
+            $query->where('payments', '>', 0);
+        }
+
+        if ($this->hasColumn('wlnled', 'date_in')) {
+            $query->orderByDesc('date_in');
+        }
+
+        return $query->limit($limit)->get();
     }
 
     public function getPaginatedLoanSecurity(
@@ -521,5 +632,42 @@ class MemberAccountsRepository
     private function emptyPaginator(int $perPage, int $page): LengthAwarePaginator
     {
         return new LengthAwarePaginator([], 0, $perPage, $page);
+    }
+
+    private function toDate(mixed $value): ?Carbon
+    {
+        if ($value instanceof Carbon) {
+            return $value->copy()->startOfDay();
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return Carbon::instance($value)->startOfDay();
+        }
+
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->startOfDay();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function formatDateValue(mixed $value): ?string
+    {
+        $date = $this->toDate($value);
+
+        return $date?->format('Y-m-d');
+    }
+
+    private function castNumber(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (float) $value;
     }
 }

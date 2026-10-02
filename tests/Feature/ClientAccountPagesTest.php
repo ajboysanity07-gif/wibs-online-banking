@@ -344,6 +344,172 @@ test('approved client can view the loans page', function () {
             ->has('loans'));
 });
 
+test('client loans page exposes schedule derived due date and installment', function () {
+    $user = User::factory()->create([
+        'acctno' => '000781',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Nico',
+        'fname' => 'Nico',
+        'lname' => 'Member',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-781',
+        'lntype' => 'Salary Loan',
+        'principal' => 60000,
+        'balance' => 28500,
+        'initial' => 60000,
+    ]);
+
+    $today = Carbon::now()->startOfDay();
+    $nextDue = $today->copy()->addMonth()->startOfMonth();
+
+    DB::table('Amortsched')->insert([
+        [
+            'lnnumber' => 'LN-781',
+            'Date_pay' => $today->copy()->subDays(5),
+            'Amortization' => 3000,
+            'Interest' => 150,
+            'Balance' => 30000,
+            'controlno' => 'AS-781-0',
+        ],
+        [
+            'lnnumber' => 'LN-781',
+            'Date_pay' => $nextDue,
+            'Amortization' => 2500,
+            'Interest' => 250,
+            'Balance' => 27500,
+            'controlno' => 'AS-781-1',
+        ],
+    ]);
+
+    $this->actingAs($user);
+
+    $this->get(route('client.loans'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loans')
+            ->has('loans.items', 1)
+            ->where('loans.items.0.lnnumber', 'LN-781')
+            ->where('loans.items.0.monthlyDue', 2500)
+            ->where('loans.items.0.dueDate', $nextDue->format('Y-m-d')));
+});
+
+test('client loans page exposes recent loan payments', function () {
+    $user = User::factory()->create([
+        'acctno' => '000782',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Pia',
+        'fname' => 'Pia',
+        'lname' => 'Member',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-782',
+        'lntype' => 'Salary Loan',
+        'principal' => 60000,
+        'balance' => 28500,
+        'initial' => 60000,
+    ]);
+
+    DB::table('wlnled')->insert([
+        [
+            'acctno' => $user->acctno,
+            'lnnumber' => 'LN-782',
+            'lntype' => 'Salary Loan',
+            'date_in' => Carbon::parse('2026-09-15 10:00:00'),
+            'principal' => 2387.5,
+            'payments' => 3150,
+            'balance' => 28500,
+            'accruedint' => 762.5,
+            'lnstatus' => 'P',
+        ],
+        [
+            'acctno' => $user->acctno,
+            'lnnumber' => 'LN-782',
+            'lntype' => 'Salary Loan',
+            'date_in' => Carbon::parse('2026-09-01 10:00:00'),
+            'principal' => 0,
+            'payments' => 0,
+            'balance' => 31650,
+            'accruedint' => 0,
+            'lnstatus' => 'P',
+        ],
+    ]);
+
+    $this->actingAs($user);
+
+    $this->get(route('client.loans'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loans')
+            ->where('paymentsError', null)
+            ->has('payments', 1)
+            ->where('payments.0.lnnumber', 'LN-782')
+            ->where('payments.0.lntype', 'Salary Loan')
+            ->where('payments.0.amount', 3150)
+            ->where('payments.0.principal', 2387.5)
+            ->where('payments.0.interest', 762.5)
+            ->where('payments.0.date', '2026-09-15 10:00:00'));
+});
+
+test('client loans page leaves schedule derived fields null without a schedule', function () {
+    $user = User::factory()->create([
+        'acctno' => '000783',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Quin',
+        'fname' => 'Quin',
+        'lname' => 'Member',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-783',
+        'lntype' => 'Regular',
+        'principal' => 1000,
+        'balance' => 400,
+        'initial' => 1000,
+    ]);
+
+    $this->actingAs($user);
+
+    $this->get(route('client.loans'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loans')
+            ->has('loans.items', 1)
+            ->where('loans.items.0.lnnumber', 'LN-783')
+            ->where('loans.items.0.monthlyDue', null)
+            ->where('loans.items.0.dueDate', null)
+            ->where('payments', []));
+});
+
 test('approved client can view the loan security page', function () {
     $user = User::factory()->create([
         'acctno' => '000701',

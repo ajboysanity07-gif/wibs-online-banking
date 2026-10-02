@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Client;
 
 use App\Domains\MemberAccounts\Resources\MemberAccountsSummaryResource;
+use App\Domains\MemberAccounts\Resources\MemberLoanPaymentResource;
 use App\Domains\MemberAccounts\Resources\MemberLoanResource;
 use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
+use App\Models\AppUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -72,7 +74,7 @@ class MemberLoansController extends Controller
         try {
             $paginator = $service->getPaginatedLoans($user, $perPage, $page);
             $items = MemberLoanResource::collection(
-                $paginator->items(),
+                $this->withRepaymentSummaries($user, $service, $paginator->items()),
             )->resolve();
             $loansPayload = [
                 'items' => $items,
@@ -86,6 +88,20 @@ class MemberLoansController extends Controller
         } catch (\Throwable $exception) {
             report($exception);
             $loansError = 'Unable to load loans.';
+        }
+
+        $payments = null;
+        $paymentsError = null;
+
+        try {
+            $payments = $this->sanitizePayload(
+                MemberLoanPaymentResource::collection(
+                    $service->getRecentLoanPayments($user, 8),
+                )->resolve(),
+            );
+        } catch (\Throwable $exception) {
+            report($exception);
+            $paymentsError = 'Unable to load payments.';
         }
 
         $memberPayload = $this->sanitizePayload([
@@ -107,7 +123,50 @@ class MemberLoansController extends Controller
             'summaryError' => $summaryError,
             'loans' => $loansPayload,
             'loansError' => $loansError,
+            'payments' => $payments,
+            'paymentsError' => $paymentsError,
         ]);
+    }
+
+    /**
+     * Attach the schedule-derived next due date and installment amount to each
+     * loan row in a single batched lookup, avoiding a per-loan query.
+     *
+     * @param  array<int, mixed>  $items
+     * @return array<int, mixed>
+     */
+    private function withRepaymentSummaries(
+        AppUser $user,
+        MemberAccountsService $service,
+        array $items,
+    ): array {
+        $loanNumbers = array_map(
+            static fn (mixed $item): string => trim((string) data_get($item, 'lnnumber', '')),
+            $items,
+        );
+
+        if (array_filter($loanNumbers) === []) {
+            return $items;
+        }
+
+        $summaries = $service->getLoanRepaymentSummaries($user, $loanNumbers);
+
+        if ($summaries === []) {
+            return $items;
+        }
+
+        foreach ($items as $item) {
+            $summary = $summaries[trim((string) data_get($item, 'lnnumber', ''))] ?? null;
+
+            if ($summary === null) {
+                continue;
+            }
+
+            data_set($item, 'dueDate', $summary['dueDate']);
+            data_set($item, 'monthlyDue', $summary['monthlyDue']);
+        }
+
+        return $items;
     }
 
     private function sanitizePayload(mixed $value): mixed
