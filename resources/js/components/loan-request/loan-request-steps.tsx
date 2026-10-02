@@ -802,14 +802,15 @@ export function LoanRequestCoMakerStep({
             <div className="space-y-4">
                 <div className="border-b border-border pb-2">
                     <h4 className="flex items-center gap-2 text-sm font-bold tracking-widest text-muted-foreground uppercase">
-                        {Icon ? (
-                            <Icon className="size-4 shrink-0" />
-                        ) : null}
+                        {Icon ? <Icon className="size-4 shrink-0" /> : null}
                         {title}
                     </h4>
                 </div>
                 {errors ? (
-                    <FormErrorSummary errors={errors} onEntryClick={undefined} />
+                    <FormErrorSummary
+                        errors={errors}
+                        onEntryClick={undefined}
+                    />
                 ) : null}
                 {content}
             </div>
@@ -835,8 +836,6 @@ type ReviewStepProps = {
     errors: Record<string, string | undefined>;
     sectionDefinitions: Record<string, LoanRequestDataSectionDefinition>;
     onUndertakingChange: (value: boolean) => void;
-    updateProfile: boolean;
-    onUpdateProfileChange: (value: boolean) => void;
     // Errors here can belong to any wizard step (this is the last step, and
     // shows every unresolved error from the whole form), so clicking one
     // needs to navigate to the right step rather than just focus in place.
@@ -2007,8 +2006,6 @@ export function LoanRequestReviewStep({
     errors,
     sectionDefinitions,
     onUndertakingChange,
-    updateProfile,
-    onUpdateProfileChange,
     onErrorClick,
     onChangeSection,
 }: ReviewStepProps) {
@@ -2630,13 +2627,6 @@ export function LoanRequestReviewStep({
                 >
                     I confirm that I have read and agree to the undertaking
                     above.
-                </LoanRequestCheckRow>
-                <LoanRequestCheckRow
-                    id="update_profile"
-                    checked={updateProfile}
-                    onCheckedChange={onUpdateProfileChange}
-                >
-                    Also update my profile with the details I changed.
                 </LoanRequestCheckRow>
             </SummaryCard>
         </LoanRequestSectionCard>
