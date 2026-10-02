@@ -717,7 +717,15 @@ class LoanRequestService
                 $this->syncMemberApplicationProfileFromSubmission($user, $payload);
             }
 
-            $missingPrerequisites = $user->memberApplicationProfile?->missingLoanPrerequisiteFields() ?? ['release_method'];
+            // Bank & payout was already validated from this submission, so it
+            // is not re-checked against the profile -- that would block a
+            // member who opted out of updating their profile.
+            $missingPrerequisites = $user->memberApplicationProfile !== null
+                ? array_values(array_diff(
+                    $user->memberApplicationProfile->missingLoanPrerequisiteFields(),
+                    MemberApplicationProfile::payoutBankFields(),
+                ))
+                : ['release_method'];
 
             if ($missingPrerequisites !== []) {
                 $labels = MemberApplicationProfile::completionRequiredFieldLabels();

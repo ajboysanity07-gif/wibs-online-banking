@@ -23,6 +23,8 @@ import {
     LoanRequestDataSectionStep,
     LoanRequestLoanDetailsStep,
     LoanRequestReviewStep,
+    OTHER_LOAN_TYPECODE,
+    isMicroBusinessLoanLabel,
 } from '@/components/loan-request/loan-request-steps';
 import { LoanRequestWizardHeader } from '@/components/loan-request/loan-request-wizard-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -358,9 +360,14 @@ export default function LoanRequestPage({
 
     // --- Section status, derived from the (saved) form data -------------
 
+    const selectedLoanTypeLabel =
+        loanTypes.find((type) => type.typecode === form.data.typecode)?.label ??
+        null;
     const validationContext = {
         applicantPrefilledFromProfile,
         applicantWorkIncomePrefilledFromProfile,
+        requiresKindOfLoan: isMicroBusinessLoanLabel(selectedLoanTypeLabel),
+        requiresOtherLoanTypeName: form.data.typecode === OTHER_LOAN_TYPECODE,
     };
     const missingFor = (stepId: string) =>
         getStepMissingFields(stepId, form.data, validationContext);
@@ -480,9 +487,7 @@ export default function LoanRequestPage({
     const allDone = nextIncompleteSection(statuses) === null;
     const aboutErrors = sectionErrorMessages(form.errors, 'about');
 
-    const loanTypeLabel =
-        loanTypes.find((type) => type.typecode === form.data.typecode)?.label ??
-        'Loan';
+    const loanTypeLabel = selectedLoanTypeLabel ?? 'Loan';
     const coMakerName = (slot: CoMakerSlot) =>
         [form.data[slot].first_name, form.data[slot].last_name]
             .filter(Boolean)
@@ -808,16 +813,33 @@ export default function LoanRequestPage({
         }
     };
 
+    // Server errors from a failed submit are stale once the co-maker is
+    // re-saved or removed; left in place they keep Co-makers at "Needs
+    // attention", which keeps Submit disabled.
+    const clearCoMakerErrors = (slot: CoMakerSlot) => {
+        const keys = Object.keys(form.errors).filter((key) =>
+            key.startsWith(`${slot}.`),
+        ) as (keyof LoanRequestFormData)[];
+
+        // clearErrors() with no keys would wipe every error, not none.
+        if (keys.length > 0) {
+            form.clearErrors(...keys);
+        }
+    };
+
     const saveCoMaker = (
         slot: CoMakerSlot,
         person: LoanRequestPersonFormData,
     ) => {
         form.setData(slot, person);
+        clearCoMakerErrors(slot);
         setCoMakerSlot(null);
     };
 
-    const removeCoMaker = (slot: CoMakerSlot) =>
+    const removeCoMaker = (slot: CoMakerSlot) => {
         form.setData(slot, toPersonForm(null));
+        clearCoMakerErrors(slot);
+    };
 
     // --- Render ----------------------------------------------------------
 

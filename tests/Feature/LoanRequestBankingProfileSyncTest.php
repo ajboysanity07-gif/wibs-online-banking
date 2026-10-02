@@ -354,3 +354,27 @@ test('submit persists home and office zip codes on the applicant snapshot', func
     expect($applicant->address_zip)->toBe('8307');
     expect($applicant->employer_business_address_zip)->toBe('8100');
 });
+
+test('submit is not blocked by blank profile banking when the member opts out of updating it', function (): void {
+    // Bank & payout comes from the wizard (validated by
+    // LoanRequestStoreRequest), so a profile that never saved it must not
+    // block a member who unticks "update my profile".
+    $member = createBankingTestMember('003120', [
+        'release_method' => null,
+        'payment_option' => null,
+        'source_of_fund_wealth' => 'Salary',
+        'id_type' => 'TIN',
+        'id_number' => '123-456-789',
+        'height_cm' => '165',
+        'weight_kg' => '68',
+    ]);
+    $account = $member->memberApplicationProfile->paymentAccounts()->create(savedAccountPayload());
+
+    $loanRequest = app(LoanRequestService::class)->submit($member, [
+        ...fullLoanRequestSubmitPayload($account->id),
+        'update_profile' => false,
+    ]);
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::PendingReview)
+        ->and($member->memberApplicationProfile->fresh()->release_method)->toBeNull();
+});

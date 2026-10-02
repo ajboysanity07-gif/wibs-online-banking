@@ -462,3 +462,42 @@ test('save draft with wizard_step_id persists it and the create page returns it 
             ->where('initialStepId', 'co-maker-1-basic'),
         );
 });
+
+test('save draft persists kind of loan and repayment frequency', function (): void {
+    $member = createDraftMember('002030');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Draft,
+        'acctno' => $member->acctno,
+        'kind_of_loan' => null,
+        'requested_payment_frequency' => null,
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [
+            'kind_of_loan' => 'Emergency',
+            'requested_payment_frequency' => 'Due date',
+        ])
+        ->assertNoContent();
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->kind_of_loan)->toBe('Emergency')
+        ->and($loanRequest->requested_payment_frequency)->toBe('Due date');
+});
+
+test('save draft rejects an unknown kind of loan', function (): void {
+    $member = createDraftMember('002031');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Draft,
+        'acctno' => $member->acctno,
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [
+            'kind_of_loan' => 'Special',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('kind_of_loan');
+});
