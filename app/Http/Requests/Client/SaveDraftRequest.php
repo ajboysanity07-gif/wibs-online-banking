@@ -405,6 +405,11 @@ class SaveDraftRequest extends FormRequest
                 'string',
                 Rule::in(['New', 'Re-Loan', 'Restructured']),
             ],
+            // Without these, every save after the first silently dropped the
+            // member's choice (validated() strips unknown keys) and submit
+            // then failed with "kind of loan is required".
+            'requested_payment_frequency' => ['sometimes', 'nullable', 'string', Rule::in(LoanPaydayOption::values())],
+            'kind_of_loan' => ['sometimes', 'nullable', 'string', Rule::in(['Regular', 'Emergency'])],
             'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:23'],
             'wizard_step_id' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[a-z0-9-]+$/'],
             'wizard_confirmations' => ['sometimes', 'nullable', 'array'],

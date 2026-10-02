@@ -69,3 +69,51 @@ test('editing a field clears its stale validation error', () => {
         /onTypecodeChange=\{\(value\) =>\s*handleLoanDetailChange\('typecode', value\)/,
     );
 });
+
+const validationFile = await readFile(
+    resolve('resources', 'js', 'lib', 'loan-request-step-validation.ts'),
+    'utf8',
+);
+
+test('loan details gates kind of loan and the other-loan name by loan type', () => {
+    assert.match(
+        validationFile,
+        /context\.requiresKindOfLoan && blank\(data\.kind_of_loan\)/,
+    );
+    assert.match(
+        validationFile,
+        /context\.requiresOtherLoanTypeName &&\s*blank\(data\.other_loan_type_name\)/,
+    );
+    assert.match(
+        pageFile,
+        /requiresKindOfLoan: isMicroBusinessLoanLabel\(selectedLoanTypeLabel\)/,
+    );
+    assert.match(
+        pageFile,
+        /requiresOtherLoanTypeName: form\.data\.typecode === OTHER_LOAN_TYPECODE/,
+    );
+});
+
+test('pensioners still need income and payday, which the server requires', () => {
+    assert.match(
+        validationFile,
+        /isPensionerType\(values\.employment_type\)\s*\?\s*incomeChecks/,
+    );
+    assert.match(validationFile, /Number\(values\.gross_monthly_income\) > 0/);
+});
+
+test('saving or removing a co-maker clears its stale server errors', () => {
+    assert.match(pageFile, /key\.startsWith\(`\$\{slot\}\.`\)/);
+    assert.match(
+        pageFile,
+        /if \(keys\.length > 0\) \{\s*form\.clearErrors\(\.\.\.keys\);/,
+    );
+    assert.match(
+        pageFile,
+        /form\.setData\(slot, person\);\s*clearCoMakerErrors\(slot\);/,
+    );
+    assert.match(
+        pageFile,
+        /form\.setData\(slot, toPersonForm\(null\)\);\s*clearCoMakerErrors\(slot\);/,
+    );
+});

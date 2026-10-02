@@ -16,9 +16,11 @@ import type {
  * only risk drifting out of sync.
  *
  * Left deliberately ungated (never returns missing fields for these):
- * dependents' cycle fields (staff-owned, not shown to members), and loan-details'
- * other_loan_type_name / kind_of_loan (their required-ness depends on a
- * wlntype label lookup not reliably available client-side).
+ * dependents' cycle fields (staff-owned, not shown to members).
+ *
+ * other_loan_type_name / kind_of_loan depend on the selected loan type, so
+ * the caller resolves that from the loan type list and passes it in the
+ * context.
  */
 
 type PersonFieldCheck = {
@@ -77,31 +79,48 @@ function checkWorkFields(
     values: LoanRequestPersonFormData,
     isApplicant: boolean,
 ): string[] {
-    if (isPensionerType(values.employment_type)) {
-        return blank(values.employment_type) ? ['Employment'] : [];
-    }
-
-    const checks: PersonFieldCheck[] = [
-        { field: 'employment_type', label: 'Employment' },
-        { field: 'employer_business_name', label: 'Employer/Business name' },
-        { field: 'current_position', label: 'Current position' },
-        { field: 'nature_of_business', label: 'Nature of business' },
-        {
-            field: 'years_in_work_business',
-            label: 'Total years in work/business',
-        },
+    // Income and payday are required for everyone, pensioners included (see
+    // personRules() in LoanRequestStoreRequest); only employer details are
+    // waived for pensioners.
+    const incomeChecks: PersonFieldCheck[] = [
         { field: 'gross_monthly_income', label: 'Gross monthly income' },
         { field: 'payday', label: 'Payday' },
     ];
+    const checks: PersonFieldCheck[] = isPensionerType(values.employment_type)
+        ? incomeChecks
+        : [
+              { field: 'employment_type', label: 'Employment' },
+              {
+                  field: 'employer_business_name',
+                  label: 'Employer/Business name',
+              },
+              { field: 'current_position', label: 'Current position' },
+              { field: 'nature_of_business', label: 'Nature of business' },
+              {
+                  field: 'years_in_work_business',
+                  label: 'Total years in work/business',
+              },
+              ...incomeChecks,
+          ];
 
-    if (isApplicant) {
+    if (isApplicant && !isPensionerType(values.employment_type)) {
         checks.push({
             field: 'employer_business_address1',
             label: 'Employer/Business address (street)',
         });
     }
 
-    return checkPersonFields(values, checks);
+    const missing = checkPersonFields(values, checks);
+
+    // The server requires an income of at least 1, so "0" is not an answer.
+    if (
+        !blank(values.gross_monthly_income) &&
+        !(Number(values.gross_monthly_income) > 0)
+    ) {
+        missing.push('Gross monthly income');
+    }
+
+    return missing;
 }
 
 /** Applicant fields the wizard requires -- empty ones start open for editing. */
@@ -123,6 +142,10 @@ export const APPLICANT_REQUIRED_FIELDS: ReadonlySet<string> = new Set(
 type StepValidationContext = {
     applicantPrefilledFromProfile: boolean;
     applicantWorkIncomePrefilledFromProfile: boolean;
+    /** Selected loan type is Micro Business Loan (needs kind_of_loan). */
+    requiresKindOfLoan?: boolean;
+    /** Selected loan type is Other Loan (needs other_loan_type_name). */
+    requiresOtherLoanTypeName?: boolean;
 };
 
 /**
@@ -149,6 +172,15 @@ export function getStepMissingFields(
             }
             if (blank(data.loan_purpose)) missing.push('Loan purpose');
             if (blank(data.availment_status)) missing.push('Availment status');
+            if (context.requiresKindOfLoan && blank(data.kind_of_loan)) {
+                missing.push('Kind of loan');
+            }
+            if (
+                context.requiresOtherLoanTypeName &&
+                blank(data.other_loan_type_name)
+            ) {
+                missing.push('Loan name');
+            }
             return missing;
         }
 
