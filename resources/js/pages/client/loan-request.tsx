@@ -293,7 +293,6 @@ export default function LoanRequestPage({
     const [confirmations, setConfirmations] = useState(
         () => new Set<LoanWizardConfirmation>(wizardConfirmations),
     );
-    const [updateProfile, setUpdateProfile] = useState(true);
     const [activeAction, setActiveAction] = useState<'draft' | 'submit' | null>(
         null,
     );
@@ -678,10 +677,6 @@ export default function LoanRequestPage({
     const handleSubmit = () => {
         setConfirmSubmitOpen(false);
         setActiveAction('submit');
-        form.transform((data) => ({
-            ...data,
-            update_profile: updateProfile,
-        }));
         // Success redirects to the request page, which shows the
         // confirmation (reference number) and then tracks the request.
         form.post(LoanRequestController.store().url, {
@@ -1290,8 +1285,6 @@ export default function LoanRequestPage({
                                 form.setData('undertaking_accepted', value);
                                 form.clearErrors('undertaking_accepted');
                             }}
-                            updateProfile={updateProfile}
-                            onUpdateProfileChange={setUpdateProfile}
                             onErrorClick={handleErrorClick}
                             onChangeSection={(section) => go(section, 'review')}
                         />
