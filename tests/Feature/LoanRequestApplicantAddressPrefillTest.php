@@ -1,6 +1,10 @@
 <?php
 
+use App\LoanRequestPersonRole;
+use App\LoanRequestStatus;
 use App\Models\AppUser;
+use App\Models\LoanRequest;
+use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\Role;
 use App\Models\UserProfile;
@@ -214,4 +218,37 @@ test('applicant birthplace falls back to the legacy wmaster blob when the profil
 
     expect($formData['applicant']['birthplace_city'])->toBe('Taytay')
         ->and($formData['applicant']['birthplace_province'])->toBe('Rizal');
+});
+
+test('a draft applicant picks up profile fields filled in after the draft was started', function (): void {
+    $member = createAddressPrefillTestMember('970010', [], [
+        'employer_date_employed' => null,
+        'years_in_work_business' => '2',
+    ]);
+
+    $draft = LoanRequest::factory()->create([
+        'user_id' => $member->user_id,
+        'acctno' => $member->acctno,
+        'status' => LoanRequestStatus::Draft,
+        'submitted_at' => null,
+    ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($draft)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employer_date_employed' => null,
+            'years_in_work_business' => '2',
+        ]);
+
+    // The member then completes Work & Finances in Profile Settings.
+    $member->memberApplicationProfile->forceFill([
+        'employer_date_employed' => '2020-11-27',
+        'years_in_work_business' => '6',
+    ])->save();
+
+    $formData = app(LoanRequestService::class)->getFormData($member->fresh(['memberApplicationProfile']));
+
+    expect($formData['draft']['id'])->toBe($draft->id)
+        ->and($formData['applicant']['employer_date_employed'])->toBe('2020-11-27')
+        ->and($formData['applicant']['years_in_work_business'])->toBe('6');
 });

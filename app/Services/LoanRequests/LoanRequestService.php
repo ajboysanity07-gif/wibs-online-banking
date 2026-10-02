@@ -119,8 +119,8 @@ class LoanRequestService
             ? $this->serializePerson($draft, LoanRequestPersonRole::CoMakerTwo)
             : null;
 
-        $applicant = $this->normalizePersonSelectValues($applicant);
         $applicant = $this->applyApplicantProfileDefaults($applicant, $user);
+        $applicant = $this->normalizePersonSelectValues($applicant);
         $coMakerOne = $coMakerOne !== null
             ? $this->normalizePersonSelectValues($coMakerOne)
             : null;
@@ -2093,15 +2093,16 @@ class LoanRequestService
     }
 
     /**
-     * Fill missing applicant fields (civil status and the fields sharing its
-     * "About you" sync history) from the member's saved application profile,
-     * same precedence as applyBankingProfileDefaults()/applyDependentsProfileDefaults():
-     * only null fields are overwritten so a member's own in-progress draft
-     * edits are never clobbered.
+     * Refresh a draft's applicant from the member's live profile/wmaster
+     * snapshot. The wizard's About you section is read-only ("update your
+     * profile first; this application picks up the change"), so the draft's
+     * LoanRequestPerson row is only a copy taken when the draft was created:
+     * every field the live snapshot has a value for wins, and the draft
+     * value is kept only where the snapshot is blank.
      *
-     * Without this, an applicant's LoanRequestPerson row created before the
-     * member filled in Profile Settings stays permanently stale — serializePerson()
-     * reads the row verbatim with no fallback to the live profile.
+     * Without this, a field the member fills in Profile Settings after
+     * starting a draft (e.g. date employed) never reaches the application,
+     * and submission fails validation on a field they cannot edit here.
      *
      * @param  array<string, mixed>  $applicant
      * @return array<string, mixed>
@@ -2112,29 +2113,8 @@ class LoanRequestService
             return $applicant;
         }
 
-        $snapshot = $this->buildApplicantSnapshot($user);
-
-        $fields = [
-            'civil_status',
-            'sex',
-            'housing_status',
-            'length_of_stay',
-            'spouse_name',
-            'spouse_birthdate',
-            'spouse_cell_no',
-            'number_of_children',
-            'employer_business_address_barangay',
-            'employer_business_address_zip',
-        ];
-
-        foreach ($fields as $field) {
-            if (($applicant[$field] ?? null) !== null) {
-                continue;
-            }
-
-            $snapshotValue = $snapshot[$field] ?? null;
-
-            if ($snapshotValue === null) {
+        foreach ($this->buildApplicantSnapshot($user) as $field => $snapshotValue) {
+            if ($snapshotValue === null || $snapshotValue === '') {
                 continue;
             }
 

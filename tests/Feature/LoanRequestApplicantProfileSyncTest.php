@@ -77,7 +77,9 @@ test('getFormData backfills applicant civil status from the profile once a draft
     expect($formData['applicant']['civil_status'])->toBe('Widowed');
 });
 
-test('getFormData does not overwrite an applicant civil status the member already saved on the draft', function (): void {
+// About you is read-only in the wizard, so the draft's applicant is only a
+// copy of the profile: a later profile edit must win over the stale copy.
+test('getFormData prefers a profile civil status updated after the draft was saved', function (): void {
     $member = createApplicantSyncTestMember('004401');
 
     app(LoanRequestService::class)->saveDraft($member, [
@@ -92,7 +94,7 @@ test('getFormData does not overwrite an applicant civil status the member alread
 
     $formData = app(LoanRequestService::class)->getFormData($member->fresh(['memberApplicationProfile']));
 
-    expect($formData['applicant']['civil_status'])->toBe('Single');
+    expect($formData['applicant']['civil_status'])->toBe('Widowed');
 });
 
 test('getFormData surfaces the applicant sex from wmaster when no draft exists yet', function (): void {
