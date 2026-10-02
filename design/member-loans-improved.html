@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head><script type="application/json" data-od-external-dependencies>["https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap"]</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loans · MRDINC Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio.
+   Put this @layer first; product CSS outside the layer always wins. */
+@layer od-layout {
+  :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+
+  /* containers */
+  .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+  .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+  .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+  .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+  .od-fill    { flex: 1 1 0; min-width: 0; }
+  .od-fixed   { flex: none; }
+  .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+
+  /* stacked information: each piece is its own line — never sibling inline spans */
+  .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+  :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+  .od-tile { display: grid; grid-template-rows: auto 1fr; }
+  :where(.od-tile) > :where(*) { display: block; }
+
+  /* media keeps its intrinsic ratio by default; never a distorted or cropped
+     cover by accident. height:auto lets the ratio win over an <img height="…">
+     attribute. Cropping to a uniform box is an explicit opt-in: set --od-ratio
+     AND add .od-media-cover together (per the core rule, only where a crop is
+     deliberate — tile thumbs, decorative fills — never on full-frame content). */
+  .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+  .od-media-cover { object-fit: cover; }
+
+  /* data text only — authored copy is rewritten to its budget instead */
+  .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .od-clamp-2 { -webkit-line-clamp: 2; }
+  .od-clamp-3 { -webkit-line-clamp: 3; }
+  .od-lines-2 { min-height: calc(2 * 1.4em); }   /* block-level reservation for a shared baseline */
+  .od-nowrap  { white-space: nowrap; }           /* 数字+单位 · 价格+起 · 日期+星期 */
+  .od-keep    { word-break: keep-all; overflow-wrap: anywhere; } /* CJK labels break at spaces / <wbr> first */
+
+  /* screen skeleton (optional): bars take their own space, the middle scrolls — no padding guessed for chrome */
+  .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+  .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+
+  /* horizontal rail: the next item peeks at the edge; trailing room survives overflow */
+  .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+             padding-inline: var(--od-rail-pad, 16px); scroll-padding-inline: var(--od-rail-pad, 16px); }
+  .od-rail::-webkit-scrollbar { display: none; }
+  :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+  :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+
+  .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+  .od-touch  { min-width: 44px; min-height: 44px; }
+}
+/* /OD-LAYOUT-PRIMITIVES v1 */
+
+/* ============ WIBS tokens ============ */
+:root, [data-theme="light"] {
+    --bg: #dfe7cb;
+    --primary: #176433;
+    --primary-fg: #ffffff;
+    --accent: #9abd53;
+    --accent-fg: #10301c;
+    --card: #ffffff;
+    --tile: #eef3de;
+    --tint: #d3e6a6;
+    --tint-fg: #0f4123;
+    --tint-border: #b9d488;
+    --ink: #14170f;
+    --muted: #4a4f3f;
+    --border: #b7c399;
+    --sidebar: #176433;
+    --sidebar-ink: #eaf3dd;
+    --sidebar-active: rgba(255, 255, 255, 0.14);
+    --track: rgba(0, 0, 0, 0.15);
+    --track-on-primary: rgba(0, 0, 0, 0.25);
+    --danger: #a4261e;
+    --danger-tint: #f8dedc;
+    --danger-fg: #7a1b15;
+    --shadow: 0 1px 2px rgba(20, 23, 15, 0.06), 0 4px 14px rgba(20, 23, 15, 0.06);
+}
+[data-theme="dark"] {
+    --bg: #1a1916;
+    --primary: #c2d65a;
+    --primary-fg: #1a1a0a;
+    --accent: #c2d65a;
+    --accent-fg: #1a1a0a;
+    --card: #242320;
+    --tile: #1f1e1b;
+    --tint: #3a4a1c;
+    --tint-fg: #e4efb0;
+    --tint-border: #4a5a2c;
+    --ink: #f5f3ec;
+    --muted: #bdb8aa;
+    --border: #3a3832;
+    --sidebar: #12110f;
+    --sidebar-ink: #d9d6c9;
+    --sidebar-active: rgba(194, 214, 90, 0.16);
+    --track: rgba(255, 255, 255, 0.2);
+    --track-on-primary: rgba(0, 0, 0, 0.35);
+    --danger: #f2b8b5;
+    --danger-tint: #3a2422;
+    --danger-fg: #f2b8b5;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+    margin: 0;
+    font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.5;
+}
+h1, h2, h3, p { margin: 0; }
+a { color: inherit; }
+button { font: inherit; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+svg { display: block; }
+.sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ============ Shell ============ */
+.shell { display: flex; min-height: 100vh; }
+.sidebar {
+    position: fixed; inset: 0 auto 0 0; z-index: 50;
+    width: 248px; background: var(--sidebar); color: var(--sidebar-ink);
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 20px 14px; overflow-y: auto;
+    transform: translateX(0); transition: transform 200ms ease-out;
+}
+.sidebar[hidden] { display: flex; transform: translateX(-100%); }
+.brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 10px 18px; font-weight: 700; font-size: 17px; letter-spacing: 0.01em;
+}
+.brand__mark {
+    width: 34px; height: 34px; border-radius: 8px; flex: none;
+    background: var(--accent); color: var(--accent-fg);
+    display: grid; place-items: center; font-size: 14px; font-weight: 700;
+}
+.nav-label {
+    padding: 10px 10px 4px; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.7;
+}
+.nav-item {
+    display: flex; align-items: center; gap: 10px;
+    min-height: 44px; padding: 8px 10px; border-radius: 8px;
+    color: inherit; text-decoration: none; font-size: 14.5px; font-weight: 500;
+}
+.nav-item:hover { background: var(--sidebar-active); }
+.nav-item[aria-current="page"] {
+    background: var(--sidebar-active); font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+.sidebar__foot {
+    margin-top: auto; padding: 12px 10px 4px; font-size: 12.5px; opacity: 0.75;
+    display: flex; align-items: center; gap: 8px;
+}
+.scrim {
+    position: fixed; inset: 0; z-index: 45; background: rgba(10, 12, 8, 0.5);
+    border: 0; width: 100%; cursor: pointer;
+}
+.main {
+    flex: 1; min-width: 0; margin-left: 248px;
+    display: flex; flex-direction: column;
+}
+.topbar {
+    position: sticky; top: 44px; z-index: 40;
+    display: flex; align-items: center; gap: 12px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px; min-height: 56px;
+}
+.icon-btn {
+    display: grid; place-items: center;
+    width: 44px; height: 44px; border-radius: 8px; cursor: pointer;
+    background: var(--card); color: var(--ink); border: 1px solid var(--border);
+}
+.icon-btn:hover { background: var(--tile); }
+.menu-btn { display: none; }
+.breadcrumb {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    font-size: 13.5px; color: var(--muted); min-width: 0;
+}
+.breadcrumb a { text-decoration: none; font-weight: 500; }
+.breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb [aria-current="page"] { color: var(--ink); font-weight: 600; }
+.pill {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    background: var(--tint); color: var(--tint-fg); border: 1px solid var(--tint-border);
+    white-space: nowrap;
+}
+.content {
+    padding: 24px; display: flex; flex-direction: column; gap: 20px;
+    width: 100%; max-width: 1240px; margin: 0 auto;
+}
+
+/* ============ Page header ============ */
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
+.page-head__text { min-width: 0; flex: 1 1 320px; }
+.page-title { font-size: clamp(24px, 3vw, 30px); font-weight: 700; letter-spacing: -0.01em; }
+.page-sub { color: var(--muted); font-size: 15px; margin-top: 4px; }
+.badge-outline {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 600;
+    background: var(--card); border: 1px solid var(--border); color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+.btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 8px 16px; border-radius: 8px;
+    font-size: 14.5px; font-weight: 600; cursor: pointer; text-decoration: none;
+    border: 1px solid var(--border); background: var(--card); color: var(--ink);
+}
+.btn:hover { background: var(--tile); border-color: var(--muted); }
+.btn--primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.btn--primary:hover { filter: brightness(1.08); background: var(--primary); border-color: var(--primary); }
+.btn--sm { min-height: 40px; padding: 6px 12px; font-size: 13.5px; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn:disabled:hover { background: var(--card); border-color: var(--border); }
+.btn--primary:disabled:hover { background: var(--primary); }
+
+/* ============ Alert ============ */
+.alert {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 14px 16px; border-radius: 10px;
+    background: var(--danger-tint); border: 1px solid var(--danger);
+    color: var(--danger-fg); font-size: 14.5px;
+}
+.alert strong { display: block; font-size: 15px; margin-bottom: 2px; }
+.alert[hidden] { display: none; }
+
+/* ============ Stats ============ */
+.stats {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.stat {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px; display: flex; flex-direction: column; gap: 8px;
+    box-shadow: var(--shadow); min-width: 0;
+}
+.stat--primary {
+    background: var(--primary); color: var(--primary-fg);
+    border-color: var(--primary);
+}
+.stat__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.stat__label { font-size: 13px; font-weight: 600; line-height: 1.35; }
+.stat--plain .stat__label { color: var(--muted); }
+.stat__icon { flex: none; opacity: 0.85; }
+.stat__value {
+    font-size: clamp(26px, 3.2vw, 34px); font-weight: 700;
+    letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.stat__helper { font-size: 13px; line-height: 1.4; opacity: 0.9; }
+.stat--plain .stat__helper { color: var(--muted); }
+
+/* ============ Section card ============ */
+.card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow); overflow: hidden;
+}
+.card__head {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 16px 18px; border-bottom: 1px solid var(--border);
+}
+.card__title { font-size: 16px; font-weight: 700; }
+.card__desc { font-size: 13.5px; color: var(--muted); }
+.card__body { padding: 18px; }
+.card__foot {
+    padding: 14px 18px; border-top: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between;
+}
+
+/* ============ Loan cards ============ */
+.loan-grid {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+.loan-card {
+    border: 1px solid var(--border); border-radius: 10px; background: var(--tile);
+    padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0;
+}
+.loan-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.loan-card__no {
+    font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.loan-card__type {
+    display: inline-flex; align-items: center;
+    margin-top: 6px; padding: 3px 10px; border-radius: 999px;
+    font-size: 12.5px; font-weight: 600;
+    background: var(--card); border: 1px solid var(--border); color: var(--muted);
+}
+.status {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    white-space: nowrap;
+}
+.status--active { background: var(--tint); color: var(--tint-fg); border: 1px solid var(--tint-border); }
+.status--paid { background: var(--primary); color: var(--primary-fg); border: 1px solid var(--primary); }
+.figs {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px;
+    padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+}
+.fig { display: grid; gap: 2px; min-width: 0; }
+.fig__label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.fig__value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.progress { display: grid; gap: 6px; }
+.progress__meta {
+    display: flex; justify-content: space-between; gap: 10px;
+    font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.progress__meta strong { color: var(--ink); font-weight: 700; white-space: nowrap; }
+.progress__track {
+    height: 8px; border-radius: 999px; background: var(--track); overflow: hidden;
+}
+.progress__fill {
+    height: 100%; border-radius: 999px; background: var(--accent);
+    transition: width 300ms ease-out;
+}
+
+/* ============ Table ============ */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+thead th {
+    text-align: left; font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--muted);
+    padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+tbody td {
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--tile); }
+.td-num, .th-num { text-align: right; }
+.state-box {
+    padding: 40px 18px; text-align: center; color: var(--muted); font-size: 15px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.state-box strong { color: var(--ink); font-size: 16px; }
+.state-box[hidden] { display: none; }
+
+/* ============ Pagination ============ */
+.pager { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pager__info { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.page-btn {
+    min-width: 40px; min-height: 40px; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card); color: var(--ink);
+    font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.page-btn:hover:not(:disabled) { background: var(--tile); }
+.page-btn[aria-current="page"] { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.page-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ============ Skeleton ============ */
+.skeleton { display: grid; gap: 12px; }
+.skeleton__row {
+    height: 84px; border-radius: 10px;
+    background: linear-gradient(90deg, var(--tile) 25%, var(--border) 50%, var(--tile) 75%);
+    background-size: 200% 100%; animation: shimmer 1.2s linear infinite;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+.is-hidden { display: none !important; }
+
+/* ============ Toast ============ */
+.toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(8px);
+    z-index: 80; max-width: min(92vw, 420px);
+    background: var(--ink); color: var(--bg);
+    padding: 12px 18px; border-radius: 10px; font-size: 14.5px; font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    opacity: 0; pointer-events: none; transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+.toast.is-on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ============ Next payment due ============ */
+.stat--due.is-overdue {
+    background: var(--danger-tint); border-color: var(--danger); color: var(--danger-fg);
+}
+.stat--due .stat__icon { color: var(--muted); }
+.stat--due.is-overdue .stat__icon { color: var(--danger-fg); }
+.status--overdue { background: var(--danger-tint); color: var(--danger-fg); border: 1px solid var(--danger); }
+
+/* ============ Loan due line ============ */
+.loan-due {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+    padding: 12px; border-radius: 8px;
+    background: var(--card); border: 1px solid var(--border);
+}
+.loan-due.is-overdue { background: var(--danger-tint); border-color: var(--danger); color: var(--danger-fg); }
+.loan-due__label {
+    display: block; font-size: 12px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+.loan-due.is-overdue .loan-due__label,
+.loan-due.is-overdue .loan-due__date { color: var(--danger-fg); }
+.loan-due__amount {
+    display: block; font-size: 19px; font-weight: 700;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.loan-due__date { display: block; font-size: 13px; color: var(--muted); }
+
+/* ============ Schedule disclosure ============ */
+.sched { border-top: 1px solid var(--border); padding-top: 10px; }
+.sched summary {
+    cursor: pointer; min-height: 32px; display: flex; align-items: center;
+    font-size: 13.5px; font-weight: 600; color: var(--primary);
+}
+.sched summary::marker { color: var(--muted); }
+.sched__list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
+.sched__row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 8px 0; border-top: 1px solid var(--border);
+}
+.sched__date { display: block; font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sched__status { display: block; font-size: 12px; color: var(--muted); }
+.sched__status.is-overdue { color: var(--danger-fg); font-weight: 700; }
+.sched__amt { font-size: 14.5px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ============ Payment history ============ */
+.pay-row {
+    display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+    gap: 14px; align-items: center; padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+}
+.pay-row:last-child { border-bottom: 0; }
+@media (hover: hover) { .pay-row:hover { background: var(--tile); } }
+.pay-row__date { display: block; font-size: 14.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pay-row__loan { display: block; font-size: 13px; color: var(--muted); }
+.pay-row__pi { display: grid; gap: 2px; min-width: 0; }
+.pay-row__pi-line { display: block; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pay-row__pi-line strong { color: var(--ink); font-weight: 700; white-space: nowrap; }
+.pay-row__right { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.pay-row__amt { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ============ Documents ============ */
+.doc-row {
+    display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+}
+.doc-row:last-child { border-bottom: 0; }
+.doc-row__icon {
+    flex: none; width: 40px; height: 40px; border-radius: 8px;
+    background: var(--tile); color: var(--primary);
+    display: grid; place-items: center;
+}
+.doc-row__text { flex: 1 1 auto; min-width: 0; }
+.doc-row__name { display: block; font-size: 14.5px; font-weight: 600; overflow-wrap: anywhere; }
+.doc-row__meta { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.doc-row .btn { flex: none; }
+
+/* ============ Responsive ============ */
+@media (max-width: 1023px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.is-open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .menu-btn { display: grid; }
+}
+@media (min-width: 1024px) {
+    .scrim { display: none !important; }
+}
+@media (max-width: 767px) {
+    .content { padding: 16px; gap: 16px; }
+    .topbar { padding: 10px 14px; }
+    .pill span.pill__text { display: none; }
+    .page-head .btn { width: 100%; }
+    .table-section { display: none; }
+    .pay-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .pay-row__who { order: 1; }
+    .pay-row__right { order: 2; justify-content: space-between; width: 100%; }
+    .pay-row__pi { order: 3; }
+    .doc-row { flex-wrap: wrap; }
+    .doc-row__text { flex: 1 1 auto; }
+    .doc-row .btn { width: 100%; }
+}
+@media (min-width: 768px) {
+    .cards-section .card__desc--mobile { display: none; }
+}
+@media print {
+    .sidebar, .topbar, .scrim, .toast, .pager { display: none !important; }
+    .main { margin-left: 0; }
+    body { background: #fff; }
+    .card, .stat, .loan-card { box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+    <nav class="sidebar" id="sidebar" aria-label="Main">
+        <div class="brand">
+            <span class="brand__mark" aria-hidden="true">MR</span>
+            <span>MRDINC Portal</span>
+        </div>
+        <p class="nav-label">Member</p>
+        <a class="nav-item" href="#overview">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+            Overview
+        </a>
+        <a class="nav-item" href="#loans" aria-current="page">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+            Loans
+        </a>
+        <a class="nav-item" href="#security">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Loan Security
+        </a>
+        <a class="nav-item" href="#requests">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6M9 11h3"/></svg>
+            Loan requests
+        </a>
+        <p class="nav-label">Account</p>
+        <a class="nav-item" href="#settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>
+            Settings
+        </a>
+        <div class="sidebar__foot">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Secure session
+        </div>
+    </nav>
+    <button type="button" class="scrim is-hidden" id="scrim" aria-label="Close menu" tabindex="-1"></button>
+
+    <div class="main">
+        <header class="topbar">
+            <button type="button" class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a href="#overview">Overview</a>
+                <span aria-hidden="true">/</span>
+                <span aria-current="page">Loans</span>
+            </nav>
+            <span class="pill">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span class="pill__text">Secure session</span>
+            </span>
+            <button type="button" class="icon-btn" id="themeToggleTop" aria-label="Toggle dark mode">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+            </button>
+        </header>
+
+        <main class="content">
+            <div class="page-head">
+                <div class="page-head__text">
+                    <h1 class="page-title">Loans</h1>
+                    <p class="page-sub">Track your active loans and payment history.</p>
+                </div>
+                <span class="badge-outline" id="acctBadge">Account No: 2026-00147</span>
+                <a class="btn btn--primary" href="#requests">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    Apply for a loan
+                </a>
+                <a class="btn" href="#overview">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                    Back to profile
+                </a>
+            </div>
+
+            <div class="alert" id="acctAlert" role="alert" hidden>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                <div>
+                    <strong>Account number missing</strong>
+                    Add an account number to view loan details.
+                </div>
+            </div>
+
+            <section class="stats" aria-label="Loan summary">
+                <div class="stat stat--primary">
+                    <div class="stat__top">
+                        <p class="stat__label">Total Outstanding Loan Balance</p>
+                        <svg class="stat__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                    </div>
+                    <p class="stat__value" id="statOutstanding">₱0.00</p>
+                    <p class="stat__helper">Sum of outstanding loan balances.</p>
+                </div>
+                <div class="stat stat--due" id="statDueCard">
+                    <div class="stat__top">
+                        <p class="stat__label">Next Payment Due</p>
+                        <svg class="stat__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                    </div>
+                    <p class="stat__value" id="statDueValue">—</p>
+                    <p class="stat__helper" id="statDueHelper">Across your active loans.</p>
+                </div>
+                <div class="stat stat--plain">
+                    <div class="stat__top">
+                        <p class="stat__label">Active Loans</p>
+                        <svg class="stat__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                    </div>
+                    <p class="stat__value" id="statActive">0 of 0</p>
+                    <p class="stat__helper">Loans with an outstanding balance.</p>
+                </div>
+                <div class="stat stat--plain">
+                    <div class="stat__top">
+                        <p class="stat__label">Last Loan Transaction</p>
+                        <svg class="stat__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted)"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    </div>
+                    <p class="stat__value" id="statLast" style="font-size:clamp(20px,2.4vw,26px)">—</p>
+                    <p class="stat__helper">Most recent loan activity date.</p>
+                </div>
+            </section>
+
+            <section class="card cards-section" aria-labelledby="loansHeading">
+                <div class="card__head">
+                    <div>
+                        <h2 class="card__title" id="loansHeading">Your loans</h2>
+                        <p class="card__desc">Balance, repayment progress and next payment for your active loans.</p>
+                    </div>
+                </div>
+                <div class="card__body">
+                    <div class="skeleton is-hidden" id="loanSkeleton" aria-hidden="true">
+                        <div class="skeleton__row"></div>
+                        <div class="skeleton__row"></div>
+                        <div class="skeleton__row"></div>
+                    </div>
+                    <div class="loan-grid is-hidden" id="loanGrid"></div>
+                    <div class="state-box" id="loanEmpty" hidden>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>
+                        <strong>No active loans.</strong>
+                        <span>Paid loans remain listed in the All loans table below.</span>
+                    </div>
+                    <div class="state-box" id="loanError" hidden>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--danger)"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                        <strong>Unable to load loans</strong>
+                        <span>Something went wrong while fetching your loan records.</span>
+                        <button type="button" class="btn btn--sm" id="retryBtn">Try again</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card" aria-labelledby="payHistHeading">
+                <div class="card__head">
+                    <div>
+                        <h2 class="card__title" id="payHistHeading">Payment history</h2>
+                        <p class="card__desc">Recent payments across all loans.</p>
+                    </div>
+                </div>
+                <div class="pay-list" id="payList"></div>
+            </section>
+
+            <section class="card" aria-labelledby="docsHeading">
+                <div class="card__head">
+                    <div>
+                        <h2 class="card__title" id="docsHeading">Statements &amp; documents</h2>
+                        <p class="card__desc">Statements, receipts and certificates for your records.</p>
+                    </div>
+                </div>
+                <div class="doc-list" id="docList"></div>
+            </section>
+
+            <section class="card table-section" aria-labelledby="allLoansHeading">
+                <div class="card__head">
+                    <div>
+                        <h2 class="card__title" id="allLoansHeading">All loans</h2>
+                        <p class="card__desc">Full loan list with pagination.</p>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table id="loanTable">
+                        <thead>
+                            <tr>
+                                <th scope="col">Loan No</th>
+                                <th scope="col">Type</th>
+                                <th scope="col" class="th-num">Principal</th>
+                                <th scope="col" class="th-num">Balance</th>
+                                <th scope="col">Last payment</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loanTbody"></tbody>
+                    </table>
+                    <div class="state-box" id="tableEmpty" hidden>
+                        <strong>No loans found.</strong>
+                        <span>Your loan records will be listed here.</span>
+                    </div>
+                    <div class="state-box" id="tableError" hidden>
+                        <strong>Unable to load loans</strong>
+                        <span>Something went wrong while fetching your loan records.</span>
+                    </div>
+                </div>
+                <div class="card__foot">
+                    <span class="pager__info" id="pagerInfo">Showing 0 of 0 loans</span>
+                    <div class="pager" id="pager" role="navigation" aria-label="Loans pagination"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ---------- demo data matching the real MemberLoan shape ---------- */
+    var summary = {
+        loanBalanceLeft: 90250,
+        currentLoanSecurityBalance: 12500,
+        lastLoanTransactionDate: '2026-09-15'
+    };
+    var TODAY = '2026-10-01';
+    var loans = [
+        { lnnumber: 'LN-00045', lntype: 'Salary Loan',        principal: 60000, balance: 28500, lastmove: '2026-09-15', initial: 60000, rate: 2.5, term: 24, monthlyDue: 3150, dueDate: '2026-10-05' },
+        { lnnumber: 'LN-00031', lntype: 'Micro Business Loan', principal: 50000, balance: 0,     lastmove: '2026-08-02', initial: 50000, rate: 3,   term: 12, monthlyDue: 0,    dueDate: '' },
+        { lnnumber: 'LN-00052', lntype: 'Emergency Loan',      principal: 46000, balance: 46000, lastmove: '2026-09-01', initial: 46000, rate: 3,   term: 12, monthlyDue: 4000, dueDate: '2026-09-25' },
+        { lnnumber: 'LN-00027', lntype: 'Salary Loan',         principal: 25000, balance: 15750, lastmove: '2026-09-10', initial: 25000, rate: 2.5, term: 18, monthlyDue: 1750, dueDate: '2026-10-10' },
+        { lnnumber: 'LN-00019', lntype: 'Multi-purpose Loan',  principal: 30000, balance: 0,     lastmove: '2026-05-20', initial: 30000, rate: 3,   term: 18, monthlyDue: 0,    dueDate: '' },
+        { lnnumber: 'LN-00058', lntype: 'Cala-cala Loan',      principal: 12000, balance: 9600,  lastmove: '2026-09-08', initial: 12000, rate: 4,   term: 6,  monthlyDue: 2400, dueDate: '2026-10-12' }
+    ];
+    var payments = [
+        { date: '2026-09-15', lnnumber: 'LN-00045', amount: 3150,  principal: 2387.5, interest: 762.5 },
+        { date: '2026-09-10', lnnumber: 'LN-00027', amount: 1750,  principal: 1406.25, interest: 343.75 },
+        { date: '2026-09-08', lnnumber: 'LN-00058', amount: 2400,  principal: 2000,  interest: 400 },
+        { date: '2026-08-15', lnnumber: 'LN-00045', amount: 3150,  principal: 2400,  interest: 750 },
+        { date: '2026-08-10', lnnumber: 'LN-00027', amount: 1750,  principal: 1375,  interest: 375 },
+        { date: '2026-08-02', lnnumber: 'LN-00031', amount: 8500,  principal: 8160,  interest: 340 },
+        { date: '2026-07-15', lnnumber: 'LN-00045', amount: 3150,  principal: 2350,  interest: 800 },
+        { date: '2026-05-20', lnnumber: 'LN-00019', amount: 5000,  principal: 4750,  interest: 250 }
+    ];
+    var documents = [
+        { name: 'Statement of Account \u2014 September 2026', meta: 'PDF \u00B7 148 KB' },
+        { name: 'Statement of Account \u2014 August 2026', meta: 'PDF \u00B7 146 KB' },
+        { name: 'Payment Receipt \u2014 Sep 15, 2026 \u00B7 LN-00045', meta: 'PDF \u00B7 62 KB' },
+        { name: 'Certificate of Full Payment \u2014 LN-00031', meta: 'PDF \u00B7 84 KB' }
+    ];
+    var perPage = 5;
+    var page = 1;
+    var state = 'ready'; // ready | loading | empty | error
+
+    /* ---------- helpers ---------- */
+    function php(n) {
+        return '\u20B1' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtDate(iso) {
+        if (!iso) return '--';
+        var d = new Date(iso + 'T00:00:00');
+        if (isNaN(d)) return iso;
+        return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    function progressOf(loan) {
+        if (!loan.principal || loan.principal <= 0) return 0;
+        var repaid = Math.max(0, loan.principal - (loan.balance || 0));
+        return Math.min(100, Math.round((repaid / loan.principal) * 100));
+    }
+    function isActive(loan) { return (loan.balance || 0) > 0; }
+    function paymentsLeft(loan) {
+        if (!isActive(loan) || !loan.monthlyDue) return 0;
+        return Math.min(loan.term, Math.ceil((loan.balance || 0) / loan.monthlyDue));
+    }
+    function scheduleFor(loan) {
+        var rows = [];
+        if (!isActive(loan) || !loan.dueDate) return rows;
+        var count = Math.min(3, paymentsLeft(loan));
+        var d = new Date(loan.dueDate + 'T00:00:00');
+        for (var i = 0; i < count; i++) {
+            var iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            rows.push({ date: iso, amount: loan.monthlyDue, overdue: iso < TODAY });
+            d.setMonth(d.getMonth() + 1);
+        }
+        return rows;
+    }
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    var $ = function (id) { return document.getElementById(id); };
+
+    /* ---------- theme ---------- */
+    var root = document.documentElement;
+    function setTheme(t) {
+        root.setAttribute('data-theme', t);
+        try { localStorage.setItem('wibs-theme', t); } catch (e) {}
+    }
+    $('themeToggleTop').addEventListener('click', function () {
+        setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+    try {
+        var saved = localStorage.getItem('wibs-theme');
+        if (saved === 'dark' || saved === 'light') setTheme(saved);
+    } catch (e) {}
+
+    /* ---------- drawer ---------- */
+    var sidebar = $('sidebar'), scrim = $('scrim'), menuBtn = $('menuBtn');
+    function setDrawer(open) {
+        sidebar.classList.toggle('is-open', open);
+        scrim.classList.toggle('is-hidden', !open);
+        scrim.tabIndex = open ? 0 : -1;
+        menuBtn.setAttribute('aria-expanded', String(open));
+        if (open) { sidebar.querySelector('.nav-item').focus(); }
+        else { menuBtn.focus(); }
+    }
+    menuBtn.addEventListener('click', function () { setDrawer(!sidebar.classList.contains('is-open')); });
+    scrim.addEventListener('click', function () { setDrawer(false); });
+    sidebar.addEventListener('click', function (e) {
+        if (e.target.closest('a') && window.matchMedia('(max-width: 1023px)').matches) setDrawer(false);
+    });
+
+    /* ---------- toast ---------- */
+    var toast = $('toast'), toastTimer = null;
+    function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add('is-on');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove('is-on'); }, 2600);
+    }
+
+    /* ---------- stats ---------- */
+    function renderStats() {
+        var outstanding = loans.reduce(function (s, l) { return s + (l.balance || 0); }, 0);
+        var active = loans.filter(isActive).length;
+        $('statOutstanding').textContent = php(outstanding);
+        $('statActive').textContent = active + ' of ' + loans.length;
+        $('statLast').textContent = fmtDate(summary.lastLoanTransactionDate);
+
+        var dueCard = $('statDueCard');
+        var next = null;
+        loans.forEach(function (l) {
+            if (isActive(l) && l.dueDate && (!next || l.dueDate < next.dueDate)) next = l;
+        });
+        if (next) {
+            var overdue = next.dueDate < TODAY;
+            $('statDueValue').textContent = php(next.monthlyDue);
+            $('statDueHelper').textContent = (overdue ? 'Overdue \u00B7 ' : 'Due ') + fmtDate(next.dueDate) + ' \u00B7 ' + next.lntype;
+            dueCard.classList.toggle('is-overdue', overdue);
+        } else {
+            $('statDueValue').textContent = '\u2014';
+            $('statDueHelper').textContent = 'No payments due.';
+            dueCard.classList.remove('is-overdue');
+        }
+    }
+
+    /* ---------- loan cards ---------- */
+    function renderCards() {
+        var grid = $('loanGrid');
+        grid.innerHTML = loans.filter(isActive).map(function (l) {
+            var pct = progressOf(l);
+            var repaid = Math.max(0, (l.principal || 0) - (l.balance || 0));
+            var statusHtml = '<span class="status status--active">Active</span>';
+            var overdue = l.dueDate && l.dueDate < TODAY;
+            var dueHtml = '<div class="loan-due' + (overdue ? ' is-overdue' : '') + '">' +
+                '<div class="od-field od-fill">' +
+                    '<span class="loan-due__label">Next payment due</span>' +
+                    '<span class="loan-due__amount">' + php(l.monthlyDue) + '</span>' +
+                    '<span class="loan-due__date">' + (overdue ? 'Overdue since ' : 'Due ') + fmtDate(l.dueDate) + '</span>' +
+                '</div>' +
+                (overdue ? '<div class="od-cluster"><span class="status status--overdue">Overdue</span></div>' : '') +
+            '</div>';
+            var schedRows = scheduleFor(l);
+            var schedHtml = '';
+            if (schedRows.length) {
+                schedHtml = '<details class="sched">' +
+                    '<summary>View next ' + schedRows.length + ' payments</summary>' +
+                    '<ul class="sched__list">' +
+                    schedRows.map(function (r) {
+                        return '<li class="sched__row">' +
+                            '<span class="od-field">' +
+                                '<span class="sched__date">' + fmtDate(r.date) + '</span>' +
+                                '<span class="sched__status' + (r.overdue ? ' is-overdue' : '') + '">' + (r.overdue ? 'Overdue' : 'Upcoming') + '</span>' +
+                            '</span>' +
+                            '<span class="sched__amt">' + php(r.amount) + '</span>' +
+                        '</li>';
+                    }).join('') +
+                    '</ul>' +
+                '</details>';
+            }
+            return '' +
+            '<article class="loan-card">' +
+                '<div class="loan-card__head">' +
+                    '<div style="min-width:0">' +
+                        '<p class="loan-card__no">' + esc(l.lnnumber || '--') + '</p>' +
+                        '<span class="loan-card__type">' + esc(l.lntype || 'Loan') + '</span>' +
+                    '</div>' +
+                    statusHtml +
+                '</div>' +
+                dueHtml +
+                '<div class="figs">' +
+                    '<div class="fig"><span class="fig__label">Principal</span><span class="fig__value">' + php(l.principal) + '</span></div>' +
+                    '<div class="fig"><span class="fig__label">Balance</span><span class="fig__value">' + php(l.balance) + '</span></div>' +
+                    '<div class="fig"><span class="fig__label">Last payment</span><span class="fig__value" style="font-size:15px">' + fmtDate(l.lastmove) + '</span></div>' +
+                    '<div class="fig"><span class="fig__label">Rate</span><span class="fig__value">' + l.rate + '%/mo</span></div>' +
+                    '<div class="fig"><span class="fig__label">Payments left</span><span class="fig__value">' + paymentsLeft(l) + ' of ' + l.term + '</span></div>' +
+                '</div>' +
+                '<div class="progress">' +
+                    '<div class="progress__meta">' +
+                        '<span>Repaid: <strong>' + pct + '%</strong></span>' +
+                        '<span><strong>' + php(repaid) + '</strong> of ' + php(l.principal) + '</span>' +
+                    '</div>' +
+                    '<div class="progress__track" role="img" aria-label="' + pct + ' percent of principal repaid">' +
+                        '<div class="progress__fill" style="width:' + pct + '%"></div>' +
+                    '</div>' +
+                '</div>' +
+                schedHtml +
+            '</article>';
+        }).join('');
+    }
+
+    /* ---------- table ---------- */
+    function renderTable() {
+        var start = (page - 1) * perPage;
+        var slice = loans.slice(start, start + perPage);
+        var tbody = $('loanTbody');
+        tbody.innerHTML = slice.map(function (l) {
+            return '<tr>' +
+                '<td><strong>' + esc(l.lnnumber || '--') + '</strong></td>' +
+                '<td>' + esc(l.lntype || '--') + '</td>' +
+                '<td class="td-num">' + php(l.principal) + '</td>' +
+                '<td class="td-num"><strong>' + php(l.balance) + '</strong></td>' +
+                '<td>' + fmtDate(l.lastmove) + '</td>' +
+            '</tr>';
+        }).join('');
+
+        $('tableEmpty').hidden = slice.length > 0;
+        $('loanTable').style.display = slice.length ? '' : 'none';
+
+        var total = loans.length;
+        var from = total ? start + 1 : 0;
+        var to = Math.min(start + perPage, total);
+        $('pagerInfo').textContent = 'Showing ' + from + '\u2013' + to + ' of ' + total + ' loans';
+
+        var lastPage = Math.max(1, Math.ceil(total / perPage));
+        var pager = $('pager');
+        var html = '<button type="button" class="page-btn" data-page="' + (page - 1) + '"' + (page <= 1 ? ' disabled' : '') + ' aria-label="Previous page">Prev</button>';
+        for (var i = 1; i <= lastPage; i++) {
+            html += '<button type="button" class="page-btn" data-page="' + i + '"' + (i === page ? ' aria-current="page"' : '') + ' aria-label="Page ' + i + '">' + i + '</button>';
+        }
+        html += '<button type="button" class="page-btn" data-page="' + (page + 1) + '"' + (page >= lastPage ? ' disabled' : '') + ' aria-label="Next page">Next</button>';
+        pager.innerHTML = html;
+    }
+
+    /* ---------- payment history ---------- */
+    function renderPayments() {
+        var byNo = {};
+        loans.forEach(function (l) { byNo[l.lnnumber] = l; });
+        var dlIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>';
+        $('payList').innerHTML = payments.map(function (p, i) {
+            var l = byNo[p.lnnumber] || {};
+            return '<div class="pay-row">' +
+                '<div class="pay-row__who">' +
+                    '<span class="pay-row__date">' + fmtDate(p.date) + '</span>' +
+                    '<span class="pay-row__loan od-truncate">' + esc(p.lnnumber) + ' \u00B7 ' + esc(l.lntype || '') + '</span>' +
+                '</div>' +
+                '<div class="pay-row__pi">' +
+                    '<span class="pay-row__pi-line">Principal <strong>' + php(p.principal) + '</strong></span>' +
+                    '<span class="pay-row__pi-line">Interest <strong>' + php(p.interest) + '</strong></span>' +
+                '</div>' +
+                '<div class="pay-row__right">' +
+                    '<span class="pay-row__amt">' + php(p.amount) + '</span>' +
+                    '<button type="button" class="icon-btn" data-act="receipt" data-pay="' + i + '" aria-label="Download receipt for the ' + esc(p.lnnumber) + ' payment on ' + fmtDate(p.date) + '">' + dlIcon + '</button>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    /* ---------- documents ---------- */
+    function renderDocuments() {
+        var dlIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>';
+        var fileIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>';
+        $('docList').innerHTML = documents.map(function (d, i) {
+            return '<div class="doc-row">' +
+                '<span class="doc-row__icon" aria-hidden="true">' + fileIcon + '</span>' +
+                '<div class="doc-row__text">' +
+                    '<span class="doc-row__name">' + esc(d.name) + '</span>' +
+                    '<span class="doc-row__meta">' + esc(d.meta) + '</span>' +
+                '</div>' +
+                '<button type="button" class="btn btn--sm" data-act="doc" data-doc="' + i + '">' + dlIcon + 'Download</button>' +
+            '</div>';
+        }).join('');
+    }
+
+    /* ---------- state rendering ---------- */
+    function render() {
+        var loading = state === 'loading';
+        var error = state === 'error';
+        var empty = state === 'ready' && loans.filter(isActive).length === 0;
+
+        $('loanSkeleton').classList.toggle('is-hidden', !loading);
+        $('loanGrid').classList.toggle('is-hidden', loading || empty || error);
+        $('loanEmpty').hidden = !empty;
+        $('loanError').hidden = !error;
+
+        $('loanTable').style.display = (!loading && !error && loans.length) ? '' : 'none';
+        $('tableEmpty').hidden = loading || error || loans.length > 0;
+        $('tableError').hidden = !error;
+        $('pager').style.visibility = (loading || error) ? 'hidden' : 'visible';
+        $('pagerInfo').textContent = loading ? 'Loading loans\u2026' : (error ? 'Loans unavailable' : $('pagerInfo').textContent);
+
+        if (!loading && !error) { renderCards(); renderTable(); }
+    }
+
+    function loadPage(nextPage) {
+        state = 'loading';
+        page = nextPage;
+        render();
+        setTimeout(function () {
+            state = 'ready';
+            render();
+        }, 350);
+    }
+
+    /* ---------- events ---------- */
+    document.addEventListener('click', function (e) {
+        var pageBtn = e.target.closest('.page-btn');
+        if (pageBtn && !pageBtn.disabled) {
+            var p = Number(pageBtn.getAttribute('data-page'));
+            if (p && p !== page) loadPage(p);
+            return;
+        }
+        var actBtn = e.target.closest('[data-act]');
+        if (actBtn && !actBtn.disabled) {
+            var act = actBtn.getAttribute('data-act');
+            if (act === 'receipt') {
+                var payIdx = Number(actBtn.getAttribute('data-pay'));
+                var pay = payments[payIdx];
+                if (pay) showToast('Preparing receipt for the ' + pay.lnnumber + ' payment on ' + fmtDate(pay.date) + '\u2026');
+            }
+            if (act === 'doc') {
+                var docIdx = Number(actBtn.getAttribute('data-doc'));
+                if (documents[docIdx]) showToast('Downloading ' + documents[docIdx].name + '\u2026');
+            }
+        }
+    });
+    $('retryBtn').addEventListener('click', function () { loadPage(page); });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && sidebar.classList.contains('is-open')) setDrawer(false);
+    });
+
+    /* ---------- init ---------- */
+    renderStats();
+    render();
+    renderPayments();
+    renderDocuments();
+})();
+</script>
+</body>
+</html>

@@ -7,6 +7,17 @@ export type MemberLoan = {
     balance: number | null;
     lastmove: string | null;
     initial: number | null;
+    monthlyDue: number | null;
+    dueDate: string | null;
+};
+
+export type MemberRecentLoanPayment = {
+    date: string | null;
+    lnnumber: string | null;
+    lntype: string | null;
+    amount: number | null;
+    principal: number | null;
+    interest: number | null;
 };
 
 export type MemberLoanSecurity = {

@@ -6,7 +6,7 @@ use DateTimeInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class MemberLoanResource extends JsonResource
+class MemberLoanPaymentResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -15,17 +15,13 @@ class MemberLoanResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $initial = $this->initial ?? $this->principal;
-
         return [
-            'lnnumber' => $this->lnnumber,
-            'lntype' => $this->lntype,
-            'principal' => $this->castNumber($this->principal),
-            'balance' => $this->castNumber($this->balance),
-            'lastmove' => $this->formatDateValue($this->lastmove),
-            'initial' => $this->castNumber($initial),
-            'monthlyDue' => $this->castNumber($this->monthlyDue ?? null),
-            'dueDate' => $this->formatDateValue($this->dueDate ?? null),
+            'date' => $this->formatDateValue($this->date_in),
+            'lnnumber' => $this->lnnumber === null ? null : (string) $this->lnnumber,
+            'lntype' => $this->lntype === null ? null : (string) $this->lntype,
+            'amount' => $this->castNumber($this->payments ?? null),
+            'principal' => $this->castNumber($this->principal ?? null),
+            'interest' => $this->castNumber($this->accruedint ?? null),
         ];
     }
 

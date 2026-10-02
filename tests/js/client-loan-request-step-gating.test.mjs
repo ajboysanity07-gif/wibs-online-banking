@@ -53,3 +53,19 @@ test('dependents step is not part of the member wizard', async () => {
     assert.doesNotMatch(stepsFile, /id: 'dependents'/);
     assert.doesNotMatch(pageFile, /LoanRequestDependentsStep/);
 });
+
+test('editing a field clears its stale validation error', () => {
+    assert.match(
+        pageFile,
+        /form\.setData\(field, value\);\s*form\.clearErrors\(field\);/,
+    );
+    assert.match(
+        pageFile,
+        /form\.clearErrors\(\s*`\$\{sectionKey\}\.\$\{field\}`/,
+    );
+    assert.match(pageFile, /form\.clearErrors\('undertaking_accepted'\)/);
+    assert.match(
+        pageFile,
+        /onTypecodeChange=\{\(value\) =>\s*handleLoanDetailChange\('typecode', value\)/,
+    );
+});

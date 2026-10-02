@@ -710,8 +710,11 @@ export default function LoanRequestPage({
 
     // --- Form field handlers ---------------------------------------------
 
+    // A server error for a field is stale once the member edits it, so it is
+    // cleared on change rather than lingering until the next save.
     const handleLoanDetailChange = (field: LoanDetailField, value: string) => {
         form.setData(field, value);
+        form.clearErrors(field);
     };
 
     const updateDataSection =
@@ -724,6 +727,9 @@ export default function LoanRequestPage({
                     [field]: value,
                 },
             }));
+            form.clearErrors(
+                `${sectionKey}.${field}` as keyof LoanRequestFormData,
+            );
         };
 
     // Explicit opt-in only: loading a saved co-maker fills the fields as a
@@ -900,13 +906,13 @@ export default function LoanRequestPage({
                         hasDraft={hasSavedDraft}
                         isSaving={isSavingDraft}
                         onTypecodeChange={(value) =>
-                            form.setData('typecode', value)
+                            handleLoanDetailChange('typecode', value)
                         }
                         onAmountChange={(value) =>
-                            form.setData('requested_amount', value)
+                            handleLoanDetailChange('requested_amount', value)
                         }
                         onTermChange={(value) =>
-                            form.setData('requested_term', value)
+                            handleLoanDetailChange('requested_term', value)
                         }
                         onApply={handleApplyCalculator}
                         onContinueDraft={() => go('hub')}
@@ -1253,9 +1259,10 @@ export default function LoanRequestPage({
                             member={member}
                             errors={form.errors}
                             sectionDefinitions={dataSectionDefinitions}
-                            onUndertakingChange={(value) =>
-                                form.setData('undertaking_accepted', value)
-                            }
+                            onUndertakingChange={(value) => {
+                                form.setData('undertaking_accepted', value);
+                                form.clearErrors('undertaking_accepted');
+                            }}
                             onErrorClick={handleErrorClick}
                             onChangeSection={(section) => go(section, 'review')}
                         />

@@ -146,7 +146,7 @@ it('stamps the signing place on the signature row but leaves the date blank', fu
     expect($html)->toContain('Lianga, Surigao del Sur');
 });
 
-it('renders the periodic deduction amount, words, and start date when available', function () {
+it('renders the start date but never the amortization amount or words', function () {
     $viewData = authorityToDeductBuildViewData([
         'institution_name' => 'Lianga District Hospital',
         'officer_1_name' => 'Cristy S. Samarah',
@@ -155,8 +155,8 @@ it('renders the periodic deduction amount, words, and start date when available'
 
     $html = view('reports.authority-to-deduct', $viewData)->render();
 
-    expect($html)->toContain('2,500.00');
-    expect($html)->toContain('TWO THOUSAND FIVE HUNDRED PESOS ONLY');
+    expect($html)->not->toContain('2,500.00');
+    expect($html)->not->toContain('TWO THOUSAND FIVE HUNDRED PESOS ONLY');
     expect($html)->toContain('August 15, 2026');
 });
 

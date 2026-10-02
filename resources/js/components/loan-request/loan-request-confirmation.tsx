@@ -7,12 +7,16 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/formatters';
-import { create as loanRequestCreate } from '@/routes/client/loan-requests';
+import {
+    create as loanRequestCreate,
+    show as loanRequestShow,
+} from '@/routes/client/loan-requests';
 
 const chevron =
     '[clip-path:polygon(0_0,calc(100%_-_12px)_0,100%_50%,calc(100%_-_12px)_100%,0_100%,12px_50%)]';
 
 interface LoanRequestConfirmationProps {
+    loanRequestId: number;
     reference: string;
     requestedAmount: number;
     requestedTerm: number;
@@ -45,16 +49,17 @@ const nextSteps = [
 ];
 
 export function LoanRequestConfirmation({
+    loanRequestId,
     reference,
     requestedAmount,
     requestedTerm,
     submittedDate,
 }: LoanRequestConfirmationProps) {
     const handleTrackApplication = () => {
-        router.reload({
-            only: ['currentLoanRequest'],
-            data: { justSubmitted: false },
-        });
+        // A fresh visit no longer carries the one-time submit flash, so the
+        // server renders the tracking view. Replace the history entry so Back
+        // doesn't return to the success screen.
+        router.visit(loanRequestShow(loanRequestId).url, { replace: true });
     };
 
     const handleApplyForAnother = () => {

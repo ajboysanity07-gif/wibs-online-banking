@@ -1381,24 +1381,10 @@ test('undertaking barangay field map pins all field coordinates to calibrated va
     expect($findOrNull('loan.type'))->toBeNull();
     expect($findOrNull('organization.company_name'))->toBeNull();
 
-    // Paragraph 2's "...in the amount of Pesos: ___ (P ___)" blank -- spelled-out amount
-    // and numeric amount now sit either side of the artwork's baked-in "(P" parenthetical,
-    // both shrinking to fit rather than overflowing into it.
-    $amountWords = $find('loan.approved_amount_words');
-    expect((float) $amountWords['x'])->toBe(94.5);
-    expect((float) $amountWords['y'])->toBe(152.75);
-    expect((int) $amountWords['size'])->toBe(11);
-    expect((float) $amountWords['width'])->toBe(60.0);
-    expect($amountWords['shrink_to_fit'] ?? false)->toBeTrue();
-    expect((float) $amountWords['min_size'])->toBe(6.0);
-
-    $amount = $find('loan.approved_amount');
-    expect((float) $amount['x'])->toBe(164.0);
-    expect((float) $amount['y'])->toBe(152.75);
-    expect((int) $amount['size'])->toBe(11);
-    expect((float) $amount['width'])->toBe(23.0);
-    expect($amount['shrink_to_fit'] ?? false)->toBeTrue();
-    expect((float) $amount['min_size'])->toBe(6.0);
+    // Paragraph 2's "...in the amount of Pesos: ___ (P ___)" blank is left for hand-fill
+    // -- neither the spelled-out nor the numeric amount is printed.
+    expect($findOrNull('loan.approved_amount_words'))->toBeNull();
+    expect($findOrNull('loan.approved_amount'))->toBeNull();
 
     // Age/Civil Status/Nationality -- new row occupying the space vacated by the three
     // dead barangay.* fields (removed, see LoanRequestDocumentCatalog and
@@ -2430,7 +2416,7 @@ test('undertaking barangay pdf prints age, civil status, and nationality', funct
         ->toContain('FILIPINO');
 });
 
-test('undertaking barangay pdf spells out the approved amount in words', function () {
+test('undertaking barangay pdf leaves the amount blank for hand-fill', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
@@ -2448,8 +2434,8 @@ test('undertaking barangay pdf spells out the approved amount in words', functio
     $text = approvedLoanDocumentsExtractPdfText($response);
 
     expect($text)
-        ->toContain('FIFTY THOUSAND PESOS ONLY')
-        ->toContain('50,000.00');
+        ->not->toContain('FIFTY THOUSAND PESOS ONLY')
+        ->not->toContain('50,000.00');
 });
 
 test('grepalife field map checks health answers when affirmative', function () {

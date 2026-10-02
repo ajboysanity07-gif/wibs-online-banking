@@ -1,28 +1,30 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Banknote, Clock } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { AllLoansTable } from '@/components/loans/all-loans-table';
+import { LoanCards } from '@/components/loans/loan-cards';
+import { LoanPaymentsList } from '@/components/loans/loan-payments-list';
+import { formatShortDate, paymentLoanLabel } from '@/components/loans/loan-presentation';
+import { LoanSummaryStats } from '@/components/loans/loan-summary-stats';
 import { MemberDetailPageHeader } from '@/components/member-detail-page-header';
-import {
-    MemberDetailPrimaryCard,
-    MemberDetailSupportingCard,
-} from '@/components/member-detail-summary-cards';
-import { MemberLoanRecordsCard } from '@/components/member-loan-records-card';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import AppLayout from '@/layouts/app-layout';
-import { formatCurrency, formatDate } from '@/lib/formatters';
 import {
     dashboard as clientDashboard,
     loanPayments,
     loanSchedule,
     loans as clientLoans,
 } from '@/routes/client';
+import { create as createLoanRequest } from '@/routes/client/loan-requests';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberAccountsSummary,
-    MemberLoansResponse,
+    MemberLoan,
+    MemberRecentLoanPayment,
     PaginationMeta,
 } from '@/types/admin';
 
@@ -35,8 +37,10 @@ type Props = {
     member: MemberSummary;
     summary: MemberAccountsSummary | null;
     summaryError?: string | null;
-    loans: MemberLoansResponse | null;
+    loans: { items: MemberLoan[]; meta: PaginationMeta } | null;
     loansError?: string | null;
+    payments: MemberRecentLoanPayment[] | null;
+    paymentsError?: string | null;
 };
 
 const fallbackMeta: PaginationMeta = {
@@ -51,17 +55,17 @@ export default function MemberLoans({
     summary,
     loans,
     loansError = null,
+    payments,
+    paymentsError = null,
 }: Props) {
-    const [loading, setLoading] = useState(false);
+    const [isPaging, setIsPaging] = useState(false);
     const items = loans?.items ?? [];
     const meta = loans?.meta ?? fallbackMeta;
-    const summaryValue = summary ?? null;
-    const isLoading = loading || (loans === null && !loansError);
-    const loanEmptyMessage = isLoading ? 'Loading loans...' : 'No loans found.';
+    const isLoading = isPaging || (loans === null && !loansError);
     const canNavigate = Boolean(member.acctno);
 
     const reloadPage = (nextPage: number) => {
-        setLoading(true);
+        setIsPaging(true);
         router.get(
             clientLoans().url,
             { page: nextPage },
@@ -69,7 +73,7 @@ export default function MemberLoans({
                 preserveScroll: true,
                 preserveState: true,
                 onFinish: () => {
-                    setLoading(false);
+                    setIsPaging(false);
                 },
             },
         );
@@ -87,32 +91,59 @@ export default function MemberLoans({
         reloadPage(meta.page);
     };
 
+    const handleViewSchedule = (loanNumber: string) => {
+        router.get(loanSchedule(loanNumber).url);
+    };
+
+    const handleViewPayments = (loanNumber: string) => {
+        router.get(loanPayments(loanNumber).url);
+    };
+
+    const handlePayNow = (loanNumber: string) => {
+        router.get(loanPayments(loanNumber).url);
+    };
+
+    const handleRequestReceipt = (payment: MemberRecentLoanPayment) => {
+        toast(
+            `Preparing receipt for the ${paymentLoanLabel(payment)} payment on ${formatShortDate(payment.date)}…`,
+            { position: 'bottom-center' },
+        );
+    };
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Loans', href: clientLoans().url },
     ];
-    const loanBalance = formatCurrency(summaryValue?.loanBalanceLeft);
-    const lastLoanTransaction = formatDate(
-        summaryValue?.lastLoanTransactionDate,
-    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loans" />
-            <PageShell>
+            <PageShell size="wide">
                 <MemberDetailPageHeader
                     title="Loans"
                     subtitle="Track your active loans and payment history."
                     meta={
-                        <Badge variant="outline" className="bg-card">
+                        <Badge
+                            variant="outline"
+                            className="bg-card font-semibold tabular-nums"
+                        >
                             Account No: {member.acctno ?? '--'}
                         </Badge>
                     }
                     actions={
-                        <Button asChild variant="outline">
-                            <Link href={clientDashboard().url}>
-                                Back to profile
-                            </Link>
-                        </Button>
+                        <>
+                            <Button asChild>
+                                <Link href={createLoanRequest().url}>
+                                    <Plus aria-hidden="true" />
+                                    Apply for a loan
+                                </Link>
+                            </Button>
+                            <Button asChild variant="outline">
+                                <Link href={clientDashboard().url}>
+                                    <ArrowLeft aria-hidden="true" />
+                                    Back to profile
+                                </Link>
+                            </Button>
+                        </>
                     }
                 />
 
@@ -123,38 +154,32 @@ export default function MemberLoans({
                     />
                 ) : null}
 
-                <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
-                    <MemberDetailPrimaryCard
-                        title="Total Outstanding Loan Balance"
-                        value={loanBalance}
-                        helper="Sum of outstanding loan balances."
-                        icon={Banknote}
-                        accent="primary"
-                    />
-                    <MemberDetailSupportingCard
-                        title="Last Loan Transaction"
-                        description="Most recent loan activity date."
-                        value={lastLoanTransaction}
-                        icon={Clock}
-                        accent="primary"
-                    />
-                </div>
+                <LoanSummaryStats summary={summary} loans={items} />
 
-                <MemberLoanRecordsCard
-                    items={items}
+                <LoanCards
+                    loans={items}
+                    isLoading={isLoading}
+                    error={loansError}
+                    onRetry={handleRetry}
+                    onViewSchedule={canNavigate ? handleViewSchedule : undefined}
+                    onViewPayments={canNavigate ? handleViewPayments : undefined}
+                    onPayNow={canNavigate ? handlePayNow : undefined}
+                />
+
+                <LoanPaymentsList
+                    payments={payments}
+                    error={paymentsError}
+                    onRetry={handleRetry}
+                    onRequestReceipt={handleRequestReceipt}
+                />
+
+                <AllLoansTable
+                    loans={items}
                     meta={meta}
-                    isUpdating={isLoading}
+                    isLoading={isLoading}
                     error={loansError}
                     onRetry={handleRetry}
                     onPageChange={handlePageChange}
-                    canNavigate={canNavigate}
-                    emptyMessage={loanEmptyMessage}
-                    buildScheduleHref={(loanNumber) =>
-                        loanNumber ? loanSchedule(loanNumber).url : null
-                    }
-                    buildPaymentsHref={(loanNumber) =>
-                        loanNumber ? loanPayments(loanNumber).url : null
-                    }
                 />
             </PageShell>
         </AppLayout>

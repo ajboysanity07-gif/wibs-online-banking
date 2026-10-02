@@ -238,6 +238,25 @@ test('the request page shows the confirmation only right after submitting', func
         ->assertInertia(fn (AssertableInertia $page) => $page->where('justSubmitted', false));
 });
 
+test('track my application lands on the tracking view, whatever the query string says', function (): void {
+    $member = calculatorMember('007107');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::PendingReview,
+        'acctno' => $member->acctno,
+        'submitted_at' => now(),
+    ]);
+
+    // Only the one-time session flash shows the success screen; a leftover
+    // ?justSubmitted query (old "Track my application" URLs) is ignored.
+    foreach (['true', 'false', '1'] as $value) {
+        $this->actingAs($member)
+            ->withSession(['loanRequestSubmitted' => null])
+            ->get(route('client.loan-requests.show', [$loanRequest, 'justSubmitted' => $value]))
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('justSubmitted', false));
+    }
+});
+
 test('the confirmation page payload carries the fields the confirmation card renders', function (): void {
     $member = calculatorMember('007106');
 

@@ -114,33 +114,8 @@ class UndertakingBarangayPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'min_size' => 6.0,
                 'value' => 'loan.gnthp',
             ],
-            // Paragraph 2's "...in the amount of Pesos: ___ (P ___)" blank, measured
-            // against the real artwork's content stream: the label ends at x≈94.25mm and
-            // the baked-in "(P" parenthetical starts at x≈160.02mm on this line (y=152.75,
-            // same baseline as loan.approved_amount below) -- shrinks to fit rather than
-            // overflow into "(P ___)" for long spelled-out amounts.
-            [
-                'page' => 1,
-                'x' => 94.5,
-                'y' => 152.75,
-                'width' => 60,
-                'size' => 11,
-                'style' => 'B',
-                'shrink_to_fit' => true,
-                'min_size' => 6.0,
-                'value' => 'loan.approved_amount_words',
-            ],
-            [
-                'page' => 1,
-                'x' => 164,
-                'y' => 152.75,
-                'width' => 23,
-                'size' => 11,
-                'style' => 'B',
-                'shrink_to_fit' => true,
-                'min_size' => 6.0,
-                'value' => 'loan.approved_amount',
-            ],
+            // Paragraph 2's "...in the amount of Pesos: ___ (P ___)" blank is intentionally
+            // left unprinted -- the amount is filled in by hand on the printed document.
             // Signature block (bordered-line row, not a boxed table) -- values print above
             // the underline stroke drawn at y=221.7 in the artwork. y=217.5 confirmed by
             // real rendering: 219.7 (2mm clearance) let 10pt bold text collide with the

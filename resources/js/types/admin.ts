@@ -16,6 +16,7 @@ export type {
     MemberLoansResponse,
     MemberRecentAccountAction,
     MemberRecentAccountActionSource,
+    MemberRecentLoanPayment,
 } from '@/features/member-accounts/types';
 
 export type AdminMetrics = {

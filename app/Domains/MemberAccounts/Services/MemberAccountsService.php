@@ -6,6 +6,7 @@ use App\Domains\MemberAccounts\Repositories\MemberAccountsRepository;
 use App\Models\AppUser;
 use App\Models\Wmaster;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 class MemberAccountsService
@@ -92,6 +93,39 @@ class MemberAccountsService
         }
 
         return $this->repository->getPaginatedLoans($acctno, $perPage, $page);
+    }
+
+    /**
+     * @param  list<string>  $loanNumbers
+     * @return array<string, array{dueDate: ?string, monthlyDue: ?float}>
+     */
+    public function getLoanRepaymentSummaries(
+        AppUser|Wmaster $member,
+        array $loanNumbers,
+    ): array {
+        $acctno = $this->resolveAcctno($member);
+
+        if ($acctno === null) {
+            return [];
+        }
+
+        return $this->repository->getLoanRepaymentSummaries($loanNumbers);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, mixed>
+     */
+    public function getRecentLoanPayments(
+        AppUser|Wmaster $member,
+        int $limit = 8,
+    ): Collection {
+        $acctno = $this->resolveAcctno($member);
+
+        if ($acctno === null) {
+            return collect();
+        }
+
+        return $this->repository->getRecentLoanPayments($acctno, $limit);
     }
 
     public function getPaginatedLoanSecurity(
