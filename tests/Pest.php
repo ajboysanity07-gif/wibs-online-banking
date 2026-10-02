@@ -51,6 +51,25 @@ function something()
     // ..
 }
 
+/**
+ * Profile Settings fields a loan submission needs (see
+ * MemberApplicationProfile::loanRequiredApplicantFields()), for profile
+ * update payloads that aren't testing them. Spread first so a test's own
+ * values win.
+ *
+ * @return array<string, string>
+ */
+function loanRequiredProfileFields(): array
+{
+    return [
+        'birthplace_province' => 'Ilocos Norte',
+        'employer_business_address1' => 'Purok 2',
+        'nature_of_business' => 'Government',
+        'years_in_work_business' => '5',
+        'number_of_children' => '0',
+    ];
+}
+
 function testPngSignatureDataUrl(string $variant = 'one'): string
 {
     $base64 = match ($variant) {

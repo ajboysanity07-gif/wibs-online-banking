@@ -112,6 +112,7 @@ test('pensioner member completes onboarding without employer name, position, or 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'pensioner_juan',
             'email' => 'pensioner@example.com',
             'phoneno' => '09171234567',

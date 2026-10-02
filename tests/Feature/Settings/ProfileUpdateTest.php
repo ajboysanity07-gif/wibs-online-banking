@@ -155,6 +155,7 @@ test('profile update accepts a real birthplace city and province', function () {
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -380,6 +381,7 @@ test('profile update accepts an optional real birthplace barangay', function () 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -457,6 +459,7 @@ test('profile update leaves birthplace barangay blank without error', function (
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -739,6 +742,7 @@ test('profile can be saved when spouse name is locked by wmaster and civil statu
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -1025,6 +1029,7 @@ test('profile information can be updated with payout bank details', function () 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -1094,6 +1099,7 @@ test('a saved account is required for ATM Deduction and its details persist onto
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -1130,6 +1136,7 @@ test('a saved account is required for ATM Deduction and its details persist onto
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -1195,6 +1202,7 @@ test('optional bank details can be saved even when release method is not bank tr
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -1244,6 +1252,7 @@ test('profile information can be updated with height and weight', function () {
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -1323,6 +1332,7 @@ test('profile information can be updated with source of fund and government id d
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -1394,6 +1404,7 @@ test('onboarding is not blocked by empty source of fund or government id fields'
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -1481,6 +1492,7 @@ test('profile information can be updated with dependent name and birthdate only'
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -1575,6 +1587,7 @@ test('updating dependent name via settings preserves cycle status/number set by 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -1645,6 +1658,7 @@ test('removing a dependent in settings deletes the saved row and its cycle data'
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -1946,6 +1960,7 @@ test('profile information can be updated with other nature of business', functio
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'OtherUser',
             'email' => 'other@example.com',
             'phoneno' => '09123456700',
@@ -2008,6 +2023,7 @@ test('profile information can be updated with other source of fund', function ()
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'MarcoUser',
             'email' => 'marco@example.com',
             'phoneno' => '09123456701',
@@ -2104,6 +2120,7 @@ test('hybrid members can update member profile fields', function () {
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'HybridUser',
             'email' => 'hybrid@example.com',
             'phoneno' => '09123456711',
@@ -2181,6 +2198,7 @@ test('member profile information can be updated with a profile photo', function 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => $user->username,
             'email' => $user->email,
             'phoneno' => $user->phoneno,
@@ -2245,6 +2263,7 @@ test('member profile photo replacements remove the old file', function () {
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => $user->username,
             'email' => $user->email,
             'phoneno' => $user->phoneno,
@@ -2311,6 +2330,7 @@ test('email verification status is unchanged when the email address is unchanged
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => $user->email,
             'phoneno' => '09123456788',
@@ -2379,6 +2399,7 @@ test('civil status and housing status are self-reportable when wmaster has no va
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -2434,6 +2455,7 @@ test('civil status and housing status stay locked once wmaster has a value', fun
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -2503,6 +2525,7 @@ test('spouse name and birthdate are not required when civil status is Single', f
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -2600,6 +2623,7 @@ test('spouse name and birthdate are not required when wmaster civil status is Wi
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
@@ -2680,6 +2704,7 @@ test('spouse birthdate persists on the member application profile', function () 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
+            ...loanRequiredProfileFields(),
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',

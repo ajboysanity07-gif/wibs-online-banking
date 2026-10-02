@@ -296,6 +296,7 @@ function incomeSyncChargesPayload(): array
 function profileUpdatePayload(array $overrides = []): array
 {
     return array_merge([
+        ...loanRequiredProfileFields(),
         'username' => 'IncomeSync',
         'email' => 'income.sync@example.com',
         'phoneno' => '09123456789',

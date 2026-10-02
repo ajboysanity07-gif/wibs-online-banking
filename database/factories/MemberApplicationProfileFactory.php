@@ -99,8 +99,13 @@ class MemberApplicationProfileFactory extends Factory
                     // requirement whenever it lands on Private or Government.
                     'institutional_employer_category' => LoanInstitutionalEmployerCategory::Lgu->value,
                     'employer_business_name' => fake()->company(),
+                    'employer_business_address1' => fake()->streetAddress(),
                     'employer_business_address_barangay' => fake()->city(),
                     'current_position' => fake()->jobTitle(),
+                    'nature_of_business' => fake()->randomElement(['Government', 'Retail', 'Services']),
+                    'years_in_work_business' => (string) fake()->numberBetween(1, 20),
+                    'employer_date_employed' => fake()->date(max: '-1 year'),
+                    'number_of_children' => fake()->numberBetween(0, 4),
                     'gross_monthly_income' => fake()->randomFloat(2, 1000, 50000),
                     'payday' => fake()->randomElement(['15', '30', '15/30']),
                     'release_method' => LoanReleaseMethod::BankTransfer->value,

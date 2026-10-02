@@ -687,12 +687,7 @@ class LoanRequestStoreRequest extends FormRequest
             $employmentType,
             MemberApplicationProfile::PENSIONER_EMPLOYMENT_TYPE,
         );
-        $isSelfEmployed = MemberApplicationProfile::employmentTypeMatches(
-            $employmentType,
-            MemberApplicationProfile::SELF_EMPLOYED_EMPLOYMENT_TYPE,
-        );
         $employerRule = $isPensioner ? 'nullable' : 'required';
-        $dateEmployedRule = ($isPensioner || $isSelfEmployed) ? 'nullable' : 'required';
         // Co-makers' employer/business address is never shown on any generated
         // document (unlike the applicant's), so it's collected as optional
         // rather than required.
@@ -789,7 +784,9 @@ class LoanRequestStoreRequest extends FormRequest
         }
 
         if ($includeDateEmployed) {
-            $rules["{$prefix}.employer_date_employed"] = [$dateEmployedRule, 'date'];
+            // Optional: long-tenured members often don't remember it, and
+            // years_in_work_business (required) already captures tenure.
+            $rules["{$prefix}.employer_date_employed"] = ['nullable', 'date'];
         }
 
         if ($includeCivilHousing) {

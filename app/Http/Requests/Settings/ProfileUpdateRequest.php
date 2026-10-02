@@ -336,6 +336,7 @@ class ProfileUpdateRequest extends FormRequest
                 'max:100',
             ],
             'number_of_children' => [
+                $memberRequirement('number_of_children'),
                 'nullable',
                 'integer',
                 'min:0',
@@ -609,6 +610,10 @@ class ProfileUpdateRequest extends FormRequest
             'housing_status.required' => 'Housing status is required to complete your profile.',
             'spouse_name.required' => 'Spouse name is required to complete your profile.',
             'spouse_birthdate.required' => 'Spouse birthdate is required to complete your profile.',
+            'birthplace_province.required' => 'Birthplace province is required to complete your profile.',
+            'nature_of_business.required' => 'Nature of business is required to complete your profile.',
+            'years_in_work_business.required' => 'Years in work or business is required to complete your profile.',
+            'number_of_children.required' => 'Number of children is required to complete your profile. Enter 0 if none.',
         ];
     }
 
@@ -680,6 +685,22 @@ class ProfileUpdateRequest extends FormRequest
             && $this->effectiveCivilStatusHasNoSpouse()
         ) {
             return 'nullable';
+        }
+
+        // Fields a loan submission needs from the profile (the wizard shows
+        // them read-only) -- see loanRequiredApplicantFields().
+        if (in_array($field, MemberApplicationProfile::loanRequiredApplicantFields(), true)) {
+            // number_of_children falls back to the core-banking dependents
+            // count, which the input is pre-filled with.
+            if ($field === 'number_of_children' && $this->wmasterFieldHasValue('dependent')) {
+                return 'nullable';
+            }
+
+            return in_array(
+                $field,
+                MemberApplicationProfile::loanRequiredApplicantFieldsFor($this->input('employment_type')),
+                true,
+            ) ? 'required' : 'nullable';
         }
 
         return in_array($field, MemberApplicationProfile::completionRequiredFields(), true)
@@ -776,20 +797,6 @@ class ProfileUpdateRequest extends FormRequest
                 $validator->errors()->add(
                     'payment_option',
                     'Salary Deduction is only available for BLGU, LGU, Healthcare, or MRDINC employees.',
-                );
-            }
-        });
-
-        $validator->after(function (Validator $validator): void {
-            $isSelfEmployed = MemberApplicationProfile::employmentTypeMatches(
-                $this->input('employment_type'),
-                MemberApplicationProfile::SELF_EMPLOYED_EMPLOYMENT_TYPE,
-            );
-
-            if ($isSelfEmployed && blank($this->input('nature_of_business'))) {
-                $validator->errors()->add(
-                    'nature_of_business',
-                    'Nature of business is required for self-employed members.',
                 );
             }
         });

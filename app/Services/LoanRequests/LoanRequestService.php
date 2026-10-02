@@ -172,7 +172,10 @@ class LoanRequestService
 
         $applicantPrefilledFromProfile = $this->isApplicantPersonalPrefilledFromProfile($applicantReadOnly);
         $applicantWorkIncomePrefilledFromProfile = $this->isApplicantWorkIncomePrefilledFromProfile($applicant);
-        $missingIdentityPrerequisites = $this->missingIdentityPrerequisiteLabels($user->memberApplicationProfile);
+        $missingIdentityPrerequisites = [
+            ...$this->missingLoanApplicantFieldLabels($applicant),
+            ...$this->missingIdentityPrerequisiteLabels($user->memberApplicationProfile),
+        ];
 
         return [
             'loanTypes' => $this->getLoanTypes()->values()->all(),
@@ -234,6 +237,34 @@ class LoanRequestService
             ], $bankFields);
 
         return array_map(fn (string $field): string => $labels[$field] ?? $field, $missing);
+    }
+
+    /**
+     * Labels for loan-required applicant fields (loanRequiredApplicantFields())
+     * that are still blank in the applicant the wizard will submit. Checked
+     * against the resolved applicant rather than the raw profile, since some
+     * of them also fall back to wmaster or legacy composite fields. Surfaced
+     * up front (About you) because the wizard shows the applicant read-only,
+     * so submission would otherwise fail on a field the member can only fix
+     * in Profile Settings.
+     *
+     * @param  array<string, mixed>  $applicant
+     * @return list<string>
+     */
+    private function missingLoanApplicantFieldLabels(array $applicant): array
+    {
+        $labels = MemberApplicationProfile::completionRequiredFieldLabels();
+        $required = MemberApplicationProfile::loanRequiredApplicantFieldsFor(
+            $this->normalizeOptionalString($applicant['employment_type'] ?? null),
+        );
+
+        return array_values(array_map(
+            fn (string $field): string => $labels[$field] ?? $field,
+            array_filter(
+                $required,
+                fn (string $field): bool => $this->normalizeOptionalString($applicant[$field] ?? null) === null,
+            ),
+        ));
     }
 
     /**

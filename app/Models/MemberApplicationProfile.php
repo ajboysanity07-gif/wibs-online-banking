@@ -629,6 +629,47 @@ class MemberApplicationProfile extends Model
     }
 
     /**
+     * Applicant fields LoanRequestStoreRequest::personRules() requires that
+     * are not part of completionRequiredFields(). The wizard shows the
+     * applicant read-only, so a blank one here can only be fixed in Profile
+     * Settings -- they're required when saving the profile and checked when
+     * the wizard opens, but deliberately kept out of the account-wide
+     * member-profile-complete gate so existing members aren't locked out of
+     * the portal.
+     *
+     * @return list<string>
+     */
+    public static function loanRequiredApplicantFields(): array
+    {
+        return [
+            'birthplace_province',
+            'employer_business_address1',
+            'nature_of_business',
+            'years_in_work_business',
+            'number_of_children',
+        ];
+    }
+
+    /**
+     * loanRequiredApplicantFields() that apply to this employment type,
+     * mirroring LoanRequestStoreRequest: pensioners have no employer details.
+     *
+     * @return list<string>
+     */
+    public static function loanRequiredApplicantFieldsFor(?string $employmentType): array
+    {
+        if (! self::employmentTypeMatches($employmentType, self::PENSIONER_EMPLOYMENT_TYPE)) {
+            return self::loanRequiredApplicantFields();
+        }
+
+        return array_values(array_diff(self::loanRequiredApplicantFields(), [
+            'employer_business_address1',
+            'nature_of_business',
+            'years_in_work_business',
+        ]));
+    }
+
+    /**
      * Bank & Payout fields required only once the member has chosen a
      * release_method / payment_option that needs a bank account -- mirrors
      * the Rule::requiredIf conditions already enforced in
@@ -734,6 +775,8 @@ class MemberApplicationProfile extends Model
     {
         return [
             'birthplace_city' => 'Birthplace city',
+            'birthplace_province' => 'Birthplace province',
+            'number_of_children' => 'Number of children',
             'educational_attainment' => 'Educational attainment',
             'length_of_stay' => 'Length of stay',
             'home_address1' => 'Home address (street)',
@@ -747,8 +790,12 @@ class MemberApplicationProfile extends Model
             'spouse_birthdate' => 'Spouse birthdate',
             'employment_type' => 'Employment type',
             'employer_business_name' => 'Employer or business name',
+            'employer_business_address1' => 'Employer or business address (street)',
             'employer_business_address_barangay' => 'Employer address barangay',
             'current_position' => 'Current position',
+            'nature_of_business' => 'Nature of business',
+            'years_in_work_business' => 'Years in work or business',
+            'employer_date_employed' => 'Date employed',
             'gross_monthly_income' => 'Gross monthly income',
             'payday' => 'Payday',
             'release_method' => 'Release method',

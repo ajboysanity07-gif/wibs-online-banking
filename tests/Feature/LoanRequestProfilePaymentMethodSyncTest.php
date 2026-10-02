@@ -302,6 +302,7 @@ function paymentSyncLoanRequest(AppUser $member, array $extra = []): LoanRequest
 function paymentSyncProfileUpdatePayload(array $overrides = []): array
 {
     return array_merge([
+        ...loanRequiredProfileFields(),
         'username' => 'PaymentSync',
         'email' => 'payment.sync@example.com',
         'phoneno' => '09123456789',

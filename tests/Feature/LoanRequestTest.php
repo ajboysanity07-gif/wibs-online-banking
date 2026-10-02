@@ -2473,7 +2473,9 @@ test('OFW applicant fails validation when employer fields are empty', function (
     $response->assertSessionHasErrors(['applicant.employer_business_name']);
 });
 
-test('non-pensioner applicant fails validation when employer date employed is missing', function () {
+// Optional: long-tenured members often don't remember it; years in
+// work/business already captures tenure.
+test('non-pensioner applicant passes date employed validation when it is missing', function () {
     Storage::fake('public');
 
     $user = User::factory()->create(['acctno' => '000753']);
@@ -2510,7 +2512,7 @@ test('non-pensioner applicant fails validation when employer date employed is mi
         ->actingAs($user)
         ->post(route('client.loan-requests.store'), $payload);
 
-    $response->assertSessionHasErrors(['applicant.employer_date_employed']);
+    $response->assertSessionDoesntHaveErrors(['applicant.employer_date_employed']);
 });
 
 test('applicant date employed is stored and co-makers do not require it', function () {
