@@ -521,7 +521,15 @@ function SidebarMenuButton({
       data-active={isActive}
       className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
       {...props}
-    />
+    >
+      {/* Render children; hide label span when collapsed */}
+      {React.Children.map(props.children, (child) => {
+        if (React.isValidElement(child) && child.type === 'span') {
+          return state === 'collapsed' ? null : child;
+        }
+        return child;
+      })}
+    </Comp>
   )
 
   if (!tooltip) {
