@@ -1232,6 +1232,7 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
         'loan.approved_amount', 'loan.type', 'reviewer.name', 'authorization.payout_account_name',
         'notarial.doc_number', 'notarial.page_number', 'notarial.book_number',
         'notarial.valid_id_number', 'notarial.valid_id_issued_at', 'notarial.province',
+        'loan.gnthp',
     ] as $droppedValue) {
         expect($fields->contains(fn (array $f): bool => ($f['value'] ?? null) === $droppedValue))->toBeFalse();
     }
@@ -1287,17 +1288,6 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     expect((float) $officeAddress['x'])->toBe(72.5);
     expect((float) $officeAddress['y'])->toBe(91.75);
     expect((float) $officeAddress['width'])->toBe(129.0);
-
-    // GNTHP and payout account number sit inline in paragraph 1's rewritten sentence
-    // (Phase 2 artwork) rather than on separate labeled sub-lines -- shrinks to fit rather
-    // than overflowing into the parenthetical when the approved amount is large.
-    $gnthp = $find('loan.gnthp');
-    expect((float) $gnthp['x'])->toBe(59.0);
-    expect((float) $gnthp['y'])->toBe(120.75);
-    expect((int) $gnthp['size'])->toBe(11);
-    expect((float) $gnthp['width'])->toBe(20.0);
-    expect($gnthp['shrink_to_fit'] ?? false)->toBeTrue();
-    expect((float) $gnthp['min_size'])->toBe(6.0);
 
     // Payout account/ATM/bank fields now share a single x=107.5 column.
     $accountNumber = $find('authorization.payout_account_number');
@@ -2027,24 +2017,6 @@ test('affidavit undertaking pdf composes the full org address for signing place,
         ->not->toContain(' , Lianga');
 });
 
-test('affidavit undertaking pdf prints guaranteed net take-home pay', function () {
-    $admin = User::factory()->create();
-    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
-
-    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'guaranteed_net_take_home_pay', 'numeric', 32500);
-
-    $response = $this
-        ->actingAs($admin)
-        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
-
-    $response->assertOk();
-    $text = approvedLoanDocumentsExtractPdfText($response);
-
-    expect($text)->toContain('32,500.00');
-});
-
 test('affidavit undertaking pdf renders an unusually long name, address, and GNTHP amount without failing', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -2069,8 +2041,8 @@ test('affidavit undertaking pdf renders an unusually long name, address, and GNT
         ->actingAs($admin)
         ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
 
-    // The shrink-to-fit fields (applicant.full_name signature row, notarial.signing_place,
-    // loan.gnthp) reduce font size rather than wrap or truncate -- the full value should
+    // The shrink-to-fit fields (applicant.full_name signature row, notarial.signing_place)
+    // reduce font size rather than wrap or truncate -- the full value should
     // still reach the page and be extractable in full, just rendered smaller. The actual
     // font-size-shrinking behavior itself is covered directly in
     // ApprovedLoanPdfTemplateServiceShrinkToFitTest; this only proves the real document
@@ -2082,11 +2054,10 @@ test('affidavit undertaking pdf renders an unusually long name, address, and GNT
     // enough to force the signature-row shrink-to-fit field to shrink.
     expect($text)
         ->toContain('Maria Concepcion V. de la Santisima Trinidad')
-        ->toContain('Purok 2, Barangay San Isidro, Cagayan de Oro City, Misamis Oriental')
-        ->toContain('1,250,000.00');
+        ->toContain('Purok 2, Barangay San Isidro, Cagayan de Oro City, Misamis Oriental');
 });
 
-test('affidavit undertaking pdf stamps GNTHP and account number inline for paragraph 1', function () {
+test('affidavit undertaking pdf leaves GNTHP blank but stamps the account number', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
@@ -2104,22 +2075,11 @@ test('affidavit undertaking pdf stamps GNTHP and account number inline for parag
     $response->assertOk();
     $text = approvedLoanDocumentsExtractPdfText($response);
 
-    // The rewritten paragraph 1 sentence itself is baked into the template artwork (an
-    // FPDI-imported XObject), which approvedLoanDocumentsExtractPdfText() cannot see --
-    // only the overlay values it stamps are extractable here. The field map pinning test
-    // covers the inline coordinates directly; this confirms both values that now live in
-    // the same sentence actually render through the real HTTP route with persisted data.
+    // Only overlay values are extractable here (the artwork text is an FPDI XObject).
+    // GNTHP is left blank for hand-fill even though the data entry is persisted.
     expect($text)
-        ->toContain('32,500.00')
-        ->toContain('9876543210');
-
-    $fields = collect((new AffidavitUndertakingPdfFieldMap)->fields());
-    $gnthp = $fields->first(fn (array $f): bool => ($f['value'] ?? null) === 'loan.gnthp');
-    $accountNumber = $fields->first(fn (array $f): bool => ($f['value'] ?? null) === 'authorization.payout_account_number');
-
-    // Both now sit within the same rewritten paragraph-1 block, a few mm apart --
-    // not on separate labeled sub-lines many mm apart as before the visual fidelity pass.
-    expect(abs((float) $gnthp['y'] - (float) $accountNumber['y']))->toBeLessThan(10.0);
+        ->toContain('9876543210')
+        ->not->toContain('32,500.00');
 });
 
 test('generali pdf route succeeds and is not a corrupted or fallback file', function () {

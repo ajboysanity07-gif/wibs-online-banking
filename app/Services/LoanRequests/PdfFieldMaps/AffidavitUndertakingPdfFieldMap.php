@@ -91,24 +91,8 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'width' => 129,
                 'value' => 'applicant.office_address',
             ],
-            // GNTHP and payout account number now sit inline in paragraph 1's rewritten
-            // sentence (Phase 2 artwork) rather than on separate labeled sub-lines.
-            [
-                'page' => 1,
-                'x' => 59,
-                'y' => 120.75,
-                // Sits inline inside paragraph 1's sentence, between "...Pay of " and
-                // "(Guaranteed NTHP)" -- the next word starts at x≈82.65mm (measured from the
-                // real artwork's content stream), leaving ~20mm before it collides. A large
-                // approved amount ("₱1,250,000.00") doesn't fit that blank at size 11, so it
-                // shrinks to fit rather than overflow into the parenthetical.
-                'size' => 11,
-                'style' => 'B',
-                'width' => 20,
-                'shrink_to_fit' => true,
-                'min_size' => 6.0,
-                'value' => 'loan.gnthp',
-            ],
+            // loan.gnthp (inline in paragraph 1, x=59 y=120.75) is intentionally not wired
+            // here -- the loan processor wants the net take-home pay blank for hand-fill.
             [
                 'page' => 1,
                 'x' => 107.5,
