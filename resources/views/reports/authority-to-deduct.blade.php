@@ -22,13 +22,23 @@
     // (the org's composed business address via notarial.signing_place).
     $placeOfSigning = trim((string) ($placeOfSigning ?? ''));
 
-    $officerNames = array_values(array_filter(array_map(
-        static fn (array $officer): string => trim((string) ($officer['name'] ?? '')),
-        $officers,
-    )));
+    // Each officer prints as "NAME, Position" (name emphasized, position plain).
+    $officerClauses = [];
 
-    $representationClause = $officerNames !== []
-        ? implode(' and ', $officerNames)
+    foreach ($officers as $officer) {
+        $officerName = trim((string) ($officer['name'] ?? ''));
+
+        if ($officerName === '') {
+            continue;
+        }
+
+        $officerTitle = trim((string) ($officer['title'] ?? ''));
+        $officerClauses[] = sprintf('<span class="agreement-fill">%s</span>', e($officerName))
+            .($officerTitle !== '' ? ', '.e($officerTitle) : '');
+    }
+
+    $representationClause = $officerClauses !== []
+        ? new HtmlString(implode(' and ', $officerClauses))
         : null;
 
     $renderValue = static function (
@@ -232,17 +242,17 @@
 
             <p class="paragraph">
                 THIS IS TO AUTHORIZE {!! $renderValue($institutionName, '14em', true) !!}, represented by
-                {!! $renderValue($representationClause, '18em', true) !!}, to deduct from my salary the amount of
+                {!! $representationClause ?? $renderValue(null, '18em') !!}, to deduct from my salary the amount of
                 {{-- The amortization amount stays blank for hand-fill; it is not system-printed. --}}
                 Pesos: {!! $renderValue(null, '16em') !!} ({!! $renderValue(null, '8em') !!}),
                 starting {!! $renderValue($deductionStartDate, '9em') !!} and every quincena/month thereafter until my
-                loan obligation with MICRO FINANCE FOR RURAL DEVELOPMENT INC. shall have been paid in full.
+                loan obligation with MICRO-FINANCE FOR RURAL DEVELOPMENT INC. shall have been paid in full.
             </p>
 
             <p class="paragraph">
-                Said representative is further authorized, that in the event of my separation from the service, to
+                He/She is further authorized, that in the event of my separation from the service, to
                 deduct from my separation benefits, any and all amounts corresponding to my outstanding obligations
-                with Micro Finance for Rural Development Inc.
+                with Micro-Finance for Rural Development Inc.
             </p>
 
             <table class="signature-layout">
