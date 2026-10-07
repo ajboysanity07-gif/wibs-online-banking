@@ -303,16 +303,12 @@ export const LoanRequestDocumentChecklistCard = ({
     };
 
     const handlePrintDocument = (printHref: string) => {
-        const printWindow = window.open('', '_blank');
+        // Create an iframe for printing (no new window = SPA-friendly)
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
 
-        if (printWindow === null) {
-            window.open(printHref, '_blank', 'noopener,noreferrer');
-
-            return;
-        }
-
-        printWindow.document.open();
-        printWindow.document.write(`
+        const html = `
             <!doctype html>
             <html>
             <head>
@@ -355,8 +351,17 @@ export const LoanRequestDocumentChecklistCard = ({
                 </script>
             </body>
             </html>
-        `);
-        printWindow.document.close();
+        `;
+
+        iframe.contentDocument?.open();
+        iframe.contentDocument?.write(html);
+        iframe.contentDocument?.close();
+
+        iframe.onload = () => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+            setTimeout(() => document.body.removeChild(iframe), 1000);
+        };
     };
 
     const relaxedEntries = sortedChecklist.filter(

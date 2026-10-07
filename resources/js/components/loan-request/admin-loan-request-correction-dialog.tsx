@@ -45,6 +45,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
     calculateAge,
     formatCurrency,
@@ -1938,7 +1939,7 @@ function CorrectionDialogForm({
                                         <Label htmlFor="change_reason">
                                             Change reason
                                         </Label>
-                                        <textarea
+                                        <Textarea
                                             id="change_reason"
                                             className={textareaClassName}
                                             value={formData.change_reason}

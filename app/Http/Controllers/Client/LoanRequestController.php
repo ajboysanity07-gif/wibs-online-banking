@@ -148,6 +148,7 @@ class LoanRequestController extends Controller
         $payload = $this->sanitizePayload([
             'loanRequests' => $loanRequestsPayload,
             'loanRequestsError' => $loanRequestsError,
+            'accountNo' => $user->acctno,
         ]);
 
         return Inertia::render('client/loan-requests', $payload);

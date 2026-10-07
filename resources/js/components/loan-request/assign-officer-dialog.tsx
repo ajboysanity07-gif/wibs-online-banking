@@ -10,6 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -17,6 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import type { LoanRequestAssignmentOfficerOption } from '@/types/loan-requests';
 
 const textareaClassName =
@@ -91,12 +93,12 @@ export function AssignOfficerDialog({
                 </DialogHeader>
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <label
+                        <Label
                             htmlFor="assign-officer-select"
                             className="text-xs font-medium text-muted-foreground"
                         >
                             Loan processor
-                        </label>
+                        </Label>
                         <Select
                             value={officerUserId}
                             onValueChange={(value) => {
@@ -124,13 +126,13 @@ export function AssignOfficerDialog({
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <label
+                        <Label
                             htmlFor="assign-officer-reason"
                             className="text-xs font-medium text-muted-foreground"
                         >
                             Reason
-                        </label>
-                        <textarea
+                        </Label>
+                        <Textarea
                             id="assign-officer-reason"
                             className={textareaClassName}
                             maxLength={1000}

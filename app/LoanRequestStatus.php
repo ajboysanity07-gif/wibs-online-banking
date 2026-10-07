@@ -33,6 +33,35 @@ enum LoanRequestStatus: string
         };
     }
 
+    /**
+     * Position on the member-facing 4-step path (1 = pending processing ...
+     * 4 = release). Null for drafts and finished requests.
+     */
+    public function memberStep(): ?int
+    {
+        return match ($this) {
+            self::PendingCoMakerSignatures,
+            self::Submitted,
+            self::PendingReview => 1,
+            self::UnderReview,
+            self::NeedsRevision,
+            self::AwaitingMemberInformation => 2,
+            self::RecommendedForApproval,
+            self::AwaitingMemberAcceptance,
+            self::Approved => 3,
+            self::ConvertedToLoan,
+            self::ForWibsEncoding,
+            self::WibsLoanCreated,
+            self::ReleaseScheduled => 4,
+            self::Draft,
+            self::Rejected,
+            self::Declined,
+            self::MemberDeclinedTerms,
+            self::Released,
+            self::Cancelled => null,
+        };
+    }
+
     public static function normalizeValue(self|string|null $status): ?string
     {
         if ($status === null) {

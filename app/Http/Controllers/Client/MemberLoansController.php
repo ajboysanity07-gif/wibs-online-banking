@@ -66,8 +66,8 @@ class MemberLoansController extends Controller
             $summaryError = 'Unable to load summary.';
         }
 
-        $page = max(1, (int) $request->query('page', 1));
-        $perPage = 10;
+        $page = 1;
+        $perPage = 500;
         $loansPayload = null;
         $loansError = null;
 
@@ -149,7 +149,21 @@ class MemberLoansController extends Controller
             return $items;
         }
 
-        $summaries = $service->getLoanRepaymentSummaries($user, $loanNumbers);
+        $balancesByLoan = [];
+
+        foreach ($items as $item) {
+            $number = trim((string) data_get($item, 'lnnumber', ''));
+
+            if ($number === '') {
+                continue;
+            }
+
+            $balance = data_get($item, 'balance');
+
+            $balancesByLoan[$number] = $balance === null ? null : (float) $balance;
+        }
+
+        $summaries = $service->getLoanRepaymentSummaries($user, $loanNumbers, $balancesByLoan);
 
         if ($summaries === []) {
             return $items;
@@ -164,6 +178,7 @@ class MemberLoansController extends Controller
 
             data_set($item, 'dueDate', $summary['dueDate']);
             data_set($item, 'monthlyDue', $summary['monthlyDue']);
+            data_set($item, 'penalty', $summary['penalty'] ?? null);
         }
 
         return $items;

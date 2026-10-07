@@ -123,6 +123,97 @@ const resolveForegroundColor = (
     return luminance > FOREGROUND_LUMINANCE_THRESHOLD ? darkText : lightText;
 };
 
+const hslOf = (hex: string): HslColor => rgbToHsl(hexToRgb(hex));
+
+const clampPercent = (value: number): number =>
+    Math.min(100, Math.max(0, value));
+
+// One base hex per status → bg / ink / border for each mode.
+const statusTokens = (
+    name: string,
+    hex: string,
+    mode: 'light' | 'dark',
+): Record<string, string> => {
+    const { h, s } = hslOf(hex);
+    const shade = (sat: number, lightness: number): string =>
+        formatHsl({ h, s: clampPercent(s * sat), l: lightness });
+
+    return mode === 'light'
+        ? {
+              [`${name}-bg`]: shade(0.8, 91),
+              [`${name}-ink`]: shade(1, 22),
+              [`${name}-bd`]: shade(0.6, 68),
+          }
+        : {
+              [`${name}-bg`]: shade(0.5, 15),
+              [`${name}-ink`]: shade(0.9, 72),
+              [`${name}-bd`]: shade(0.5, 30),
+          };
+};
+
+// Surfaces are light-mode only: the dark surfaces stay CSS-owned (app.css).
+const SURFACE_TOKENS: Record<string, string[]> = {
+    ink: ['foreground'],
+    background: ['background'],
+    card: ['card', 'popover'],
+    secondary: ['secondary'],
+    muted: ['muted'],
+    border: ['border'],
+    sidebar: ['sidebar'],
+};
+// Surfaces that carry text need a readable foreground token.
+const SURFACE_FOREGROUNDS: Record<string, string[]> = {
+    card: ['card-foreground', 'popover-foreground'],
+    secondary: ['secondary-foreground'],
+    sidebar: ['sidebar-foreground'],
+};
+const STATUS_TOKEN_NAMES: Record<string, string> = {
+    success: 'ok',
+    warning: 'warn',
+    info: 'info',
+    danger: 'bad',
+};
+
+const resolvePaletteTokens = (
+    palette: Branding['brandPalette'] | undefined,
+    base: ClientTheme,
+): { light: Record<string, string>; dark: Record<string, string> } => {
+    const light: Record<string, string> = {};
+    const dark: Record<string, string> = {};
+
+    Object.entries(palette ?? {}).forEach(([key, value]) => {
+        const hex = normalizeHexColor(value);
+
+        if (hex === null) {
+            return;
+        }
+
+        const hsl = formatHsl(hslOf(hex));
+
+        SURFACE_TOKENS[key]?.forEach((token) => {
+            light[token] = hsl;
+        });
+        SURFACE_FOREGROUNDS[key]?.forEach((token) => {
+            light[token] = resolveForegroundColor(
+                hex,
+                key === 'sidebar'
+                    ? '0 0% 100%'
+                    : base.hsl.light['primary-foreground'],
+                base.hsl.light.foreground,
+            );
+        });
+
+        const status = STATUS_TOKEN_NAMES[key];
+
+        if (status !== undefined) {
+            Object.assign(light, statusTokens(status, hex, 'light'));
+            Object.assign(dark, statusTokens(status, hex, 'dark'));
+        }
+    });
+
+    return { light, dark };
+};
+
 export const resolveBrandingTheme = (
     baseTheme: ClientTheme,
     branding?: Branding,
@@ -180,6 +271,8 @@ export const resolveBrandingTheme = (
               )
             : baseTheme.hsl.dark['accent-foreground'];
 
+    const palette = resolvePaletteTokens(branding?.brandPalette, baseTheme);
+
     return {
         ...baseTheme,
         hex: {
@@ -199,6 +292,7 @@ export const resolveBrandingTheme = (
                 // deep green in light mode, so a green brand color would vanish.
                 'sidebar-accent': lightAccent,
                 'sidebar-accent-foreground': lightAccentForeground,
+                ...palette.light,
             },
             dark: {
                 ...baseTheme.hsl.dark,
@@ -212,6 +306,7 @@ export const resolveBrandingTheme = (
                 'sidebar-accent': darkAccent,
                 'sidebar-accent-foreground': darkAccentForeground,
                 'sidebar-ring': darkPrimary,
+                ...palette.dark,
             },
         },
     };

@@ -3,6 +3,7 @@ import {
     type KeyboardEvent,
     type ReactNode,
 } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     nextReviewTab,
     parseReviewTabHash,
@@ -90,7 +91,7 @@ export function LoanRequestReviewTabs({ tab, onSelect, badges }: TabsProps) {
                     const badge = badges?.[id];
 
                     return (
-                        <button
+                        <Button variant="ghost"
                             key={id}
                             id={`review-tab-${id}`}
                             type="button"
@@ -100,7 +101,8 @@ export function LoanRequestReviewTabs({ tab, onSelect, badges }: TabsProps) {
                             tabIndex={active ? 0 : -1}
                             onClick={() => onSelect(id)}
                             className={cn(
-                                'flex min-h-11 shrink-0 items-center justify-between gap-2 rounded-lg px-2.5 text-left text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none lg:min-h-10 lg:whitespace-normal',
+'h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal hover:bg-transparent hover:text-current',
+                                'flex min-h-11 shrink-0 items-center justify-between gap-2 rounded-lg px-2.5 has-[>svg]:px-2.5 text-left text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none lg:min-h-10 lg:whitespace-normal',
                                 active
                                     ? 'bg-secondary font-bold text-secondary-foreground shadow-[inset_3px_0_0_var(--primary)]'
                                     : 'font-medium text-foreground hover:bg-muted',
@@ -117,7 +119,7 @@ export function LoanRequestReviewTabs({ tab, onSelect, badges }: TabsProps) {
                                     {badge.label}
                                 </span>
                             ) : null}
-                        </button>
+                        </Button>
                     );
                 })}
             </div>

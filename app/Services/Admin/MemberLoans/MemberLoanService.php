@@ -6,8 +6,10 @@ use App\Models\AppUser;
 use App\Models\Wlnmaster;
 use App\Models\Wmaster;
 use App\Repositories\Admin\MemberLoansRepository;
+use App\Support\LoanPaymentSplit;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class MemberLoanService
 {
@@ -62,7 +64,8 @@ class MemberLoanService
      *     payments: \Illuminate\Pagination\LengthAwarePaginator,
      *     filters: array{range: string, start: ?string, end: ?string},
      *     openingBalance: ?float,
-     *     closingBalance: ?float
+     *     closingBalance: ?float,
+     *     schedule: \Illuminate\Support\Collection<int, \App\Models\Amortsched>
      * }
      */
     public function getPaymentsPageData(
@@ -111,7 +114,125 @@ class MemberLoanService
                 $dateRange['start'],
                 $dateRange['end'],
             ),
+            'schedule' => $this->repository->getScheduleEntries(
+                $loan->lnnumber,
+            ),
         ];
+    }
+
+    /**
+     * Statement-of-account data for one loan and month: opening balance,
+     * ordered movements with principal/interest split, totals, closing balance.
+     *
+     * @return array{
+     *     month: string,
+     *     periodLabel: string,
+     *     issuedAt: string,
+     *     openingBalance: ?float,
+     *     closingBalance: ?float,
+     *     totals: array{principal: float, interest: float, payments: float, count: int},
+     *     movements: list<array{date: ?string, reference: string, description: string, principal: ?float, interest: ?float, credit: float, balance: ?float}>
+     * }
+     */
+    public function getStatementData(
+        AppUser|Wmaster $member,
+        string $loanNumber,
+        string $month,
+    ): array {
+        $context = $this->resolveLoanContext($member, $loanNumber);
+        $acctno = $context['acctno'];
+        $loan = $context['loan'];
+
+        if (! preg_match('/^\d{4}-\d{2}$/', $month)) {
+            abort(422, 'Invalid month');
+        }
+
+        $start = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+        $movements = $this->repository->getStatementMovements(
+            $acctno,
+            $loan->lnnumber,
+            $start,
+            $end,
+        );
+
+        $rows = [];
+        $principalTotal = 0.0;
+        $interestTotal = 0.0;
+        $paymentsTotal = 0.0;
+
+        foreach ($movements as $row) {
+            $principal = $this->castNullableNumber(LoanPaymentSplit::read($row, 'split_principal', 'principal'));
+            $interest = $this->castNullableNumber(LoanPaymentSplit::read($row, 'split_interest', 'accruedint'));
+            $credit = $this->castNumberValue($row->payments ?? null);
+
+            $principalTotal += $principal ?? 0.0;
+            $interestTotal += $interest ?? 0.0;
+            $paymentsTotal += $credit;
+
+            $reference = trim((string) ($row->mreference ?? ''));
+            if ($reference === '') {
+                $reference = trim((string) ($row->transno ?? ''));
+            }
+            if ($reference === '') {
+                $reference = trim((string) ($row->controlno ?? ''));
+            }
+
+            $rows[] = [
+                'date' => $this->formatDateOnly($row->date_in ?? null),
+                'reference' => $reference !== '' ? $reference : '--',
+                'description' => $credit > 0
+                    ? 'Payment'
+                    : 'Ledger entry',
+                'principal' => $principal,
+                'interest' => $interest,
+                'credit' => $credit,
+                'balance' => $this->castNullableNumber($row->balance ?? null),
+            ];
+        }
+
+        $openingBalance = $this->resolveOpeningBalance($acctno, $loan->lnnumber, $start, $end);
+        $closingBalance = $this->repository->getClosingBalance($acctno, $loan->lnnumber, $start, $end);
+
+        return [
+            'month' => $month,
+            'periodLabel' => $start->format('F Y'),
+            'issuedAt' => Carbon::now()->format('Y-m-d'),
+            'openingBalance' => $openingBalance,
+            'closingBalance' => $closingBalance,
+            'totals' => [
+                'principal' => round($principalTotal, 2),
+                'interest' => round($interestTotal, 2),
+                'payments' => round($paymentsTotal, 2),
+                'count' => count($rows),
+            ],
+            'movements' => $rows,
+            'memberAddress' => $this->resolveMemberAddress($acctno),
+        ];
+    }
+
+    private function resolveMemberAddress(string $acctno): ?string
+    {
+        // address1 holds the clean one-line address; address repeats it.
+        $column = Schema::hasColumn('wmaster', 'address1') ? 'address1' : 'address';
+        $value = trim((string) Wmaster::query()->where('acctno', $acctno)->value($column));
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * @return list<array{month: string, transactions: int}>
+     */
+    public function getStatementMonths(
+        AppUser|Wmaster $member,
+        string $loanNumber,
+    ): array {
+        $context = $this->resolveLoanContext($member, $loanNumber);
+
+        return $this->repository->getStatementMonths(
+            $context['acctno'],
+            $context['loan']->lnnumber,
+        );
     }
 
     /**
@@ -302,16 +423,36 @@ class MemberLoanService
      */
     private function buildSummary(string $acctno, Wlnmaster $loan): array
     {
+        $nextEntry = $this->repository->getNextUnpaidScheduleEntry(
+            $loan->lnnumber,
+            $loan->balance === null ? null : (float) $loan->balance,
+        );
+
         return [
             'balance' => (float) ($loan->balance ?? 0),
-            'nextPaymentDate' => $this->repository->getNextPaymentDate(
-                $loan->lnnumber,
-            ),
+            'nextPaymentDate' => $nextEntry !== null
+                ? $this->formatScheduleDate($nextEntry->Date_pay ?? null)
+                : $this->repository->getNextPaymentDate(
+                    $loan->lnnumber,
+                ),
             'lastPaymentDate' => $this->repository->getLastPaymentDate(
                 $acctno,
                 $loan->lnnumber,
             ),
         ];
+    }
+
+    private function formatScheduleDate(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d H:i:s');
+        }
+
+        return (string) $value;
     }
 
     /**
@@ -369,6 +510,41 @@ class MemberLoanService
         return max(1, $page);
     }
 
+    private function castNumberValue(mixed $value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        return (float) $value;
+    }
+
+    private function castNullableNumber(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (float) $value;
+    }
+
+    private function formatDateOnly(mixed $value): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (is_string($value) && trim($value) !== '') {
+            try {
+                return Carbon::parse($value)->format('Y-m-d');
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
     private function resolveOpeningBalance(
         string $acctno,
         string $loanNumber,
@@ -408,10 +584,10 @@ class MemberLoanService
         ?string $end,
     ): array {
         $now = Carbon::now();
-        $range = $range ?: self::RANGE_CURRENT_MONTH;
+        $range = $range ?: self::RANGE_ALL;
 
         if (! in_array($range, $this->allowedRanges(), true)) {
-            $range = self::RANGE_CURRENT_MONTH;
+            $range = self::RANGE_ALL;
         }
 
         if ($range === self::RANGE_CURRENT_YEAR) {

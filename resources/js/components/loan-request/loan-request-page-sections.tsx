@@ -1,19 +1,4 @@
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from '@/components/ui/command';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 type LoanRequestPageHeroProps = {
@@ -27,7 +12,7 @@ type LoanRequestPageHeroProps = {
 type LoanRequestSummaryCardItem = {
     label: string;
     value: number | string;
-    emphasisClassName?: string;
+    helper?: string;
 };
 
 type LoanRequestSummaryCardsProps = {
@@ -40,10 +25,11 @@ type LoanRequestStatusFilterOption<TValue extends string> = {
     label: string;
 };
 
-type LoanRequestStatusFiltersProps<TValue extends string> = {
+type LoanRequestFilterChipsProps<TValue extends string> = {
     options: Array<LoanRequestStatusFilterOption<TValue>>;
-    activeValue: TValue;
+    value: TValue;
     onChange: (value: TValue) => void;
+    label: string;
 };
 
 export function LoanRequestPageHero({
@@ -54,26 +40,24 @@ export function LoanRequestPageHero({
     badges,
 }: LoanRequestPageHeroProps) {
     return (
-        <section className="rounded-xl bg-primary p-6 text-primary-foreground shadow-card sm:p-7">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                <div className="space-y-2">
-                    <p className="text-xs font-bold tracking-[0.2em] text-primary-foreground/85 uppercase">
-                        {kicker}
-                    </p>
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        {title}
-                    </h1>
-                    <p className="max-w-3xl text-sm text-primary-foreground/90">
-                        {description}
-                    </p>
-                    {badges ? (
-                        <div className="flex flex-wrap gap-2">{badges}</div>
-                    ) : null}
-                </div>
-                {cta ? (
-                    <div className="self-start sm:self-auto">{cta}</div>
+        <section className="flex flex-wrap items-start gap-5">
+            <div>
+                <p className="text-[11px] font-bold tracking-[0.14em] text-primary uppercase">
+                    {kicker}
+                </p>
+                <h1 className="mt-1 text-[22px] leading-tight font-bold sm:text-[26px]">
+                    {title}
+                </h1>
+                <p className="mt-1.5 max-w-prose text-sm text-muted-foreground">
+                    {description}
+                </p>
+                {badges ? (
+                    <div className="mt-3 flex flex-wrap gap-2">{badges}</div>
                 ) : null}
             </div>
+            {cta ? (
+                <div className="pt-1.5 max-sm:w-full sm:ml-auto">{cta}</div>
+            ) : null}
         </section>
     );
 }
@@ -83,24 +67,24 @@ export function LoanRequestSummaryCards({
     helperText,
 }: LoanRequestSummaryCardsProps) {
     return (
-        <section className="space-y-2">
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <section aria-label="Loan request summary" className="space-y-2.5">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
                 {items.map((item) => (
                     <div
                         key={item.label}
-                        className="rounded-xl border border-t-4 border-border border-t-primary bg-card px-4 py-3 shadow-card"
+                        className="flex min-w-0 flex-col gap-1 rounded-lg border border-border bg-card p-4"
                     >
-                        <p className="text-xs font-medium text-muted-foreground">
+                        <span className="text-[13px] text-muted-foreground">
                             {item.label}
-                        </p>
-                        <p
-                            className={cn(
-                                'mt-1 text-3xl font-bold text-foreground tabular-nums',
-                                item.emphasisClassName,
-                            )}
-                        >
+                        </span>
+                        <span className="text-[22px] font-bold whitespace-nowrap tabular-nums">
                             {item.value}
-                        </p>
+                        </span>
+                        {item.helper ? (
+                            <span className="truncate text-[13px] text-muted-foreground">
+                                {item.helper}
+                            </span>
+                        ) : null}
                     </div>
                 ))}
             </div>
@@ -111,67 +95,36 @@ export function LoanRequestSummaryCards({
     );
 }
 
-export function LoanRequestStatusFilters<TValue extends string>({
+export function LoanRequestFilterChips<TValue extends string>({
     options,
-    activeValue,
+    value,
     onChange,
-}: LoanRequestStatusFiltersProps<TValue>) {
-    const [open, setOpen] = useState(false);
-    const activeOption = options.find((option) => option.value === activeValue);
-
+    label,
+}: LoanRequestFilterChipsProps<TValue>) {
     return (
-        <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">
-                Status
-            </span>
-            <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                    <Button
+        <div role="group" aria-label={label} className="flex flex-wrap gap-2">
+            {options.map((option) => {
+                const active = option.value === value;
+
+                return (
+                    <button
+                        key={option.value}
                         type="button"
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-full justify-between font-normal"
+                        aria-pressed={active}
+                        onClick={() => onChange(option.value)}
+                        className={cn(
+                            'min-h-11 rounded-full border px-3.5 text-[13px] font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none',
+                            active
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : 'border-border bg-card text-foreground hover:bg-muted',
+                        )}
                     >
-                        {activeOption?.label ?? 'All'}
-                        <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-72 p-0">
-                    <Command>
-                        <CommandInput placeholder="Search status..." />
-                        <CommandList>
-                            <CommandEmpty>No status found.</CommandEmpty>
-                            <CommandGroup>
-                                {options.map((option) => (
-                                    <CommandItem
-                                        key={option.value}
-                                        value={option.label}
-                                        onSelect={() => {
-                                            onChange(option.value);
-                                            setOpen(false);
-                                        }}
-                                    >
-                                        <Check
-                                            className={cn(
-                                                'h-4 w-4',
-                                                activeValue === option.value
-                                                    ? 'opacity-100'
-                                                    : 'opacity-0',
-                                            )}
-                                        />
-                                        {option.label}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-            </Popover>
+                        {option.label}
+                    </button>
+                );
+            })}
         </div>
     );
 }
-
-export { TableSearchBox as LoanRequestSearchBox } from '@/components/ui/table-filter-bar';
 
 export type { LoanRequestStatusFilterOption };

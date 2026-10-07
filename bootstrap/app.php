@@ -10,12 +10,14 @@ use App\Http\Middleware\EnsureTwoFactorSetup;
 use App\Http\Middleware\EnsureUserApproved;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Sentry\Laravel\Integration;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,7 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
         $middleware->trustProxies(
-            at: '*',
+            at: env('TRUSTED_PROXIES', '*') === '*' ? '*' : explode(',', (string) env('TRUSTED_PROXIES')),
             headers: Request::HEADER_X_FORWARDED_FOR
                 | Request::HEADER_X_FORWARDED_HOST
                 | Request::HEADER_X_FORWARDED_PORT
@@ -46,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->web(append: [
+            SecurityHeaders::class,
             EnsureMustChangePassword::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
@@ -53,6 +56,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // No-op unless SENTRY_LARAVEL_DSN is set.
+        Integration::handles($exceptions);
+
         $exceptions->respond(function ($response, Throwable $exception, Request $request) {
             $status = $response->getStatusCode();
             $handledStatuses = [403, 404, 419, 429, 500, 503];

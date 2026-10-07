@@ -1,4 +1,3 @@
-import { Transition } from '@headlessui/react';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
@@ -70,6 +69,7 @@ const defaultRecoveryState: RecoveryState = {
 };
 
 const changeActionClassName =
+    'h-auto p-0 ' +
     'cursor-pointer text-sm text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current dark:decoration-neutral-500';
 
 function SummaryRow({
@@ -91,13 +91,14 @@ function SummaryRow({
                 </p>
                 <p className="truncate text-sm font-medium">{value}</p>
             </div>
-            <button
+            <Button
+                variant="link"
                 type="button"
                 className={changeActionClassName}
                 onClick={onAction}
             >
                 {actionLabel}
-            </button>
+            </Button>
         </div>
     );
 }
@@ -464,10 +465,11 @@ export default function ForgotPassword({ recovery, status }: Props) {
             return (
                 <div className="space-y-3">
                     {recoveryState.options.map((option) => (
-                        <button
+                        <Button
+                            variant="outline"
                             key={option.type}
                             type="button"
-                            className="flex w-full items-start justify-between gap-4 rounded-xl border border-border bg-background px-4 py-4 text-left transition-colors hover:border-border"
+                            className="h-auto w-full items-start justify-between gap-4 rounded-xl border border-border bg-background px-4 py-4 text-left font-normal whitespace-normal transition-colors hover:border-border"
                             onClick={() => {
                                 if (option.type === 'email') {
                                     void sendEmailRecovery();
@@ -490,7 +492,7 @@ export default function ForgotPassword({ recovery, status }: Props) {
                                 </p>
                             </div>
                             {pendingAction === option.type && <Spinner />}
-                        </button>
+                        </Button>
                     ))}
                 </div>
             );
@@ -506,13 +508,14 @@ export default function ForgotPassword({ recovery, status }: Props) {
 
                     <div className="text-sm text-muted-foreground">
                         Need something else?{' '}
-                        <button
+                        <Button
+                            variant="link"
                             type="button"
                             className={changeActionClassName}
                             onClick={moveToMethodStep}
                         >
                             Choose another recovery method
-                        </button>
+                        </Button>
                     </div>
                 </div>
             );
@@ -663,8 +666,8 @@ export default function ForgotPassword({ recovery, status }: Props) {
 
     const transitionEnterFromClassName =
         transitionDirection === 'forward'
-            ? 'opacity-0 translate-x-3'
-            : 'opacity-0 -translate-x-3';
+            ? 'motion-safe:slide-in-from-right-3'
+            : 'motion-safe:slide-in-from-left-3';
 
     return (
         <AuthLayout
@@ -688,13 +691,12 @@ export default function ForgotPassword({ recovery, status }: Props) {
                     </div>
                 )}
 
-                <Transition
+                <div
                     key={`${currentStep}-${getPasswordRecoveryStepIndex(currentStep)}-${transitionDirection}`}
-                    appear
-                    show
-                    enter="transition motion-safe:duration-200 motion-safe:ease-out motion-reduce:transition-none"
-                    enterFrom={transitionEnterFromClassName}
-                    enterTo="opacity-100 translate-x-0"
+                    className={cn(
+                        'motion-safe:animate-in motion-safe:duration-200 motion-safe:fade-in',
+                        transitionEnterFromClassName,
+                    )}
                 >
                     <div className="space-y-6">
                         {currentStep !==
@@ -722,7 +724,7 @@ export default function ForgotPassword({ recovery, status }: Props) {
 
                         {renderStepBody()}
                     </div>
-                </Transition>
+                </div>
 
                 <div className="space-x-1 text-center text-sm text-muted-foreground">
                     <span>Or, return to</span>

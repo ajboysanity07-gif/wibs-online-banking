@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { LoanEstimate, LoanEstimateLimits } from '@/types/loan-requests';
@@ -141,11 +142,11 @@ export function LoanEstimateBreakdown({
 
     return (
         <div>
-            <button
+            <Button variant="link"
                 type="button"
                 aria-expanded={open}
                 onClick={() => setOpen((current) => !current)}
-                className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-primary underline underline-offset-4"
+                className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal inline-flex min-h-11 items-center gap-1 text-sm font-bold text-primary underline underline-offset-4"
             >
                 {open ? 'Hide breakdown' : 'Show how this is calculated'}
                 <ChevronDown
@@ -155,7 +156,7 @@ export function LoanEstimateBreakdown({
                         open && 'rotate-180',
                     )}
                 />
-            </button>
+            </Button>
             {open ? (
                 <dl className="mt-1 text-sm">
                     {rows.map((row) => (

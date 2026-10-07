@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Statement of Account · WIBS Online Banking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio.
+   Put this @layer first; product CSS outside the layer always wins. */
+@layer od-layout {
+  :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+
+  .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+  .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+  .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+  .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+  .od-fill    { flex: 1 1 0; min-width: 0; }
+  .od-fixed   { flex: none; }
+  .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+
+  .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+  :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+  .od-tile { display: grid; grid-template-rows: auto 1fr; }
+  :where(.od-tile) > :where(*) { display: block; }
+
+  .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+  .od-media-cover { object-fit: cover; }
+
+  .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .od-clamp-2 { -webkit-line-clamp: 2; }
+  .od-clamp-3 { -webkit-line-clamp: 3; }
+  .od-lines-2 { min-height: calc(2 * 1.4em); }
+  .od-nowrap  { white-space: nowrap; }
+  .od-keep    { word-break: keep-all; overflow-wrap: anywhere; }
+
+  .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+  .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+
+  .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+             padding-inline: var(--od-rail-pad, 16px); scroll-padding-inline: var(--od-rail-pad, 16px); }
+  .od-rail::-webkit-scrollbar { display: none; }
+  :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+  :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+
+  .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+  .od-touch  { min-width: 44px; min-height: 44px; }
+}
+/* /OD-LAYOUT-PRIMITIVES v1 */
+
+/* ============ WIBS tokens ============ */
+:root {
+  --bg: #dfe7cb;
+  --primary: #176433;
+  --primary-fg: #ffffff;
+  --accent: #9abd53;
+  --card: #ffffff;
+  --tile: #eaf1da;
+  --ink: #14170f;
+  --muted: #4a4f3f;
+  --border: #b7c399;
+  --danger: #a4261e;
+  --shadow: 0 1px 2px rgba(20, 23, 15, 0.06), 0 4px 14px rgba(20, 23, 15, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1916;
+    --primary: #c2d65a;
+    --primary-fg: #1a1a0a;
+    --accent: #c2d65a;
+    --card: #242320;
+    --tile: #2d3320;
+    --ink: #f5f3ec;
+    --muted: #bdb8aa;
+    --border: #3a3832;
+    --danger: #f2b8b5;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+h1, h2, p, dl, dd { margin: 0; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ============ Topbar ============ */
+.topbar {
+  max-width: 860px; margin: 0 auto; padding: 16px 16px 8px;
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+}
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 16px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--card); color: var(--ink);
+  font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer;
+}
+.btn--primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.btn:hover { filter: brightness(1.06); }
+
+/* ============ Document ============ */
+.doc {
+  max-width: 860px; margin: 0 auto 32px; padding: 40px 48px 48px;
+  background: var(--card); border-radius: 16px; box-shadow: var(--shadow);
+}
+.doc__brand {
+  width: 100%; max-height: 115px; aspect-ratio: 1137 / 309;
+  margin: 0 auto 48px;
+}
+.doc__title { font-size: 28px; line-height: 1.2; font-weight: 700; color: var(--primary); letter-spacing: -0.01em; }
+.doc__sub { margin: 16px 0 24px; font-size: 12.5px; color: var(--muted); }
+.doc__rule { border: 0; border-top: 3px solid var(--primary); margin: 0 0 24px; }
+
+.label { font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.party { --od-gap: 0; }
+.party .label { margin-bottom: 8px; color: var(--ink); }
+.party strong { font-weight: 700; }
+
+.meta {
+  --od-cols: 3; --od-gap: 24px;
+  margin: 24px 0; padding: 16px; background: var(--tile); border-radius: 12px;
+}
+.meta .label { font-weight: 500; }
+.meta strong { font-size: 14px; font-weight: 600; }
+
+.doc__h2 { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+
+/* ============ Ledger ============ */
+.ledger { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.ledger th {
+  padding: 8px 6px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); text-align: left; border-bottom: 2px solid var(--border);
+}
+.ledger td { padding: 10px 6px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.ledger .num { text-align: right; white-space: nowrap; }
+.ledger td.num:last-child { font-weight: 700; }
+.ledger .bf td { font-style: italic; color: var(--muted); }
+
+.totals { width: min(100%, 320px); margin: 16px 0 0 auto; }
+.totals div { display: flex; justify-content: space-between; gap: 16px; padding: 8px 10px; }
+.totals .due { background: var(--tile); border-top: 1px solid var(--border); color: var(--danger); font-weight: 700; border-radius: 0 0 8px 8px; }
+.totals b { font-weight: 700; }
+
+.doc__p { margin-top: 24px; }
+.doc__p + .doc__p { margin-top: 8px; }
+
+.pay { margin-top: 16px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; }
+.pay .label { margin-bottom: 8px; color: var(--ink); }
+.pay dl { display: grid; grid-template-columns: minmax(0, 176px) minmax(0, 1fr); gap: 4px 16px; }
+.pay dt { color: var(--muted); }
+.pay dd { font-weight: 700; overflow-wrap: anywhere; }
+
+.vat { margin-top: 16px; }
+.doc__foot {
+  margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border);
+  text-align: center; font-size: 11.5px; color: var(--muted);
+}
+
+/* ============ Small screens ============ */
+@media (max-width: 560px) {
+  .topbar { padding: 12px 12px 8px; }
+  .doc { padding: 24px 16px 32px; border-radius: 12px; margin: 0 8px 24px; }
+  .doc__brand { margin-bottom: 24px; }
+  .doc__title { font-size: 24px; }
+  .party-grid { --od-cols: 1 !important; }
+  .meta { --od-cols: 1; --od-gap: 12px; }
+  .ledger { font-size: 12px; }
+  .ledger th { font-size: 10px; letter-spacing: 0.04em; padding: 8px 3px; }
+  .ledger td { padding: 8px 3px; }
+  .pay dl { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .pay dd { margin-bottom: 8px; }
+}
+
+/* ============ Print ============ */
+@page { size: A4 portrait; margin: 14mm; }
+@media print {
+  body { background: #fff; color: #000; font-size: 11pt; }
+  .topbar { display: none; }
+  .doc { max-width: none; margin: 0; padding: 0; box-shadow: none; border: 0; border-radius: 0; background: #fff; }
+  .meta, .totals .due { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ledger tr, .pay { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="btn" href="loan-payments-improved.html">&larr; Back to Loan Payments</a>
+  <button class="btn btn--primary" type="button" onclick="window.print()">Print / Save PDF</button>
+</header>
+
+<main class="doc">
+  <!-- Logo is injected by the system; keep empty. -->
+  <div class="doc__brand" data-org-logo></div>
+
+  <h1 class="doc__title">Statement of Account</h1>
+  <p class="doc__sub">MRDINC Ltd · WIBS Online Banking · Member Loan Portal</p>
+  <hr class="doc__rule" />
+
+  <section class="od-grid party-grid" style="--od-cols:2; --od-gap:32px" aria-label="Parties">
+    <div class="od-stack party">
+      <span class="label">Customer</span>
+      <strong>Amara Okafor</strong>
+      <span>14 Harbour Lane, Flat 3</span>
+      <span>Leeds LS1 4DY</span>
+      <span>FAO: Amara Okafor</span>
+    </div>
+    <div class="od-stack party">
+      <span class="label">From</span>
+      <strong>WIBS Online Banking</strong>
+      <span>1 Member Square</span>
+      <span>Manchester M1 2AB</span>
+      <span>landline: 0161 555 0100</span>
+      <span>web: wibs.co.uk</span>
+    </div>
+  </section>
+
+  <section class="od-grid meta" aria-label="Statement details">
+    <div class="od-cell"><span class="label">Statement date</span><strong>31 Jul 2017</strong></div>
+    <div class="od-cell"><span class="label">Terms</span><strong>Payment Terms e.g. 30 days</strong></div>
+    <div class="od-cell"><span class="label">Account reference</span><strong>MRDINC-2041-77</strong></div>
+  </section>
+
+  <h2 class="doc__h2">Account activity — June to July 2017</h2>
+  <table class="ledger">
+    <thead>
+      <tr>
+        <th scope="col">Date</th>
+        <th scope="col">Reference</th>
+        <th scope="col">Description</th>
+        <th scope="col" class="num">Debit</th>
+        <th scope="col" class="num">Credit</th>
+        <th scope="col" class="num">Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="bf"><td colspan="5">Balance brought forward</td><td class="num">£0.00</td></tr>
+      <tr><td>20/06/17</td><td>2356</td><td>Example Invoice</td><td class="num">£100.00</td><td class="num"></td><td class="num">£100.00</td></tr>
+      <tr><td>20/07/17</td><td>1476</td><td>Example Payment Received</td><td class="num"></td><td class="num">£80.00</td><td class="num">£20.00</td></tr>
+      <tr><td>21/07/17</td><td>1476</td><td>Example Credit Note</td><td class="num"></td><td class="num">£10.00</td><td class="num">£10.00</td></tr>
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div><span>Current Balance</span><b>£10.00</b></div>
+    <div class="due"><span>Amount Overdue</span><span>£10.00</span></div>
+  </div>
+
+  <p class="doc__p">If you have any queries about this statement please contact <strong>Amara Okafor</strong> on <strong>0161 555 0100</strong>.</p>
+  <p class="doc__p">Please make any payment due, by electronic transfer to our bank account:</p>
+
+  <section class="pay" aria-label="Payment details">
+    <h2 class="label">Payment details</h2>
+    <dl>
+      <dt>Bank</dt><dd>WIBS Online Banking Ltd</dd>
+      <dt>Sort Code</dt><dd>04-00-04</dd>
+      <dt>Account Number</dt><dd>12345678</dd>
+      <dt>Account Name</dt><dd>MRDINC Ltd</dd>
+    </dl>
+  </section>
+
+  <p class="vat">VAT Number: 12 3456 78</p>
+
+  <footer class="doc__foot">
+    <p>Registered Office: 1 Member Square, Manchester M1 2AB · Registered in England &amp; Wales · Company Number 00000000</p>
+    <p>Directors: Director Name · Page 1 of 1</p>
+  </footer>
+</main>
+</body>
+</html>

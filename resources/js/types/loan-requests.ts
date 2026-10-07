@@ -648,6 +648,17 @@ export type LoanStatusSummaryForStaff = {
     problem_loans: ProblemLoan[];
 };
 
+export type ActiveLoanRequestSummary = {
+    id: number;
+    reference: string;
+    status: LoanRequestStatusValue;
+    step: number;
+    total_steps: number;
+    requested_amount: string | number | null;
+    submitted_at: string | null;
+    more_count: number;
+};
+
 export type LoanStatusSummaryForMember = {
     total_loans: number;
     active_count: number;

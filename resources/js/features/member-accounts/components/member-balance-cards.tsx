@@ -1,9 +1,11 @@
 import { Link } from '@inertiajs/react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { MemberAccountsSummary } from '@/features/member-accounts/types';
 import { formatCurrency, formatDate, MASKED_AMOUNT } from '@/lib/formatters';
+import type { LoanStatusSummaryForMember } from '@/types/loan-requests';
 
 type MemberBalanceCardsProps = {
     acctno: string | null;
@@ -14,6 +16,7 @@ type MemberBalanceCardsProps = {
     loansHref: string;
     loanSecurityHref: string;
     hideBalances?: boolean;
+    loanSummary?: LoanStatusSummaryForMember | null;
 };
 
 // ponytail: derived from the recent-loans window only; add a real repaid figure to the API if this drifts.
@@ -47,9 +50,26 @@ export function MemberBalanceCards({
     loansHref,
     loanSecurityHref,
     hideBalances = false,
+    loanSummary = null,
 }: MemberBalanceCardsProps) {
     const repaid = getRepaidPercent(summary);
     const disabled = !acctno;
+    const needsAttention =
+        (loanSummary?.past_due_count ?? 0) +
+            (loanSummary?.litigation_count ?? 0) >
+        0;
+    // lnstatus 'IIL'/'PDL' mark litigation/past-due; everything else is active.
+    const activeLoanTypes = [
+        ...new Set(
+            (loanSummary?.loans ?? [])
+                .filter(
+                    (loan) =>
+                        loan.lnstatus !== 'IIL' && loan.lnstatus !== 'PDL',
+                )
+                .map((loan) => loan.lntype)
+                .filter(Boolean),
+        ),
+    ].join(' · ');
 
     return (
         <section className="space-y-5">
@@ -80,7 +100,7 @@ export function MemberBalanceCards({
                     </AlertDescription>
                 </Alert>
             ) : null}
-            <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div className="flex min-w-0 flex-col gap-4 rounded-xl bg-primary p-6 text-primary-foreground shadow-card">
                     <span className="text-sm font-semibold">
                         Outstanding balance
@@ -167,6 +187,38 @@ export function MemberBalanceCards({
                         </Button>
                     </div>
                 </div>
+                {loanSummary ? (
+                    <div className="flex min-w-0 flex-col gap-4 rounded-xl border border-border bg-card p-6 text-card-foreground shadow-card">
+                        <span className="text-sm font-semibold text-muted-foreground">
+                            Active loans
+                        </span>
+                        <p className="text-[2.5rem] leading-none font-bold tracking-tight tabular-nums">
+                            {loanSummary.active_count}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            {activeLoanTypes || 'No active loans'}
+                        </p>
+                        <div className="mt-auto flex flex-wrap items-center gap-3">
+                            <Badge variant="secondary">
+                                {needsAttention
+                                    ? 'Needs attention'
+                                    : 'On schedule'}
+                            </Badge>
+                            <Button
+                                asChild={!disabled}
+                                disabled={disabled}
+                                variant="outline"
+                                size="sm"
+                            >
+                                {disabled ? (
+                                    'Loan ledger'
+                                ) : (
+                                    <Link href={loansHref}>Loan ledger</Link>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                ) : null}
             </div>
         </section>
     );

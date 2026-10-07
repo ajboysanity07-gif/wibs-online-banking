@@ -1,11 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { AllLoansTable } from '@/components/loans/all-loans-table';
+import { ClosedLoansCard } from '@/components/loans/closed-loans-card';
+import { FilterPopoverProvider } from '@/components/loans/filter-popover';
 import { LoanCards } from '@/components/loans/loan-cards';
 import { LoanPaymentsList } from '@/components/loans/loan-payments-list';
-import { formatShortDate, paymentLoanLabel } from '@/components/loans/loan-presentation';
 import { LoanSummaryStats } from '@/components/loans/loan-summary-stats';
 import { MemberDetailPageHeader } from '@/components/member-detail-page-header';
 import { PageShell } from '@/components/page-shell';
@@ -15,8 +15,6 @@ import { MemberAccountAlert } from '@/features/member-accounts/components/member
 import AppLayout from '@/layouts/app-layout';
 import {
     dashboard as clientDashboard,
-    loanPayments,
-    loanSchedule,
     loans as clientLoans,
 } from '@/routes/client';
 import { create as createLoanRequest } from '@/routes/client/loan-requests';
@@ -43,13 +41,6 @@ type Props = {
     paymentsError?: string | null;
 };
 
-const fallbackMeta: PaginationMeta = {
-    page: 1,
-    perPage: 10,
-    total: 0,
-    lastPage: 1,
-};
-
 export default function MemberLoans({
     member,
     summary,
@@ -60,15 +51,13 @@ export default function MemberLoans({
 }: Props) {
     const [isPaging, setIsPaging] = useState(false);
     const items = loans?.items ?? [];
-    const meta = loans?.meta ?? fallbackMeta;
     const isLoading = isPaging || (loans === null && !loansError);
-    const canNavigate = Boolean(member.acctno);
 
-    const reloadPage = (nextPage: number) => {
+    const reloadPage = () => {
         setIsPaging(true);
         router.get(
             clientLoans().url,
-            { page: nextPage },
+            {},
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -79,35 +68,8 @@ export default function MemberLoans({
         );
     };
 
-    const handlePageChange = (nextPage: number) => {
-        if (nextPage === meta.page) {
-            return;
-        }
-
-        reloadPage(nextPage);
-    };
-
     const handleRetry = () => {
-        reloadPage(meta.page);
-    };
-
-    const handleViewSchedule = (loanNumber: string) => {
-        router.get(loanSchedule(loanNumber).url);
-    };
-
-    const handleViewPayments = (loanNumber: string) => {
-        router.get(loanPayments(loanNumber).url);
-    };
-
-    const handlePayNow = (loanNumber: string) => {
-        router.get(loanPayments(loanNumber).url);
-    };
-
-    const handleRequestReceipt = (payment: MemberRecentLoanPayment) => {
-        toast(
-            `Preparing receipt for the ${paymentLoanLabel(payment)} payment on ${formatShortDate(payment.date)}…`,
-            { position: 'bottom-center' },
-        );
+        reloadPage();
     };
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -161,26 +123,24 @@ export default function MemberLoans({
                     isLoading={isLoading}
                     error={loansError}
                     onRetry={handleRetry}
-                    onViewSchedule={canNavigate ? handleViewSchedule : undefined}
-                    onViewPayments={canNavigate ? handleViewPayments : undefined}
-                    onPayNow={canNavigate ? handlePayNow : undefined}
                 />
 
-                <LoanPaymentsList
-                    payments={payments}
-                    error={paymentsError}
-                    onRetry={handleRetry}
-                    onRequestReceipt={handleRequestReceipt}
-                />
+                <FilterPopoverProvider>
+                    <LoanPaymentsList
+                        payments={payments}
+                        error={paymentsError}
+                        onRetry={handleRetry}
+                    />
 
-                <AllLoansTable
-                    loans={items}
-                    meta={meta}
-                    isLoading={isLoading}
-                    error={loansError}
-                    onRetry={handleRetry}
-                    onPageChange={handlePageChange}
-                />
+                    <ClosedLoansCard loans={items} />
+
+                    <AllLoansTable
+                        loans={items}
+                        isLoading={isLoading}
+                        error={loansError}
+                        onRetry={handleRetry}
+                    />
+                </FilterPopoverProvider>
             </PageShell>
         </AppLayout>
     );

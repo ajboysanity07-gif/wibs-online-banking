@@ -50,3 +50,17 @@ test('staff page renders API and history load errors', async () => {
     assert.match(file, /Unable to load staff history/);
     assert.match(file, /showErrorToast/);
 });
+
+test('staff page uses the plain hero, inline toolbar and shared pager', async () => {
+    const file = await readFile(
+        resolve('resources', 'js', 'pages', 'superadmin', 'staff.tsx'),
+        'utf8',
+    );
+
+    assert.doesNotMatch(file, /PageHero|TableFilterPopover|TableSearchBox/);
+    assert.doesNotMatch(file, /DataTablePagination/);
+    assert.match(file, /RequestsPager/);
+    assert.match(file, /Clear filters/);
+    assert.match(file, /Has member access/);
+    assert.match(file, /Staff only/);
+});

@@ -12,6 +12,7 @@ import {
     type LoanRequestWizardGroupId,
     type LoanRequestWizardStep,
 } from '@/components/loan-request/loan-request-wizard-steps';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export type StepGroup = {
@@ -129,10 +130,11 @@ export function LoanRequestStepIndicator({
 
                     return (
                         <div key={group.label} className="mb-0.5">
-                            <button
+                            <Button variant="ghost"
                                 type="button"
                                 className={cn(
-                                    'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors',
+'h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal hover:bg-transparent hover:text-current',
+                                    'flex w-full items-center gap-2.5 rounded-lg px-2.5 has-[>svg]:px-2.5 py-2 text-left transition-colors',
                                     isActive
                                         ? 'bg-primary text-primary-foreground'
                                         : 'hover:bg-secondary',
@@ -171,7 +173,7 @@ export function LoanRequestStepIndicator({
                                 >
                                     {group.label}
                                 </span>
-                            </button>
+                            </Button>
 
                             {isActive && (
                                 <div className="mt-0.5 mb-1 ml-5 space-y-0.5 border-l border-border pl-4">
@@ -182,11 +184,12 @@ export function LoanRequestStepIndicator({
                                             stepIndex === currentStep;
 
                                         return (
-                                            <button
+                                            <Button variant="ghost"
                                                 key={stepIndex}
                                                 type="button"
                                                 className={cn(
-                                                    'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
+'h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal hover:bg-transparent hover:text-current',
+                                                    'flex w-full items-center gap-2 rounded-md px-2 has-[>svg]:px-2 py-1.5 text-left transition-colors',
                                                     isSubActive
                                                         ? 'bg-card'
                                                         : 'hover:bg-secondary',
@@ -222,7 +225,7 @@ export function LoanRequestStepIndicator({
                                                 >
                                                     {group.stepNames[i]}
                                                 </span>
-                                            </button>
+                                            </Button>
                                         );
                                     })}
                                 </div>

@@ -1,4 +1,5 @@
 import type { ChangeEvent } from 'react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type {
     LocationSearchState,
@@ -126,10 +127,11 @@ export function LocationAutocompleteInput({
                     {search.suggestions.length > 0 && (
                         <div className="max-h-60 space-y-1 overflow-auto">
                             {search.suggestions.map((suggestion) => (
-                                <button
+                                <Button
+                                    variant="ghost"
                                     key={suggestion.code}
                                     type="button"
-                                    className="flex w-full flex-col gap-1 rounded-md px-2 py-2 text-left transition hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-hidden"
+                                    className="h-auto w-full flex-col items-start justify-start gap-1 rounded-md px-2 py-2 text-left font-normal transition hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-hidden"
                                     onMouseDown={(event) => {
                                         event.preventDefault();
                                     }}
@@ -145,7 +147,7 @@ export function LocationAutocompleteInput({
                                               ? 'City'
                                               : 'Municipality'}
                                     </span>
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     )}

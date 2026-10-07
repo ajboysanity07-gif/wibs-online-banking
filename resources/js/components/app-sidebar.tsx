@@ -84,58 +84,71 @@ const memberNavItems: NavItem[] = [
     },
 ];
 
-const legacyAdminNavItems = (): NavItem[] => [
-    {
-        title: 'Admin Dashboard',
-        href: adminDashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Members',
-        href: membersIndex(),
-        icon: Users,
-        match: 'section',
-        matchPaths: [membersIndex(), '/admin/members'],
-    },
-    {
-        title: 'Requests',
-        href: requestsIndex(),
-        icon: FileText,
-        match: 'section',
-        excludeMatchPaths: [reportedRequests()],
-    },
-    {
-        title: 'Reported Requests',
-        href: reportedRequests(),
-        icon: FileText,
-    },
-];
+const adminDashboardNavItem = (): NavItem => ({
+    title: 'Admin Dashboard',
+    href: adminDashboard(),
+    icon: LayoutGrid,
+});
 
-const staffWorkflowNavItems = (auth: Auth): NavItem[] => [
-    {
-        title: 'Loan Workflow',
-        href: staffLoanRequestsIndex(),
-        icon: FileText,
-        match: 'section',
-        matchPaths: [staffLoanRequestsIndex(), '/staff/loan-requests'],
-    },
-    {
-        title: 'Reported Requests',
-        href: staffReportedRequestsIndex(),
-        icon: FileText,
-    },
-    ...(auth.canViewStaffMembers
-        ? [
-              {
-                  title: 'Members',
-                  href: staffMembersIndex(),
-                  icon: Users,
-                  match: 'section' as const,
-                  matchPaths: [staffMembersIndex(), '/staff/members'],
-              },
-          ]
-        : []),
-];
+// Staff share one set of pages; staff with an admin profile are routed to the
+// /admin/* variants (same UI), everyone else to /staff/*.
+const staffNavItems = (auth: Auth): NavItem[] => {
+    const useAdminRoutes = auth.isAdmin && auth.hasActiveStaffAccess;
+    const canWork = useAdminRoutes || auth.canAccessLoanWorkflow;
+    const canViewMembers = useAdminRoutes || auth.canViewStaffMembers;
+
+    return [
+        ...(useAdminRoutes ? [adminDashboardNavItem()] : []),
+        ...(canWork
+            ? [
+                  useAdminRoutes
+                      ? {
+                            title: 'Requests',
+                            href: requestsIndex(),
+                            icon: FileText,
+                            match: 'section' as const,
+                            excludeMatchPaths: [reportedRequests()],
+                        }
+                      : {
+                            title: 'Requests',
+                            href: staffLoanRequestsIndex(),
+                            icon: FileText,
+                            match: 'section' as const,
+                            matchPaths: [
+                                staffLoanRequestsIndex(),
+                                '/staff/loan-requests',
+                            ],
+                        },
+                  {
+                      title: 'Reported Requests',
+                      href: useAdminRoutes
+                          ? reportedRequests()
+                          : staffReportedRequestsIndex(),
+                      icon: FileText,
+                  },
+              ]
+            : []),
+        ...(canWork && canViewMembers
+            ? [
+                  useAdminRoutes
+                      ? {
+                            title: 'Members',
+                            href: membersIndex(),
+                            icon: Users,
+                            match: 'section' as const,
+                            matchPaths: [membersIndex(), '/admin/members'],
+                        }
+                      : {
+                            title: 'Members',
+                            href: staffMembersIndex(),
+                            icon: Users,
+                            match: 'section' as const,
+                            matchPaths: [staffMembersIndex(), '/staff/members'],
+                        },
+              ]
+            : []),
+    ];
+};
 
 export function AppSidebar() {
     const { auth } = usePage<PageProps>().props;
@@ -153,9 +166,7 @@ export function AppSidebar() {
     const showStaffNav = activeWorkspace === 'staff' && hasStaffWorkspace;
     const staffWorkspaceItems: NavItem[] = showStaffNav
         ? [
-              ...(auth.canAccessLoanWorkflow
-                  ? staffWorkflowNavItems(auth)
-                  : []),
+              ...staffNavItems(auth),
               ...(auth.isSuperadmin && auth.hasActiveStaffAccess
                   ? [
                         {
@@ -169,9 +180,6 @@ export function AppSidebar() {
                             ],
                         },
                     ]
-                  : []),
-              ...(auth.isAdmin && auth.hasActiveStaffAccess
-                  ? legacyAdminNavItems()
                   : []),
               ...(auth.isAdmin && auth.isSuperadmin && auth.hasActiveStaffAccess
                   ? [
@@ -193,10 +201,10 @@ export function AppSidebar() {
         primaryWorkspace === 'member'
             ? clientDashboard()
             : primaryWorkspace === 'staff'
-              ? auth.isSuperadmin
-                  ? superadminStaffIndex()
-                  : auth.isAdmin && auth.hasActiveStaffAccess
-                    ? adminDashboard()
+              ? auth.isAdmin && auth.hasActiveStaffAccess
+                  ? adminDashboard()
+                  : auth.isSuperadmin
+                    ? superadminStaffIndex()
                     : auth.canAccessLoanWorkflow
                       ? staffLoanRequestsIndex()
                       : profileEdit()
@@ -210,7 +218,8 @@ export function AppSidebar() {
                         <SidebarMenuButton size="lg" asChild>
                             <Link href={homeLink} prefetch>
                                 <AppLogo
-                                    iconClassName="size-10 shrink-0 rounded-full bg-sidebar-foreground object-contain p-1.5"
+                                    className="group-data-[collapsible=icon]:[&>span]:hidden"
+                                    iconClassName="size-10 group-data-[collapsible=icon]:size-8 shrink-0 rounded-full bg-sidebar-foreground object-contain p-1.5"
                                     titleClassName="text-sidebar-foreground"
                                     subtitleClassName="text-sidebar-foreground/75"
                                 />

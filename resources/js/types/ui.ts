@@ -4,6 +4,7 @@ import type { BreadcrumbItem } from './navigation';
 export type AppLayoutProps = {
     children: ReactNode;
     breadcrumbs?: BreadcrumbItem[];
+    statusLabel?: string;
 };
 
 export type AuthLayoutProps = {

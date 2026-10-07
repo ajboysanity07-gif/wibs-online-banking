@@ -95,7 +95,11 @@ class DashboardController extends Controller
 
         $actionsPage = (int) $request->query('actions_page', 1);
         $actionsPage = max(1, $actionsPage);
-        $actionsPerPage = 5;
+        $actionsPerPage = in_array((int) $request->query('actions_per_page'), [5, 10, 25], true)
+            ? (int) $request->query('actions_per_page')
+            : 5;
+        $actionsSource = $request->query('actions_source');
+        $actionsSearch = $request->query('actions_search');
         $recentAccountActionsPayload = null;
         $recentAccountActionsError = null;
 
@@ -104,6 +108,8 @@ class DashboardController extends Controller
                 $user,
                 $actionsPerPage,
                 $actionsPage,
+                is_string($actionsSource) ? $actionsSource : null,
+                is_string($actionsSearch) ? mb_substr($actionsSearch, 0, 100) : null,
             );
             $items = MemberRecentAccountActionResource::collection(
                 $paginator->items(),
@@ -139,6 +145,7 @@ class DashboardController extends Controller
         }
 
         $draft = $loanRequestService->findDraftForResume($user);
+        $inFlight = $loanRequestService->findInFlightForMember($user);
 
         return Inertia::render('client/dashboard', [
             'member' => $memberPayload,
@@ -150,6 +157,16 @@ class DashboardController extends Controller
             'activeDraft' => $draft === null ? null : [
                 'id' => $draft->id,
                 'updated_at' => $draft->updated_at?->toIso8601String(),
+            ],
+            'activeRequest' => $inFlight === null ? null : [
+                'id' => $inFlight->id,
+                'reference' => $inFlight->reference,
+                'status' => $inFlight->status->value,
+                'step' => $inFlight->status->memberStep(),
+                'total_steps' => 4,
+                'requested_amount' => $inFlight->requested_amount,
+                'submitted_at' => $inFlight->submitted_at?->toIso8601String(),
+                'more_count' => max(0, $loanRequestService->countInFlightForMember($user) - 1),
             ],
         ]);
     }

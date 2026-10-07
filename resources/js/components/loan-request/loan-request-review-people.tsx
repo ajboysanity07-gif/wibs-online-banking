@@ -12,6 +12,7 @@ import {
     LoanRequestFactGrid,
     type LoanRequestFact,
 } from '@/components/loan-request/loan-request-fact-grid';
+import { Button } from '@/components/ui/button';
 import {
     calculateAge,
     composeBirthplace,
@@ -177,15 +178,15 @@ function PersonFacts({
         <>
             <SectionLabel>Work and income</SectionLabel>
             <LoanRequestFactGrid facts={workFacts(person)} />
-            <button
+            <Button variant="link"
                 type="button"
-                className="mt-3.5 min-h-11 text-sm font-bold text-primary underline underline-offset-4 lg:min-h-10"
+                className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal mt-3.5 min-h-11 text-sm font-bold text-primary underline underline-offset-4 lg:min-h-10"
                 aria-expanded={showMore}
                 aria-controls={moreId}
                 onClick={() => setShowMore((open) => !open)}
             >
                 {showMore ? 'Hide' : 'Show'} {toggleLabel}
-            </button>
+            </Button>
             <div id={moreId} hidden={!showMore} className="mt-2.5">
                 <SectionLabel>Personal and household</SectionLabel>
                 <LoanRequestFactGrid

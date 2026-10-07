@@ -45,9 +45,20 @@ test('admin members list uses the shared layout primitives', async () => {
         'utf8',
     );
 
-    assert.match(file, /<PageHero/);
-    assert.match(file, /<SurfaceCard/);
-    assert.match(file, /<SectionHeader/);
+    assert.match(file, /<MembersDirectoryPage/);
+
+    const shared = await readFile(
+        resolve(
+            'resources',
+            'js',
+            'components',
+            'member',
+            'members-directory-page.tsx',
+        ),
+        'utf8',
+    );
+
+    assert.match(shared, /<PageShell/);
 });
 
 test('admin navigation removes member reviews entry', async () => {
@@ -59,7 +70,7 @@ test('admin navigation removes member reviews entry', async () => {
     assert.doesNotMatch(file, /Member reviews/);
 });
 
-test('organization settings uses the shared page hero', async () => {
+test('organization settings uses the plain hero and live preview', async () => {
     const file = await readFile(
         resolve(
             'resources',
@@ -71,9 +82,9 @@ test('organization settings uses the shared page hero', async () => {
         'utf8',
     );
 
-    assert.match(file, /<PageHero/);
-    assert.match(file, /<SurfaceCard/);
-    assert.match(file, /<SectionHeader/);
+    assert.doesNotMatch(file, /<PageHero/);
+    assert.match(file, /Configuration/);
+    assert.match(file, /Live preview/);
 });
 
 test('organization settings uses structured business address autocomplete fields', async () => {

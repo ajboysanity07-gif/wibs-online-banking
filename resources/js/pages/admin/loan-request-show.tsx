@@ -24,6 +24,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useCancelLoanRequest } from '@/hooks/admin/use-cancel-loan-request';
 import { useCorrectLoanRequest } from '@/hooks/admin/use-correct-loan-request';
 import { useCreateAdminCorrectedLoanRequest } from '@/hooks/admin/use-create-admin-corrected-loan-request';
@@ -1104,7 +1105,7 @@ export default function LoanRequestShow({
                             <Label htmlFor="dismiss_admin_notes">
                                 Admin notes (optional)
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="dismiss_admin_notes"
                                 className="flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                 maxLength={2000}

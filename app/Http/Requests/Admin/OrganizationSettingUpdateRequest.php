@@ -3,6 +3,9 @@
 namespace App\Http\Requests\Admin;
 
 use App\Concerns\ResolvesPsgcFields;
+use App\Models\OrganizationSetting;
+use App\Rules\ValidPostalCode;
+use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
 use App\Rules\ValidPsgcProvince;
 use App\Services\OrganizationSettingsService;
@@ -37,6 +40,13 @@ class OrganizationSettingUpdateRequest extends FormRequest
             'business_address1' => ['nullable', 'string', 'max:255'],
             'business_address2' => ['nullable', 'string', 'max:255', new ValidPsgcLocality],
             'business_address3' => ['nullable', 'string', 'max:255', new ValidPsgcProvince],
+            'business_address_barangay' => [
+                'nullable',
+                'string',
+                'max:255',
+                new ValidPsgcBarangay($this->input('business_address2'), $this->input('business_address3')),
+            ],
+            'business_address_zip' => ['nullable', 'string', 'max:20', new ValidPostalCode],
             'portal_label' => ['nullable', 'string', 'max:255'],
             'logo_preset' => [
                 'nullable',
@@ -67,6 +77,9 @@ class OrganizationSettingUpdateRequest extends FormRequest
             'support_email' => ['nullable', 'email', 'max:255'],
             'support_phone' => ['nullable', 'string', 'max:32'],
             'support_contact_name' => ['nullable', 'string', 'max:255'],
+            'business_tin' => ['nullable', 'string', 'max:64'],
+            'registration_no' => ['nullable', 'string', 'max:128'],
+            'payment_instructions' => ['nullable', 'string', 'max:1000'],
             'loan_sms_approved_template' => ['nullable', 'string', 'max:1000'],
             'loan_sms_declined_template' => ['nullable', 'string', 'max:1000'],
             'report_header_design' => [
@@ -83,6 +96,22 @@ class OrganizationSettingUpdateRequest extends FormRequest
                 'regex:/^#[0-9a-fA-F]{6}$/',
             ],
             'brand_accent_color' => [
+                'nullable',
+                'string',
+                'max:32',
+                'regex:/^#[0-9a-fA-F]{6}$/',
+            ],
+            'short_name' => ['nullable', 'string', 'max:32'],
+            'timezone' => ['nullable', 'string', Rule::in(OrganizationSetting::TIMEZONES)],
+            'statement_currency' => ['nullable', 'string', Rule::in(OrganizationSetting::CURRENCIES)],
+            'report_footer' => ['nullable', 'string', 'max:255'],
+            'report_footer_enabled' => ['nullable', 'boolean'],
+            'service_hours' => ['nullable', 'string', 'max:255'],
+            'loan_sms_approved_enabled' => ['nullable', 'boolean'],
+            'loan_sms_declined_enabled' => ['nullable', 'boolean'],
+            'sms_send_window' => ['nullable', 'string', Rule::in(OrganizationSetting::SMS_SEND_WINDOWS)],
+            'brand_palette' => ['nullable', 'array'],
+            'brand_palette.*' => [
                 'nullable',
                 'string',
                 'max:32',
@@ -184,7 +213,16 @@ class OrganizationSettingUpdateRequest extends FormRequest
             fn (string $v) => $psgc->resolveProvinceName($v),
         );
 
+        $businessBarangay = $this->resolveOptional(
+            $this->normalizeOptionalString($this->input('business_address_barangay')),
+            fn (string $v) => $psgc->resolveBarangayName($v, $businessAddress2 ?? '', $businessAddress3),
+        );
+
         $this->merge([
+            'business_address_barangay' => $businessBarangay,
+            'business_address_zip' => $this->normalizeOptionalString(
+                $this->input('business_address_zip'),
+            ),
             'business_address' => $businessAddress1 !== null
                 || $businessAddress2 !== null
                 || $businessAddress3 !== null
@@ -192,6 +230,7 @@ class OrganizationSettingUpdateRequest extends FormRequest
                     $businessAddress1,
                     $businessAddress2,
                     $businessAddress3,
+                    $businessBarangay,
                 )
                 : null,
             'business_address1' => $businessAddress1,
@@ -203,6 +242,9 @@ class OrganizationSettingUpdateRequest extends FormRequest
             'brand_accent_color' => $this->normalizeHexColor(
                 $this->input('brand_accent_color'),
             ),
+            ...(is_array($this->input('brand_palette'))
+                ? ['brand_palette' => $this->normalizedPalette()]
+                : []),
             'report_label_font_color' => $this->normalizeHexColor(
                 $this->input('report_label_font_color'),
             ),
@@ -215,6 +257,34 @@ class OrganizationSettingUpdateRequest extends FormRequest
             $this->all(),
             ['company_name', 'portal_label', 'business_address1'],
         ));
+    }
+
+    /**
+     * Only known palette keys survive; blank entries are dropped so they fall
+     * back to the built-in default.
+     *
+     * @return array<string, string>|null
+     */
+    private function normalizedPalette(): ?array
+    {
+        $input = $this->input('brand_palette');
+
+        if (! is_array($input)) {
+            return null;
+        }
+
+        $palette = [];
+
+        foreach (OrganizationSetting::PALETTE_KEYS as $key) {
+            $value = $input[$key] ?? null;
+            $normalized = is_string($value) ? $this->normalizeHexColor($value) : null;
+
+            if ($normalized !== null) {
+                $palette[$key] = $normalized;
+            }
+        }
+
+        return $palette;
     }
 
     private function normalizeHexColor(?string $value): ?string
@@ -270,12 +340,16 @@ class OrganizationSettingUpdateRequest extends FormRequest
             'support_email.max' => 'Support email may not be greater than 255 characters.',
             'support_phone.max' => 'Support phone may not be greater than 32 characters.',
             'support_contact_name.max' => 'Support contact name may not be greater than 255 characters.',
+            'business_tin.max' => 'TIN may not be greater than 64 characters.',
+            'registration_no.max' => 'Registration number may not be greater than 128 characters.',
+            'payment_instructions.max' => 'Payment instructions may not be greater than 1000 characters.',
             'loan_sms_approved_template.max' => 'Approved SMS template may not be greater than 1000 characters.',
             'loan_sms_declined_template.max' => 'Declined SMS template may not be greater than 1000 characters.',
             'report_header_design.max' => 'Report header design must be 4MB or smaller.',
             'report_header_design.mimes' => 'Report header design must be a JPG, PNG, or WebP image.',
             'brand_primary_color.regex' => 'Primary color must be a valid hex value (e.g., #1a2b3c).',
             'brand_accent_color.regex' => 'Accent color must be a valid hex value (e.g., #1a2b3c).',
+            'brand_palette.*.regex' => 'Palette colors must be valid hex values (e.g., #1a2b3c).',
             'report_label_font_color.regex' => 'Label color must be a valid hex value (e.g., #1a2b3c).',
             'report_value_font_color.regex' => 'Value color must be a valid hex value (e.g., #1a2b3c).',
         ];

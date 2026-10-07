@@ -11,6 +11,7 @@ import {
     User,
     Users,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn } from '@/lib/utils';
 import { edit as appearanceEdit } from '@/routes/appearance';
@@ -189,20 +190,24 @@ export function SettingsNav({
                                         profileSection?.active === section;
 
                                     return profileSection ? (
-                                        <button
+                                        <Button
+                                            variant="ghost"
                                             key={item.label}
                                             type="button"
                                             aria-current={active || undefined}
                                             onClick={() =>
                                                 profileSection.onSelect(section)
                                             }
-                                            className={itemClassName(active)}
+                                            className={cn(
+                                                itemClassName(active),
+                                                'h-auto justify-start font-normal md:h-auto',
+                                            )}
                                         >
                                             <ItemBody
                                                 item={item}
                                                 active={active}
                                             />
-                                        </button>
+                                        </Button>
                                     ) : (
                                         <Link
                                             key={item.label}

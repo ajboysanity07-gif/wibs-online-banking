@@ -210,11 +210,12 @@ function NotificationCard({
     const isUnread = notification.read_at === null;
 
     return (
-        <button
+        <Button
+            variant="ghost"
             type="button"
             onClick={() => onSelect(notification)}
             className={cn(
-                'w-full cursor-pointer rounded-xl border px-3 py-3 text-left transition-colors focus-visible:ring-2 focus-visible:ring-ring/40',
+                'h-auto w-full cursor-pointer justify-start rounded-xl border px-3 py-3 text-left font-normal whitespace-normal transition-colors focus-visible:ring-2 focus-visible:ring-ring/40',
                 'hover:bg-muted/50',
                 isUnread
                     ? 'border-primary/15 bg-primary/[0.05]'
@@ -222,7 +223,7 @@ function NotificationCard({
             )}
             aria-label={`${isUnread ? 'Unread' : 'Read'} notification: ${payload.title}`}
         >
-            <div className="flex items-start gap-3">
+            <div className="flex w-full items-start gap-3">
                 <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background">
                     <span
                         className={cn(
@@ -317,7 +318,7 @@ function NotificationCard({
                     </span>
                 </div>
             </div>
-        </button>
+        </Button>
     );
 }
 

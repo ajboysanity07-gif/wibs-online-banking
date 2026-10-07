@@ -1,4 +1,3 @@
-import { Transition } from '@headlessui/react';
 import { Form, Head, usePage } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
 import type { ChangeEvent, RefObject } from 'react';
@@ -761,17 +760,18 @@ function ProfileForm({
 
                                             return (
                                                 <li key={fieldKey}>
-                                                    <button
+                                                    <Button
+                                                        variant="link"
                                                         type="button"
                                                         onClick={() =>
                                                             jumpToField(
                                                                 fieldKey,
                                                             )
                                                         }
-                                                        className="underline decoration-amber-500/60 underline-offset-2 hover:text-amber-950 dark:hover:text-white"
+                                                        className="h-auto p-0 text-inherit underline decoration-amber-500/60 underline-offset-2 hover:text-amber-950 dark:hover:text-white"
                                                     >
                                                         {label}
-                                                    </button>
+                                                    </Button>
                                                 </li>
                                             );
                                         },
@@ -1160,17 +1160,11 @@ function ProfileForm({
                                             )}
                                         </Button>
 
-                                        <Transition
-                                            show={recentlySuccessful}
-                                            enter="transition ease-in-out"
-                                            enterFrom="opacity-0"
-                                            leave="transition ease-in-out"
-                                            leaveTo="opacity-0"
-                                        >
+                                        {recentlySuccessful && (
                                             <p className="text-sm text-muted-foreground">
                                                 Saved
                                             </p>
-                                        </Transition>
+                                        )}
                                     </div>
                                 </div>
                             )}

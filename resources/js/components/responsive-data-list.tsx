@@ -2,6 +2,7 @@ import type { RowData } from '@tanstack/react-table';
 import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export type ResponsiveColumnPriority =
@@ -105,13 +106,14 @@ export function ResponsiveDataList({
 
                         return (
                             <li key={row.id}>
-                                <button
+                                <Button
                                     type="button"
+                                    variant="ghost"
                                     aria-expanded={isOpen}
                                     onClick={() =>
                                         setOpenId(isOpen ? null : row.id)
                                     }
-                                    className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                                    className="h-auto min-h-14 w-full justify-start gap-3 rounded-none px-4 py-3 text-left font-normal whitespace-normal hover:bg-muted/60 hover:text-inherit focus-visible:ring-2 focus-visible:ring-inset md:h-auto"
                                 >
                                     <span
                                         aria-hidden="true"
@@ -121,7 +123,9 @@ export function ResponsiveDataList({
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <span className="block truncate text-[15px] font-semibold">
-                                            {title ? row.cells[title.key] : null}
+                                            {title
+                                                ? row.cells[title.key]
+                                                : null}
                                         </span>
                                         {subtitle.length > 0 ? (
                                             <span className="mt-0.5 flex min-w-0 gap-1 truncate text-[13px] text-muted-foreground">
@@ -154,7 +158,7 @@ export function ResponsiveDataList({
                                             isOpen && 'rotate-90',
                                         )}
                                     />
-                                </button>
+                                </Button>
                                 <div
                                     className={cn(
                                         'grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none',

@@ -3,6 +3,7 @@
 namespace App\Services\Admin\MemberLoans\Exports;
 
 use App\Models\Wlnled;
+use App\Support\LoanPaymentSplit;
 use DateTimeInterface;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -55,12 +56,12 @@ class LoanPaymentsExport implements FromCollection, ShouldAutoSize, WithHeadings
             $this->formatDateValue($date),
             $this->resolveReference($row),
             $row->lntype,
-            $this->castNumber($row->principal),
+            $this->castNumber(LoanPaymentSplit::read($row, 'split_principal', 'principal')),
             $this->castNumber($row->payments),
             $this->castNumber($row->debit),
             $this->castNumber($row->credit),
             $this->castNumber($row->balance),
-            $this->castNumber($row->accruedint),
+            $this->castNumber(LoanPaymentSplit::read($row, 'split_interest', 'accruedint')),
             $row->lnstatus,
             $row->grouploan,
             $row->controlno,

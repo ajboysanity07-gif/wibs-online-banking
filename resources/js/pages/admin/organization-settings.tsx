@@ -1,27 +1,38 @@
-import { Transition } from '@headlessui/react';
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, router, usePage } from '@inertiajs/react';
 import {
     Building2,
     FileText,
     Image as ImageIcon,
+    Info,
     Mail,
     MessageSquare,
     Palette,
+    Search,
 } from 'lucide-react';
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import FontPicker from 'react-fontpicker-ts';
 import 'react-fontpicker-ts/dist/index.css';
 import OrganizationSettingsController from '@/actions/App/Http/Controllers/Admin/OrganizationSettingsController';
 import InputError from '@/components/input-error';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
-import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
-import { PageHero } from '@/components/page-hero';
+import { LocationCombobox } from '@/components/location-combobox';
+import {
+    OrganizationPaletteFields,
+    PALETTE_GROUPS,
+} from '@/components/organization-palette-fields';
+import type { PaletteValues } from '@/components/organization-palette-fields';
 import { PageShell } from '@/components/page-shell';
-import { SectionHeader } from '@/components/section-header';
-import { SurfaceCard } from '@/components/surface-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -31,17 +42,21 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { useBranding } from '@/hooks/use-branding';
 import { useLocationSearch } from '@/hooks/use-location-search';
 import AppLayout from '@/layouts/app-layout';
 import { composeAddress } from '@/lib/formatters';
+import { statusTones } from '@/lib/status-tones';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes/admin';
 import { organization as organizationSettings } from '@/routes/admin/settings';
-import { cities, provinces } from '@/routes/api/locations';
+import api from '@/lib/api';
+import { barangays, cities, provinces, zip } from '@/routes/api/locations';
 import { mrdincTheme } from '@/theme/clients/mrdinc';
-import type { BreadcrumbItem, LogoPreset } from '@/types';
+import type { BrandPaletteKey, BreadcrumbItem, LogoPreset } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -162,9 +177,6 @@ const normalizeHexInputValue = (value: string | null | undefined): string => {
 
     return normalized ?? value.trim();
 };
-
-const normalizeLocationValue = (value: string | null | undefined): string =>
-    value?.trim().toLowerCase() ?? '';
 
 const resolveAppTitlePreview = (
     companyName: string,
@@ -319,8 +331,128 @@ const normalizeFontFamily = (value: unknown): string => {
     return candidate;
 };
 
+type TabKey = 'general' | 'branding' | 'documents' | 'contact' | 'messaging';
+
+type SearchResult = { label: string; tab: TabKey; target: string | null };
+
+const SETTINGS_TABS: Array<{
+    key: TabKey;
+    label: string;
+    icon: typeof Building2;
+}> = [
+    { key: 'general', label: 'General', icon: Building2 },
+    { key: 'branding', label: 'Branding', icon: Palette },
+    { key: 'documents', label: 'Documents', icon: FileText },
+    { key: 'contact', label: 'Contact', icon: Mail },
+    { key: 'messaging', label: 'Messaging', icon: MessageSquare },
+];
+
+const PALETTE_KEYS = PALETTE_GROUPS.flatMap((group) =>
+    group.fields.map((field) => field.key),
+);
+
+const tabLabel = (tab: TabKey): string =>
+    SETTINGS_TABS.find((entry) => entry.key === tab)?.label ?? tab;
+
+const readableInk = (hex: string): string => {
+    const channel = (offset: number): number => {
+        const value = parseInt(hex.slice(offset, offset + 2), 16) / 255;
+
+        return value <= 0.03928
+            ? value / 12.92
+            : Math.pow((value + 0.055) / 1.055, 2.4);
+    };
+    const luminance =
+        0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+
+    return luminance > 0.19 ? '#14170f' : '#ffffff';
+};
+
+const TIMEZONE_OPTIONS = [
+    { value: 'Asia/Manila', label: 'Asia/Manila (UTC+8)' },
+    { value: 'Asia/Singapore', label: 'Asia/Singapore (UTC+8)' },
+    { value: 'UTC', label: 'UTC' },
+];
+const CURRENCY_OPTIONS = [
+    { value: 'PHP', label: 'PHP ₱' },
+    { value: 'USD', label: 'USD $' },
+];
+const SEND_WINDOW_OPTIONS = [
+    { value: '7am-8pm-daily', label: '7:00 AM – 8:00 PM daily' },
+    { value: '8am-6pm-mon-sat', label: '8:00 AM – 6:00 PM, Mon–Sat' },
+    { value: 'any', label: 'Any time' },
+];
+
+function NativeSelect({
+    options,
+    className,
+    ...props
+}: React.ComponentProps<'select'> & {
+    options: Array<{ value: string; label: string }>;
+}) {
+    return (
+        <select
+            {...props}
+            className={cn(
+                'h-9 w-full rounded-md border border-input bg-card px-3 text-sm',
+                className,
+            )}
+        >
+            {options.map((option) => (
+                <option key={option.value} value={option.value}>
+                    {option.label}
+                </option>
+            ))}
+        </select>
+    );
+}
+
+function ToggleRow({
+    id,
+    label,
+    hint,
+    checked,
+    onChange,
+}: {
+    id: string;
+    label: string;
+    hint: string;
+    checked: boolean;
+    onChange: (value: boolean) => void;
+}) {
+    return (
+        <div className="flex items-center gap-3 rounded-lg border border-border bg-muted px-3.5 py-3">
+            <div className="min-w-0 flex-1">
+                <Label htmlFor={id}>{label}</Label>
+                <p className="text-xs text-muted-foreground">{hint}</p>
+            </div>
+            <input type="hidden" name={id} value={checked ? '1' : '0'} />
+            <Switch
+                id={id}
+                checked={checked}
+                onCheckedChange={onChange}
+                aria-label={label}
+            />
+        </div>
+    );
+}
+
+function PreviewRow({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="flex justify-between gap-3 text-sm">
+            <span className="text-muted-foreground">{label}</span>
+            <span className="text-right font-semibold break-words">
+                {value}
+            </span>
+        </div>
+    );
+}
+
 export default function OrganizationSettings() {
     const branding = useBranding();
+    const { lastSaved } = usePage<{
+        lastSaved: { at: string | null; by: string | null } | null;
+    }>().props;
     const [logoPreset, setLogoPreset] = useState<LogoPreset>(
         branding.logoPreset,
     );
@@ -333,8 +465,9 @@ export default function OrganizationSettings() {
     const [businessAddress1Value, setBusinessAddress1Value] = useState(
         branding.businessAddress1 ?? '',
     );
-    const [selectedBusinessCityProvince, setSelectedBusinessCityProvince] =
-        useState<string | null>(branding.businessAddress3);
+    const [businessAddressZip, setBusinessAddressZip] = useState(
+        branding.businessAddressZip ?? '',
+    );
     const businessProvinceSearch = useLocationSearch({
         initialQuery: branding.businessAddress3 ?? '',
         searchUrl: provinces.url(),
@@ -345,6 +478,18 @@ export default function OrganizationSettings() {
         params: {
             province: businessProvinceSearch.query.trim() || undefined,
         },
+        clientFilter: true,
+        limit: 500,
+    });
+    const businessBarangaySearch = useLocationSearch({
+        initialQuery: branding.businessAddressBarangay ?? '',
+        searchUrl: barangays.url(),
+        params: {
+            municipality: businessCitySearch.selectedValue || undefined,
+            province: businessProvinceSearch.query.trim() || undefined,
+        },
+        clientFilter: true,
+        limit: 500,
     });
     const [reportLabelFontFamily, setReportLabelFontFamily] = useState(
         branding.reportTypography.label.family,
@@ -386,6 +531,38 @@ export default function OrganizationSettings() {
     const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
     const [faviconReset, setFaviconReset] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
+    const [activeTab, setActiveTab] = useState<TabKey>(() => {
+        const hash =
+            typeof window === 'undefined'
+                ? ''
+                : window.location.hash.replace('#panel-', '');
+
+        return SETTINGS_TABS.some((tab) => tab.key === hash)
+            ? (hash as TabKey)
+            : 'general';
+    });
+    const [dirtyTabs, setDirtyTabs] = useState<Set<TabKey>>(new Set());
+    const [live, setLive] = useState<Record<string, string>>({});
+    const [palette, setPalette] = useState<PaletteValues>(
+        () =>
+            Object.fromEntries(
+                PALETTE_KEYS.map((key) => [
+                    key,
+                    branding.brandPalette?.[key] ?? '',
+                ]),
+            ) as PaletteValues,
+    );
+    const [findQuery, setFindQuery] = useState('');
+    const [findResults, setFindResults] = useState<SearchResult[]>([]);
+    const [footerOn, setFooterOn] = useState(branding.reportFooterEnabled);
+    const [approvedOn, setApprovedOn] = useState(
+        branding.loanSmsEnabled.approved,
+    );
+    const [declinedOn, setDeclinedOn] = useState(
+        branding.loanSmsEnabled.declined,
+    );
+    const [dangerKind, setDangerKind] = useState<'brand' | 'sms' | null>(null);
+    const [resetWord, setResetWord] = useState('');
     const [brandPrimaryValue, setBrandPrimaryValue] = useState(() =>
         normalizeHexInputValue(branding.brandPrimaryColor),
     );
@@ -454,10 +631,6 @@ export default function OrganizationSettings() {
         (logoFullReset ? branding.logoFullDefaultUrl : branding.logoFullUrl);
     const logoPreviewUrl =
         logoPreset === 'full' ? logoFullPreviewUrl : logoMarkPreviewUrl;
-    const logoPresetLabel =
-        LOGO_PRESET_OPTIONS.find((option) => option.value === logoPreset)
-            ?.label ?? 'Logo preset';
-    const showCompanyNamePreview = logoPreset !== 'full';
     const companyNamePreview =
         companyNameValue.trim() !== ''
             ? companyNameValue.trim()
@@ -486,6 +659,7 @@ export default function OrganizationSettings() {
         businessAddress1Value,
         businessCitySearch.query,
         businessProvinceSearch.query,
+        businessBarangaySearch.query,
     );
     const loanSmsApprovedTemplateValue =
         loanSmsApprovedTemplate.trim() !== ''
@@ -860,27 +1034,170 @@ export default function OrganizationSettings() {
         }
     };
 
-    const clearBusinessCity = () => {
-        businessCitySearch.setSelectedValue('');
-        setSelectedBusinessCityProvince(null);
+    const handleBusinessCitySelect = async (code: string) => {
+        if (!code) {
+            return;
+        }
+
+        try {
+            const response = await api.get(zip.url(), {
+                params: { locality_code: code },
+            });
+            const resolvedZip = (
+                response.data as { zip?: string | null }
+            ).zip?.trim();
+
+            if (resolvedZip) {
+                setBusinessAddressZip(resolvedZip);
+            }
+        } catch {
+            // Intentionally left empty: ZIP lookup is best-effort.
+        }
     };
 
-    const syncBusinessCityForProvince = (nextProvince: string) => {
-        if (
-            businessCitySearch.query.trim() === '' ||
-            selectedBusinessCityProvince === null
-        ) {
+    const liveValue = (name: string, saved: string | null): string =>
+        (live[name] ?? saved ?? '').trim() || '--';
+
+    const selectTab = (tab: TabKey) => {
+        setActiveTab(tab);
+        window.history.replaceState(null, '', `#panel-${tab}`);
+    };
+
+    const markDirty = (tab: TabKey) => {
+        setHasChanges(true);
+        setDirtyTabs((previous) =>
+            previous.has(tab) ? previous : new Set(previous).add(tab),
+        );
+    };
+
+    const panelProps = (tab: TabKey) => ({
+        id: `panel-${tab}`,
+        hidden: activeTab !== tab,
+        'data-panel': tab,
+        'aria-label': tabLabel(tab),
+        onChange: (event: FormEvent<HTMLDivElement>) => {
+            const target = event.target as HTMLInputElement;
+
+            markDirty(tab);
+
+            if (target.name && target.type !== 'file') {
+                setLive((previous) => ({
+                    ...previous,
+                    [target.name]: target.value,
+                }));
+            }
+        },
+    });
+
+    const setPaletteValue = (key: BrandPaletteKey, value: string) => {
+        setPalette((previous) => ({ ...previous, [key]: value }));
+        markDirty('branding');
+    };
+
+    const resetBranding = () => {
+        setPalette(
+            Object.fromEntries(
+                PALETTE_KEYS.map((key) => [key, '']),
+            ) as PaletteValues,
+        );
+        setBrandPrimaryTouched(true);
+        setBrandPrimaryValue('');
+        setBrandAccentTouched(true);
+        setBrandAccentValue('');
+        markDirty('branding');
+    };
+
+    const dangerWord = dangerKind === 'sms' ? 'CLEAR' : 'RESET';
+
+    const clearSmsTemplates = () => {
+        setLoanSmsApprovedTemplate('');
+        setLoanSmsDeclinedTemplate('');
+        setApprovedOn(false);
+        setDeclinedOn(false);
+        markDirty('messaging');
+    };
+
+    const runDanger = () => {
+        if (dangerKind === 'sms') {
+            clearSmsTemplates();
+        } else {
+            resetBranding();
+        }
+
+        setDangerKind(null);
+    };
+
+    const discardChanges = () => {
+        router.visit(window.location.href, {
+            preserveState: false,
+            preserveScroll: true,
+        });
+    };
+
+    const runSearch = (query: string) => {
+        setFindQuery(query);
+
+        const needle = query.trim().toLowerCase();
+
+        if (needle === '') {
+            setFindResults([]);
+
             return;
         }
 
-        if (
-            normalizeLocationValue(nextProvince) ===
-            normalizeLocationValue(selectedBusinessCityProvince)
-        ) {
-            return;
-        }
+        const hits: SearchResult[] = [];
 
-        clearBusinessCity();
+        document
+            .querySelectorAll<HTMLElement>('[data-panel]')
+            .forEach((panel) => {
+                const tab = panel.dataset.panel as TabKey;
+
+                panel.querySelectorAll('label').forEach((label) => {
+                    const text = (label.textContent ?? '')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+
+                    if (
+                        text !== '' &&
+                        `${text} ${tabLabel(tab)}`
+                            .toLowerCase()
+                            .includes(needle)
+                    ) {
+                        hits.push({
+                            label: text,
+                            tab,
+                            target: label.htmlFor || null,
+                        });
+                    }
+                });
+            });
+
+        setFindResults(hits.slice(0, 7));
+    };
+
+    const jumpTo = (result: SearchResult) => {
+        selectTab(result.tab);
+        setFindQuery('');
+        setFindResults([]);
+
+        window.setTimeout(() => {
+            const node =
+                result.target !== null
+                    ? document.getElementById(result.target)
+                    : null;
+
+            if (node === null) {
+                return;
+            }
+
+            node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            node.focus({ preventScroll: true });
+            node.classList.add('ring-2', 'ring-ring');
+            window.setTimeout(
+                () => node.classList.remove('ring-2', 'ring-ring'),
+                1800,
+            );
+        }, 50);
     };
 
     return (
@@ -888,55 +1205,133 @@ export default function OrganizationSettings() {
             <Head title="Organization settings" />
 
             <PageShell size="wide" className="gap-8 pb-16">
-                <PageHero
-                    kicker="Settings"
-                    title="Organization settings"
-                    description="Manage company identity, brand assets, report layouts, and member communications."
-                    badges={
-                        <>
-                            <Badge
-                                variant="outline"
-                                className="text-[10px] tracking-[0.2em] uppercase"
-                            >
-                                Preset: {logoPresetLabel}
+                <section className="flex flex-wrap items-start gap-5">
+                    <div>
+                        <p className="text-[11px] font-bold tracking-[0.14em] text-primary uppercase">
+                            Configuration
+                        </p>
+                        <h1 className="mt-1 text-[22px] leading-tight font-bold sm:text-[26px]">
+                            Organization settings
+                        </h1>
+                        <p className="mt-1.5 max-w-prose text-sm text-muted-foreground">
+                            Branding, report headers, contact details, and
+                            member messaging shared by every WIBS portal.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            <Badge variant="outline" className={statusTones.ok}>
+                                Live on portal
                             </Badge>
                             <Badge
                                 variant="outline"
-                                className="text-[10px] tracking-[0.2em] uppercase"
+                                className={statusTones.neutral}
                             >
-                                Live preview
+                                {hasChanges
+                                    ? 'Unsaved changes'
+                                    : lastSaved?.at
+                                      ? `Last saved ${new Date(lastSaved.at).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' })}${lastSaved.by ? ` by ${lastSaved.by}` : ''}`
+                                      : 'Up to date'}
                             </Badge>
-                            {hasChanges ? (
-                                <Badge
-                                    variant="outline"
-                                    className="border-primary/40 text-[10px] tracking-[0.2em] text-primary uppercase"
-                                >
-                                    Unsaved changes
-                                </Badge>
-                            ) : (
-                                <Badge
-                                    variant="secondary"
-                                    className="text-[10px] tracking-[0.2em] uppercase"
-                                >
-                                    Up to date
-                                </Badge>
-                            )}
-                        </>
-                    }
-                />
+                            <Badge
+                                variant="outline"
+                                className={statusTones.info}
+                            >
+                                Superadmin only
+                            </Badge>
+                        </div>
+                    </div>
+                </section>
 
-                <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start xl:grid-cols-[minmax(0,1fr)_420px]">
-                    <SurfaceCard
-                        variant="default"
-                        padding="lg"
-                        className="space-y-8"
+                <div className="grid gap-4 lg:grid-cols-[216px_minmax(0,1fr)] lg:items-start">
+                    <nav
+                        aria-label="Settings sections"
+                        className="grid content-start gap-3 lg:sticky lg:top-4"
                     >
-                        <SectionHeader
-                            title="Organization settings"
-                            description="Update identity, visual assets, report design, and communications sent to members."
-                            titleClassName="text-base font-semibold"
-                        />
-                        <div>
+                        <div className="relative">
+                            <Search
+                                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                                aria-hidden="true"
+                            />
+                            <Input
+                                type="search"
+                                value={findQuery}
+                                onChange={(event) =>
+                                    runSearch(event.target.value)
+                                }
+                                placeholder="Find a setting"
+                                aria-label="Find a setting"
+                                autoComplete="off"
+                                className="pl-9"
+                            />
+                            {findQuery.trim() !== '' ? (
+                                <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-30 grid gap-1 rounded-lg border border-border bg-popover p-2 shadow-lg">
+                                    {findResults.length === 0 ? (
+                                        <p className="px-3 py-2 text-[13px] text-muted-foreground">
+                                            No settings match "
+                                            {findQuery.trim()}". Try logo,
+                                            footer, hotline, or SMS.
+                                        </p>
+                                    ) : (
+                                        findResults.map((result) => (
+                                            <button
+                                                key={`${result.tab}-${result.target ?? result.label}`}
+                                                type="button"
+                                                onClick={() => jumpTo(result)}
+                                                className="grid min-h-11 gap-0.5 rounded-md border border-transparent px-3 py-2 text-left text-sm font-semibold hover:border-border hover:bg-muted"
+                                            >
+                                                <span>{result.label}</span>
+                                                <span className="text-[11px] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+                                                    {tabLabel(result.tab)}
+                                                </span>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            ) : null}
+                        </div>
+                        <div className="flex flex-wrap gap-1 lg:grid">
+                            {SETTINGS_TABS.map((tab) => {
+                                const Icon = tab.icon;
+                                const on = activeTab === tab.key;
+
+                                return (
+                                    <button
+                                        key={tab.key}
+                                        type="button"
+                                        aria-current={on ? 'page' : undefined}
+                                        onClick={() => selectTab(tab.key)}
+                                        className={cn(
+                                            'flex min-h-11 w-auto items-center gap-2.5 rounded-md border border-transparent px-3 py-2 text-left text-sm font-semibold lg:w-full',
+                                            on
+                                                ? 'border-primary bg-primary font-bold text-primary-foreground'
+                                                : 'hover:bg-muted',
+                                        )}
+                                    >
+                                        <Icon
+                                            className="size-[18px] shrink-0"
+                                            aria-hidden="true"
+                                        />
+                                        <span className="min-w-0 flex-1">
+                                            {tab.label}
+                                        </span>
+                                        {dirtyTabs.has(tab.key) ? (
+                                            <>
+                                                <span
+                                                    className="size-[7px] shrink-0 rounded-full bg-[var(--warn-ink)]"
+                                                    aria-hidden="true"
+                                                />
+                                                <span className="sr-only">
+                                                    — unsaved changes
+                                                </span>
+                                            </>
+                                        ) : null}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </nav>
+
+                    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+                        <div className="grid gap-4">
                             <Form
                                 {...OrganizationSettingsController.update.form()}
                                 options={{ preserveScroll: true }}
@@ -973,6 +1368,8 @@ export default function OrganizationSettings() {
                                     setBrandAccentTouched(false);
                                     setReportLabelColorTouched(false);
                                     setReportValueColorTouched(false);
+                                    setDirtyTabs(new Set());
+                                    setLive({});
                                     setHasChanges(false);
                                 }}
                                 onError={(formErrors) => {
@@ -1040,38 +1437,82 @@ export default function OrganizationSettings() {
 
                                     return (
                                         <>
-                                            <Tabs
-                                                defaultValue="general"
-                                                className="flex flex-col gap-6"
-                                            >
-                                                <TabsList className="w-full flex-wrap justify-start gap-2">
-                                                    <TabsTrigger value="general">
-                                                        General
-                                                    </TabsTrigger>
-                                                    <TabsTrigger value="brand-assets">
-                                                        Brand assets
-                                                    </TabsTrigger>
-                                                    <TabsTrigger value="colors">
-                                                        Colors
-                                                    </TabsTrigger>
-                                                    <TabsTrigger value="report-header">
-                                                        Report header
-                                                    </TabsTrigger>
-                                                    <TabsTrigger value="support">
-                                                        Support
-                                                    </TabsTrigger>
-                                                </TabsList>
-                                                <TabsContent
-                                                    value="general"
-                                                    forceMount
-                                                    className="mt-0"
-                                                >
+                                            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+                                                <div {...panelProps('general')}>
                                                     <LoanRequestSectionCard
+                                                        flat
+                                                        workspace
+                                                        className="first:border-t-0"
                                                         title="General"
                                                         description="Company name, portal label, and the app title shown to members."
                                                         icon={Building2}
                                                         contentClassName="space-y-6"
                                                     >
+                                                        <div className="grid gap-6 md:grid-cols-3">
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="short_name">
+                                                                    Short name
+                                                                </Label>
+                                                                <Input
+                                                                    id="short_name"
+                                                                    name="short_name"
+                                                                    defaultValue={
+                                                                        branding.shortName ??
+                                                                        ''
+                                                                    }
+                                                                    maxLength={
+                                                                        32
+                                                                    }
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.short_name
+                                                                    }
+                                                                />
+                                                            </div>
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="timezone">
+                                                                    Timezone
+                                                                </Label>
+                                                                <NativeSelect
+                                                                    id="timezone"
+                                                                    name="timezone"
+                                                                    defaultValue={
+                                                                        branding.timezone
+                                                                    }
+                                                                    options={
+                                                                        TIMEZONE_OPTIONS
+                                                                    }
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.timezone
+                                                                    }
+                                                                />
+                                                            </div>
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="statement_currency">
+                                                                    Statement
+                                                                    currency
+                                                                </Label>
+                                                                <NativeSelect
+                                                                    id="statement_currency"
+                                                                    name="statement_currency"
+                                                                    defaultValue={
+                                                                        branding.statementCurrency
+                                                                    }
+                                                                    options={
+                                                                        CURRENCY_OPTIONS
+                                                                    }
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.statement_currency
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+
                                                         <div className="grid gap-6 md:grid-cols-2">
                                                             <div className="grid gap-2">
                                                                 <Label htmlFor="company_name">
@@ -1154,8 +1595,179 @@ export default function OrganizationSettings() {
                                                                         documents.
                                                                     </p>
                                                                 </div>
-                                                                <div className="grid gap-4 md:grid-cols-3">
-                                                                    <div className="grid gap-2 md:col-span-3">
+                                                                <div className="grid gap-4 sm:grid-cols-2">
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="business_address3">
+                                                                            Province
+                                                                        </Label>
+                                                                        <LocationCombobox
+                                                                            id="business_address3"
+                                                                            name="business_address3"
+                                                                            search={
+                                                                                businessProvinceSearch
+                                                                            }
+                                                                            placeholder="Select province"
+                                                                            inputClassName="w-full"
+                                                                            loadingMessage="Searching province suggestions..."
+                                                                            errorMessage="Province suggestions are temporarily unavailable."
+                                                                            promptMessage="Type at least 2 characters to search provinces."
+                                                                            onSelect={() => {
+                                                                                businessCitySearch.setSelectedValue(
+                                                                                    '',
+                                                                                );
+                                                                                businessBarangaySearch.setSelectedValue(
+                                                                                    '',
+                                                                                );
+                                                                                setBusinessAddressZip(
+                                                                                    '',
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                            onClear={() => {
+                                                                                businessCitySearch.setSelectedValue(
+                                                                                    '',
+                                                                                );
+                                                                                businessBarangaySearch.setSelectedValue(
+                                                                                    '',
+                                                                                );
+                                                                                setBusinessAddressZip(
+                                                                                    '',
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                        <InputError
+                                                                            message={
+                                                                                formErrors.business_address3
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="business_address2">
+                                                                            City
+                                                                            /
+                                                                            Municipality
+                                                                        </Label>
+                                                                        <LocationCombobox
+                                                                            id="business_address2"
+                                                                            name="business_address2"
+                                                                            search={
+                                                                                businessCitySearch
+                                                                            }
+                                                                            placeholder="Select city or municipality"
+                                                                            inputClassName="w-full"
+                                                                            disabled={
+                                                                                !businessProvinceSearch.selectedValue
+                                                                            }
+                                                                            loadingMessage="Searching city suggestions..."
+                                                                            errorMessage="City suggestions are temporarily unavailable."
+                                                                            promptMessage="Select a province first."
+                                                                            onSelect={(
+                                                                                suggestion,
+                                                                            ) => {
+                                                                                if (
+                                                                                    suggestion.province
+                                                                                ) {
+                                                                                    businessProvinceSearch.setSelectedValue(
+                                                                                        suggestion.province,
+                                                                                    );
+                                                                                }
+                                                                                businessBarangaySearch.setSelectedValue(
+                                                                                    '',
+                                                                                );
+                                                                                void handleBusinessCitySelect(
+                                                                                    suggestion.code,
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                            onClear={() => {
+                                                                                businessBarangaySearch.setSelectedValue(
+                                                                                    '',
+                                                                                );
+                                                                                setBusinessAddressZip(
+                                                                                    '',
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                        <InputError
+                                                                            message={
+                                                                                formErrors.business_address2
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="business_address_zip">
+                                                                            ZIP
+                                                                            code
+                                                                        </Label>
+                                                                        <Input
+                                                                            id="business_address_zip"
+                                                                            name="business_address_zip"
+                                                                            value={
+                                                                                businessAddressZip
+                                                                            }
+                                                                            onChange={(
+                                                                                event,
+                                                                            ) => {
+                                                                                setBusinessAddressZip(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                            inputMode="numeric"
+                                                                            autoComplete="postal-code"
+                                                                            placeholder="Auto-filled from city"
+                                                                        />
+                                                                        <InputError
+                                                                            message={
+                                                                                formErrors.business_address_zip
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="business_address_barangay">
+                                                                            Barangay
+                                                                        </Label>
+                                                                        <LocationCombobox
+                                                                            id="business_address_barangay"
+                                                                            name="business_address_barangay"
+                                                                            search={
+                                                                                businessBarangaySearch
+                                                                            }
+                                                                            placeholder="Select barangay"
+                                                                            inputClassName="w-full"
+                                                                            disabled={
+                                                                                !businessCitySearch.selectedValue
+                                                                            }
+                                                                            loadingMessage="Loading barangays..."
+                                                                            errorMessage="Barangay suggestions are temporarily unavailable."
+                                                                            promptMessage="Select a city or municipality first."
+                                                                            onSelect={() =>
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                )
+                                                                            }
+                                                                        />
+                                                                        <InputError
+                                                                            message={
+                                                                                formErrors.business_address_barangay
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    <div className="grid gap-2 sm:col-span-2">
                                                                         <Label htmlFor="business_address1">
                                                                             Street
                                                                             /
@@ -1190,91 +1802,6 @@ export default function OrganizationSettings() {
                                                                             }
                                                                         />
                                                                     </div>
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="business_address2">
-                                                                            City
-                                                                            /
-                                                                            Municipality
-                                                                        </Label>
-                                                                        <LocationAutocompleteInput
-                                                                            id="business_address2"
-                                                                            name="business_address2"
-                                                                            search={
-                                                                                businessCitySearch
-                                                                            }
-                                                                            placeholder="Select city or municipality"
-                                                                            inputClassName="w-full"
-                                                                            loadingMessage="Searching city suggestions..."
-                                                                            errorMessage="City suggestions are temporarily unavailable."
-                                                                            onValueChange={() => {
-                                                                                setSelectedBusinessCityProvince(
-                                                                                    null,
-                                                                                );
-                                                                                setHasChanges(
-                                                                                    true,
-                                                                                );
-                                                                            }}
-                                                                            onSelect={(
-                                                                                suggestion,
-                                                                            ) => {
-                                                                                setSelectedBusinessCityProvince(
-                                                                                    suggestion.province,
-                                                                                );
-
-                                                                                if (
-                                                                                    suggestion.province
-                                                                                ) {
-                                                                                    businessProvinceSearch.setSelectedValue(
-                                                                                        suggestion.province,
-                                                                                    );
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                        <InputError
-                                                                            message={
-                                                                                formErrors.business_address2
-                                                                            }
-                                                                        />
-                                                                    </div>
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="business_address3">
-                                                                            Province
-                                                                        </Label>
-                                                                        <LocationAutocompleteInput
-                                                                            id="business_address3"
-                                                                            name="business_address3"
-                                                                            search={
-                                                                                businessProvinceSearch
-                                                                            }
-                                                                            placeholder="Select province"
-                                                                            inputClassName="w-full"
-                                                                            loadingMessage="Searching province suggestions..."
-                                                                            errorMessage="Province suggestions are temporarily unavailable."
-                                                                            promptMessage="Type at least 2 characters to search provinces."
-                                                                            onValueChange={(
-                                                                                value,
-                                                                            ) => {
-                                                                                syncBusinessCityForProvince(
-                                                                                    value,
-                                                                                );
-                                                                                setHasChanges(
-                                                                                    true,
-                                                                                );
-                                                                            }}
-                                                                            onSelect={(
-                                                                                suggestion,
-                                                                            ) => {
-                                                                                syncBusinessCityForProvince(
-                                                                                    suggestion.value,
-                                                                                );
-                                                                            }}
-                                                                        />
-                                                                        <InputError
-                                                                            message={
-                                                                                formErrors.business_address3
-                                                                            }
-                                                                        />
-                                                                    </div>
                                                                 </div>
                                                             </div>
                                                             <div className="grid gap-2 md:col-span-2">
@@ -1288,6 +1815,69 @@ export default function OrganizationSettings() {
                                                                         '--'}
                                                                 </div>
                                                             </div>
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="business_tin">
+                                                                    TIN
+                                                                </Label>
+                                                                <Input
+                                                                    id="business_tin"
+                                                                    name="business_tin"
+                                                                    defaultValue={
+                                                                        branding.businessTin ??
+                                                                        ''
+                                                                    }
+                                                                    placeholder="000-000-000-000"
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.business_tin
+                                                                    }
+                                                                />
+                                                            </div>
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="registration_no">
+                                                                    CDA / SEC
+                                                                    registration
+                                                                    no.
+                                                                </Label>
+                                                                <Input
+                                                                    id="registration_no"
+                                                                    name="registration_no"
+                                                                    defaultValue={
+                                                                        branding.registrationNo ??
+                                                                        ''
+                                                                    }
+                                                                    placeholder="CDA-REG-0000"
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.registration_no
+                                                                    }
+                                                                />
+                                                            </div>
+                                                            <div className="grid gap-2 md:col-span-2">
+                                                                <Label htmlFor="payment_instructions">
+                                                                    Payment
+                                                                    instructions
+                                                                    (shown on
+                                                                    statements)
+                                                                </Label>
+                                                                <Textarea
+                                                                    id="payment_instructions"
+                                                                    name="payment_instructions"
+                                                                    className="min-h-[90px]"
+                                                                    defaultValue={
+                                                                        branding.paymentInstructions ??
+                                                                        ''
+                                                                    }
+                                                                    placeholder="Pay at any MRDINC branch or through ..."
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.payment_instructions
+                                                                    }
+                                                                />
+                                                            </div>
                                                             <div className="grid gap-2 md:col-span-2">
                                                                 <Label>
                                                                     App title
@@ -1300,14 +1890,15 @@ export default function OrganizationSettings() {
                                                             </div>
                                                         </div>
                                                     </LoanRequestSectionCard>
-                                                </TabsContent>
+                                                </div>
 
-                                                <TabsContent
-                                                    value="brand-assets"
-                                                    forceMount
-                                                    className="mt-0"
+                                                <div
+                                                    {...panelProps('branding')}
                                                 >
                                                     <LoanRequestSectionCard
+                                                        flat
+                                                        workspace
+                                                        className="first:border-t-0"
                                                         title="Brand assets"
                                                         description="Choose the primary logo and portal icon used throughout the member experience."
                                                         icon={ImageIcon}
@@ -1388,11 +1979,11 @@ export default function OrganizationSettings() {
                                                                                         }}
                                                                                         className="sr-only"
                                                                                     />
-                                                                                    <label
+                                                                                    <Label
                                                                                         htmlFor={
                                                                                             optionId
                                                                                         }
-                                                                                        className="grid cursor-pointer gap-4"
+                                                                                        className="grid cursor-pointer gap-4 text-base leading-normal font-normal"
                                                                                     >
                                                                                         <div className="flex items-start justify-between gap-3">
                                                                                             <div className="space-y-1">
@@ -1461,7 +2052,7 @@ export default function OrganizationSettings() {
                                                                                                 </Badge>
                                                                                             ) : null}
                                                                                         </div>
-                                                                                    </label>
+                                                                                    </Label>
                                                                                     <div className="flex flex-wrap gap-2">
                                                                                         <Button
                                                                                             type="button"
@@ -1780,19 +2371,64 @@ export default function OrganizationSettings() {
                                                             </div>
                                                         </div>
                                                     </LoanRequestSectionCard>
-                                                </TabsContent>
+                                                </div>
 
-                                                <TabsContent
-                                                    value="report-header"
-                                                    forceMount
-                                                    className="mt-0"
+                                                <div
+                                                    {...panelProps('documents')}
                                                 >
                                                     <LoanRequestSectionCard
+                                                        flat
+                                                        workspace
+                                                        className="first:border-t-0"
                                                         title="Reports & documents"
                                                         description="Upload a single report header design and manage report body typography for generated documents."
                                                         icon={FileText}
                                                         contentClassName="space-y-6"
                                                     >
+                                                        <div className="grid gap-4">
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="report_footer">
+                                                                    Report
+                                                                    footer
+                                                                </Label>
+                                                                <Input
+                                                                    id="report_footer"
+                                                                    name="report_footer"
+                                                                    defaultValue={
+                                                                        branding.reportFooterText ??
+                                                                        ''
+                                                                    }
+                                                                    maxLength={
+                                                                        255
+                                                                    }
+                                                                    placeholder="Generated by WIBS Online Banking"
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.report_footer
+                                                                    }
+                                                                />
+                                                            </div>
+                                                            <ToggleRow
+                                                                id="report_footer_enabled"
+                                                                label="Include footer on printed reports"
+                                                                hint="Turn off to print the letterhead alone with no footer line."
+                                                                checked={
+                                                                    footerOn
+                                                                }
+                                                                onChange={(
+                                                                    value,
+                                                                ) => {
+                                                                    setFooterOn(
+                                                                        value,
+                                                                    );
+                                                                    markDirty(
+                                                                        'documents',
+                                                                    );
+                                                                }}
+                                                            />
+                                                        </div>
+
                                                         <div className="space-y-1">
                                                             <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                                 Report header
@@ -1967,8 +2603,8 @@ export default function OrganizationSettings() {
                                                                         );
                                                                     }}
                                                                 />
-                                                                <div className="grid gap-3 sm:grid-cols-3">
-                                                                    <div className="grid gap-2">
+                                                                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_4.5rem] gap-3">
+                                                                    <div className="grid min-w-0 gap-2">
                                                                         <Label>
                                                                             Weight
                                                                         </Label>
@@ -2013,7 +2649,7 @@ export default function OrganizationSettings() {
                                                                             </SelectContent>
                                                                         </Select>
                                                                     </div>
-                                                                    <div className="grid gap-2">
+                                                                    <div className="grid min-w-0 gap-2">
                                                                         <Label>
                                                                             Style
                                                                         </Label>
@@ -2058,7 +2694,7 @@ export default function OrganizationSettings() {
                                                                             </SelectContent>
                                                                         </Select>
                                                                     </div>
-                                                                    <div className="grid gap-2">
+                                                                    <div className="grid min-w-0 gap-2">
                                                                         <Label htmlFor="report_label_font_size">
                                                                             Size
                                                                         </Label>
@@ -2158,8 +2794,8 @@ export default function OrganizationSettings() {
                                                                         );
                                                                     }}
                                                                 />
-                                                                <div className="grid gap-3 sm:grid-cols-3">
-                                                                    <div className="grid gap-2">
+                                                                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_4.5rem] gap-3">
+                                                                    <div className="grid min-w-0 gap-2">
                                                                         <Label>
                                                                             Weight
                                                                         </Label>
@@ -2204,7 +2840,7 @@ export default function OrganizationSettings() {
                                                                             </SelectContent>
                                                                         </Select>
                                                                     </div>
-                                                                    <div className="grid gap-2">
+                                                                    <div className="grid min-w-0 gap-2">
                                                                         <Label>
                                                                             Style
                                                                         </Label>
@@ -2249,7 +2885,7 @@ export default function OrganizationSettings() {
                                                                             </SelectContent>
                                                                         </Select>
                                                                     </div>
-                                                                    <div className="grid gap-2">
+                                                                    <div className="grid min-w-0 gap-2">
                                                                         <Label htmlFor="report_value_font_size">
                                                                             Size
                                                                         </Label>
@@ -2591,14 +3227,15 @@ export default function OrganizationSettings() {
                                                             </div>
                                                         </div>
                                                     </LoanRequestSectionCard>
-                                                </TabsContent>
+                                                </div>
 
-                                                <TabsContent
-                                                    value="colors"
-                                                    forceMount
-                                                    className="mt-0"
+                                                <div
+                                                    {...panelProps('branding')}
                                                 >
                                                     <LoanRequestSectionCard
+                                                        flat
+                                                        workspace
+                                                        className="first:border-t-0"
                                                         title="Brand colors"
                                                         description="Applied to primary and accent UI colors across the portal after save."
                                                         icon={Palette}
@@ -2865,19 +3502,56 @@ export default function OrganizationSettings() {
                                                             </div>
                                                         </div>
                                                     </LoanRequestSectionCard>
-                                                </TabsContent>
-
-                                                <TabsContent
-                                                    value="support"
-                                                    forceMount
-                                                    className="mt-0 space-y-6"
-                                                >
                                                     <LoanRequestSectionCard
+                                                        flat
+                                                        workspace
+                                                        className="first:border-t-0"
+                                                        title="Palette"
+                                                        description="Surfaces and status colors used across every portal. Leave a field blank to keep the default."
+                                                        icon={Palette}
+                                                        contentClassName="space-y-6"
+                                                    >
+                                                        <OrganizationPaletteFields
+                                                            values={palette}
+                                                            errors={formErrors}
+                                                            onChange={
+                                                                setPaletteValue
+                                                            }
+                                                        />
+                                                    </LoanRequestSectionCard>
+                                                </div>
+
+                                                <div {...panelProps('contact')}>
+                                                    <LoanRequestSectionCard
+                                                        flat
+                                                        workspace
+                                                        className="first:border-t-0"
                                                         title="Contact & communications"
                                                         description="Support contact details shown on the welcome and sign-in screens."
                                                         icon={Mail}
                                                         contentClassName="space-y-6"
                                                     >
+                                                        <div className="grid gap-2 md:col-span-2">
+                                                            <Label htmlFor="service_hours">
+                                                                Service hours
+                                                            </Label>
+                                                            <Input
+                                                                id="service_hours"
+                                                                name="service_hours"
+                                                                defaultValue={
+                                                                    branding.serviceHours ??
+                                                                    ''
+                                                                }
+                                                                maxLength={255}
+                                                                placeholder="Mon–Fri 8:00 AM–5:00 PM"
+                                                            />
+                                                            <InputError
+                                                                message={
+                                                                    formErrors.service_hours
+                                                                }
+                                                            />
+                                                        </div>
+
                                                         <div className="grid gap-6 md:grid-cols-2">
                                                             <div className="grid gap-2">
                                                                 <Label htmlFor="support_contact_name">
@@ -2945,13 +3619,88 @@ export default function OrganizationSettings() {
                                                             </div>
                                                         </div>
                                                     </LoanRequestSectionCard>
-
+                                                </div>
+                                                <div
+                                                    {...panelProps('messaging')}
+                                                >
                                                     <LoanRequestSectionCard
+                                                        flat
+                                                        workspace
+                                                        className="first:border-t-0"
                                                         title="Loan SMS templates"
                                                         description="Customize the approval and decline SMS messages sent to members after decisions."
                                                         icon={MessageSquare}
                                                         contentClassName="space-y-6"
                                                     >
+                                                        <div className="grid gap-4">
+                                                            <ToggleRow
+                                                                id="loan_sms_approved_enabled"
+                                                                label="Send the loan approved message"
+                                                                hint="Sent to the member when a loan request is approved."
+                                                                checked={
+                                                                    approvedOn
+                                                                }
+                                                                onChange={(
+                                                                    value,
+                                                                ) => {
+                                                                    setApprovedOn(
+                                                                        value,
+                                                                    );
+                                                                    markDirty(
+                                                                        'messaging',
+                                                                    );
+                                                                }}
+                                                            />
+                                                            <ToggleRow
+                                                                id="loan_sms_declined_enabled"
+                                                                label="Send the loan declined message"
+                                                                hint="Sent to the member when a loan request is declined."
+                                                                checked={
+                                                                    declinedOn
+                                                                }
+                                                                onChange={(
+                                                                    value,
+                                                                ) => {
+                                                                    setDeclinedOn(
+                                                                        value,
+                                                                    );
+                                                                    markDirty(
+                                                                        'messaging',
+                                                                    );
+                                                                }}
+                                                            />
+                                                            <div className="grid gap-2 rounded-lg border border-border bg-muted px-3.5 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                                                                <div>
+                                                                    <Label htmlFor="sms_send_window">
+                                                                        Send
+                                                                        window
+                                                                    </Label>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        Messages
+                                                                        outside
+                                                                        this
+                                                                        window
+                                                                        wait
+                                                                        until
+                                                                        the next
+                                                                        window
+                                                                        opens.
+                                                                    </p>
+                                                                </div>
+                                                                <NativeSelect
+                                                                    id="sms_send_window"
+                                                                    name="sms_send_window"
+                                                                    defaultValue={
+                                                                        branding.smsSendWindow
+                                                                    }
+                                                                    options={
+                                                                        SEND_WINDOW_OPTIONS
+                                                                    }
+                                                                    className="sm:min-w-48"
+                                                                />
+                                                            </div>
+                                                        </div>
+
                                                         <div className="grid gap-6">
                                                             <div className="rounded-xl border border-border bg-background p-4">
                                                                 <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
@@ -2992,10 +3741,10 @@ export default function OrganizationSettings() {
                                                                         SMS
                                                                         template
                                                                     </Label>
-                                                                    <textarea
+                                                                    <Textarea
                                                                         id="loan_sms_approved_template"
                                                                         name="loan_sms_approved_template"
-                                                                        className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                                                        className="min-h-[120px]"
                                                                         placeholder="Leave blank to use the default template."
                                                                         value={
                                                                             loanSmsApprovedTemplate
@@ -3033,10 +3782,10 @@ export default function OrganizationSettings() {
                                                                         SMS
                                                                         template
                                                                     </Label>
-                                                                    <textarea
+                                                                    <Textarea
                                                                         id="loan_sms_declined_template"
                                                                         name="loan_sms_declined_template"
-                                                                        className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                                                        className="min-h-[120px]"
                                                                         placeholder="Leave blank to use the default template."
                                                                         value={
                                                                             loanSmsDeclinedTemplate
@@ -3098,118 +3847,254 @@ export default function OrganizationSettings() {
                                                             </div>
                                                         </div>
                                                     </LoanRequestSectionCard>
-                                                </TabsContent>
-                                            </Tabs>
-
-                                            <div className="sticky bottom-4 z-10 rounded-xl border border-border bg-background/95 p-4 shadow-[0_12px_24px_-24px_rgba(0,0,0,0.45)] backdrop-blur">
-                                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                                                        {hasChanges ? (
-                                                            <Badge
-                                                                variant="outline"
-                                                                className="border-primary/40 text-[10px] tracking-[0.2em] text-primary uppercase"
-                                                            >
-                                                                Unsaved changes
-                                                            </Badge>
-                                                        ) : (
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="text-[10px] tracking-[0.2em] uppercase"
-                                                            >
-                                                                Up to date
-                                                            </Badge>
-                                                        )}
-                                                        <Transition
-                                                            show={
-                                                                recentlySuccessful
-                                                            }
-                                                            enter="transition ease-in-out"
-                                                            enterFrom="opacity-0"
-                                                            leave="transition ease-in-out"
-                                                            leaveTo="opacity-0"
-                                                        >
-                                                            <span>Saved</span>
-                                                        </Transition>
-                                                    </div>
-                                                    <Button
-                                                        disabled={processing}
-                                                    >
-                                                        Save changes
-                                                    </Button>
                                                 </div>
+                                                <div className="flex flex-wrap items-center gap-2.5 border-t border-border bg-muted px-5 py-3 text-xs text-muted-foreground">
+                                                    <Info
+                                                        className="size-4 shrink-0"
+                                                        aria-hidden="true"
+                                                    />
+                                                    <span>
+                                                        These settings apply to
+                                                        every WIBS portal and
+                                                        can only be changed by a
+                                                        superadmin.
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <section
+                                                aria-labelledby="org-danger-title"
+                                                className="rounded-xl border border-[var(--bad-bd)] bg-card p-5 shadow-card"
+                                            >
+                                                <div className="flex flex-wrap items-baseline gap-2.5">
+                                                    <h2
+                                                        id="org-danger-title"
+                                                        className="text-base font-bold"
+                                                    >
+                                                        Danger zone
+                                                    </h2>
+                                                    <span className="text-[13px] text-muted-foreground">
+                                                        Organization-wide
+                                                        actions that cannot be
+                                                        undone here
+                                                    </span>
+                                                </div>
+                                                <div className="mt-4 grid gap-3.5">
+                                                    <div className="flex flex-wrap items-center gap-3.5">
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-sm font-bold">
+                                                                Reset branding
+                                                                to defaults
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Restores the
+                                                                WIBS palette and
+                                                                default portal
+                                                                mark. Applies
+                                                                after you save.
+                                                            </p>
+                                                        </div>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            className={
+                                                                statusTones.bad
+                                                            }
+                                                            onClick={() => {
+                                                                setResetWord(
+                                                                    '',
+                                                                );
+                                                                setDangerKind(
+                                                                    'brand',
+                                                                );
+                                                            }}
+                                                        >
+                                                            Reset branding
+                                                        </Button>
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-3.5">
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-sm font-bold">
+                                                                Clear all SMS
+                                                                templates
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Removes both
+                                                                loan templates.
+                                                                Members stop
+                                                                receiving loan
+                                                                status texts
+                                                                until a template
+                                                                is saved again.
+                                                            </p>
+                                                        </div>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            className={
+                                                                statusTones.bad
+                                                            }
+                                                            onClick={() => {
+                                                                setResetWord(
+                                                                    '',
+                                                                );
+                                                                setDangerKind(
+                                                                    'sms',
+                                                                );
+                                                            }}
+                                                        >
+                                                            Clear templates
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </section>
+
+                                            <div className="sticky bottom-4 z-10 flex flex-wrap items-center gap-2.5 rounded-xl border border-border bg-card px-4 py-3 shadow-lg">
+                                                <span
+                                                    className={cn(
+                                                        'text-[13px] font-semibold',
+                                                        hasChanges &&
+                                                            'text-[var(--warn-ink)]',
+                                                    )}
+                                                >
+                                                    {hasChanges
+                                                        ? 'Unsaved changes'
+                                                        : recentlySuccessful
+                                                          ? 'Saved'
+                                                          : 'All changes saved'}
+                                                </span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Changes apply to all portals
+                                                    after you save.
+                                                </span>
+                                                <span className="flex-1" />
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    disabled={
+                                                        !hasChanges ||
+                                                        processing
+                                                    }
+                                                    onClick={discardChanges}
+                                                >
+                                                    Discard changes
+                                                </Button>
+                                                <Button
+                                                    type="submit"
+                                                    disabled={
+                                                        !hasChanges ||
+                                                        processing
+                                                    }
+                                                >
+                                                    Save changes
+                                                </Button>
                                             </div>
                                         </>
                                     );
                                 }}
                             </Form>
                         </div>
-                    </SurfaceCard>
 
-                    <div className="space-y-6">
-                        <div className="space-y-6 lg:sticky lg:top-24">
-                            <SurfaceCard
-                                variant="default"
-                                padding="lg"
-                                className="space-y-6 lg:max-h-[calc(100vh-7rem)] lg:overflow-hidden"
+                        <aside
+                            aria-labelledby="org-preview-title"
+                            className="overflow-hidden rounded-xl border border-border bg-card shadow-card xl:sticky xl:top-4"
+                        >
+                            <div
+                                className="flex items-center gap-2.5 p-4"
+                                style={{
+                                    backgroundColor: primarySwatch,
+                                    color: readableInk(primarySwatch),
+                                }}
                             >
-                                <SectionHeader
-                                    title="Live preview"
-                                    description="Review how the portal, signing address, and reports will look before saving changes."
-                                    titleClassName="text-base font-semibold"
-                                />
-                                <div className="space-y-6 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto lg:pr-2">
-                                    <div className="space-y-2">
-                                        <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                                            Portal header
-                                        </p>
-                                        <div className="rounded-xl border border-border bg-muted p-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-background">
-                                                    <img
-                                                        src={logoPreviewUrl}
-                                                        alt={`${companyNamePreview} logo`}
-                                                        className={`w-auto object-contain ${
-                                                            logoPreset ===
-                                                            'full'
-                                                                ? 'h-8'
-                                                                : 'h-7'
-                                                        }`}
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    {showCompanyNamePreview ? (
-                                                        <p className="text-sm font-semibold">
-                                                            {companyNamePreview}
-                                                        </p>
-                                                    ) : null}
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {portalLabelPreview}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white">
+                                    <img
+                                        src={logoPreviewUrl}
+                                        alt=""
+                                        className="h-6 w-auto object-contain"
+                                    />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[17px] font-bold break-words">
+                                        {companyNamePreview}
+                                    </p>
+                                    <p className="text-[13px] opacity-90">
+                                        {portalLabelPreview}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="grid gap-3 p-4 text-sm">
+                                <div className="flex items-center justify-between gap-2">
+                                    <p
+                                        id="org-preview-title"
+                                        className="text-[13px] font-bold"
+                                    >
+                                        Live preview
+                                    </p>
+                                    <Badge
+                                        variant="outline"
+                                        className={statusTones.neutral}
+                                    >
+                                        {tabLabel(activeTab)}
+                                    </Badge>
+                                </div>
 
-                                    <div className="space-y-2">
-                                        <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                                            Official place of signing
-                                        </p>
-                                        <div className="rounded-xl border border-border bg-muted p-4">
-                                            <p className="text-sm text-foreground">
-                                                {businessAddressPreview || '--'}
-                                            </p>
-                                        </div>
+                                {activeTab === 'general' ? (
+                                    <div className="grid gap-2.5">
+                                        <PreviewRow
+                                            label="Registration"
+                                            value={liveValue(
+                                                'registration_no',
+                                                branding.registrationNo,
+                                            )}
+                                        />
+                                        <PreviewRow
+                                            label="TIN"
+                                            value={liveValue(
+                                                'business_tin',
+                                                branding.businessTin,
+                                            )}
+                                        />
+                                        <PreviewRow
+                                            label="Place of signing"
+                                            value={
+                                                businessAddressPreview || '--'
+                                            }
+                                        />
+                                        <PreviewRow
+                                            label="App title"
+                                            value={appTitlePreview || '--'}
+                                        />
+                                        <PreviewRow
+                                            label="Short name"
+                                            value={liveValue(
+                                                'short_name',
+                                                branding.shortName,
+                                            )}
+                                        />
+                                        <PreviewRow
+                                            label="Timezone"
+                                            value={liveValue(
+                                                'timezone',
+                                                branding.timezone,
+                                            )}
+                                        />
+                                        <PreviewRow
+                                            label="Currency"
+                                            value={liveValue(
+                                                'statement_currency',
+                                                branding.statementCurrency,
+                                            )}
+                                        />
                                     </div>
+                                ) : null}
 
-                                    <div className="space-y-2">
-                                        <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                                            Portal icon
-                                        </p>
-                                        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted p-4">
+                                {activeTab === 'branding' ? (
+                                    <div className="grid gap-3">
+                                        <div className="flex flex-wrap items-center gap-2">
                                             {ICON_PREVIEW_SIZES.map((size) => (
                                                 <div
                                                     key={size}
-                                                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-background"
+                                                    className="flex size-10 items-center justify-center rounded-lg border border-border bg-background"
                                                 >
                                                     <img
                                                         src={faviconPreviewUrl}
@@ -3226,79 +4111,210 @@ export default function OrganizationSettings() {
                                                 Browser tab + app sizes
                                             </span>
                                         </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                                            Report header
-                                        </p>
-                                        <div className="rounded-xl border border-border bg-muted p-4">
-                                            <div className="rounded-xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm">
-                                                {reportHeaderDesignPreviewUrl ? (
-                                                    <img
-                                                        src={
-                                                            reportHeaderDesignPreviewUrl
-                                                        }
-                                                        alt="Report header design preview"
-                                                        className="h-24 w-full object-contain"
+                                        <div className="flex flex-wrap gap-2">
+                                            {[
+                                                {
+                                                    label: 'Primary',
+                                                    color: primarySwatch,
+                                                },
+                                                {
+                                                    label: 'Accent',
+                                                    color: accentSwatch,
+                                                },
+                                                ...PALETTE_GROUPS.flatMap(
+                                                    (group) => group.fields,
+                                                ).map((field) => ({
+                                                    label: field.label,
+                                                    color: /^#[0-9a-f]{6}$/i.test(
+                                                        palette[field.key],
+                                                    )
+                                                        ? palette[field.key]
+                                                        : field.fallback,
+                                                })),
+                                            ].map((chip) => (
+                                                <span
+                                                    key={chip.label}
+                                                    className="flex items-center gap-1.5 rounded-full border border-border bg-card py-1 pr-2.5 pl-1.5 text-xs font-semibold"
+                                                >
+                                                    <i
+                                                        className="block size-3.5 rounded-full border border-black/20"
+                                                        style={{
+                                                            backgroundColor:
+                                                                chip.color,
+                                                        }}
                                                     />
-                                                ) : (
-                                                    <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-300 text-[11px] font-semibold tracking-[0.2em] text-slate-500 uppercase">
-                                                        Application form
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="mt-3 h-px bg-slate-200" />
-                                            <div className="mt-3 space-y-2">
-                                                <p className="text-xs text-slate-500">
-                                                    Report body preview
-                                                </p>
-                                                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-                                                    <div className="flex items-center justify-between text-xs">
-                                                        <span
-                                                            className="apply-font-report-label"
-                                                            style={
-                                                                reportLabelStyle
-                                                            }
-                                                        >
-                                                            Member name
-                                                        </span>
-                                                        <span
-                                                            className="apply-font-report-value font-semibold"
-                                                            style={
-                                                                reportValueStyle
-                                                            }
-                                                        >
-                                                            Jane Doe
-                                                        </span>
-                                                    </div>
-                                                    <div className="mt-2 flex items-center justify-between text-xs">
-                                                        <span
-                                                            className="apply-font-report-label"
-                                                            style={
-                                                                reportLabelStyle
-                                                            }
-                                                        >
-                                                            Amount approved
-                                                        </span>
-                                                        <span
-                                                            className="apply-font-report-value font-semibold"
-                                                            style={
-                                                                reportValueStyle
-                                                            }
-                                                        >
-                                                            PHP 50,000.00
-                                                        </span>
-                                                    </div>
+                                                    {chip.label}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Applied to the portal, buttons,
+                                            sidebar, and status badges after
+                                            saving.
+                                        </p>
+                                    </div>
+                                ) : null}
+
+                                {activeTab === 'documents' ? (
+                                    <div className="rounded-lg border border-border bg-muted p-3">
+                                        <div className="rounded-md border border-slate-200 bg-white p-3 text-slate-900 shadow-sm">
+                                            {reportHeaderDesignPreviewUrl ? (
+                                                <img
+                                                    src={
+                                                        reportHeaderDesignPreviewUrl
+                                                    }
+                                                    alt="Report header design preview"
+                                                    className="h-24 w-full object-contain"
+                                                />
+                                            ) : (
+                                                <div className="flex h-24 items-center justify-center rounded-md border border-dashed border-slate-300 text-[11px] font-semibold tracking-[0.2em] text-slate-500 uppercase">
+                                                    Application form
+                                                </div>
+                                            )}
+                                            <div className="mt-3 grid gap-2 border-t border-slate-200 pt-3 text-xs">
+                                                <div className="flex items-center justify-between">
+                                                    <span
+                                                        className="apply-font-report-label"
+                                                        style={reportLabelStyle}
+                                                    >
+                                                        Member name
+                                                    </span>
+                                                    <span
+                                                        className="apply-font-report-value font-semibold"
+                                                        style={reportValueStyle}
+                                                    >
+                                                        Jane Doe
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span
+                                                        className="apply-font-report-label"
+                                                        style={reportLabelStyle}
+                                                    >
+                                                        Amount approved
+                                                    </span>
+                                                    <span
+                                                        className="apply-font-report-value font-semibold"
+                                                        style={reportValueStyle}
+                                                    >
+                                                        PHP 50,000.00
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </SurfaceCard>
-                        </div>
+                                ) : null}
+
+                                {activeTab === 'contact' ? (
+                                    <div className="grid gap-2.5">
+                                        <PreviewRow
+                                            label="Contact"
+                                            value={liveValue(
+                                                'support_contact_name',
+                                                branding.supportContactName,
+                                            )}
+                                        />
+                                        <PreviewRow
+                                            label="Support"
+                                            value={liveValue(
+                                                'support_email',
+                                                branding.supportEmail,
+                                            )}
+                                        />
+                                        <PreviewRow
+                                            label="Hotline"
+                                            value={liveValue(
+                                                'support_phone',
+                                                branding.supportPhone,
+                                            )}
+                                        />
+                                        <PreviewRow
+                                            label="Hours"
+                                            value={liveValue(
+                                                'service_hours',
+                                                branding.serviceHours,
+                                            )}
+                                        />
+                                    </div>
+                                ) : null}
+
+                                {activeTab === 'messaging' ? (
+                                    <div className="grid gap-3">
+                                        <div>
+                                            <p className="mb-1 text-xs text-muted-foreground">
+                                                Approved text a member receives
+                                            </p>
+                                            <div className="rounded-xl rounded-bl-sm border border-border bg-muted px-3 py-2.5 text-[13px] leading-normal break-words">
+                                                {loanSmsApprovedPreview}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="mb-1 text-xs text-muted-foreground">
+                                                Declined text a member receives
+                                            </p>
+                                            <div className="rounded-xl rounded-bl-sm border border-border bg-muted px-3 py-2.5 text-[13px] leading-normal break-words">
+                                                {loanSmsDeclinedPreview}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
+                        </aside>
                     </div>
                 </div>
+
+                <Dialog
+                    open={dangerKind !== null}
+                    onOpenChange={(open) => !open && setDangerKind(null)}
+                >
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>
+                                {dangerKind === 'sms'
+                                    ? 'Clear all SMS templates?'
+                                    : 'Reset branding to defaults?'}
+                            </DialogTitle>
+                            <DialogDescription>
+                                {dangerKind === 'sms'
+                                    ? 'Removes the loan approved and declined templates. Members stop receiving loan status texts until a new template is saved. The change applies after you save.'
+                                    : 'Primary, accent, and every palette color go back to the WIBS defaults on every portal. Custom colors are not recoverable from this screen. The change applies after you save.'}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-2">
+                            <Label htmlFor="danger-confirm">
+                                Type {dangerWord} to confirm
+                            </Label>
+                            <Input
+                                id="danger-confirm"
+                                value={resetWord}
+                                onChange={(event) =>
+                                    setResetWord(event.target.value)
+                                }
+                                autoComplete="off"
+                                spellCheck={false}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setDangerKind(null)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                disabled={resetWord.trim() !== dangerWord}
+                                onClick={runDanger}
+                            >
+                                {dangerKind === 'sms'
+                                    ? 'Clear templates'
+                                    : 'Reset branding'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </PageShell>
         </AppLayout>
     );

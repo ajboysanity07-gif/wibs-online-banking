@@ -859,7 +859,7 @@ export function LoanRequestPersonalFields({
                             <Label htmlFor={`${prefix}_length_of_stay`}>
                                 Length of stay
                             </Label>
-                            <label
+                            <Label
                                 htmlFor={`${prefix}_length_of_stay_since_birth`}
                                 className="flex items-center gap-1.5 text-xs text-muted-foreground"
                             >
@@ -883,7 +883,7 @@ export function LoanRequestPersonalFields({
                                     }}
                                 />
                                 Since birth
-                            </label>
+                            </Label>
                         </div>
                         <YearsInput
                             id={`${prefix}_length_of_stay`}

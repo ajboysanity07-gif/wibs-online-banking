@@ -19,9 +19,11 @@
         "maatwebsite/excel": "4.x-dev",
         "phpoffice/phpspreadsheet": "5.7",
         "predis/predis": "^3.6",
+        "sentry/sentry-laravel": "^4.28",
         "setasign/fpdf": "1.8.6",
         "setasign/fpdi": "2.6.7",
         "spatie/browsershot": "^5.2",
+        "spatie/laravel-backup": "^10.3",
         "tecnickcom/tcpdf": "^6.11"
     },
     "require-dev": {

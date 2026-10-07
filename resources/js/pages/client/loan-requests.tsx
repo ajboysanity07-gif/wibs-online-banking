@@ -1,15 +1,18 @@
 import { Head, Link } from '@inertiajs/react';
+import { Search } from 'lucide-react';
 import { useState } from 'react';
 import {
+    LoanRequestFilterChips,
     LoanRequestPageHero,
-    LoanRequestSearchBox,
-    LoanRequestStatusFilters,
     LoanRequestSummaryCards,
     type LoanRequestStatusFilterOption,
 } from '@/components/loan-request/loan-request-page-sections';
 import { LoanRequestRecordsCard } from '@/components/loan-request/loan-request-records-card';
 import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard as clientDashboard } from '@/routes/client';
 import {
@@ -19,93 +22,89 @@ import {
 import type { BreadcrumbItem } from '@/types';
 import type {
     LoanRequestListItem,
-    LoanRequestListResponse,
     LoanRequestStatusValue,
 } from '@/types/loan-requests';
+import type { LoanRequestListResponse } from '@/types/loan-requests';
 
 type Props = {
     loanRequests: LoanRequestListResponse | null;
     loanRequestsError?: string | null;
+    accountNo?: string | null;
 };
 
 type StatusFilter =
     | 'all'
     | 'draft'
-    | 'pending_review'
-    | 'under_review'
-    | 'needs_revision'
-    | 'awaiting_member_information'
-    | 'recommended_for_approval'
-    | 'awaiting_member_acceptance'
+    | 'pending'
+    | 'processing'
+    | 'awaiting'
     | 'approved'
     | 'declined'
-    | 'member_declined_terms'
-    | 'rejected'
-    | 'converted_to_loan'
-    | 'cancelled';
+    | 'closed';
 
 const statusFilters: Array<LoanRequestStatusFilterOption<StatusFilter>> = [
     { value: 'all', label: 'All' },
     { value: 'draft', label: 'Draft' },
-    { value: 'pending_review', label: 'Pending Processing' },
-    { value: 'under_review', label: 'In Processing' },
-    { value: 'needs_revision', label: 'Awaiting Member Correction' },
-    {
-        value: 'awaiting_member_information',
-        label: 'Awaiting Member Information',
-    },
-    { value: 'recommended_for_approval', label: 'For Loan Manager Review' },
-    {
-        value: 'awaiting_member_acceptance',
-        label: 'Awaiting Member Acceptance',
-    },
+    { value: 'pending', label: 'Pending' },
+    { value: 'processing', label: 'In processing' },
+    { value: 'awaiting', label: 'Awaiting correction' },
     { value: 'approved', label: 'Approved' },
-    { value: 'declined', label: 'Declined by Loan Manager' },
-    { value: 'member_declined_terms', label: 'Member Declined Terms' },
-    { value: 'rejected', label: 'Rejected During Processing' },
-    { value: 'converted_to_loan', label: 'Converted to Loan' },
-    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'declined', label: 'Declined' },
+    { value: 'closed', label: 'Closed' },
 ];
 
-const normalizeStatus = (
-    status: LoanRequestStatusValue | null,
-): LoanRequestStatusValue | null => {
-    if (status === 'submitted') {
-        return 'pending_review';
-    }
-
-    if (status === 'pending_co_maker_signatures') {
-        return 'pending_review';
-    }
-
-    return status;
+// Maps the workflow statuses onto the member-facing filter groups.
+const statusGroups: Record<
+    Exclude<StatusFilter, 'all'>,
+    LoanRequestStatusValue[]
+> = {
+    draft: ['draft'],
+    pending: ['pending_review', 'submitted', 'pending_co_maker_signatures'],
+    processing: ['under_review', 'recommended_for_approval'],
+    awaiting: [
+        'needs_revision',
+        'awaiting_member_information',
+        'awaiting_member_acceptance',
+    ],
+    approved: ['approved'],
+    declined: ['declined', 'rejected', 'member_declined_terms'],
+    closed: [
+        'converted_to_loan',
+        'declined',
+        'rejected',
+        'member_declined_terms',
+        'cancelled',
+    ],
 };
 
-const resolveStatusLabel = (status: LoanRequestStatusValue | null): string => {
-    const normalizedStatus = normalizeStatus(status);
-
-    return (
-        statusFilters.find((filter) => filter.value === normalizedStatus)
-            ?.label ?? 'Unknown'
-    );
+const statusLabels: Partial<Record<LoanRequestStatusValue, string>> = {
+    draft: 'Draft',
+    pending_review: 'Pending Processing',
+    submitted: 'Pending Processing',
+    pending_co_maker_signatures: 'Pending Processing',
+    under_review: 'In Processing',
+    needs_revision: 'Awaiting Member Correction',
+    awaiting_member_information: 'Awaiting Member Information',
+    recommended_for_approval: 'For Loan Manager Review',
+    awaiting_member_acceptance: 'Awaiting Member Acceptance',
+    approved: 'Approved',
+    declined: 'Declined by Loan Manager',
+    member_declined_terms: 'Member Declined Terms',
+    rejected: 'Rejected During Processing',
+    converted_to_loan: 'Converted to Loan',
+    cancelled: 'Cancelled',
 };
 
-const matchesStatusFilter = (
+const inGroup = (
     request: LoanRequestListItem,
-    statusFilter: StatusFilter,
-): boolean => {
-    if (statusFilter === 'all') {
-        return true;
-    }
-
-    const normalizedStatus = normalizeStatus(request.status);
-
-    return normalizedStatus === statusFilter;
-};
+    group: Exclude<StatusFilter, 'all'>,
+): boolean =>
+    request.status !== null && statusGroups[group].includes(request.status);
 
 export default function LoanRequestsPage({
     loanRequests,
     loanRequestsError = null,
+    accountNo = null,
 }: Props) {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -114,39 +113,24 @@ export default function LoanRequestsPage({
         loanRequests === null && loanRequestsError === null;
     const normalizedSearch = searchQuery.trim().toLowerCase();
 
-    const summaryCounts = {
-        total: items.length,
-        draft: items.filter((item) => normalizeStatus(item.status) === 'draft')
-            .length,
-        pendingReview: items.filter(
-            (item) => normalizeStatus(item.status) === 'pending_review',
-        ).length,
-        underReview: items.filter(
-            (item) => normalizeStatus(item.status) === 'under_review',
-        ).length,
-        needsRevision: items.filter(
-            (item) => normalizeStatus(item.status) === 'needs_revision',
-        ).length,
-        awaitingMemberAction: items.filter((item) =>
-            [
-                'awaiting_member_information',
-                'awaiting_member_acceptance',
-            ].includes(normalizeStatus(item.status) ?? ''),
-        ).length,
-        approvedOrConverted: items.filter((item) =>
-            ['approved', 'converted_to_loan'].includes(
-                normalizeStatus(item.status) ?? '',
-            ),
-        ).length,
-        closed: items.filter((item) =>
-            ['declined', 'rejected', 'cancelled'].includes(
-                normalizeStatus(item.status) ?? '',
-            ),
-        ).length,
+    // Items arrive newest first, so the first match is the latest reference.
+    const latestReference = (group: Exclude<StatusFilter, 'all'>) => {
+        const matches = items.filter((item) => inGroup(item, group));
+
+        return {
+            count: matches.length,
+            helper: matches[0]?.reference ?? 'None',
+        };
     };
 
+    const draft = latestReference('draft');
+    const processing = latestReference('processing');
+    const awaiting = latestReference('awaiting');
+    const approved = latestReference('approved');
+    const closed = latestReference('closed');
+
     const filteredItems = items.filter((request) => {
-        if (!matchesStatusFilter(request, statusFilter)) {
+        if (statusFilter !== 'all' && !inGroup(request, statusFilter)) {
             return false;
         }
 
@@ -154,26 +138,28 @@ export default function LoanRequestsPage({
             return true;
         }
 
-        const searchableValues = [
+        return [
             request.reference ?? '',
             request.loan_type_label_snapshot ?? '',
             request.typecode ?? '',
-            resolveStatusLabel(request.status),
+            request.assigned_officer?.name ?? '',
+            request.status ? (statusLabels[request.status] ?? '') : '',
         ]
             .join(' ')
-            .toLowerCase();
-
-        return searchableValues.includes(normalizedSearch);
+            .toLowerCase()
+            .includes(normalizedSearch);
     });
 
-    const hasFilterState =
-        statusFilter !== 'all' || normalizedSearch.length > 0;
     const hasNoFilterResults =
         !isRequestsLoading &&
         !loanRequestsError &&
-        hasFilterState &&
         items.length > 0 &&
         filteredItems.length === 0;
+
+    const clearFilters = () => {
+        setStatusFilter('all');
+        setSearchQuery('');
+    };
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Overview', href: clientDashboard().url },
@@ -186,14 +172,17 @@ export default function LoanRequestsPage({
             <PageShell>
                 <LoanRequestPageHero
                     kicker="Loan applications"
-                    title="Loan Requests"
-                    description="Track drafts, queued reviews, requests that need revision, and final loan decisions."
+                    title="Loan requests"
+                    description="Track every application from draft to release."
+                    badges={
+                        accountNo ? (
+                            <span className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold">
+                                Account No {accountNo}
+                            </span>
+                        ) : null
+                    }
                     cta={
-                        <Button
-                            asChild
-                            variant="accent"
-                            className="dark:bg-primary-foreground dark:text-primary dark:hover:bg-primary-foreground/90"
-                        >
+                        <Button asChild>
                             <Link href={loanRequestCreate().url}>
                                 Request loan
                             </Link>
@@ -205,97 +194,96 @@ export default function LoanRequestsPage({
                     items={[
                         {
                             label: 'Total',
-                            value: summaryCounts.total,
+                            value: items.length,
+                            helper: 'All loan requests',
                         },
                         {
                             label: 'Draft',
-                            value: summaryCounts.draft,
-                            emphasisClassName:
-                                'text-amber-700 dark:text-amber-400',
+                            value: draft.count,
+                            helper: draft.helper,
                         },
                         {
-                            label: 'Pending Processing',
-                            value: summaryCounts.pendingReview,
-                            emphasisClassName:
-                                'text-orange-700 dark:text-orange-400',
+                            label: 'In processing',
+                            value: processing.count,
+                            helper: processing.helper,
                         },
                         {
-                            label: 'In Processing',
-                            value: summaryCounts.underReview,
-                            emphasisClassName: 'text-sky-700 dark:text-sky-400',
+                            label: 'Awaiting member action',
+                            value: awaiting.count,
+                            helper: awaiting.helper,
                         },
                         {
-                            label: 'Awaiting Member Correction',
-                            value: summaryCounts.needsRevision,
-                            emphasisClassName:
-                                'text-rose-600 dark:text-rose-400',
-                        },
-                        {
-                            label: 'Awaiting Member Action',
-                            value: summaryCounts.awaitingMemberAction,
-                            emphasisClassName:
-                                'text-violet-600 dark:text-violet-400',
-                        },
-                        {
-                            label: 'Approved/Converted',
-                            value: summaryCounts.approvedOrConverted,
-                            emphasisClassName:
-                                'text-emerald-700 dark:text-emerald-400',
+                            label: 'Approved',
+                            value: approved.count,
+                            helper: approved.helper,
                         },
                         {
                             label: 'Closed',
-                            value: summaryCounts.closed,
-                            emphasisClassName: 'text-muted-foreground',
+                            value: closed.count,
+                            helper: 'Converted, declined, closed',
                         },
                     ]}
                 />
 
-                <section className="rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
-                    <div className="flex flex-col gap-3">
-                        <LoanRequestStatusFilters
-                            options={statusFilters}
-                            activeValue={statusFilter}
-                            onChange={setStatusFilter}
-                        />
-                        <LoanRequestSearchBox
+                <Card
+                    className="gap-4 px-5 py-4"
+                    aria-label="Filter loan requests"
+                >
+                    <LoanRequestFilterChips
+                        label="Filter by status"
+                        options={statusFilters}
+                        value={statusFilter}
+                        onChange={setStatusFilter}
+                    />
+                    <div className="grid gap-1">
+                        <Label
+                            htmlFor="loan-request-search"
+                            className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase"
+                        >
+                            Search
+                        </Label>
+                        <Input
+                            id="loan-request-search"
+                            type="search"
                             value={searchQuery}
-                            onChange={setSearchQuery}
-                            placeholder="Search by reference, loan type, or status"
-                            resultsText={`Showing ${filteredItems.length} of ${items.length} requests.`}
+                            onChange={(event) =>
+                                setSearchQuery(event.target.value)
+                            }
+                            placeholder="Search by reference, loan type, processor, or status"
                         />
                     </div>
-                </section>
+                    <p role="status" className="text-xs text-muted-foreground">
+                        Showing {filteredItems.length} of {items.length}{' '}
+                        requests
+                    </p>
+                </Card>
 
                 <section id="loan-requests" className="scroll-mt-24">
                     {hasNoFilterResults ? (
-                        <div className="rounded-xl border border-dashed border-border bg-muted px-6 py-8 text-center">
-                            <p className="text-sm font-medium">
-                                No matching loan requests found.
+                        <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card px-6 py-10 text-center">
+                            <span className="grid size-12 place-items-center rounded-full bg-muted text-primary">
+                                <Search className="size-5" aria-hidden="true" />
+                            </span>
+                            <h3 className="text-base font-bold">
+                                No matching loan requests
+                            </h3>
+                            <p className="max-w-[46ch] text-sm text-muted-foreground">
+                                Try a different reference, loan type, or status
+                                — or clear the filters to see all {items.length}{' '}
+                                requests.
                             </p>
-                            <p className="mt-2 text-sm text-muted-foreground">
-                                Try changing the status filter or search term.
-                            </p>
-                            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => {
-                                        setStatusFilter('all');
-                                        setSearchQuery('');
-                                    }}
-                                >
-                                    Clear filters
-                                </Button>
-                                <Button asChild>
-                                    <Link href={loanRequestCreate().url}>
-                                        Request loan
-                                    </Link>
-                                </Button>
-                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={clearFilters}
+                            >
+                                Clear filters
+                            </Button>
                         </div>
                     ) : (
                         <LoanRequestRecordsCard
                             items={filteredItems}
+                            totalCount={items.length}
                             isUpdating={isRequestsLoading}
                             error={loanRequestsError}
                         />

@@ -23,16 +23,14 @@ type StatCardProps = {
     value: string;
     helper: string;
     icon: LucideIcon;
-    tone?: 'primary' | 'plain' | 'overdue';
+    tone?: 'primary' | 'plain' | 'due' | 'overdue';
     compactValue?: boolean;
 };
 
-const toneClasses: Record<
-    NonNullable<StatCardProps['tone']>,
-    string
-> = {
+const toneClasses: Record<NonNullable<StatCardProps['tone']>, string> = {
     primary: 'border-primary bg-primary text-primary-foreground',
     plain: 'border-border bg-card text-card-foreground',
+    due: 'border-border bg-card text-card-foreground',
     overdue: 'border-destructive bg-destructive/10 text-destructive',
 };
 
@@ -50,15 +48,15 @@ function StatCard({
     return (
         <SurfaceCard
             variant="default"
-            padding="md"
-            className={cn('min-w-0', toneClasses[tone])}
+            padding="none"
+            className={cn('min-w-0 rounded-[10px] p-[18px]', toneClasses[tone])}
         >
             <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-2.5">
                     <p
                         className={cn(
-                            'text-[13px] font-semibold',
-                            !isPrimary && 'text-muted-foreground',
+                            'text-[13px] leading-[1.35] font-semibold',
+                            tone === 'plain' && 'text-muted-foreground',
                         )}
                     >
                         {title}
@@ -66,9 +64,9 @@ function StatCard({
                     <Icon
                         aria-hidden="true"
                         className={cn(
-                            'h-5 w-5 shrink-0',
+                            'h-5 w-5 shrink-0 opacity-85',
                             isPrimary
-                                ? 'text-primary-foreground/85'
+                                ? 'text-primary-foreground'
                                 : isOverdue
                                   ? 'text-destructive'
                                   : 'text-muted-foreground',
@@ -77,20 +75,19 @@ function StatCard({
                 </div>
                 <p
                     className={cn(
-                        'font-bold tracking-tight tabular-nums',
+                        'font-bold tracking-[-0.01em] whitespace-nowrap tabular-nums',
                         compactValue
-                            ? 'text-[22px] sm:text-[26px]'
-                            : 'text-[26px] sm:text-[34px]',
+                            ? 'text-[clamp(20px,2.4vw,26px)]'
+                            : 'text-[clamp(26px,3.2vw,34px)]',
                     )}
                 >
                     {value}
                 </p>
                 <p
                     className={cn(
-                        'text-[13px] leading-snug',
-                        isPrimary
-                            ? 'text-primary-foreground/90'
-                            : 'text-muted-foreground',
+                        'text-[13px] leading-[1.4] opacity-90',
+                        isPrimary && 'text-primary-foreground',
+                        tone === 'plain' && 'text-muted-foreground',
                     )}
                 >
                     {helper}
@@ -107,7 +104,7 @@ export function LoanSummaryStats({ summary, loans }: LoanSummaryStatsProps) {
     return (
         <section
             aria-label="Loan summary"
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+            className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3.5"
         >
             <StatCard
                 title="Total Outstanding Loan Balance"
@@ -125,7 +122,7 @@ export function LoanSummaryStats({ summary, loans }: LoanSummaryStatsProps) {
                         : `${dueOverdue ? 'Overdue · ' : 'Due '}${formatShortDate(due.dueDate)} · ${loanTypeLabel(due.lntype)}`
                 }
                 icon={CalendarClock}
-                tone={dueOverdue ? 'overdue' : 'plain'}
+                tone={dueOverdue ? 'overdue' : due === null ? 'plain' : 'due'}
             />
             <StatCard
                 title="Active Loans"
@@ -135,7 +132,9 @@ export function LoanSummaryStats({ summary, loans }: LoanSummaryStatsProps) {
             />
             <StatCard
                 title="Last Loan Transaction"
-                value={formatShortDate(summary?.lastLoanTransactionDate ?? null)}
+                value={formatShortDate(
+                    summary?.lastLoanTransactionDate ?? null,
+                )}
                 helper="Most recent loan activity date."
                 icon={Clock}
                 compactValue

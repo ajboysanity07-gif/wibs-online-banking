@@ -610,9 +610,9 @@ export function PersonalTab({
                                         <Label htmlFor="length_of_stay">
                                             Length of stay
                                         </Label>
-                                        <label
+                                        <Label
                                             htmlFor="length_of_stay_since_birth"
-                                            className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                                            className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground"
                                         >
                                             <Checkbox
                                                 id="length_of_stay_since_birth"
@@ -637,7 +637,7 @@ export function PersonalTab({
                                                 }}
                                             />
                                             Since birth
-                                        </label>
+                                        </Label>
                                     </div>
 
                                     <YearsInput

@@ -77,9 +77,9 @@ export function AccountTab({
                             </Label>
 
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-                                <label
+                                <Label
                                     htmlFor="profile_photo"
-                                    className="group relative flex h-24 w-24 cursor-pointer items-center justify-center rounded-full"
+                                    className="group relative flex h-24 w-24 cursor-pointer items-center justify-center rounded-full text-base font-normal"
                                 >
                                     <Avatar className="h-24 w-24 overflow-hidden rounded-full border border-border shadow-sm">
                                         <AvatarImage
@@ -95,7 +95,7 @@ export function AccountTab({
                                     <span className="absolute right-1 bottom-1 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-card transition-transform duration-200 group-hover:scale-105">
                                         <Camera className="h-4 w-4" />
                                     </span>
-                                </label>
+                                </Label>
 
                                 <div className="space-y-2 text-sm text-muted-foreground">
                                     <p>

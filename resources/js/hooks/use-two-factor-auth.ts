@@ -1,4 +1,6 @@
+import axios from 'axios';
 import { useState } from 'react';
+import client from '@/lib/api/client';
 import { qrCode, recoveryCodes, secretKey } from '@/routes/two-factor';
 import type { TwoFactorSecretKey, TwoFactorSetupData } from '@/types';
 
@@ -18,23 +20,8 @@ export type UseTwoFactorAuthReturn = {
 
 export const OTP_MAX_LENGTH = 6;
 
-const fetchJson = async <T>(url: string): Promise<T> => {
-    const response = await fetch(url, {
-        headers: { Accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch: ${response.status}`,
-        ) as Error & {
-            status?: number;
-        };
-        error.status = response.status;
-        throw error;
-    }
-
-    return response.json();
-};
+const fetchJson = async <T>(url: string): Promise<T> =>
+    (await client.get<T>(url)).data;
 
 export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
     const [qrCodeSvg, setQrCodeSvg] = useState<string | null>(null);
@@ -82,7 +69,9 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
             const codes = await fetchJson<string[]>(recoveryCodes.url());
             setRecoveryCodesList(codes);
         } catch (error) {
-            const status = (error as { status?: number }).status;
+            const status = axios.isAxiosError(error)
+                ? error.response?.status
+                : undefined;
 
             if (status === 423) {
                 setErrors([

@@ -97,11 +97,13 @@ class MemberAccountsService
 
     /**
      * @param  list<string>  $loanNumbers
-     * @return array<string, array{dueDate: ?string, monthlyDue: ?float}>
+     * @param  array<string, float|null>  $balancesByLoan
+     * @return array<string, array{dueDate: ?string, monthlyDue: ?float, penalty: ?float, penaltyMonths: int}>
      */
     public function getLoanRepaymentSummaries(
         AppUser|Wmaster $member,
         array $loanNumbers,
+        array $balancesByLoan = [],
     ): array {
         $acctno = $this->resolveAcctno($member);
 
@@ -109,7 +111,7 @@ class MemberAccountsService
             return [];
         }
 
-        return $this->repository->getLoanRepaymentSummaries($loanNumbers);
+        return $this->repository->getLoanRepaymentSummaries($loanNumbers, $balancesByLoan);
     }
 
     /**
@@ -162,6 +164,8 @@ class MemberAccountsService
         AppUser|Wmaster $member,
         int $perPage,
         int $page,
+        ?string $source = null,
+        ?string $search = null,
     ): LengthAwarePaginator {
         $acctno = $this->resolveAcctno($member);
         $perPage = max(1, min($perPage, 50));
@@ -171,7 +175,7 @@ class MemberAccountsService
             return new LengthAwarePaginator([], 0, $perPage, $page);
         }
 
-        return $this->repository->getPaginatedRecentActions($acctno, $perPage, $page);
+        return $this->repository->getPaginatedRecentActions($acctno, $perPage, $page, $source, $search);
     }
 
     private function resolveAcctno(AppUser|Wmaster $member): ?string

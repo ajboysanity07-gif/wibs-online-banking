@@ -1,10 +1,8 @@
+import { Table2 } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 import { SectionHeader } from '@/components/section-header';
 import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
-import {
-    DataTablePagination,
-    DataTablePaginationSkeleton,
-} from '@/components/ui/data-table-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     Table,
@@ -15,72 +13,162 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import type { MemberLoan, PaginationMeta } from '@/types/admin';
+import type { MemberLoan } from '@/types/admin';
+import { DetailsLink } from './details-link';
+import { ListPager } from './list-pager';
+import {
+    applyListTools,
+    deriveOptions,
+    describeListTools,
+    initialListToolsValue,
+    isToolsNarrowed,
+    ListTools,
+    type ListToolsConfig,
+} from './list-tools';
 
-type AllLoansTableProps = {
-    loans: MemberLoan[];
-    meta: PaginationMeta;
-    isLoading?: boolean;
-    error?: string | null;
-    onRetry?: () => void;
-    onPageChange: (page: number) => void;
-};
+const PER_PAGE = 5;
 
-const NUMERIC_HEAD_CLASS = 'text-right';
-const NUMERIC_CELL_CLASS = 'text-right tabular-nums';
+const loansConfig = (items: MemberLoan[]): ListToolsConfig<MemberLoan> => ({
+    searchPlaceholder: 'Search loans',
+    searchAriaLabel: 'Search loans by loan no or type',
+    searchMatch: (item, query) =>
+        [
+            item.lnnumber ?? '',
+            item.lntype ?? '',
+            item.lastmove ?? '',
+            item.balance ?? '',
+            item.principal ?? '',
+        ]
+            .join(' ')
+            .toLowerCase()
+            .includes(query),
+    filterDimensions: [
+        {
+            key: 'status',
+            label: 'Status',
+            options: [
+                { value: 'active', label: 'Active' },
+                { value: 'closed', label: 'Closed' },
+            ],
+        },
+        {
+            key: 'type',
+            label: 'Loan type',
+            options: deriveOptions(items, (item) => item.lntype),
+        },
+    ],
+    filterMatch: (item, dimension, value) => {
+        if (dimension === 'status') {
+            return value === 'active'
+                ? (item.balance ?? 0) > 0
+                : (item.balance ?? 0) <= 0;
+        }
 
-function TableSkeletonRows({ rows }: { rows: number }) {
-    return (
-        <div aria-busy="true" className="flex flex-col">
-            {Array.from({ length: Math.min(rows, 10) }).map((_, index) => (
-                <TableRow key={`all-loans-skeleton-${index}`}>
-                    <TableCell>
-                        <Skeleton className="h-4 w-28" />
-                    </TableCell>
-                    <TableCell>
-                        <Skeleton className="h-4 w-36" />
-                    </TableCell>
-                    <TableCell className={NUMERIC_CELL_CLASS}>
-                        <Skeleton className="h-4 w-24" />
-                    </TableCell>
-                    <TableCell className={NUMERIC_CELL_CLASS}>
-                        <Skeleton className="h-4 w-24" />
-                    </TableCell>
-                    <TableCell>
-                        <Skeleton className="h-4 w-28" />
-                    </TableCell>
-                </TableRow>
-            ))}
-        </div>
-    );
-}
+        return String(item.lntype ?? '') === value;
+    },
+    sortFields: [
+        { key: 'lastmove', label: 'Last payment', kind: 'date' },
+        { key: 'lnnumber', label: 'Loan no', kind: 'text' },
+        { key: 'lntype', label: 'Loan type', kind: 'text' },
+        { key: 'principal', label: 'Principal', kind: 'number' },
+        { key: 'balance', label: 'Balance', kind: 'number' },
+    ],
+    sortValue: (item, sortKey) => {
+        switch (sortKey) {
+            case 'lastmove':
+                return item.lastmove ?? null;
+            case 'lnnumber':
+                return item.lnnumber ?? null;
+            case 'lntype':
+                return item.lntype ?? null;
+            case 'principal':
+                return item.principal ?? null;
+            case 'balance':
+                return item.balance ?? null;
+            default:
+                return null;
+        }
+    },
+});
 
 export function AllLoansTable({
     loans,
-    meta,
     isLoading = false,
     error = null,
     onRetry,
-    onPageChange,
-}: AllLoansTableProps) {
+}: {
+    loans: MemberLoan[];
+    isLoading?: boolean;
+    error?: string | null;
+    onRetry?: () => void;
+}) {
+    const [tools, setTools] = useState(() =>
+        initialListToolsValue('status', 'lastmove', 'desc'),
+    );
+    const [page, setPage] = useState(1);
+
+    const handleToolsChange = useCallback((next: typeof tools) => {
+        setTools(next);
+        setPage(1);
+    }, []);
+
+    const config = useMemo(() => loansConfig(loans), [loans]);
+    const visible = useMemo(
+        () => applyListTools(loans, tools, config),
+        [loans, tools, config],
+    );
+    const lastPage = Math.max(1, Math.ceil(visible.length / PER_PAGE));
+    const currentPage = Math.min(page, lastPage);
+    const pageItems = visible.slice(
+        (currentPage - 1) * PER_PAGE,
+        currentPage * PER_PAGE,
+    );
     const showSkeleton = isLoading && loans.length === 0;
+    const summary = describeListTools(tools, config);
+    const narrowed = isToolsNarrowed(tools);
+
+    const clearFilter = () =>
+        handleToolsChange({ ...tools, filterValue: 'all', search: '' });
 
     return (
         <SurfaceCard
             variant="default"
-            padding="md"
-            className="hidden flex-col gap-5 md:flex"
+            padding="none"
+            className="hidden overflow-hidden md:block"
         >
-            <SectionHeader
-                title="All loans"
-                description="Full loan list with pagination."
-                titleClassName="text-lg font-semibold"
-            />
+            <div className="border-b border-border px-[18px] py-4">
+                <SectionHeader
+                    title={
+                        <span className="inline-flex items-center gap-2 text-[16px]">
+                            <Table2
+                                aria-hidden="true"
+                                className="h-[18px] w-[18px] shrink-0 text-muted-foreground"
+                            />
+                            All loans
+                        </span>
+                    }
+                    description="Select a loan's details to open its payment records."
+                    titleClassName="text-lg font-semibold"
+                    className="sm:items-end"
+                    actionsClassName="w-full sm:w-auto sm:max-w-[480px] sm:flex-1"
+                    actions={
+                        <ListTools
+                            config={config}
+                            value={tools}
+                            onChange={handleToolsChange}
+                            filterKey="loans"
+                            searchClearAriaLabel="Clear loan search"
+                        />
+                    }
+                />
+            </div>
 
             {error ? (
-                <div className="flex flex-col items-center gap-2.5 px-4 py-10 text-center">
-                    <p className="text-base font-bold">Unable to load loans</p>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col items-center gap-2.5 px-[18px] py-10 text-center">
+                    <p className="text-[16px] font-bold text-card-foreground">
+                        Unable to load loans
+                    </p>
+                    <p className="text-[15px] text-muted-foreground">
                         Something went wrong while fetching your loan records.
                     </p>
                     {onRetry ? (
@@ -95,69 +183,157 @@ export function AllLoansTable({
                     ) : null}
                 </div>
             ) : (
-                <Table className="min-w-[640px]">
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead scope="col">Loan No</TableHead>
-                            <TableHead scope="col">Type</TableHead>
-                            <TableHead scope="col" className={NUMERIC_HEAD_CLASS}>
-                                Principal
-                            </TableHead>
-                            <TableHead scope="col" className={NUMERIC_HEAD_CLASS}>
-                                Balance
-                            </TableHead>
-                            <TableHead scope="col">Last payment</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {showSkeleton ? (
-                            <TableSkeletonRows rows={meta.perPage} />
-                        ) : loans.length === 0 ? (
+                <div className="overflow-x-auto">
+                    <Table className="min-w-[640px] text-[14.5px]">
+                        <TableHeader>
                             <TableRow>
-                                <TableCell
-                                    colSpan={5}
-                                    className="h-24 text-center text-sm text-muted-foreground"
+                                <TableHead
+                                    scope="col"
+                                    className="h-auto border-b border-border bg-transparent px-[14px] py-[10px] text-[12px] tracking-[0.06em]"
                                 >
-                                    Your loan records will be listed here.
-                                </TableCell>
+                                    Loan No
+                                </TableHead>
+                                <TableHead
+                                    scope="col"
+                                    className="h-auto border-b border-border bg-transparent px-[14px] py-[10px] text-[12px] tracking-[0.06em]"
+                                >
+                                    Type
+                                </TableHead>
+                                <TableHead
+                                    scope="col"
+                                    className="h-auto border-b border-border bg-transparent px-[14px] py-[10px] text-right text-[12px] tracking-[0.06em]"
+                                >
+                                    Principal
+                                </TableHead>
+                                <TableHead
+                                    scope="col"
+                                    className="h-auto border-b border-border bg-transparent px-[14px] py-[10px] text-right text-[12px] tracking-[0.06em]"
+                                >
+                                    Balance
+                                </TableHead>
+                                <TableHead
+                                    scope="col"
+                                    className="h-auto border-b border-border bg-transparent px-[14px] py-[10px] text-[12px] tracking-[0.06em]"
+                                >
+                                    Last payment
+                                </TableHead>
+                                <TableHead
+                                    scope="col"
+                                    className="h-auto border-b border-border bg-transparent px-[14px] py-[10px] text-right text-[12px] tracking-[0.06em]"
+                                >
+                                    <span className="sr-only">Actions</span>
+                                </TableHead>
                             </TableRow>
-                        ) : (
-                            loans.map((loan, index) => (
-                                <TableRow
-                                    key={`all-loans-${loan.lnnumber ?? index}`}
-                                >
-                                    <TableCell className="font-bold tabular-nums">
-                                        {String(loan.lnnumber ?? '--')}
-                                    </TableCell>
-                                    <TableCell>{loan.lntype ?? '--'}</TableCell>
-                                    <TableCell className={NUMERIC_CELL_CLASS}>
-                                        {formatCurrency(loan.principal)}
-                                    </TableCell>
-                                    <TableCell
-                                        className={`${NUMERIC_CELL_CLASS} font-bold`}
+                        </TableHeader>
+                        <TableBody>
+                            {showSkeleton ? (
+                                <TableSkeletonRows rows={PER_PAGE} />
+                            ) : visible.length === 0 ? null : (
+                                pageItems.map((loan, index) => (
+                                    <TableRow
+                                        key={`all-loans-${loan.lnnumber ?? index}`}
+                                        className="hover:bg-muted"
                                     >
-                                        {formatCurrency(loan.balance)}
-                                    </TableCell>
-                                    <TableCell className="tabular-nums">
-                                        {formatDate(loan.lastmove)}
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
+                                        <TableCell className="px-[14px] py-[12px] font-bold whitespace-nowrap tabular-nums">
+                                            {String(loan.lnnumber ?? '--')}
+                                        </TableCell>
+                                        <TableCell className="px-[14px] py-[12px] whitespace-nowrap">
+                                            {loan.lntype ?? '--'}
+                                        </TableCell>
+                                        <TableCell className="px-[14px] py-[12px] text-right whitespace-nowrap tabular-nums">
+                                            {formatCurrency(loan.principal)}
+                                        </TableCell>
+                                        <TableCell className="px-[14px] py-[12px] text-right font-bold whitespace-nowrap tabular-nums">
+                                            {formatCurrency(loan.balance)}
+                                        </TableCell>
+                                        <TableCell className="px-[14px] py-[12px] whitespace-nowrap tabular-nums">
+                                            {formatDate(loan.lastmove)}
+                                        </TableCell>
+                                        <TableCell className="px-[14px] py-[12px] text-right">
+                                            <div className="inline-flex flex-wrap justify-end gap-1.5">
+                                                <DetailsLink
+                                                    href={`/client/loans/${encodeURIComponent(String(loan.lnnumber ?? '').trim())}/payments`}
+                                                    label={`View details of loan ${loan.lnnumber ?? '--'}`}
+                                                />
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                    {!showSkeleton && visible.length === 0 ? (
+                        <div className="flex flex-col items-center gap-2.5 px-[18px] py-10 text-center">
+                            <p className="text-[16px] font-bold text-card-foreground">
+                                {narrowed
+                                    ? 'No matching loans.'
+                                    : 'No loans found.'}
+                            </p>
+                            <p className="text-[15px] text-muted-foreground">
+                                {narrowed
+                                    ? `Nothing matches ${summary}. Try widening the search or filter.`
+                                    : 'Your loan records will be listed here.'}
+                            </p>
+                            {narrowed ? (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={clearFilter}
+                                >
+                                    Clear filter
+                                </Button>
+                            ) : null}
+                        </div>
+                    ) : null}
+                </div>
             )}
 
-            {showSkeleton ? (
-                <DataTablePaginationSkeleton />
-            ) : (
-                <DataTablePagination
-                    page={meta.page}
-                    perPage={meta.perPage}
-                    total={meta.total}
-                    onPageChange={onPageChange}
-                />
+            {error ? null : (
+                <div className="border-t border-border px-[18px] py-[14px]">
+                    <ListPager
+                        page={currentPage}
+                        perPage={PER_PAGE}
+                        total={visible.length}
+                        noun="loans"
+                        summary={summary}
+                        paginationLabel="Loans pagination"
+                        onPageChange={setPage}
+                        statusOverride={
+                            showSkeleton ? 'Loading loans…' : undefined
+                        }
+                    />
+                </div>
             )}
         </SurfaceCard>
+    );
+}
+
+function TableSkeletonRows({ rows }: { rows: number }) {
+    return (
+        <>
+            {Array.from({ length: Math.min(rows, 10) }).map((_, index) => (
+                <TableRow key={`all-loans-skeleton-${index}`}>
+                    <TableCell>
+                        <Skeleton className="h-4 w-28" />
+                    </TableCell>
+                    <TableCell>
+                        <Skeleton className="h-4 w-36" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <Skeleton className="ml-auto h-4 w-24" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <Skeleton className="ml-auto h-4 w-24" />
+                    </TableCell>
+                    <TableCell>
+                        <Skeleton className="h-4 w-28" />
+                    </TableCell>
+                    <TableCell>
+                        <Skeleton className="h-4 w-16" />
+                    </TableCell>
+                </TableRow>
+            ))}
+        </>
     );
 }

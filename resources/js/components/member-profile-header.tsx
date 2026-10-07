@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { SurfaceCard } from '@/components/surface-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 type MemberProfileHeaderProps = {
@@ -22,8 +21,8 @@ export function MemberProfileHeader({
     statusBadge,
 }: MemberProfileHeaderProps) {
     return (
-        <SurfaceCard variant="hero" padding="lg">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <section>
+            <div className="flex flex-wrap items-start gap-5">
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                         <Avatar className="size-16 ring-1 ring-border/60">
@@ -35,7 +34,7 @@ export function MemberProfileHeader({
                         </Avatar>
                         <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
-                                <h1 className="text-[2rem] leading-tight font-bold tracking-tight">
+                                <h1 className="text-[22px] leading-tight font-bold sm:text-[26px]">
                                     {name}
                                 </h1>
                                 {statusBadge ? (
@@ -54,11 +53,11 @@ export function MemberProfileHeader({
                     ) : null}
                 </div>
                 {accessory ? (
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
                         {accessory}
                     </div>
                 ) : null}
             </div>
-        </SurfaceCard>
+        </section>
     );
 }

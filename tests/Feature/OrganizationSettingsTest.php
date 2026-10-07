@@ -40,6 +40,9 @@ test('branding falls back to defaults when no settings exist', function () {
     expect($branding['supportEmail'])->toBeNull();
     expect($branding['supportPhone'])->toBeNull();
     expect($branding['supportContactName'])->toBeNull();
+    expect($branding['businessTin'])->toBeNull();
+    expect($branding['general']['registrationNo'])->toBeNull();
+    expect($branding['general']['paymentInstructions'])->toBeNull();
     expect($branding['reportHeader']['designPath'])->toBeNull();
     expect($branding['reportHeader']['designUrl'])->toBeNull();
     expect($branding['reportHeader']['designData'])->toBeNull();
@@ -175,6 +178,24 @@ test('branding composes business address cleanly when some parts are missing', f
     expect($branding['businessAddress'])->not->toContain(',,');
     expect($branding['general']['businessAddress'])
         ->toBe('Lianga, Surigao del Sur');
+});
+
+test('branding includes barangay in the business address and exposes zip', function () {
+    OrganizationSetting::factory()->create([
+        'business_address' => null,
+        'business_address1' => 'Rizal St.',
+        'business_address_barangay' => 'Poblacion',
+        'business_address2' => 'Lianga',
+        'business_address3' => 'Surigao del Sur',
+        'business_address_zip' => '8307',
+    ]);
+
+    $branding = app(OrganizationSettingsService::class)->branding();
+
+    expect($branding['businessAddress'])
+        ->toBe('Rizal St., Poblacion, Lianga, Surigao del Sur');
+    expect($branding['general']['businessAddressBarangay'])->toBe('Poblacion');
+    expect($branding['general']['businessAddressZip'])->toBe('8307');
 });
 
 test('loan sms templates fall back to defaults when blank', function () {

@@ -193,7 +193,7 @@ function setUpLumpsumMember(string $acctno): User
     return $user;
 }
 
-test('member cannot submit a 1-month Lumpsum Other Loan request without insurance or health data', function () {
+test('member can submit a 1-month Lumpsum Other Loan request without insurance or health data', function () {
     Storage::fake('public');
 
     $user = setUpLumpsumMember('000801');
@@ -227,14 +227,14 @@ test('member cannot submit a 1-month Lumpsum Other Loan request without insuranc
         ->actingAs($user)
         ->post(route('client.loan-requests.store'), $payload);
 
-    $response->assertSessionHasErrors([
+    $response->assertSessionDoesntHaveErrors([
         'insurance.beneficiary_primary_name',
+        'health.health_smoking_status',
     ]);
-    $response->assertSessionDoesntHaveErrors(['health.health_smoking_status']);
-    expect(LoanRequest::query()->count())->toBe(0);
+    expect(LoanRequest::query()->count())->toBe(1);
 });
 
-test('member cannot submit a 1-month Lumpsum Other Loan request with null insurance and health data', function () {
+test('member can submit a 1-month Lumpsum Other Loan request with null insurance and health data', function () {
     Storage::fake('public');
 
     $user = setUpLumpsumMember('000806');
@@ -278,11 +278,11 @@ test('member cannot submit a 1-month Lumpsum Other Loan request with null insura
         ->actingAs($user)
         ->post(route('client.loan-requests.store'), $payload);
 
-    $response->assertSessionHasErrors([
+    $response->assertSessionDoesntHaveErrors([
         'insurance.beneficiary_primary_name',
+        'health.health_smoking_status',
     ]);
-    $response->assertSessionDoesntHaveErrors(['health.health_smoking_status']);
-    expect(LoanRequest::query()->count())->toBe(0);
+    expect(LoanRequest::query()->count())->toBe(1);
 });
 
 test('member can submit a 1-month Lumpsum Other Loan request when insurance and health data is provided', function () {
@@ -325,7 +325,7 @@ test('member can submit a 1-month Lumpsum Other Loan request when insurance and 
     expect($loanRequest->requested_term)->toBe(1);
 });
 
-test('member requesting 2-month Lumpsum still requires insurance and health data', function () {
+test('member requesting 2-month Lumpsum can submit with insurance and health data blank', function () {
     Storage::fake('public');
 
     $user = setUpLumpsumMember('000802');
@@ -340,6 +340,7 @@ test('member requesting 2-month Lumpsum still requires insurance and health data
         'requested_amount' => 15000,
         'requested_term' => 2,
         'loan_purpose' => 'Emergency expenses',
+        'other_loan_type_name' => 'Emergency Loan',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
         'requested_payment_frequency' => 'Due date',
@@ -357,11 +358,11 @@ test('member requesting 2-month Lumpsum still requires insurance and health data
         ->actingAs($user)
         ->post(route('client.loan-requests.store'), $payload);
 
-    $response->assertSessionHasErrors([
+    $response->assertSessionDoesntHaveErrors([
         'insurance.beneficiary_primary_name',
+        'health.health_smoking_status',
     ]);
-    $response->assertSessionDoesntHaveErrors(['health.health_smoking_status']);
-    expect(LoanRequest::query()->count())->toBe(0);
+    expect(LoanRequest::query()->count())->toBe(1);
 });
 
 test('member can request Due date for any loan type (no type restriction)', function () {
@@ -400,7 +401,7 @@ test('member can request Due date for any loan type (no type restriction)', func
     expect($loanRequest->requested_payment_frequency)->toBe('Due date');
 });
 
-test('member requesting a 2-month Emergency loan still requires insurance and health data', function () {
+test('member requesting a 2-month Emergency loan can submit with insurance and health data blank', function () {
     Storage::fake('public');
 
     $user = setUpLumpsumMember('000806');
@@ -433,11 +434,11 @@ test('member requesting a 2-month Emergency loan still requires insurance and he
         ->actingAs($user)
         ->post(route('client.loan-requests.store'), $payload);
 
-    $response->assertSessionHasErrors([
+    $response->assertSessionDoesntHaveErrors([
         'insurance.beneficiary_primary_name',
+        'health.health_smoking_status',
     ]);
-    $response->assertSessionDoesntHaveErrors(['health.health_smoking_status']);
-    expect(LoanRequest::query()->count())->toBe(0);
+    expect(LoanRequest::query()->count())->toBe(1);
 });
 
 test('staff can approve a recommended term of 2+ months with no insurance/health data on file', function () {

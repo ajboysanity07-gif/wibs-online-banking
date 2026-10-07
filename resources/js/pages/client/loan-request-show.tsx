@@ -39,6 +39,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useApprovedDocumentPackageDownload } from '@/hooks/loan-request/use-approved-document-package-download';
 import { useCancelMemberLoanRequest } from '@/hooks/use-cancel-member-loan-request';
 import { useResolveMemberLoanRequestAction } from '@/hooks/use-resolve-member-loan-request-action';
@@ -766,7 +767,7 @@ export default function LoanRequestShow({
                                                                 ) : field.key.includes(
                                                                       'notes',
                                                                   ) ? (
-                                                                    <textarea
+                                                                    <Textarea
                                                                         id={`member_action_${field.key}`}
                                                                         className={
                                                                             textareaClassName
@@ -933,7 +934,7 @@ export default function LoanRequestShow({
                                             <Label htmlFor="member_action_reason">
                                                 Optional note
                                             </Label>
-                                            <textarea
+                                            <Textarea
                                                 id="member_action_reason"
                                                 className={textareaClassName}
                                                 maxLength={1000}
@@ -1112,7 +1113,7 @@ export default function LoanRequestShow({
                             <Label htmlFor="issue_description">
                                 What information is wrong?
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="issue_description"
                                 className="flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                 maxLength={2000}
@@ -1135,7 +1136,7 @@ export default function LoanRequestShow({
                             <Label htmlFor="correct_information">
                                 Correct information
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="correct_information"
                                 className="flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                 maxLength={2000}
@@ -1158,7 +1159,7 @@ export default function LoanRequestShow({
                             <Label htmlFor="supporting_note">
                                 Supporting note or proof
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="supporting_note"
                                 className="flex min-h-[96px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                 maxLength={2000}

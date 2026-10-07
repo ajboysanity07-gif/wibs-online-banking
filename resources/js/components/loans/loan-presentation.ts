@@ -10,7 +10,9 @@ const toIsoDate = (value: string | null): string | null => {
 
     const parsed = new Date(value);
 
-    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
+    return Number.isNaN(parsed.getTime())
+        ? null
+        : parsed.toISOString().slice(0, 10);
 };
 
 export const todayIso = (): string => new Date().toISOString().slice(0, 10);
@@ -135,12 +137,15 @@ export const loanTypeLabel = (loanType: string | null): string =>
 export const paymentLoanLabel = (
     payment: Pick<MemberRecentLoanPayment, 'lnnumber' | 'lntype'>,
 ): string => {
-    const number = payment.lnnumber && payment.lnnumber !== '' ? payment.lnnumber : '--';
+    const number =
+        payment.lnnumber && payment.lnnumber !== '' ? payment.lnnumber : '--';
 
     return `${number} · ${loanTypeLabel(payment.lntype)}`;
 };
 
-export const formatLoanNumber = (loanNumber: string | number | null): string => {
+export const formatLoanNumber = (
+    loanNumber: string | number | null,
+): string => {
     if (loanNumber === null || loanNumber === undefined) {
         return '--';
     }
@@ -155,3 +160,79 @@ export const outstandingBalance = (loans: readonly MemberLoan[]): number =>
 
 export const currencyOrDash = (value: number | null | undefined): string =>
     value === null || value === undefined ? '—' : formatCurrency(value);
+
+/** 'YYYY-MM' → 'September 2026'; passes anything else through untouched. */ export const formatMonthLabel =
+    (month: string): string => {
+        const match = /^(\d{4})-(\d{2})$/.exec(month.trim());
+
+        if (!match) {
+            return month;
+        }
+
+        const date = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+        });
+    };
+
+/** Monthly interest rate label ('2.5% per month'); dash when unknown. */
+export const formatRateLabel = (rate: number | null | undefined): string => {
+    if (rate === null || rate === undefined || Number.isNaN(rate)) {
+        return '—';
+    }
+
+    const trimmed = String(Math.round(rate * 100) / 100);
+
+    return `${trimmed}% per month`;
+};
+
+/** Compact monthly rate for loan-card figs ('2.5%/mo'); dash when unknown. */
+export const formatRateShort = (rate: number | null | undefined): string => {
+    if (rate === null || rate === undefined || Number.isNaN(rate)) {
+        return '—';
+    }
+
+    const trimmed = String(Math.round(rate * 100) / 100);
+
+    return `${trimmed}%/mo`;
+};
+
+/**
+ * Loan term in months. Prefers the core-banking term when it looks like a
+ * month count; the legacy column sometimes holds days, so absurd values are
+ * ignored rather than displayed.
+ */
+export const loanTermMonths = (
+    loan: Pick<MemberLoan, 'termMonths'>,
+): number | null => {
+    const term = loan.termMonths ?? null;
+
+    if (term === null || !Number.isInteger(term) || term < 1 || term > 360) {
+        return null;
+    }
+
+    return term;
+};
+
+/**
+ * Installments left: ceil(balance / monthlyDue) capped by the term, or 0
+ * without a monthly due — mirrors the reference card math.
+ */
+export const loanPaymentsLeft = (
+    loan: Pick<MemberLoan, 'balance' | 'monthlyDue' | 'termMonths'>,
+): number => {
+    const monthlyDue = loan.monthlyDue ?? 0;
+
+    if (!isLoanActive(loan) || monthlyDue <= 0) {
+        return 0;
+    }
+
+    const remaining = Math.ceil((loan.balance ?? 0) / monthlyDue);
+    const term = loanTermMonths(loan);
+
+    return term === null
+        ? Math.max(0, remaining)
+        : Math.min(term, Math.max(0, remaining));
+};

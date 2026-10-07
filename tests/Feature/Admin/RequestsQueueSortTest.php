@@ -74,6 +74,33 @@ test('admin requests queue sorts by amount descending', function () {
         ->assertJsonPath('data.items.1.id', $small->id);
 });
 
+test('admin requests queue sorts by reference in both directions', function () {
+    $actor = createRequestsQueueSortActor();
+
+    $first = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+    $second = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($actor)
+        ->get('/spa/admin/requests?sortBy=reference&sortDirection=asc&perPage=10&page=1')
+        ->assertOk()
+        ->assertJsonPath('data.items.0.id', $first->id)
+        ->assertJsonPath('data.items.1.id', $second->id);
+
+    $this
+        ->actingAs($actor)
+        ->get('/spa/admin/requests?sortBy=reference&sortDirection=desc&perPage=10&page=1')
+        ->assertOk()
+        ->assertJsonPath('data.items.0.id', $second->id)
+        ->assertJsonPath('data.items.1.id', $first->id);
+});
+
 test('admin requests queue reports the most recent audit trail entry as last_activity_at', function () {
     $actor = createRequestsQueueSortActor();
 

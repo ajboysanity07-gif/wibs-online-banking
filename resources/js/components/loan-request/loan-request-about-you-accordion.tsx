@@ -1,5 +1,6 @@
 import { Briefcase, ChevronDown, MapPin, User } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     composeAddress,
     composeBirthplace,
@@ -159,11 +160,11 @@ export function LoanRequestAboutYouAccordion({ values }: Props) {
                         key={group.id}
                         className={cn(index > 0 && 'border-t border-border')}
                     >
-                        <button
+                        <Button variant="ghost"
                             type="button"
                             onClick={() => toggle(group.id)}
                             aria-expanded={isOpen}
-                            className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+                            className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal hover:bg-transparent hover:text-current flex w-full items-center gap-3 px-5 has-[>svg]:px-5 py-4 text-left transition-colors hover:bg-muted"
                         >
                             <group.icon
                                 aria-hidden="true"
@@ -184,7 +185,7 @@ export function LoanRequestAboutYouAccordion({ values }: Props) {
                                     isOpen && 'rotate-180',
                                 )}
                             />
-                        </button>
+                        </Button>
                         {isOpen ? (
                             <div className="border-t border-border px-5 py-5">
                                 <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">

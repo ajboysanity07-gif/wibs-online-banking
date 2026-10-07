@@ -84,6 +84,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import { useApprovedDocumentPackageDownload } from '@/hooks/loan-request/use-approved-document-package-download';
 import AppLayout from '@/layouts/app-layout';
@@ -1773,7 +1774,7 @@ export default function StaffLoanRequestShow({
                                                 <Label htmlFor="loan_info_reason">
                                                     Reason for correction
                                                 </Label>
-                                                <textarea
+                                                <Textarea
                                                     id="loan_info_reason"
                                                     className={
                                                         textareaClassName
@@ -1948,7 +1949,7 @@ export default function StaffLoanRequestShow({
                                                 <Label htmlFor="applicant_reason">
                                                     Reason for correction
                                                 </Label>
-                                                <textarea
+                                                <Textarea
                                                     id="applicant_reason"
                                                     className={
                                                         textareaClassName
@@ -2071,7 +2072,7 @@ export default function StaffLoanRequestShow({
                                             <Label htmlFor="co_maker_reason">
                                                 Reason for correction
                                             </Label>
-                                            <textarea
+                                            <Textarea
                                                 id="co_maker_reason"
                                                 className={textareaClassName}
                                                 required
@@ -2551,7 +2552,7 @@ export default function StaffLoanRequestShow({
                             <Label htmlFor="member_action_message">
                                 Member-visible message
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="member_action_message"
                                 className={textareaClassName}
                                 required
@@ -2565,7 +2566,7 @@ export default function StaffLoanRequestShow({
                             <Label htmlFor="member_action_reason">
                                 Internal reason
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="member_action_reason"
                                 className={cn(
                                     textareaClassName,
@@ -2644,11 +2645,11 @@ export default function StaffLoanRequestShow({
                                                     <div className="grid gap-3 md:grid-cols-2">
                                                         {group.items.map(
                                                             (item) => (
-                                                                <label
+                                                                <Label
                                                                     key={
                                                                         item.fieldKey
                                                                     }
-                                                                    className="flex items-start gap-3 rounded-lg border border-border bg-muted/10 p-3 text-sm"
+                                                                    className="flex items-start gap-3 rounded-lg border border-border bg-muted/10 p-3 text-sm leading-snug"
                                                                 >
                                                                     <Checkbox
                                                                         checked={selectedMemberFields.includes(
@@ -2684,7 +2685,7 @@ export default function StaffLoanRequestShow({
                                                                                 .label
                                                                         }
                                                                     </span>
-                                                                </label>
+                                                                </Label>
                                                             ),
                                                         )}
                                                     </div>

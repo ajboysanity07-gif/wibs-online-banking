@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\OrganizationSettingUpdateRequest;
+use App\Models\AppUser;
 use App\Models\OrganizationSetting;
 use App\Notifications\OrganizationSettingsUpdatedNotification;
 use App\Services\Notifications\NotificationRecipientService;
@@ -27,7 +28,19 @@ class OrganizationSettingsController extends Controller
      */
     public function index(): Response
     {
-        return Inertia::render('admin/organization-settings');
+        $setting = OrganizationSetting::query()->first();
+        $editor = $setting?->updated_by !== null
+            ? AppUser::query()->find($setting->updated_by)
+            : null;
+
+        return Inertia::render('admin/organization-settings', [
+            'lastSaved' => $setting?->updated_by !== null
+                ? [
+                    'at' => $setting->updated_at?->toIso8601String(),
+                    'by' => $editor?->username,
+                ]
+                : null,
+        ]);
     }
 
     /**
@@ -52,13 +65,28 @@ class OrganizationSettingsController extends Controller
             'business_address1',
             'business_address2',
             'business_address3',
+            'business_address_barangay',
+            'business_address_zip',
             'portal_label',
             'logo_preset',
             'support_email',
             'support_phone',
             'support_contact_name',
+            'business_tin',
+            'registration_no',
+            'payment_instructions',
             'brand_primary_color',
             'brand_accent_color',
+            'brand_palette',
+            'short_name',
+            'timezone',
+            'statement_currency',
+            'report_footer',
+            'report_footer_enabled',
+            'service_hours',
+            'loan_sms_approved_enabled',
+            'loan_sms_declined_enabled',
+            'sms_send_window',
             'loan_sms_approved_template',
             'loan_sms_declined_template',
             'report_label_font_color',
@@ -156,6 +184,10 @@ class OrganizationSettingsController extends Controller
         if ($payload !== []) {
             $setting->fill($payload);
             $changedFields = array_keys($setting->getDirty());
+
+            if ($changedFields !== []) {
+                $setting->updated_by = $request->user()?->getKey();
+            }
 
             if ($changedFields !== []) {
                 $setting->save();

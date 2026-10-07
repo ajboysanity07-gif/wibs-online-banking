@@ -1288,9 +1288,9 @@ export function ProcessingDetailsPanel({
 
         if (field.type === 'boolean') {
             return (
-                <label
+                <Label
                     key={fieldKey}
-                    className="col-span-full flex items-start gap-3 rounded-lg border border-border bg-muted/10 p-3 text-sm"
+                    className="col-span-full flex items-start gap-3 rounded-lg border border-border bg-muted/10 p-3 text-sm leading-snug"
                 >
                     <Checkbox
                         checked={processingForm.processing[fieldKey] === true}
@@ -1302,7 +1302,7 @@ export function ProcessingDetailsPanel({
                         }
                     />
                     <span>{field.label}</span>
-                </label>
+                </Label>
             );
         }
 
@@ -2255,9 +2255,9 @@ export function ProcessingDetailsPanel({
                             ?.saved_contact &&
                             `${processingForm.processing.authority_to_deduct_officer_1_name ?? ''}`.trim() ===
                                 '' && (
-                                <button
+                                <Button variant="link"
                                     type="button"
-                                    className="col-span-full min-h-11 text-left text-sm text-primary hover:underline lg:min-h-0"
+                                    className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal col-span-full min-h-11 text-left text-sm text-primary hover:underline lg:min-h-0"
                                     onClick={() => {
                                         const savedContact =
                                             loanRequest
@@ -2307,9 +2307,9 @@ export function ProcessingDetailsPanel({
                                     }}
                                 >
                                     Use saved officer(s) for this institution
-                                </button>
+                                </Button>
                             )}
-                        <label className="col-span-full flex items-start gap-3 rounded-lg border border-border bg-muted/10 p-3 text-sm">
+                        <Label className="col-span-full flex items-start gap-3 rounded-lg border border-border bg-muted/10 p-3 text-sm leading-snug">
                             <Checkbox
                                 checked={officersUnknown}
                                 onCheckedChange={(checked) => {
@@ -2341,7 +2341,7 @@ export function ProcessingDetailsPanel({
                                 I don&apos;t know the officer information yet —
                                 leave these fields blank
                             </span>
-                        </label>
+                        </Label>
                         {renderProcessingField(
                             'authority_to_deduct_officer_1_name',
                             {
@@ -2397,13 +2397,13 @@ export function ProcessingDetailsPanel({
                         ) : (
                             !officersUnknown &&
                             fixedOfficerTitles.length === 0 && (
-                                <button
+                                <Button variant="link"
                                     type="button"
-                                    className="col-span-full min-h-11 text-left text-sm text-primary hover:underline lg:min-h-0"
+                                    className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal col-span-full min-h-11 text-left text-sm text-primary hover:underline lg:min-h-0"
                                     onClick={() => setShowSecondOfficer(true)}
                                 >
                                     + Add second officer
-                                </button>
+                                </Button>
                             )
                         )}
                     </div>
@@ -2862,13 +2862,13 @@ export function ProcessingDetailsPanel({
                                 }
                             />
                             {onDismissSaveError && (
-                                <button
+                                <Button variant="ghost"
                                     type="button"
-                                    className="text-xs text-muted-foreground hover:underline"
+                                    className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal hover:bg-transparent hover:text-current text-xs text-muted-foreground hover:underline"
                                     onClick={onDismissSaveError}
                                 >
                                     Dismiss
-                                </button>
+                                </Button>
                             )}
                         </div>
                     )}

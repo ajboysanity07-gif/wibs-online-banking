@@ -246,13 +246,13 @@
                 {{-- The amortization amount stays blank for hand-fill; it is not system-printed. --}}
                 Pesos: {!! $renderValue(null, '16em') !!} ({!! $renderValue(null, '8em') !!}),
                 starting {!! $renderValue($deductionStartDate, '9em') !!} and every quincena/month thereafter until my
-                loan obligation with MICRO-FINANCE FOR RURAL DEVELOPMENT INC. shall have been paid in full.
+                loan obligation with MICROFINANCE FOR RURAL DEVELOPMENT INC. shall have been paid in full.
             </p>
 
             <p class="paragraph">
                 He/She is further authorized, that in the event of my separation from the service, to
                 deduct from my separation benefits, any and all amounts corresponding to my outstanding obligations
-                with Micro-Finance for Rural Development Inc.
+                with Microfinance for Rural Development Inc.
             </p>
 
             <table class="signature-layout">

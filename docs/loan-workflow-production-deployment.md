@@ -364,3 +364,30 @@ The following checked-in template gaps remain intentionally blocked until an upd
 - Loan Security Agreement narrative placement for `loan_security_details`
 
 These fields are stored and audited where appropriate, but they are not rendered into generated output without a verified official location.
+
+## Production Environment Hardening
+
+Set these in the deployment `.env` (never commit it). Values differ per host, so verify each one:
+
+| Key | Production value |
+|---|---|
+| `APP_ENV` / `APP_DEBUG` | `production` / `false` |
+| `SESSION_SECURE_COOKIE` | `true` (HTTPS only) |
+| `SESSION_ENCRYPT` | `true` |
+| `SESSION_DRIVER` / `CACHE_STORE` | `redis` (the compose stack already runs Redis) |
+| `TRUSTED_PROXIES` | comma-separated proxy IPs/CIDRs; defaults to `*` when unset |
+| `LOG_STACK` / `LOG_LEVEL` | `daily` / `warning` |
+| `SENTRY_LARAVEL_DSN` | project DSN; leave empty to disable error tracking |
+| `SENTRY_TRACES_SAMPLE_RATE` | `0` unless performance tracing is wanted |
+
+Security headers (CSP, HSTS over HTTPS, X-Frame-Options) come from `App\Http\Middleware\SecurityHeaders`. If a new third-party origin is needed (scripts, fonts, images, API calls), add it to the CSP there.
+
+## Automated Backups
+
+`spatie/laravel-backup` runs from the scheduler (`routes/console.php`): `backup:run` 01:30, `backup:clean` 02:00, `backup:monitor` 08:00. Each archive holds `storage/app/private` (generated documents) only. The database is not dumped: production runs SQL Server, which `spatie/laravel-backup` cannot dump, and the client backs it up daily on their side. Code and `.env` are not included.
+
+- Archives land on the local `backups` disk (`storage/app/backups`). That is on the same host, so also set `BACKUP_DISKS=backups,<offhost-disk>` (s3/sftp, defined in `config/filesystems.php`) for real recovery.
+- Set `BACKUP_ARCHIVE_PASSWORD` (archives contain member data) and `BACKUP_NOTIFY_EMAIL` for failure alerts.
+- The scheduler must run in production (compose `scheduler` service, or on shared hosting a cron: `* * * * * php /path/artisan schedule:run`).
+- Retention follows `config/backup.php` (`cleanup`); adjust before relying on it.
+- Restore drill: unzip the archive, restore the database from the client's backup into staging, copy the documents back, then run `loan-workflow:deployment-check`.

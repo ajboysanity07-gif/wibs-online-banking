@@ -129,11 +129,12 @@ it('prints the officer position after the name and uses the corrected wording', 
     $html = view('reports.authority-to-deduct', $viewData)->render();
 
     expect($html)->toContain('<span class="agreement-fill">Cristy S. Samarah</span>, Administrative 1/Cashier, to deduct');
-    expect($html)->toContain('MICRO-FINANCE FOR RURAL DEVELOPMENT INC.');
-    expect($html)->toContain('with Micro-Finance for Rural Development Inc.');
+    expect($html)->toContain('MICROFINANCE FOR RURAL DEVELOPMENT INC.');
+    expect($html)->toContain('with Microfinance for Rural Development Inc.');
     expect($html)->toContain('He/She is further authorized');
     expect($html)->not->toContain('Said representative');
     expect($html)->not->toContain('Micro Finance');
+    expect($html)->not->toContain('Micro-Finance');
 });
 
 it('renders blank underline fields instead of institution text when not filled in', function () {

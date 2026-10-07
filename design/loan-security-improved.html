@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head><script type="application/json" data-od-external-dependencies>["https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap"]</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loan Security · MRDINC Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio.
+   Put this @layer first; product CSS outside the layer always wins. */
+@layer od-layout {
+  :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+
+  /* containers */
+  .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+  .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+  .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+  .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+  .od-fill    { flex: 1 1 0; min-width: 0; }
+  .od-fixed   { flex: none; }
+  .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+
+  /* stacked information: each piece is its own line — never sibling inline spans */
+  .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+  :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+  .od-tile { display: grid; grid-template-rows: auto 1fr; }
+  :where(.od-tile) > :where(*) { display: block; }
+
+  /* media keeps its intrinsic ratio by default; never a distorted or cropped
+     cover by accident. height:auto lets the ratio win over an <img height="…">
+     attribute. Cropping to a uniform box is an explicit opt-in: set --od-ratio
+     AND add .od-media-cover together (per the core rule, only where a crop is
+     deliberate — tile thumbs, decorative fills — never on full-frame content). */
+  .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+  .od-media-cover { object-fit: cover; }
+
+  /* data text only — authored copy is rewritten to its budget instead */
+  .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .od-clamp-2 { -webkit-line-clamp: 2; }
+  .od-clamp-3 { -webkit-line-clamp: 3; }
+  .od-lines-2 { min-height: calc(2 * 1.4em); }   /* block-level reservation for a shared baseline */
+  .od-nowrap  { white-space: nowrap; }           /* 数字+单位 · 价格+起 · 日期+星期 */
+  .od-keep    { word-break: keep-all; overflow-wrap: anywhere; } /* CJK labels break at spaces / <wbr> first */
+
+  /* screen skeleton (optional): bars take their own space, the middle scrolls — no padding guessed for chrome */
+  .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+  .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+
+  /* horizontal rail: the next item peeks at the edge; trailing room survives overflow */
+  .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+             padding-inline: var(--od-rail-pad, 16px); scroll-padding-inline: var(--od-rail-pad, 16px); }
+  .od-rail::-webkit-scrollbar { display: none; }
+  :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+  :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+
+  .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+  .od-touch  { min-width: 44px; min-height: 44px; }
+}
+/* /OD-LAYOUT-PRIMITIVES v1 */
+
+/* ============ WIBS tokens ============ */
+:root, [data-theme="light"] {
+    --bg: #dfe7cb;
+    --primary: #176433;
+    --primary-fg: #ffffff;
+    --accent: #9abd53;
+    --accent-fg: #10301c;
+    --card: #ffffff;
+    --tile: #eef3de;
+    --tint: #d3e6a6;
+    --tint-fg: #0f4123;
+    --tint-border: #b9d488;
+    --ink: #14170f;
+    --muted: #4a4f3f;
+    --border: #b7c399;
+    --sidebar: #176433;
+    --sidebar-ink: #eaf3dd;
+    --sidebar-active: rgba(255, 255, 255, 0.14);
+    --track: rgba(0, 0, 0, 0.15);
+    --focus: #176433;
+    --danger: #a4261e;
+    --danger-tint: #f8dedc;
+    --danger-fg: #7a1b15;
+    --shadow: 0 1px 2px rgba(20, 23, 15, 0.06), 0 4px 14px rgba(20, 23, 15, 0.06);
+}
+[data-theme="dark"] {
+    --bg: #1a1916;
+    --primary: #c2d65a;
+    --primary-fg: #1a1a0a;
+    --accent: #c2d65a;
+    --accent-fg: #1a1a0a;
+    --card: #242320;
+    --tile: #1f1e1b;
+    --tint: #3a4a1c;
+    --tint-fg: #e4efb0;
+    --tint-border: #4a5a2c;
+    --ink: #f5f3ec;
+    --muted: #bdb8aa;
+    --border: #3a3832;
+    --sidebar: #12110f;
+    --sidebar-ink: #d9d6c9;
+    --sidebar-active: rgba(194, 214, 90, 0.16);
+    --track: rgba(255, 255, 255, 0.2);
+    --focus: #c2d65a;
+    --danger: #f2b8b5;
+    --danger-tint: #3a2422;
+    --danger-fg: #f2b8b5;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+    margin: 0;
+    font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.5;
+}
+h1, h2, h3, p { margin: 0; }
+a { color: inherit; }
+button { font: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+svg { display: block; }
+.sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.skip-link {
+    position: absolute; left: 12px; top: -60px; z-index: 100;
+    background: var(--card); color: var(--ink); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: 600;
+    text-decoration: none; transition: top 150ms ease-out;
+}
+.skip-link:focus { top: 12px; }
+
+/* ============ Shell ============ */
+.shell { display: flex; min-height: 100vh; }
+.sidebar {
+    position: fixed; inset: 0 auto 0 0; z-index: 50;
+    width: 248px; background: var(--sidebar); color: var(--sidebar-ink);
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 20px 14px; overflow-y: auto;
+    transform: translateX(0); transition: transform 200ms ease-out;
+}
+.sidebar__head { display: flex; align-items: center; gap: 10px; padding: 6px 10px 18px; }
+.brand {
+    display: flex; align-items: center; gap: 10px; min-width: 0;
+    font-weight: 700; font-size: 17px; letter-spacing: 0.01em;
+}
+.brand__mark {
+    width: 34px; height: 34px; border-radius: 8px; flex: none;
+    background: var(--accent); color: var(--accent-fg);
+    display: grid; place-items: center; font-size: 14px; font-weight: 700;
+}
+.sidebar__close { margin-left: auto; flex: none; display: none; }
+.sidebar__close.icon-btn {
+    background: transparent; color: var(--sidebar-ink); border-color: rgba(255, 255, 255, 0.28);
+}
+.sidebar__close.icon-btn:hover { background: var(--sidebar-active); }
+.nav-label {
+    padding: 10px 10px 4px; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.7;
+}
+.nav-item {
+    display: flex; align-items: center; gap: 10px;
+    min-height: 44px; padding: 8px 10px; border-radius: 8px;
+    color: inherit; text-decoration: none; font-size: 14.5px; font-weight: 500;
+}
+.nav-item:hover { background: var(--sidebar-active); }
+.nav-item[aria-current="page"] {
+    background: var(--sidebar-active); font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+.sidebar__foot {
+    margin-top: auto; padding: 12px 10px 4px; font-size: 12.5px; opacity: 0.75;
+    display: flex; align-items: center; gap: 8px;
+}
+.scrim {
+    position: fixed; inset: 0; z-index: 45; background: rgba(10, 12, 8, 0.5);
+    border: 0; width: 100%; cursor: pointer;
+}
+.scrim[hidden] { display: none; }
+.main { flex: 1; min-width: 0; margin-left: 248px; display: flex; flex-direction: column; }
+.topbar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; gap: 12px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px; min-height: 56px;
+}
+.icon-btn {
+    display: grid; place-items: center; flex: none;
+    width: 44px; height: 44px; border-radius: 8px; cursor: pointer;
+    background: var(--card); color: var(--ink); border: 1px solid var(--border);
+}
+.icon-btn:hover { background: var(--tile); }
+.menu-btn { display: none; }
+.breadcrumb {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    font-size: 13.5px; color: var(--muted); min-width: 0;
+}
+.breadcrumb a { text-decoration: none; font-weight: 500; }
+.breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb [aria-current="page"] { color: var(--ink); font-weight: 600; }
+.pill {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    background: var(--tint); color: var(--tint-fg); border: 1px solid var(--tint-border);
+    white-space: nowrap;
+}
+.topbar__actions { display: flex; align-items: center; gap: 8px; }
+.icon-btn[aria-pressed="true"] { background: var(--tint); border-color: var(--tint-border); color: var(--tint-fg); }
+.content {
+    padding: 24px; display: flex; flex-direction: column; gap: 20px;
+    width: 100%; max-width: 1240px; margin: 0 auto;
+}
+
+/* ============ Page header ============ */
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
+.page-head__text { min-width: 0; flex: 1 1 320px; }
+.page-title { font-size: clamp(24px, 3vw, 30px); font-weight: 700; letter-spacing: -0.01em; }
+.page-sub { color: var(--muted); font-size: 15px; margin-top: 4px; }
+.meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.meta-row__label { font-size: 13px; color: var(--muted); }
+.badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    background: var(--card); border: 1px solid var(--border); color: var(--ink);
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 8px 16px; border-radius: 8px;
+    font-size: 14.5px; font-weight: 600; cursor: pointer; text-decoration: none;
+    border: 1px solid var(--border); background: var(--card); color: var(--ink);
+}
+.btn:hover { background: var(--tile); border-color: var(--muted); }
+.btn--primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.btn--primary:hover { filter: brightness(1.08); background: var(--primary); border-color: var(--primary); }
+.btn--sm { min-height: 40px; padding: 6px 12px; font-size: 13.5px; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn:disabled:hover { background: var(--card); border-color: var(--border); }
+.btn--primary:disabled:hover { background: var(--primary); }
+
+/* ============ Alert ============ */
+.alert {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 14px 16px; border-radius: 10px;
+    background: var(--danger-tint); border: 1px solid var(--danger);
+    color: var(--danger-fg); font-size: 14.5px;
+}
+.alert strong { display: block; font-size: 15px; margin-bottom: 2px; }
+.alert[hidden] { display: none; }
+
+/* ============ Stats ============ */
+.stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.stat {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px; display: flex; flex-direction: column; gap: 8px;
+    box-shadow: var(--shadow); min-width: 0;
+}
+.stat--primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.stat__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.stat__label { font-size: 13px; font-weight: 600; line-height: 1.35; }
+.stat--plain .stat__label { color: var(--muted); }
+.stat__icon { flex: none; opacity: 0.85; }
+.stat__value {
+    font-size: clamp(26px, 3.2vw, 34px); font-weight: 700;
+    letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.stat__value--date { font-size: clamp(22px, 2.6vw, 28px); }
+.stat__helper { font-size: 13px; line-height: 1.4; opacity: 0.9; }
+.stat--plain .stat__helper { color: var(--muted); }
+
+/* ============ Section card ============ */
+.card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow); overflow: hidden;
+}
+.card__head {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 16px 18px; border-bottom: 1px solid var(--border);
+}
+.card__title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.card__title-ic { flex: none; display: inline-flex; color: var(--muted); }
+.card__desc { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+.card__body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.card__foot {
+    padding: 14px 18px; border-top: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between;
+}
+
+/* ============ Ledger toolbar ============ */
+.ledger-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field--search { flex: 1 1 260px; max-width: 380px; }
+.field__label {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+.search-field {
+    display: flex; align-items: center; gap: 8px; padding: 0 10px; min-height: 44px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--card);
+}
+.search-field:focus-within { border-color: var(--primary); }
+.search-field__icon { flex: none; color: var(--muted); }
+.search-field__input {
+    flex: 1 1 auto; min-width: 0; border: 0; background: transparent; color: var(--ink);
+    font: inherit; font-size: 14.5px; padding: 10px 0;
+}
+.search-field__input:focus { outline: none; }
+.search-field__input::placeholder { color: var(--muted); }
+.search-field__input::-webkit-search-cancel-button { display: none; }
+.search-field__clear {
+    flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border: 0; border-radius: 999px; cursor: pointer;
+    background: transparent; color: var(--muted);
+}
+.search-field__clear:hover { background: var(--tile); color: var(--ink); }
+.search-field__clear[hidden] { display: none; }
+.filter-menu { display: grid; gap: 6px; }
+.filter-menu__trigger { gap: 6px; }
+.filter-menu__badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px; padding: 0 6px; border-radius: 999px;
+    background: var(--primary); color: var(--primary-fg);
+    font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.filter-menu__badge[hidden] { display: none; }
+.active-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.active-filters[hidden] { display: none; }
+.chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 8px 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    background: var(--tint); color: var(--tint-fg); border: 1px solid var(--tint-border);
+}
+.chip__x {
+    display: inline-grid; place-items: center; width: 22px; height: 22px;
+    border: 0; border-radius: 999px; cursor: pointer;
+    background: transparent; color: inherit;
+}
+.chip__x:hover { background: rgba(0, 0, 0, 0.1); }
+
+/* ============ Filter popover ============ */
+.filter-pop {
+    position: fixed; z-index: 70; width: 320px; max-width: calc(100vw - 24px);
+    padding: 14px;
+    border: 1px solid var(--border); border-radius: 12px; background: var(--card);
+    box-shadow: 0 12px 32px rgba(20, 23, 15, 0.16), 0 2px 6px rgba(20, 23, 15, 0.08);
+}
+.filter-pop[hidden] { display: none; }
+.filter-pop__grid { display: grid; gap: 12px; }
+.fsel { display: grid; gap: 6px; min-width: 0; }
+.fsel__label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.fsel__control { position: relative; }
+.fsel__control::after {
+    content: ""; position: absolute; right: 11px; top: 50%; width: 8px; height: 8px;
+    margin-top: -6px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(45deg); pointer-events: none;
+}
+.fsel__select {
+    appearance: none; -webkit-appearance: none;
+    width: 100%; min-height: 44px; padding: 8px 32px 8px 11px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--ink);
+    font: inherit; font-size: 14px; cursor: pointer;
+}
+.fsel__select:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+.filter-pop__foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 2px;
+}
+.filter-pop__summary { margin: 0; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ============ Ledger table ============ */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap[hidden] { display: none; }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 640px; }
+thead th {
+    text-align: left; font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--muted);
+    padding: 10px 14px; background: var(--tile);
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+tbody td {
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--tile); }
+.td-num, .th-num { text-align: right; }
+.td-date { font-weight: 600; }
+.td-balance { font-weight: 700; }
+
+/* ============ Mobile ledger cards ============ */
+.ledger-list { display: none; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.ledger-item { padding: 14px 16px; border-bottom: 1px solid var(--border); display: grid; gap: 12px; }
+.ledger-item:last-child { border-bottom: 0; }
+.ledger-item__top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: space-between; }
+.ledger-item__date { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ledger-item__badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge--secondary { background: var(--tint); color: var(--tint-fg); border-color: var(--tint-border); border-style: solid; }
+.badge--outline { background: var(--card); color: var(--muted); border-color: var(--border); border-style: solid; }
+.ledger-figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.fig { display: grid; gap: 2px; min-width: 0; }
+.fig__label {
+    font-size: 11.5px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+.fig__value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fig--balance { grid-column: span 3; padding-top: 10px; border-top: 1px dashed var(--border); }
+.fig--balance .fig__value { font-size: 19px; }
+
+/* ============ States ============ */
+.state-box {
+    padding: 40px 18px; text-align: center; color: var(--muted); font-size: 15px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.state-box strong { color: var(--ink); font-size: 16px; }
+.state-box[hidden] { display: none; }
+.skeleton { display: grid; gap: 12px; }
+.skeleton[hidden] { display: none; }
+.skeleton__row {
+    height: 56px; border-radius: 10px;
+    background: linear-gradient(90deg, var(--tile) 25%, var(--border) 50%, var(--tile) 75%);
+    background-size: 200% 100%; animation: shimmer 1.2s linear infinite;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+.is-hidden { display: none !important; }
+
+/* ============ Pagination ============ */
+.pager { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pager__info { margin: 0; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.page-btn {
+    min-width: 96px; min-height: 44px; padding: 8px 14px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card); color: var(--ink);
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.page-btn:hover:not(:disabled) { background: var(--tile); }
+.page-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ============ Toast ============ */
+.toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(8px);
+    z-index: 80; max-width: min(92vw, 440px);
+    background: var(--ink); color: var(--bg);
+    padding: 12px 18px; border-radius: 10px; font-size: 14.5px; font-weight: 500;
+    text-align: center; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    opacity: 0; pointer-events: none; transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+.toast.is-on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ============ Bottom navigation (small screens) ============ */
+.bottom-nav {
+    display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px;
+    background: var(--card); border-top: 1px solid var(--border);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+}
+.bottom-nav__item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    min-height: 56px; padding: 6px 2px; border-radius: 8px;
+    color: var(--muted); text-decoration: none; font-size: 10.5px; font-weight: 600;
+    line-height: 1.2; text-align: center;
+}
+.bottom-nav__item:hover { background: var(--tile); }
+.bottom-nav__item[aria-current="page"] { background: var(--tint); color: var(--tint-fg); }
+
+/* ============ Responsive ============ */
+@media (max-width: 1023px) {
+    .main { margin-left: 0; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.is-open { transform: translateX(0); }
+    .sidebar__close { display: grid; }
+    .menu-btn { display: grid; }
+}
+@media (min-width: 1024px) {
+    .scrim { display: none !important; }
+}
+@media (max-width: 767px) {
+    .sidebar { display: none; }
+    .scrim { display: none !important; }
+    .content { padding: 16px 16px 96px; gap: 16px; }
+    .topbar { padding: 10px 14px; gap: 8px; }
+    .pill { display: none; }
+    .breadcrumb { font-size: 13px; }
+    .page-head .btn { width: 100%; }
+    .field--search { flex: 1 1 100%; max-width: none; }
+    .filter-menu { flex: 1 1 100%; }
+    .filter-menu__trigger { width: 100%; justify-content: center; }
+    .filter-pop { width: auto; left: 12px !important; right: 12px; }
+    .table-wrap { display: none; }
+    .ledger-list { display: block; }
+    .bottom-nav { display: grid; }
+    .toast { bottom: 84px; }
+    .card__foot { justify-content: center; }
+    .page-btn { flex: 1 1 auto; }
+}
+@media (max-width: 400px) {
+    .ledger-figs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fig--balance { grid-column: span 2; }
+}
+@media print {
+    .sidebar, .topbar, .scrim, .toast, .pager, .bottom-nav, .ledger-toolbar { display: none !important; }
+    .main { margin-left: 0; }
+    body { background: #fff; }
+    .card, .stat { box-shadow: none; }
+    .content { padding: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+
+<div class="shell">
+    <nav class="sidebar" id="sidebar" aria-label="Main">
+        <div class="sidebar__head">
+            <span class="brand">
+                <span class="brand__mark" aria-hidden="true">MR</span>
+                <span>MRDINC Portal</span>
+            </span>
+            <button type="button" class="icon-btn sidebar__close" id="sidebarClose" aria-label="Close menu">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <p class="nav-label">Member</p>
+        <a class="nav-item" href="#" data-nav="Overview">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+            Overview
+        </a>
+        <a class="nav-item" href="#" data-nav="Loans">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+            Loans
+        </a>
+        <a class="nav-item" href="#main-content" aria-current="page">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Loan Security
+        </a>
+        <a class="nav-item" href="#" data-nav="Loan requests">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6M9 11h3"/></svg>
+            Loan requests
+        </a>
+        <p class="nav-label">Account</p>
+        <a class="nav-item" href="#" data-nav="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>
+            Settings
+        </a>
+        <div class="sidebar__foot">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Secure session
+        </div>
+    </nav>
+    <button type="button" class="scrim" id="scrim" hidden aria-label="Close menu" tabindex="-1"></button>
+
+    <div class="main">
+        <header class="topbar">
+            <button type="button" class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a href="#" data-nav="Member profile">Member profile</a>
+                <span aria-hidden="true">/</span>
+                <span aria-current="page">Loan Security</span>
+            </nav>
+            <span class="pill">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span>Secure session</span>
+            </span>
+            <div class="topbar__actions">
+                <button type="button" class="icon-btn" id="hideBalancesBtn" aria-pressed="false" aria-label="Hide balances" title="Hide balances">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button type="button" class="icon-btn" id="themeToggle" aria-label="Switch to dark mode" title="Toggle dark mode">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="content" id="main-content" tabindex="-1">
+            <div class="page-head">
+                <div class="page-head__text">
+                    <h1 class="page-title">Loan Security</h1>
+                    <p class="page-sub">Your loan security ledger activity.</p>
+                    <p class="meta-row">
+                        <span class="badge" id="acctBadge">Account No: <span id="acctNo">••••3941</span></span>
+                        <span class="meta-row__label">Loan Security No:</span>
+                        <span class="badge" id="svBadge">••••0147</span>
+                    </p>
+                </div>
+                <a class="btn" href="#" data-nav="Member profile">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                    Back to profile
+                </a>
+            </div>
+
+            <div class="alert" id="acctAlert" role="alert" hidden>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                <div>
+                    <strong>Account number missing</strong>
+                    Add an account number to view loan security details.
+                </div>
+            </div>
+
+            <section class="stats" aria-label="Loan security summary">
+                <div class="stat stat--primary">
+                    <div class="stat__top">
+                        <p class="stat__label">Loan Security Balance</p>
+                        <svg class="stat__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h16a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6a6 6 0 0 1 4-5.65"/><path d="M6 10V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4"/><circle cx="16.5" cy="14.5" r="1.2"/></svg>
+                    </div>
+                    <p class="stat__value" id="statBalance">PHP 0.00</p>
+                    <p class="stat__helper">Latest loan security balance.</p>
+                </div>
+                <div class="stat stat--plain">
+                    <div class="stat__top">
+                        <p class="stat__label">Last Loan Security Transaction</p>
+                        <svg class="stat__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted)"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    </div>
+                    <p class="stat__value stat__value--date" id="statLast">—</p>
+                    <p class="stat__helper">Most recent loan security activity date.</p>
+                </div>
+            </section>
+
+            <section class="card" aria-labelledby="ledgerHeading">
+                <div class="card__head">
+                    <div>
+                        <h2 class="card__title" id="ledgerHeading">
+                            <span class="card__title-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M3 12h18M3 19h18M8 3v18"/></svg></span>
+                            Loan Security
+                        </h2>
+                        <p class="card__desc">Loan security ledger activity with pagination.</p>
+                    </div>
+                </div>
+
+                <div class="card__body">
+                    <div class="ledger-toolbar">
+                        <div class="field field--search">
+                            <label class="field__label" for="ledgerSearch">Search ledger</label>
+                            <div class="search-field">
+                                <svg class="search-field__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                                <input class="search-field__input" type="search" id="ledgerSearch" autocomplete="off" placeholder="Date, type or movement" />
+                                <button type="button" class="search-field__clear" id="searchClear" hidden aria-label="Clear search">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="filter-menu">
+                            <span class="field__label" aria-hidden="true">Filter &amp; sort</span>
+                            <button type="button" class="btn btn--sm filter-menu__trigger" id="filterTrigger" aria-expanded="false" aria-haspopup="dialog">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+                                Filter<span class="filter-menu__badge" id="filterBadge" hidden></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="active-filters" id="activeFilters" hidden aria-live="polite"></div>
+
+                    <div class="skeleton" id="ledgerSkeleton" hidden aria-hidden="true">
+                        <div class="skeleton__row"></div>
+                        <div class="skeleton__row"></div>
+                        <div class="skeleton__row"></div>
+                        <div class="skeleton__row"></div>
+                    </div>
+
+                    <div id="rowsBox">
+                        <div class="table-wrap">
+                            <table id="ledgerTable">
+                                <caption class="sr-only">Loan security ledger entries with transaction date, movement, type, deposit, withdrawal and balance.</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Transaction Date</th>
+                                        <th scope="col">Movement</th>
+                                        <th scope="col">Type</th>
+                                        <th scope="col" class="th-num">Deposit</th>
+                                        <th scope="col" class="th-num">Withdrawal</th>
+                                        <th scope="col" class="th-num">Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ledgerTbody"></tbody>
+                            </table>
+                        </div>
+                        <div class="ledger-list" id="ledgerList"></div>
+                    </div>
+
+                    <div class="state-box" id="ledgerEmpty" hidden>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                        <strong id="ledgerEmptyTitle">No loan security transactions found.</strong>
+                        <span id="ledgerEmptyText">Your loan security ledger entries will be listed here.</span>
+                        <button type="button" class="btn btn--sm" id="clearFiltersBtn" hidden>Clear search and filters</button>
+                    </div>
+
+                    <div class="state-box" id="ledgerError" hidden>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--danger)"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                        <strong>Unable to load loan security</strong>
+                        <span>Something went wrong while fetching your loan security ledger.</span>
+                        <button type="button" class="btn btn--sm" id="retryBtn">Try again</button>
+                    </div>
+                </div>
+
+                <div class="card__foot">
+                    <p class="pager__info" id="pagerInfo" role="status" aria-live="polite">Loading ledger…</p>
+                    <div class="pager" role="navigation" aria-label="Ledger pagination">
+                        <button type="button" class="page-btn" id="prevBtn" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                            Previous
+                        </button>
+                        <button type="button" class="page-btn" id="nextBtn" disabled>
+                            Next
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<nav class="bottom-nav" aria-label="Primary">
+    <a class="bottom-nav__item" href="#" data-nav="Overview">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        Overview
+    </a>
+    <a class="bottom-nav__item" href="#" data-nav="Loans">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>
+        Loans
+    </a>
+    <a class="bottom-nav__item" href="#main-content" aria-current="page" aria-label="Loan Security">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Loan Security
+    </a>
+    <a class="bottom-nav__item" href="#" data-nav="Requests">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/></svg>
+        Requests
+    </a>
+    <a class="bottom-nav__item" href="#" data-nav="Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09"/></svg>
+        Settings
+    </a>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="filter-pop" id="filterPop" role="dialog" aria-label="Filter and sort the loan security ledger" hidden>
+    <div class="filter-pop__grid">
+        <div class="fsel">
+            <label class="fsel__label" for="filterMovement">Movement</label>
+            <span class="fsel__control">
+                <select class="fsel__select" id="filterMovement">
+                    <option value="all">All movements</option>
+                    <option value="Deposit">Deposit</option>
+                    <option value="Withdrawal">Withdrawal</option>
+                    <option value="Unknown">Unrecorded</option>
+                </select>
+            </span>
+        </div>
+        <div class="fsel">
+            <label class="fsel__label" for="filterType">Type</label>
+            <span class="fsel__control">
+                <select class="fsel__select" id="filterType">
+                    <option value="all">All types</option>
+                    <option value="Regular">Regular</option>
+                    <option value="Additional">Additional</option>
+                    <option value="Adjustment">Adjustment</option>
+                </select>
+            </span>
+        </div>
+        <div class="fsel">
+            <label class="fsel__label" for="filterSort">Sort by</label>
+            <span class="fsel__control">
+                <select class="fsel__select" id="filterSort">
+                    <option value="date-desc">Newest first</option>
+                    <option value="date-asc">Oldest first</option>
+                    <option value="balance-desc">Balance, high to low</option>
+                </select>
+            </span>
+        </div>
+        <div class="filter-pop__foot">
+            <p class="filter-pop__summary" id="filterSummary">19 entries</p>
+            <button type="button" class="btn btn--sm" id="filterClear">Clear</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ---------- member + summary (sample content from the member portal) ---------- */
+    var member = { name: 'Cecilia G. De Gracia', acctno: '••••3941', loanSecurityNo: '••••0147' };
+    var summary = { currentLoanSecurityBalance: 94120, lastLoanSecurityTransactionDate: '2026-09-08' };
+
+    /* Fields mirror MemberLoanSecurityLedgerResource: svnumber, svtype, date_in, deposit, withdrawal, balance */
+    var rows = [
+        { svnumber: '••••0147', svtype: 'Regular',    date_in: '2026-01-05', deposit: 25000, withdrawal: 0,    balance: 25000 },
+        { svnumber: '••••0147', svtype: 'Additional', date_in: '2026-01-20', deposit: 5000,  withdrawal: 0,    balance: 30000 },
+        { svnumber: '••••0147', svtype: 'Regular',    date_in: '2026-02-03', deposit: 12000, withdrawal: 0,    balance: 42000 },
+        { svnumber: '••••0147', svtype: 'Adjustment', date_in: '2026-02-18', deposit: 0,     withdrawal: 4000, balance: 38000 },
+        { svnumber: '••••0147', svtype: 'Regular',    date_in: '2026-03-02', deposit: 8500,  withdrawal: 0,    balance: 46500 },
+        { svnumber: '••••0147', svtype: 'Additional', date_in: '2026-03-19', deposit: 6000,  withdrawal: 0,    balance: 52500 },
+        { svnumber: '••••0147', svtype: 'Adjustment', date_in: '2026-04-07', deposit: 0,     withdrawal: 3500, balance: 49000 },
+        { svnumber: '••••0147', svtype: 'Regular',    date_in: '2026-04-22', deposit: 9000,  withdrawal: 0,    balance: 58000 },
+        { svnumber: '••••0147', svtype: 'Regular',    date_in: '2026-05-06', deposit: 7500,  withdrawal: 0,    balance: 65500 },
+        { svnumber: '••••0147', svtype: 'Adjustment', date_in: '2026-05-21', deposit: 0,     withdrawal: 5000, balance: 60500 },
+        { svnumber: '••••0147', svtype: 'Regular',    date_in: '2026-06-04', deposit: 11000, withdrawal: 0,    balance: 71500 },
+        { svnumber: '••••0147', svtype: 'Additional', date_in: '2026-06-18', deposit: 4500,  withdrawal: 0,    balance: 76000 },
+        { svnumber: '••••0147', svtype: 'Adjustment', date_in: '2026-06-30', deposit: 0,     withdrawal: 0,    balance: 76000 },
+        { svnumber: '••••0147', svtype: 'Regular',    date_in: '2026-07-02', deposit: 6800,  withdrawal: 0,    balance: 82800 },
+        { svnumber: '••••0147', svtype: 'Adjustment', date_in: '2026-07-16', deposit: 0,     withdrawal: 2600, balance: 80200 },
+        { svnumber: '••••0147', svtype: 'Additional', date_in: '2026-07-30', deposit: 5400,  withdrawal: 0,    balance: 85600 },
+        { svnumber: '••••0147', svtype: 'Regular',    date_in: '2026-08-13', deposit: 4700,  withdrawal: 0,    balance: 90300 },
+        { svnumber: '••••0147', svtype: 'Additional', date_in: '2026-08-27', deposit: 3120,  withdrawal: 0,    balance: 93420 },
+        { svnumber: '••••0147', svtype: 'Regular',    date_in: '2026-09-08', deposit: 700,   withdrawal: 0,    balance: 94120 }
+    ];
+
+    var perPage = 8;
+    var page = 1;
+    var state = 'loading'; /* loading | ready | error */
+    var hideBalances = false;
+    var filters = { q: '', movement: 'all', type: 'all', sort: 'date-desc' };
+
+    /* ---------- helpers ---------- */
+    function $(id) { return document.getElementById(id); }
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+    function php(n) {
+        if (hideBalances) return '••••••';
+        var v = Number(n || 0);
+        var sign = v < 0 ? '-' : '';
+        return sign + 'PHP ' + Math.abs(v).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtDate(iso) {
+        if (!iso) return '--';
+        var d = new Date(iso + 'T00:00:00');
+        if (isNaN(d)) return iso;
+        return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    /* Movement follows resolveSavingsMovement(): deposit > 0 → Deposit, withdrawal > 0 → Withdrawal, else Unknown */
+    function movementOf(row) {
+        if ((row.deposit || 0) > 0) return { label: 'Deposit', variant: 'secondary' };
+        if ((row.withdrawal || 0) > 0) return { label: 'Withdrawal', variant: 'outline' };
+        return { label: '--', variant: 'outline', key: 'Unknown' };
+    }
+    function badgeHtml(label, variant) {
+        return '<span class="badge badge--' + variant + '">' + esc(label) + '</span>';
+    }
+
+    /* ---------- filtering ---------- */
+    function narrowed() {
+        return filters.q !== '' || filters.movement !== 'all' || filters.type !== 'all' || filters.sort !== 'date-desc';
+    }
+    function visibleRows() {
+        var q = filters.q.trim().toLowerCase();
+        var list = rows.filter(function (r) {
+            var m = movementOf(r);
+            if (filters.movement !== 'all') {
+                var mKey = m.key || m.label;
+                if (mKey !== filters.movement) return false;
+            }
+            if (filters.type !== 'all' && (r.svtype || '') !== filters.type) return false;
+            if (q) {
+                var hay = [fmtDate(r.date_in), r.date_in, r.svtype, m.label, r.svnumber].join(' ').toLowerCase();
+                if (hay.indexOf(q) === -1) return false;
+            }
+            return true;
+        });
+        list.sort(function (a, b) {
+            if (filters.sort === 'date-asc') return a.date_in < b.date_in ? -1 : a.date_in > b.date_in ? 1 : 0;
+            if (filters.sort === 'balance-desc') return b.balance - a.balance;
+            return a.date_in > b.date_in ? -1 : a.date_in < b.date_in ? 1 : 0;
+        });
+        return list;
+    }
+
+    /* ---------- rendering ---------- */
+    function rowCells(r) {
+        var m = movementOf(r);
+        return '<td class="td-date">' + fmtDate(r.date_in) + '</td>' +
+            '<td>' + badgeHtml(m.label, m.variant) + '</td>' +
+            '<td>' + (r.svtype ? badgeHtml(r.svtype, 'outline') : '--') + '</td>' +
+            '<td class="td-num">' + php(r.deposit) + '</td>' +
+            '<td class="td-num">' + php(r.withdrawal) + '</td>' +
+            '<td class="td-num td-balance">' + php(r.balance) + '</td>';
+    }
+    function itemHtml(r) {
+        var m = movementOf(r);
+        return '<article class="ledger-item">' +
+            '<div class="ledger-item__top">' +
+                '<span class="ledger-item__date">' + fmtDate(r.date_in) + '</span>' +
+                '<span class="ledger-item__badges">' + badgeHtml(m.label, m.variant) +
+                    (r.svtype ? badgeHtml(r.svtype, 'outline') : '') + '</span>' +
+            '</div>' +
+            '<div class="ledger-figs">' +
+                '<div class="fig"><span class="fig__label">Deposit</span><span class="fig__value">' + php(r.deposit) + '</span></div>' +
+                '<div class="fig"><span class="fig__label">Withdrawal</span><span class="fig__value">' + php(r.withdrawal) + '</span></div>' +
+                '<div class="fig"><span class="fig__label">Movement</span><span class="fig__value">' + esc(m.label) + '</span></div>' +
+                '<div class="fig fig--balance"><span class="fig__label">Balance</span><span class="fig__value">' + php(r.balance) + '</span></div>' +
+            '</div>' +
+        '</article>';
+    }
+    function renderSummary() {
+        $('statBalance').textContent = php(summary.currentLoanSecurityBalance);
+        $('statLast').textContent = fmtDate(summary.lastLoanSecurityTransactionDate);
+        $('acctNo').textContent = member.acctno;
+        $('svBadge').textContent = member.loanSecurityNo;
+        $('acctAlert').hidden = Boolean(member.acctno);
+    }
+    function renderChips() {
+        var box = $('activeFilters');
+        var chips = [];
+        if (filters.q) chips.push({ k: 'q', text: 'Search: ' + filters.q });
+        if (filters.movement !== 'all') chips.push({ k: 'movement', text: 'Movement: ' + filters.movement });
+        if (filters.type !== 'all') chips.push({ k: 'type', text: 'Type: ' + filters.type });
+        if (filters.sort !== 'date-desc') {
+            var label = filters.sort === 'date-asc' ? 'Oldest first' : 'Balance, high to low';
+            chips.push({ k: 'sort', text: 'Sort: ' + label });
+        }
+        if (!chips.length) { box.hidden = true; box.innerHTML = ''; return; }
+        box.hidden = false;
+        box.innerHTML = chips.map(function (c) {
+            return '<span class="chip">' + esc(c.text) +
+                '<button type="button" class="chip__x" data-chip="' + c.k + '" aria-label="Remove filter ' + esc(c.text) + '">' +
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+                '</button></span>';
+        }).join('');
+    }
+    function render() {
+        var loading = state === 'loading';
+        var error = state === 'error';
+        var list = visibleRows();
+        var total = list.length;
+        var lastPage = Math.max(1, Math.ceil(total / perPage));
+        if (page > lastPage) page = lastPage;
+        if (page < 1) page = 1;
+        var start = (page - 1) * perPage;
+        var slice = list.slice(start, start + perPage);
+        var hasRows = !loading && !error && slice.length > 0;
+
+        $('ledgerSkeleton').hidden = !loading;
+        $('rowsBox').hidden = !hasRows;
+        $('ledgerEmpty').hidden = loading || error || slice.length > 0;
+        $('ledgerError').hidden = !error;
+
+        if (slice.length === 0 && !loading && !error) {
+            var isNarrowed = narrowed();
+            $('ledgerEmptyTitle').textContent = isNarrowed ? 'No matching entries.' : 'No loan security transactions found.';
+            $('ledgerEmptyText').textContent = isNarrowed
+                ? 'Nothing matches your search and filters. Try widening them.'
+                : 'Your loan security ledger entries will be listed here.';
+            $('clearFiltersBtn').hidden = !isNarrowed;
+        }
+
+        $('ledgerTbody').innerHTML = slice.map(function (r) { return '<tr>' + rowCells(r) + '</tr>'; }).join('');
+        $('ledgerList').innerHTML = slice.map(itemHtml).join('');
+
+        var info = $('pagerInfo');
+        if (loading) info.textContent = 'Loading ledger…';
+        else if (error) info.textContent = 'Ledger unavailable';
+        else info.textContent = 'Page ' + page + ' of ' + lastPage + ' (' + total + ' result' + (total === 1 ? '' : 's') + ')';
+
+        $('prevBtn').disabled = loading || error || page <= 1;
+        $('nextBtn').disabled = loading || error || page >= lastPage;
+
+        var badge = $('filterBadge');
+        var activeCount = (filters.movement !== 'all' ? 1 : 0) + (filters.type !== 'all' ? 1 : 0) + (filters.sort !== 'date-desc' ? 1 : 0);
+        badge.hidden = activeCount === 0;
+        badge.textContent = String(activeCount);
+        $('filterSummary').textContent = total + ' of ' + rows.length + ' entries';
+        $('searchClear').hidden = filters.q === '';
+        renderChips();
+    }
+    function loadPage(nextPage, failed) {
+        state = 'loading';
+        page = nextPage;
+        render();
+        window.setTimeout(function () {
+            state = failed ? 'error' : 'ready';
+            render();
+        }, 400);
+    }
+    function refresh() {
+        page = 1;
+        if (state !== 'error') { state = 'ready'; }
+        render();
+    }
+
+    /* ---------- toast ---------- */
+    var toastTimer = null;
+    function toast(msg) {
+        var el = $('toast');
+        el.textContent = msg;
+        el.classList.add('is-on');
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(function () { el.classList.remove('is-on'); }, 2400);
+    }
+
+    /* ---------- theme ---------- */
+    function setTheme(t) {
+        document.documentElement.setAttribute('data-theme', t);
+        var btn = $('themeToggle');
+        btn.setAttribute('aria-label', t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+        try { window.localStorage.setItem('ls-theme', t); } catch (e) { /* storage unavailable */ }
+    }
+
+    /* ---------- hide balances ---------- */
+    function setHideBalances(on) {
+        hideBalances = on;
+        var btn = $('hideBalancesBtn');
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        btn.setAttribute('aria-label', on ? 'Show balances' : 'Hide balances');
+        btn.setAttribute('title', on ? 'Show balances' : 'Hide balances');
+        renderSummary();
+        render();
+        toast(on ? 'Balances hidden' : 'Balances shown');
+    }
+
+    /* ---------- drawer ---------- */
+    function setDrawer(open) {
+        var sidebar = $('sidebar');
+        sidebar.classList.toggle('is-open', open);
+        $('scrim').hidden = !open;
+        $('menuBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) $('sidebarClose').focus();
+        else $('menuBtn').focus();
+    }
+
+    /* ---------- filter popover ---------- */
+    var pop = $('filterPop');
+    var popOpen = false;
+    function placePop() {
+        var trigger = $('filterTrigger');
+        var r = trigger.getBoundingClientRect();
+        var width = pop.offsetWidth || 320;
+        var left = Math.min(r.left, window.innerWidth - width - 12);
+        if (left < 12) left = 12;
+        var top = r.bottom + 8;
+        var height = pop.offsetHeight || 260;
+        if (top + height > window.innerHeight - 12) top = Math.max(12, r.top - height - 8);
+        pop.style.top = top + 'px';
+        pop.style.left = left + 'px';
+    }
+    function openPop() {
+        popOpen = true;
+        pop.hidden = false;
+        $('filterTrigger').setAttribute('aria-expanded', 'true');
+        placePop();
+        $('filterMovement').focus();
+    }
+    function closePop(refocus) {
+        if (!popOpen) return;
+        popOpen = false;
+        pop.hidden = true;
+        $('filterTrigger').setAttribute('aria-expanded', 'false');
+        if (refocus) $('filterTrigger').focus();
+    }
+
+    /* ---------- events ---------- */
+    $('menuBtn').addEventListener('click', function () { setDrawer(!$('sidebar').classList.contains('is-open')); });
+    $('sidebarClose').addEventListener('click', function () { setDrawer(false); });
+    $('scrim').addEventListener('click', function () { setDrawer(false); });
+
+    $('themeToggle').addEventListener('click', function () {
+        var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+        toast(next === 'dark' ? 'Dark mode on' : 'Light mode on');
+    });
+    $('hideBalancesBtn').addEventListener('click', function () { setHideBalances(!hideBalances); });
+
+    $('ledgerSearch').addEventListener('input', function (e) { filters.q = e.target.value; refresh(); });
+    $('searchClear').addEventListener('click', function () {
+        filters.q = '';
+        $('ledgerSearch').value = '';
+        $('ledgerSearch').focus();
+        refresh();
+    });
+    $('clearFiltersBtn').addEventListener('click', function () {
+        filters = { q: '', movement: 'all', type: 'all', sort: 'date-desc' };
+        $('ledgerSearch').value = '';
+        $('filterMovement').value = 'all';
+        $('filterType').value = 'all';
+        $('filterSort').value = 'date-desc';
+        refresh();
+        toast('Search and filters cleared');
+    });
+
+    $('filterTrigger').addEventListener('click', function () { popOpen ? closePop(true) : openPop(); });
+    ['filterMovement', 'filterType', 'filterSort'].forEach(function (id) {
+        $(id).addEventListener('change', function (e) {
+            if (id === 'filterMovement') filters.movement = e.target.value;
+            if (id === 'filterType') filters.type = e.target.value;
+            if (id === 'filterSort') filters.sort = e.target.value;
+            refresh();
+            placePop();
+        });
+    });
+    $('filterClear').addEventListener('click', function () {
+        filters.movement = 'all';
+        filters.type = 'all';
+        filters.sort = 'date-desc';
+        $('filterMovement').value = 'all';
+        $('filterType').value = 'all';
+        $('filterSort').value = 'date-desc';
+        refresh();
+        placePop();
+    });
+    document.addEventListener('click', function (e) {
+        if (popOpen && !e.target.closest('#filterPop') && !e.target.closest('#filterTrigger')) closePop(false);
+        var chipX = e.target.closest('[data-chip]');
+        if (chipX) {
+            var key = chipX.getAttribute('data-chip');
+            if (key === 'q') { filters.q = ''; $('ledgerSearch').value = ''; }
+            if (key === 'movement') { filters.movement = 'all'; $('filterMovement').value = 'all'; }
+            if (key === 'type') { filters.type = 'all'; $('filterType').value = 'all'; }
+            if (key === 'sort') { filters.sort = 'date-desc'; $('filterSort').value = 'date-desc'; }
+            refresh();
+        }
+    });
+    window.addEventListener('scroll', function () { if (popOpen) placePop(); }, true);
+    window.addEventListener('resize', function () { if (popOpen) placePop(); });
+
+    $('prevBtn').addEventListener('click', function () { if (page > 1) loadPage(page - 1, false); });
+    $('nextBtn').addEventListener('click', function () { loadPage(page + 1, false); });
+    $('retryBtn').addEventListener('click', function () { loadPage(page, false); });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        if (popOpen) { closePop(true); return; }
+        if ($('sidebar').classList.contains('is-open')) setDrawer(false);
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-nav]'), function (link) {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            toast(link.getAttribute('data-nav') + ' lives in the full portal — not part of this prototype.');
+        });
+    });
+
+    /* ---------- init ---------- */
+    var stored = null;
+    try { stored = window.localStorage.getItem('ls-theme'); } catch (e) { /* storage unavailable */ }
+    if (stored === 'dark' || stored === 'light') setTheme(stored);
+    else setTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+    renderSummary();
+    render();
+    window.setTimeout(function () { state = 'ready'; render(); }, 450);
+})();
+</script>
+</body>
+</html>

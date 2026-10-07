@@ -64,6 +64,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import {
     calculateAge,
     composeAddress,
@@ -738,9 +739,9 @@ export const PersonAccordionRow = ({
 
     return (
         <div className="rounded-xl border border-border bg-muted/10">
-            <button
+            <Button variant="ghost"
                 type="button"
-                className="flex w-full items-center gap-3 p-4 text-left"
+                className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal hover:bg-transparent hover:text-current flex w-full items-center gap-3 p-4 has-[>svg]:px-4 text-left"
                 aria-expanded={isExpanded}
                 aria-controls={contentId}
                 onClick={toggleExpanded}
@@ -762,7 +763,7 @@ export const PersonAccordionRow = ({
                         isExpanded ? 'rotate-0' : '-rotate-90',
                     )}
                 />
-            </button>
+            </Button>
             <div
                 id={contentId}
                 className={cn(
@@ -781,9 +782,9 @@ export const PersonAccordionRow = ({
                         </div>
                         {moreFields.length > 0 ? (
                             <div>
-                                <button
+                                <Button variant="link"
                                     type="button"
-                                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                                    className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                                     aria-expanded={isShowingMore}
                                     aria-controls={moreContentId}
                                     onClick={() =>
@@ -799,7 +800,7 @@ export const PersonAccordionRow = ({
                                                 : '-rotate-90',
                                         )}
                                     />
-                                </button>
+                                </Button>
                                 <div
                                     id={moreContentId}
                                     className={cn(
@@ -1799,7 +1800,7 @@ export function LoanRequestDetailPage({
                                 <Label htmlFor="decision_notes">
                                     Decision notes
                                 </Label>
-                                <textarea
+                                <Textarea
                                     id="decision_notes"
                                     className="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="Add optional notes for the member"
@@ -2225,7 +2226,7 @@ export function LoanRequestDetailPage({
                                 {cancellation?.reasonLabel ??
                                     'Cancellation reason'}
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="cancellation_reason"
                                 aria-label={
                                     cancellation?.reasonLabel ??
@@ -2300,7 +2301,7 @@ export function LoanRequestDetailPage({
                             <Label htmlFor="correction_reason">
                                 Correction reason
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="correction_reason"
                                 aria-label="Correction reason"
                                 className={textareaClassName}

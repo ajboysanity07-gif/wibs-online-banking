@@ -50,6 +50,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import {
     formatCurrency,
     formatDate,
@@ -887,9 +888,9 @@ export function LoanRequestDetailView({
 
                                         return (
                                             <li key={party.key}>
-                                                <button
+                                                <Button variant="ghost"
                                                     type="button"
-                                                    className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border px-3 py-2.5 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
+                                                    className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal hover:bg-transparent hover:text-current flex min-h-11 w-full items-center gap-3 rounded-lg border border-border px-3 has-[>svg]:px-3 py-2.5 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
                                                     onClick={() =>
                                                         setOpenParty(party.key)
                                                     }
@@ -916,7 +917,7 @@ export function LoanRequestDetailView({
                                                         aria-hidden="true"
                                                         className="size-4 shrink-0 text-muted-foreground"
                                                     />
-                                                </button>
+                                                </Button>
                                             </li>
                                         );
                                     })}
@@ -1048,7 +1049,7 @@ export function LoanRequestDetailView({
                         <Label htmlFor="cancellation_reason">
                             Reason (optional)
                         </Label>
-                        <textarea
+                        <Textarea
                             id="cancellation_reason"
                             className="flex min-h-[96px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                             maxLength={1000}

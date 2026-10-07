@@ -28,6 +28,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency } from '@/lib/formatters';
 import type {
     LoanRequestAssignmentOfficerOption,
@@ -1318,7 +1319,7 @@ export function LoanRequestWorkflowActions({
                         ) : null}
                         <div className="space-y-2">
                             <Label htmlFor="assign_reason">Reason</Label>
-                            <textarea
+                            <Textarea
                                 id="assign_reason"
                                 className={textareaClassName}
                                 maxLength={1000}
@@ -1410,7 +1411,7 @@ export function LoanRequestWorkflowActions({
                         ) : null}
                         <div className="space-y-2">
                             <Label htmlFor="reassign_reason">Reason</Label>
-                            <textarea
+                            <Textarea
                                 id="reassign_reason"
                                 className={textareaClassName}
                                 maxLength={1000}
@@ -1486,7 +1487,7 @@ export function LoanRequestWorkflowActions({
                             <Label htmlFor="return_to_queue_reason">
                                 Reason
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="return_to_queue_reason"
                                 className={textareaClassName}
                                 maxLength={1000}
@@ -1553,7 +1554,7 @@ export function LoanRequestWorkflowActions({
                             <Label htmlFor="request_revision_remarks">
                                 Revision remarks
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="request_revision_remarks"
                                 className={textareaClassName}
                                 maxLength={1000}
@@ -1619,7 +1620,7 @@ export function LoanRequestWorkflowActions({
                             <Label htmlFor="rejection_reason">
                                 Rejection reason
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="rejection_reason"
                                 className={textareaClassName}
                                 maxLength={1000}
@@ -1684,7 +1685,7 @@ export function LoanRequestWorkflowActions({
                             <Label htmlFor="recommend_approval_remarks">
                                 Review remarks
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="recommend_approval_remarks"
                                 className={textareaClassName}
                                 maxLength={1000}
@@ -1775,7 +1776,7 @@ export function LoanRequestWorkflowActions({
                             <Label htmlFor="workflow_approval_remarks">
                                 Approval remarks
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="workflow_approval_remarks"
                                 className={textareaClassName}
                                 maxLength={1000}
@@ -1844,7 +1845,7 @@ export function LoanRequestWorkflowActions({
                             <Label htmlFor="workflow_decline_reason">
                                 Decline reason
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="workflow_decline_reason"
                                 className={textareaClassName}
                                 maxLength={1000}
@@ -1972,7 +1973,7 @@ export function LoanRequestWorkflowActions({
                             <Label htmlFor="workflow_reject_during_processing_reason">
                                 Member-visible reason
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="workflow_reject_during_processing_reason"
                                 className={textareaClassName}
                                 required
@@ -2050,7 +2051,7 @@ export function LoanRequestWorkflowActions({
                             <Label htmlFor="workflow_return_for_processing_reason">
                                 Reason
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="workflow_return_for_processing_reason"
                                 className={textareaClassName}
                                 required
@@ -2116,7 +2117,7 @@ export function LoanRequestWorkflowActions({
                             <Label htmlFor="workflow_reopen_reason">
                                 Reason
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="workflow_reopen_reason"
                                 className={textareaClassName}
                                 required
@@ -2129,7 +2130,7 @@ export function LoanRequestWorkflowActions({
                             />
                             <InputError message={reopenReasonError ?? ''} />
                         </div>
-                        <label className="flex items-start gap-3 rounded-lg border border-border bg-muted/10 p-3 text-sm">
+                        <Label className="flex items-start gap-3 rounded-lg border border-border bg-muted/10 p-3 text-sm leading-snug">
                             <Checkbox
                                 checked={retainAssignmentOnReopen}
                                 disabled={workflow?.reopen?.isProcessing}
@@ -2140,7 +2141,7 @@ export function LoanRequestWorkflowActions({
                                 }
                             />
                             <span>Retain the current assignment on reopen</span>
-                        </label>
+                        </Label>
                         <DialogFooter className="gap-2 sm:gap-3">
                             <Button
                                 type="button"
@@ -2187,7 +2188,7 @@ export function LoanRequestWorkflowActions({
                             <Label htmlFor="workflow_upgrade_reason">
                                 Reason
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="workflow_upgrade_reason"
                                 className={textareaClassName}
                                 required
@@ -2255,7 +2256,7 @@ export function LoanRequestWorkflowActions({
                             <Label htmlFor="workflow_revert_status_reason">
                                 Reason
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="workflow_revert_status_reason"
                                 className={textareaClassName}
                                 required

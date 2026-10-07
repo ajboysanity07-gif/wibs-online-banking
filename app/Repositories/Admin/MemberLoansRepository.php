@@ -5,6 +5,7 @@ namespace App\Repositories\Admin;
 use App\Models\Amortsched;
 use App\Models\Wlnled;
 use App\Models\Wlnmaster;
+use App\Support\LoanPaymentSplit;
 use App\Support\SchemaCapabilities;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -69,6 +70,57 @@ class MemberLoansRepository
     }
 
     /**
+     * Next schedule installment the member has not yet covered: the first row
+     * whose post-installment Balance sits below the current loan balance.
+     * Falls back to the earliest upcoming due, then the first row. Closed
+     * (zero-balance) loans have no next installment.
+     */
+    public function getNextUnpaidScheduleEntry(
+        string $loanNumber,
+        ?float $balance,
+    ): ?Amortsched {
+        if (! $this->hasScheduleTable()) {
+            return null;
+        }
+
+        if ($balance !== null && $balance <= 0) {
+            return null;
+        }
+
+        $entries = $this->getScheduleEntries($loanNumber);
+
+        if ($entries->isEmpty()) {
+            return null;
+        }
+
+        if ($balance !== null) {
+            $covered = $entries->first(function (Amortsched $entry) use ($balance) {
+                $rowBalance = $this->castNumber($entry->Balance ?? null);
+
+                return $rowBalance !== null && $rowBalance < $balance - 0.005;
+            });
+
+            if ($covered !== null) {
+                return $covered;
+            }
+        }
+
+        $today = Carbon::today()->startOfDay();
+
+        $upcoming = $entries->first(function (Amortsched $entry) use ($today) {
+            try {
+                $date = Carbon::parse((string) ($entry->Date_pay ?? ''));
+            } catch (\Throwable) {
+                return false;
+            }
+
+            return $date->startOfDay()->greaterThanOrEqualTo($today);
+        });
+
+        return $upcoming ?? $entries->first();
+    }
+
+    /**
      * @note Last payment date uses wlnled.payments > 0 to identify actual payments.
      */
     public function getLastPaymentDate(
@@ -108,9 +160,13 @@ class MemberLoansRepository
         $this->applyPaymentAmountFilter($query);
         $this->applyDateRange($query, $startDate, $endDate);
 
-        return $query
+        $paginator = $query
             ->orderByDesc('date_in')
             ->paginate($perPage, ['*'], 'page', $page);
+
+        $this->attachResolvedSplit($paginator->getCollection());
+
+        return $paginator;
     }
 
     /**
@@ -134,7 +190,41 @@ class MemberLoansRepository
         $this->applyPaymentAmountFilter($query);
         $this->applyDateRange($query, $startDate, $endDate);
 
-        return $query->orderBy('date_in')->get();
+        $rows = $query->orderBy('date_in')->get();
+
+        $this->attachResolvedSplit($rows);
+
+        return $rows;
+    }
+
+    /**
+     * Attach schedule-derived principal/interest splits to ledger rows.
+     *
+     * @param  \Illuminate\Support\Collection<int, mixed>  $rows
+     */
+    private function attachResolvedSplit(Collection $rows): void
+    {
+        if ($rows->isEmpty() || ! $this->hasScheduleTable()) {
+            return;
+        }
+
+        $loanNumbers = $rows
+            ->map(static fn (mixed $row): string => trim((string) ($row->lnnumber ?? '')))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($loanNumbers === []) {
+            return;
+        }
+
+        $schedules = $this->scheduleQuery()
+            ->whereIn('lnnumber', $loanNumbers)
+            ->orderBy('Date_pay')
+            ->get();
+
+        LoanPaymentSplit::attachResolved($rows, $schedules);
     }
 
     public function getOpeningBalance(
@@ -158,6 +248,74 @@ class MemberLoansRepository
             ->value('balance');
 
         return $this->castNumber($value);
+    }
+
+    /**
+     * Distinct ledger months (newest first) for one loan, each with its
+     * movement count for the Documents tab statement rows.
+     *
+     * @return list<array{month: string, transactions: int}>
+     */
+    public function getStatementMonths(string $acctno, string $loanNumber): array
+    {
+        if (! $this->hasTable('wlnled') || ! $this->hasColumn('wlnled', 'date_in')) {
+            return [];
+        }
+
+        $counts = [];
+
+        foreach (
+            Wlnled::query()
+                ->where('acctno', $acctno)
+                ->where('lnnumber', $loanNumber)
+                ->whereNotNull('date_in')
+                ->orderByDesc('date_in')
+                ->get(['date_in']) as $row
+        ) {
+            $month = $this->monthKeyFromValue($row->date_in ?? null);
+
+            if ($month === null) {
+                continue;
+            }
+
+            $counts[$month] = ($counts[$month] ?? 0) + 1;
+        }
+
+        return array_map(
+            static fn (string $month): array => [
+                'month' => $month,
+                'transactions' => $counts[$month],
+            ],
+            array_keys($counts),
+        );
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, \App\Models\Wlnled>
+     */
+    public function getStatementMovements(
+        string $acctno,
+        string $loanNumber,
+        ?Carbon $startDate,
+        ?Carbon $endDate,
+    ): Collection {
+        if (! $this->hasTable('wlnled')) {
+            return collect();
+        }
+
+        $query = Wlnled::query()
+            ->where('acctno', $acctno)
+            ->where('lnnumber', $loanNumber)
+            ->select($this->paymentSelectColumns());
+
+        $this->applyPaymentAmountFilter($query);
+        $this->applyDateRange($query, $startDate, $endDate);
+
+        $movements = $query->orderBy('date_in')->orderBy('controlno')->get();
+
+        $this->attachResolvedSplit($movements);
+
+        return $movements;
     }
 
     public function getDerivedOpeningBalance(
@@ -355,6 +513,23 @@ class MemberLoansRepository
         }
 
         return (string) $value;
+    }
+
+    private function monthKeyFromValue(mixed $value): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m');
+        }
+
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->format('Y-m');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function castNumber(mixed $value): ?float

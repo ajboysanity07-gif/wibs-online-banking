@@ -52,8 +52,20 @@ const statusVariant = (status?: LoanRequestStatusValue | null) => {
 };
 
 const statusClassName = (status?: LoanRequestStatusValue | null): string => {
+    if (status === 'approved') {
+        return 'border-[var(--ok-bd)] bg-[var(--ok-bg)] text-[var(--ok-ink)]';
+    }
+
+    if (
+        status === 'declined' ||
+        status === 'rejected' ||
+        status === 'cancelled'
+    ) {
+        return 'border-[var(--bad-bd)] bg-[var(--bad-bg)] text-[var(--bad-ink)]';
+    }
+
     if (status === 'needs_revision') {
-        return 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-200';
+        return 'border-[var(--warn-bd)] bg-[var(--warn-bg)] text-[var(--warn-ink)]';
     }
 
     if (status === 'awaiting_member_information') {
@@ -73,11 +85,11 @@ const statusClassName = (status?: LoanRequestStatusValue | null): string => {
     }
 
     if (status === 'under_review') {
-        return 'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-200';
+        return 'border-[var(--info-bd)] bg-[var(--info-bg)] text-[var(--info-ink)]';
     }
 
     if (status === 'converted_to_loan') {
-        return 'border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-200';
+        return 'border-[var(--act-bd)] bg-[var(--act-bg)] text-[var(--act-ink)]';
     }
 
     return '';

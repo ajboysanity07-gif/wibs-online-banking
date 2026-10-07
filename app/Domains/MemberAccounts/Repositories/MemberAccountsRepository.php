@@ -7,6 +7,7 @@ use App\Models\Wlnled;
 use App\Models\Wlnmaster;
 use App\Models\Wsavled;
 use App\Models\Wsvmaster;
+use App\Support\LoanPaymentSplit;
 use App\Support\SchemaCapabilities;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
@@ -146,6 +147,14 @@ class MemberAccountsRepository
             $select[] = DB::raw('principal as initial');
         }
 
+        if ($this->hasColumn('wlnmaster', 'int_rate')) {
+            $select[] = 'int_rate';
+        }
+
+        if ($this->hasColumn('wlnmaster', 'term_mons')) {
+            $select[] = 'term_mons';
+        }
+
         return Wlnmaster::query()
             ->where('acctno', $acctno)
             ->select($select)
@@ -155,12 +164,15 @@ class MemberAccountsRepository
 
     /**
      * Next repayment due date and installment amount per loan, derived from the
-     * Amortsched schedule. Returns an empty array when the schedule table is absent.
+     * Amortsched schedule. The next due is the earliest installment the member
+     * has not yet covered (schedule balance above the current loan balance);
+     * overdue dues add a display-only penalty from wlnmaster.pen_rate.
      *
      * @param  list<string>  $loanNumbers
-     * @return array<string, array{dueDate: ?string, monthlyDue: ?float}>
+     * @param  array<string, float|null>  $balancesByLoan
+     * @return array<string, array{dueDate: ?string, monthlyDue: ?float, penalty: ?float, penaltyMonths: int}>
      */
-    public function getLoanRepaymentSummaries(array $loanNumbers): array
+    public function getLoanRepaymentSummaries(array $loanNumbers, array $balancesByLoan = []): array
     {
         $loanNumbers = array_values(array_filter(
             array_map(static fn (mixed $value): string => trim((string) $value), $loanNumbers),
@@ -168,14 +180,15 @@ class MemberAccountsRepository
         ));
 
         if ($loanNumbers === [] || ! $this->hasTable('Amortsched')) {
-            return [];
+            return $this->amortizationFallbackSummaries($loanNumbers);
         }
 
         $hasDatePay = $this->hasColumn('Amortsched', 'Date_pay');
         $hasAmortization = $this->hasColumn('Amortsched', 'Amortization');
+        $hasBalance = $this->hasColumn('Amortsched', 'Balance');
 
         if (! $hasDatePay && ! $hasAmortization) {
-            return [];
+            return $this->amortizationFallbackSummaries($loanNumbers);
         }
 
         $dateColumn = $hasDatePay ? 'Date_pay' : null;
@@ -188,18 +201,44 @@ class MemberAccountsRepository
             ->sortBy('Date_pay')
             ->values();
 
+        // Legacy loan numbers are space-padded (SQL ignores it, PHP does
+        // not), so group by the trimmed number before matching.
+        $rowsByLoan = LoanPaymentSplit::indexRowsByLoan($rows);
+
+        $penRates = $this->loanPenaltyRates($loanNumbers);
+
         $today = Carbon::now()->startOfDay();
         $summaries = [];
 
         foreach ($loanNumbers as $loanNumber) {
-            $scheduledRows = $rows->where('lnnumber', (string) $loanNumber)->values();
+            $scheduledRows = collect($rowsByLoan[(string) $loanNumber] ?? [])->values();
 
             if ($scheduledRows->isEmpty()) {
+                $fallback = $this->amortizationFallbackSummaries([$loanNumber]);
+
+                if ($fallback !== []) {
+                    $summaries[(string) $loanNumber] = $fallback[(string) $loanNumber];
+                }
+
                 continue;
             }
 
+            // Earliest installment the member has not yet covered: schedule
+            // Balance is the remainder AFTER the installment, so the next due
+            // is the first row whose balance sits below the current balance.
+            $next = null;
+            $balance = $balancesByLoan[(string) $loanNumber] ?? null;
+
+            if ($hasBalance && $balance !== null) {
+                $next = $scheduledRows->first(function ($row) use ($balance) {
+                    $rowBalance = $this->castNumber($row->Balance ?? null);
+
+                    return $rowBalance !== null && $rowBalance < $balance - 0.005;
+                });
+            }
+
             // Prefer the earliest unpaid (future or today) installment as the next due.
-            $next = $scheduledRows->first(function ($row) use ($today) {
+            $next ??= $scheduledRows->first(function ($row) use ($today) {
                 $date = $this->toDate($row->Date_pay ?? null);
 
                 return $date !== null && $date->greaterThanOrEqualTo($today);
@@ -211,15 +250,105 @@ class MemberAccountsRepository
                 continue;
             }
 
+            $amortization = $amortizationColumn !== null
+                ? $this->castNumber($next->Amortization ?? null)
+                : null;
+
+            $penalty = null;
+            $penaltyMonths = 0;
+
+            $dueDate = $this->toDate($next->Date_pay ?? null);
+            $penRate = $penRates[(string) $loanNumber] ?? null;
+
+            if ($dueDate !== null && $dueDate->lessThan($today) && ($amortization ?? 0) > 0 && ($penRate ?? 0) > 0) {
+                $daysLate = abs($today->diffInDays($dueDate));
+                $penaltyMonths = max(1, (int) ceil($daysLate / 30));
+                $penalty = round($amortization * ($penRate / 12 / 100) * $penaltyMonths, 2);
+            }
+
             $summaries[(string) $loanNumber] = [
                 'dueDate' => $this->formatDateValue($next->Date_pay ?? null),
-                'monthlyDue' => $amortizationColumn !== null
-                    ? $this->castNumber($next->Amortization ?? null)
-                    : null,
+                'monthlyDue' => $amortization === null
+                    ? null
+                    : round($amortization + ($penalty ?? 0), 2),
+                'penalty' => $penalty,
+                'penaltyMonths' => $penaltyMonths,
             ];
         }
 
         return $summaries;
+    }
+
+    /**
+     * Installment amount straight from wlnmaster for loans without schedule
+     * rows: no due date and no penalty can be derived.
+     *
+     * @param  list<string>  $loanNumbers
+     * @return array<string, array{dueDate: ?string, monthlyDue: ?float, penalty: ?float, penaltyMonths: int}>
+     */
+    private function amortizationFallbackSummaries(array $loanNumbers): array
+    {
+        if ($loanNumbers === [] || ! $this->hasTable('wlnmaster') || ! $this->hasColumn('wlnmaster', 'amortization')) {
+            return [];
+        }
+
+        $amounts = Wlnmaster::query()
+            ->whereIn('lnnumber', $loanNumbers)
+            ->pluck('amortization', 'lnnumber');
+
+        $byLoan = [];
+
+        foreach ($amounts as $key => $amount) {
+            $byLoan[trim((string) $key)] = $amount;
+        }
+
+        $summaries = [];
+
+        foreach ($loanNumbers as $loanNumber) {
+            $amount = $this->castNumber($byLoan[(string) $loanNumber] ?? null);
+
+            if ($amount === null) {
+                continue;
+            }
+
+            $summaries[(string) $loanNumber] = [
+                'dueDate' => null,
+                'monthlyDue' => $amount,
+                'penalty' => null,
+                'penaltyMonths' => 0,
+            ];
+        }
+
+        return $summaries;
+    }
+
+    /**
+     * @param  list<string>  $loanNumbers
+     * @return array<string, float|null>
+     */
+    private function loanPenaltyRates(array $loanNumbers): array
+    {
+        if (! $this->hasTable('wlnmaster') || ! $this->hasColumn('wlnmaster', 'pen_rate')) {
+            return [];
+        }
+
+        $rates = Wlnmaster::query()
+            ->whereIn('lnnumber', $loanNumbers)
+            ->pluck('pen_rate', 'lnnumber');
+
+        $byLoan = [];
+
+        foreach ($rates as $key => $rate) {
+            $byLoan[trim((string) $key)] = $rate;
+        }
+
+        $mapped = [];
+
+        foreach ($loanNumbers as $loanNumber) {
+            $mapped[(string) $loanNumber] = $this->castNumber($byLoan[(string) $loanNumber] ?? null);
+        }
+
+        return $mapped;
     }
 
     /**
@@ -258,7 +387,41 @@ class MemberAccountsRepository
             $query->orderByDesc('date_in');
         }
 
-        return $query->limit($limit)->get();
+        $payments = $query->limit($limit)->get();
+
+        LoanPaymentSplit::attachResolved($payments, $this->schedulesFor($payments));
+
+        return $payments;
+    }
+
+    /**
+     * Amortsched rows for every loan present in the given payments, for
+     * principal/interest split derivation.
+     *
+     * @param  \Illuminate\Support\Collection<int, mixed>  $payments
+     * @return \Illuminate\Support\Collection<int, \App\Models\Amortsched>
+     */
+    private function schedulesFor(Collection $payments): Collection
+    {
+        if (! $this->hasTable('Amortsched')) {
+            return collect();
+        }
+
+        $loanNumbers = $payments
+            ->map(static fn (mixed $row): string => trim((string) ($row->lnnumber ?? '')))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($loanNumbers === []) {
+            return collect();
+        }
+
+        return Amortsched::query()
+            ->whereIn('lnnumber', $loanNumbers)
+            ->orderBy('Date_pay')
+            ->get();
     }
 
     public function getPaginatedLoanSecurity(
@@ -359,6 +522,8 @@ class MemberAccountsRepository
         string $acctno,
         int $perPage,
         int $page,
+        ?string $source = null,
+        ?string $search = null,
     ): LengthAwarePaginator {
         $hasLoans = $this->hasTable('wlnled');
         $hasSavings = $this->hasTable('wsavled');
@@ -482,6 +647,17 @@ class MemberAccountsRepository
 
         $baseQuery = DB::query()
             ->fromSub($union, 'account_actions')
+            ->when(
+                in_array($source, ['LOAN', 'SAV'], true),
+                fn ($query) => $query->where('source', $source),
+            )
+            ->when($search !== null && trim($search) !== '', function ($query) use ($search) {
+                $like = '%'.trim($search).'%';
+
+                $query->where(fn ($inner) => $inner
+                    ->where('number', 'like', $like)
+                    ->orWhere('transaction_type', 'like', $like));
+            })
             ->orderByDesc('date_in')
             ->orderByDesc('control_no');
 

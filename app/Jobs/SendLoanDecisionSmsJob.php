@@ -68,6 +68,28 @@ class SendLoanDecisionSmsJob implements ShouldQueue
         }
 
         $branding = $organizationSettings->branding();
+        $enabledKey = $status === LoanRequestStatus::Approved->value ? 'approved' : 'declined';
+
+        if (! ($branding['loanSmsEnabled'][$enabledKey] ?? true)) {
+            Log::info('Loan request SMS skipped because the message is switched off.', [
+                'loan_request_id' => $loanRequest->id,
+            ]);
+
+            return;
+        }
+
+        $wait = $this->secondsUntilWindowOpens(
+            (string) ($branding['smsSendWindow'] ?? 'any'),
+            (string) ($branding['timezone'] ?? 'Asia/Manila'),
+        );
+
+        // Sync dispatch has no queue job to release, so it sends immediately.
+        if ($wait > 0 && $this->job !== null) {
+            $this->release($wait);
+
+            return;
+        }
+
         $templates = $organizationSettings->loanSmsTemplates();
         $message = $this->buildMessage(
             $loanRequest,
@@ -88,6 +110,36 @@ class SendLoanDecisionSmsJob implements ShouldQueue
                 'loan_request_id' => $loanRequest->id,
             ]);
         }
+    }
+
+    /**
+     * Seconds until the configured send window opens; 0 when open or unrestricted.
+     */
+    private function secondsUntilWindowOpens(string $window, string $timezone): int
+    {
+        [$startHour, $endHour, $days] = match ($window) {
+            '7am-8pm-daily' => [7, 20, [0, 1, 2, 3, 4, 5, 6]],
+            '8am-6pm-mon-sat' => [8, 18, [1, 2, 3, 4, 5, 6]],
+            default => [null, null, null],
+        };
+
+        if ($startHour === null) {
+            return 0;
+        }
+
+        $now = now($timezone);
+
+        if (in_array($now->dayOfWeek, $days, true) && $now->hour >= $startHour && $now->hour < $endHour) {
+            return 0;
+        }
+
+        $next = $now->copy()->setTime($startHour, 0);
+
+        while ($next->lessThanOrEqualTo($now) || ! in_array($next->dayOfWeek, $days, true)) {
+            $next->addDay()->setTime($startHour, 0);
+        }
+
+        return max(1, (int) $now->diffInSeconds($next));
     }
 
     private function buildMessage(

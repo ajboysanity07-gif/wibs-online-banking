@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Support\LoanPaymentSplit;
 use DateTimeInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -19,12 +20,12 @@ class MemberLoanPaymentResource extends JsonResource
             'date_in' => $this->formatDateValue($this->date_in),
             'reference_no' => $this->resolveReference(),
             'loan_type' => $this->lntype,
-            'principal' => $this->castNumber($this->principal),
+            'principal' => $this->castNumber(LoanPaymentSplit::read($this->resource, 'split_principal', 'principal')),
             'payment_amount' => $this->castNumber($this->payments),
             'debit' => $this->castNumber($this->debit),
             'credit' => $this->castNumber($this->credit),
             'balance' => $this->castNumber($this->balance),
-            'accrued_interest' => $this->castNumber($this->accruedint),
+            'accrued_interest' => $this->castNumber(LoanPaymentSplit::read($this->resource, 'split_interest', 'accruedint')),
             'status' => $this->lnstatus,
             'remarks' => $this->grouploan,
             'control_no' => $this->controlno,

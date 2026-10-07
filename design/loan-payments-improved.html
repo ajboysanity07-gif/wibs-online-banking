@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head><script type="application/json" data-od-external-dependencies>["https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap"]</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loan Payments · WIBS Online Banking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio.
+   Put this @layer first; product CSS outside the layer always wins. */
+@layer od-layout {
+  :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+
+  /* containers */
+  .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+  .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+  .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+  .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+  .od-fill    { flex: 1 1 0; min-width: 0; }
+  .od-fixed   { flex: none; }
+  .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+
+  /* stacked information: each piece is its own line — never sibling inline spans */
+  .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+  :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+  .od-tile { display: grid; grid-template-rows: auto 1fr; }
+  :where(.od-tile) > :where(*) { display: block; }
+
+  /* media keeps its intrinsic ratio by default; never a distorted or cropped
+     cover by accident. height:auto lets the ratio win over an <img height="…">
+     attribute. Cropping to a uniform box is an explicit opt-in: set --od-ratio
+     AND add .od-media-cover together (per the core rule, only where a crop is
+     deliberate — tile thumbs, decorative fills — never on full-frame content). */
+  .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+  .od-media-cover { object-fit: cover; }
+
+  /* data text only — authored copy is rewritten to its budget instead */
+  .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .od-clamp-2 { -webkit-line-clamp: 2; }
+  .od-clamp-3 { -webkit-line-clamp: 3; }
+  .od-lines-2 { min-height: calc(2 * 1.4em); }   /* block-level reservation for a shared baseline */
+  .od-nowrap  { white-space: nowrap; }           /* 数字+单位 · 价格+起 · 日期+星期 */
+  .od-keep    { word-break: keep-all; overflow-wrap: anywhere; } /* CJK labels break at spaces / <wbr> first */
+
+  /* screen skeleton (optional): bars take their own space, the middle scrolls — no padding guessed for chrome */
+  .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+  .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+
+  /* horizontal rail: the next item peeks at the edge; trailing room survives overflow */
+  .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+             padding-inline: var(--od-rail-pad, 16px); scroll-padding-inline: var(--od-rail-pad, 16px); }
+  .od-rail::-webkit-scrollbar { display: none; }
+  :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+  :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+
+  .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+  .od-touch  { min-width: 44px; min-height: 44px; }
+}
+/* /OD-LAYOUT-PRIMITIVES v1 */
+
+/* ============ WIBS tokens ============ */
+:root, [data-theme="light"] {
+    --bg: #dfe7cb;
+    --primary: #176433;
+    --primary-fg: #ffffff;
+    --accent: #9abd53;
+    --accent-fg: #10301c;
+    --card: #ffffff;
+    --tile: #eef3de;
+    --tint: #d3e6a6;
+    --tint-fg: #0f4123;
+    --tint-border: #b9d488;
+    --ink: #14170f;
+    --muted: #4a4f3f;
+    --border: #b7c399;
+    --sidebar: #176433;
+    --sidebar-ink: #eaf3dd;
+    --sidebar-active: rgba(255, 255, 255, 0.14);
+    --track: rgba(0, 0, 0, 0.15);
+    --danger: #a4261e;
+    --danger-tint: #f8dedc;
+    --danger-fg: #7a1b15;
+    --warn-tint: #fde9b8;
+    --warn-fg: #6b4200;
+    --info-tint: #d4e6f7;
+    --info-fg: #0b3c66;
+    --shadow: 0 1px 2px rgba(20, 23, 15, 0.06), 0 4px 14px rgba(20, 23, 15, 0.06);
+}
+[data-theme="dark"] {
+    --bg: #1a1916;
+    --primary: #c2d65a;
+    --primary-fg: #1a1a0a;
+    --accent: #c2d65a;
+    --accent-fg: #1a1a0a;
+    --card: #242320;
+    --tile: #1f1e1b;
+    --tint: #3a4a1c;
+    --tint-fg: #e4efb0;
+    --tint-border: #4a5a2c;
+    --ink: #f5f3ec;
+    --muted: #bdb8aa;
+    --border: #3a3832;
+    --sidebar: #12110f;
+    --sidebar-ink: #d9d6c9;
+    --sidebar-active: rgba(194, 214, 90, 0.16);
+    --track: rgba(255, 255, 255, 0.2);
+    --danger: #f2b8b5;
+    --danger-tint: #3a2422;
+    --danger-fg: #f2b8b5;
+    --warn-tint: #4a3a12;
+    --warn-fg: #fde9b8;
+    --info-tint: #1f3f5c;
+    --info-fg: #d4e6f7;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+    margin: 0;
+    font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.5;
+}
+h1, h2, h3, p { margin: 0; }
+a { color: inherit; }
+button { font: inherit; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+svg { display: block; }
+.sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ============ Shell ============ */
+.shell { display: flex; min-height: 100vh; }
+.sidebar {
+    position: fixed; inset: 0 auto 0 0; z-index: 50;
+    width: 248px; background: var(--sidebar); color: var(--sidebar-ink);
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 20px 14px; overflow-y: auto;
+    transform: translateX(0); transition: transform 200ms ease-out;
+}
+.sidebar.is-closed { transform: translateX(-100%); }
+.brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 10px 18px; font-weight: 700; font-size: 17px; letter-spacing: 0.01em;
+}
+.brand__mark {
+    width: 34px; height: 34px; border-radius: 8px; flex: none;
+    background: var(--accent); color: var(--accent-fg);
+    display: grid; place-items: center; font-size: 14px; font-weight: 700;
+}
+.nav-label {
+    padding: 10px 10px 4px; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.7;
+}
+.nav-item {
+    display: flex; align-items: center; gap: 10px;
+    min-height: 44px; padding: 8px 10px; border-radius: 8px;
+    color: inherit; text-decoration: none; font-size: 14.5px; font-weight: 500;
+}
+.nav-item:hover { background: var(--sidebar-active); }
+.nav-item[aria-current="page"] {
+    background: var(--sidebar-active); font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+.nav-item--sub { padding-left: 24px; font-size: 14px; }
+.sidebar__foot {
+    margin-top: auto; padding: 12px 10px 4px; font-size: 12.5px; opacity: 0.75;
+    display: flex; align-items: center; gap: 8px;
+}
+.scrim {
+    position: fixed; inset: 0; z-index: 45; background: rgba(10, 12, 8, 0.5);
+    border: 0; width: 100%; cursor: pointer;
+}
+.scrim.is-hidden { display: none; }
+.main {
+    flex: 1; min-width: 0; margin-left: 248px;
+    display: flex; flex-direction: column;
+}
+.topbar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; gap: 12px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px; min-height: 56px;
+}
+.icon-btn {
+    display: grid; place-items: center;
+    width: 44px; height: 44px; border-radius: 8px; cursor: pointer;
+    background: var(--card); color: var(--ink); border: 1px solid var(--border);
+}
+.icon-btn:hover { background: var(--tile); }
+.menu-btn { display: none; }
+.breadcrumb {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    font-size: 13.5px; color: var(--muted); min-width: 0;
+}
+.breadcrumb a { text-decoration: none; font-weight: 500; }
+.breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb [aria-current="page"] { color: var(--ink); font-weight: 600; }
+.pill {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    background: var(--tint); color: var(--tint-fg); border: 1px solid var(--tint-border);
+    white-space: nowrap;
+}
+.content {
+    padding: 24px; display: flex; flex-direction: column; gap: 20px;
+    width: 100%; max-width: 1240px; margin: 0 auto;
+}
+
+/* ============ Page header ============ */
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
+.page-head__text { min-width: 0; flex: 1 1 320px; }
+.page-title { font-size: clamp(24px, 3vw, 30px); font-weight: 700; letter-spacing: -0.01em; }
+.page-sub { color: var(--muted); font-size: 15px; margin-top: 4px; }
+.badge-outline {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 600;
+    background: var(--card); border: 1px solid var(--border); color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+.btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 8px 16px; border-radius: 8px;
+    font-size: 14.5px; font-weight: 600; cursor: pointer; text-decoration: none;
+    border: 1px solid var(--border); background: var(--card); color: var(--ink);
+}
+.btn:hover { background: var(--tile); border-color: var(--muted); }
+.btn--primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.btn--primary:hover { filter: brightness(1.08); background: var(--primary); border-color: var(--primary); }
+.btn--sm { min-height: 40px; padding: 6px 12px; font-size: 13.5px; }
+.btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+.btn[disabled]:hover { background: var(--card); border-color: var(--border); }
+
+/* ============ Tabs ============ */
+.tabs {
+    display: inline-flex; gap: 4px; align-self: flex-start;
+    background: var(--tile); border: 1px solid var(--border); border-radius: 10px; padding: 4px;
+}
+.tabs button {
+    min-height: 40px; padding: 8px 16px; border-radius: 8px;
+    font-size: 14.5px; font-weight: 600; color: var(--muted); cursor: pointer;
+    background: transparent; border: 0;
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] {
+    background: var(--card); color: var(--ink); box-shadow: var(--shadow);
+}
+.panel[hidden] { display: none; }
+
+/* ============ Alert / note ============ */
+.alert {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 14px 16px; border-radius: 10px;
+    background: var(--danger-tint); border: 1px solid var(--danger);
+    color: var(--danger-fg); font-size: 14.5px;
+}
+.alert strong { display: block; font-size: 15px; margin-bottom: 2px; }
+.alert.is-hidden { display: none; }
+.note {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 12px 14px; border-radius: 10px;
+    background: var(--tile); border: 1px solid var(--border);
+    color: var(--muted); font-size: 13.5px;
+}
+.note svg { flex: none; margin-top: 1px; color: var(--muted); }
+
+/* ============ Stats ============ */
+.stats {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.stat {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px; display: flex; flex-direction: column; gap: 8px;
+    box-shadow: var(--shadow); min-width: 0;
+}
+.stat--primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.stat__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.stat__label { font-size: 13px; font-weight: 600; line-height: 1.35; }
+.stat--plain .stat__label { color: var(--muted); }
+.stat__icon { flex: none; opacity: 0.85; }
+.stat__value {
+    font-size: clamp(26px, 3.2vw, 34px); font-weight: 700;
+    letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.stat__value--date { font-size: clamp(20px, 2.4vw, 26px); }
+.stat__helper { font-size: 13px; line-height: 1.4; opacity: 0.9; }
+.stat--plain .stat__helper { color: var(--muted); }
+.stat--due.is-overdue {
+    background: var(--danger-tint); border-color: var(--danger); color: var(--danger-fg);
+}
+.stat--due .stat__icon { color: var(--muted); }
+.stat--due.is-overdue .stat__icon { color: var(--danger-fg); }
+
+/* ============ Section card ============ */
+.card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow); overflow: hidden;
+}
+.card__head {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 16px 18px; border-bottom: 1px solid var(--border);
+}
+.card__title { font-size: 16px; font-weight: 700; }
+.card__desc { font-size: 13.5px; color: var(--muted); }
+.card__body { padding: 18px; }
+.card__foot {
+    padding: 14px 18px; border-top: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between;
+}
+
+/* ============ Filters ============ */
+.filters { display: grid; gap: 16px; }
+.filter-block { display: grid; gap: 8px; }
+.filter-block__label {
+    font-size: 12.5px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+}
+.chip {
+    min-height: 44px; padding: 8px 16px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--card); color: var(--muted);
+    font-size: 13.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+}
+.chip:hover { background: var(--tile); }
+.chip[aria-pressed="true"] {
+    background: var(--tint); color: var(--tint-fg); border-color: var(--tint-border);
+}
+.chip[disabled] { opacity: 0.5; cursor: not-allowed; }
+.range-grid {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+.field { display: grid; gap: 6px; min-width: 0; }
+.field > label {
+    font-size: 12.5px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+.input {
+    min-height: 44px; padding: 8px 12px; border-radius: 8px; width: 100%;
+    border: 1px solid var(--border); background: var(--card); color: var(--ink);
+    font-size: 14.5px; font-variant-numeric: tabular-nums;
+}
+.input:disabled { opacity: 0.6; background: var(--tile); cursor: not-allowed; }
+.filters__actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.filters__actions .btn[data-variant="ghost"] { background: transparent; border-color: transparent; color: var(--primary); }
+.filters__actions .btn[data-variant="ghost"]:hover { background: var(--tile); border-color: transparent; }
+.filters__spacer { flex: 1 1 auto; }
+
+/* ============ Ledger ============ */
+.ledger { display: grid; }
+.ledger-head, .ledger-row {
+    display: grid; align-items: center; gap: 12px;
+    grid-template-columns: 116px minmax(0, 1.5fr) minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
+    grid-template-areas: "date ref break amount balance";
+    padding: 13px 18px; border-bottom: 1px solid var(--border);
+}
+.ledger-head {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); background: var(--tile);
+}
+.ledger-row {
+    width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer;
+    background: transparent; border: 0; border-bottom: 1px solid var(--border);
+}
+.ledger-row:last-child { border-bottom: 0; }
+@media (hover: hover) { .ledger-row:hover { background: var(--tile); } }
+.ledger-row:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.c-date { grid-area: date; }
+.c-ref { grid-area: ref; }
+.c-break { grid-area: break; }
+.c-amount { grid-area: amount; text-align: right; }
+.c-balance { grid-area: balance; text-align: right; }
+.ledger-head .c-amount, .ledger-head .c-balance { text-align: right; }
+.ledger__date { display: block; font-size: 14.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ledger__time { display: block; font-size: 12.5px; color: var(--muted); }
+.ledger__ref { display: block; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ledger__type { display: block; font-size: 12.5px; color: var(--muted); }
+.pi { display: grid; gap: 2px; }
+.pi__line { display: block; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pi__line strong { color: var(--ink); font-weight: 700; }
+.ledger__amt { display: block; font-size: 15.5px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ledger__bal { display: block; font-size: 14.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ledger__bal-label { display: block; font-size: 12px; color: var(--muted); }
+
+/* ============ Schedule ============ */
+.sched-hero {
+    display: grid; gap: 16px;
+    grid-template-columns: minmax(0, 1.4fr) minmax(230px, 0.9fr);
+    align-items: stretch;
+}
+.sched-main { min-width: 0; display: grid; align-content: start; gap: 16px; }
+.sched-summary {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+.sched-fig { display: grid; gap: 2px; min-width: 0; }
+.sched-fig__label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.sched-fig__value { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.progress { display: grid; gap: 6px; }
+.progress__meta {
+    display: flex; justify-content: space-between; gap: 10px;
+    font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.progress__meta strong { color: var(--ink); font-weight: 700; white-space: nowrap; }
+.progress__track { height: 10px; border-radius: 999px; background: var(--track); overflow: hidden; }
+.progress__fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width 300ms ease-out; }
+
+/* next-due summary */
+.nextdue {
+    display: grid; gap: 10px; align-content: start;
+    padding: 16px 18px; border-radius: 12px;
+    background: var(--tile); border: 1px solid var(--border);
+}
+.nextdue.is-overdue { background: var(--danger-tint); border-color: var(--danger); }
+.nextdue.is-paid { background: var(--tint); border-color: var(--tint-border); }
+.nextdue__label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.nextdue__amt { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.nextdue__meta { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.nextdue__meta strong { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.nextdue__pill {
+    justify-self: start; display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.03em; text-transform: uppercase;
+}
+.nextdue__pill.is-due { background: var(--card); color: var(--warn-fg); border: 1px solid var(--warn-fg); }
+.nextdue__pill.is-overdue { background: var(--card); color: var(--danger-fg); border: 1px solid var(--danger); }
+.nextdue__pill.is-paid { background: var(--card); color: var(--tint-fg); border: 1px solid var(--tint-border); }
+
+/* status filter rail */
+.sched-rail {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 12px 18px; border-bottom: 1px solid var(--border);
+}
+.sched-rail__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sched-rail__spacer { flex: 1 1 auto; }
+.sched-rail__count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* installment rows */
+.sched-list { display: grid; }
+.sched-row {
+    display: grid; gap: 14px;
+    grid-template-columns: 36px minmax(120px, 1fr) minmax(150px, 1.05fr) minmax(120px, auto) auto;
+    align-items: center;
+    padding: 13px 18px; border-bottom: 1px solid var(--border);
+}
+.sched-row:last-child { border-bottom: 0; }
+.sched-row.is-current { background: var(--tint); }
+.sched-row__no {
+    display: grid; place-items: center; width: 34px; height: 34px;
+    border-radius: 9px; background: var(--tile); border: 1px solid var(--border);
+    font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted);
+}
+.sched-row.is-current .sched-row__no { background: var(--warn-tint); color: var(--warn-fg); border-color: var(--warn-fg); }
+.sched-row__datewrap { min-width: 0; }
+.sched-row__date { display: block; font-size: 14.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sched-row__sub { display: block; font-size: 12.5px; color: var(--muted); }
+.sched-row__amt { display: grid; gap: 2px; text-align: right; }
+.sched-row__amt b { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sched-row__bal { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sched-row__status { justify-self: end; }
+.status {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+}
+.status--paid { background: var(--tint); color: var(--tint-fg); border: 1px solid var(--tint-border); }
+.status--due { background: var(--warn-tint); color: var(--warn-fg); border: 1px solid var(--warn-fg); }
+.status--upcoming { background: var(--tile); color: var(--muted); border: 1px solid var(--border); }
+.status--overdue { background: var(--danger-tint); color: var(--danger-fg); border: 1px solid var(--danger); }
+.sched-scroll { max-height: 460px; }
+
+@media (max-width: 960px) {
+    .sched-hero { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+    .sched-row {
+        grid-template-columns: 36px 1fr auto;
+        grid-template-areas:
+            "no date status"
+            "no pi   amt";
+        row-gap: 10px; align-items: start;
+    }
+    .sched-row__no { grid-area: no; }
+    .sched-row__datewrap { grid-area: date; }
+    .sched-row .pi { grid-area: pi; }
+    .sched-row__amt { grid-area: amt; }
+    .sched-row__status { grid-area: status; }
+}
+
+/* ============ States ============ */
+.state-box {
+    padding: 44px 18px; text-align: center; color: var(--muted); font-size: 15px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.state-box strong { color: var(--ink); font-size: 16px; }
+.state-box.is-hidden { display: none; }
+
+/* ============ Skeleton ============ */
+.skeleton { display: grid; gap: 12px; padding: 18px; }
+.skeleton__row {
+    height: 62px; border-radius: 10px;
+    background: linear-gradient(90deg, var(--tile) 25%, var(--border) 50%, var(--tile) 75%);
+    background-size: 200% 100%; animation: shimmer 1.2s linear infinite;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+.is-hidden { display: none !important; }
+
+/* ============ Pagination ============ */
+.pager { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pager__info { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.page-btn {
+    min-width: 40px; min-height: 40px; padding: 6px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card); color: var(--ink);
+    font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.page-btn:hover:not(:disabled) { background: var(--tile); }
+.page-btn[aria-current="page"] { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.page-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ============ Transaction modal ============ */
+.modal { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 20px; }
+.modal.is-hidden { display: none; }
+.modal__scrim { position: absolute; inset: 0; width: 100%; background: rgba(10, 12, 8, 0.55); border: 0; cursor: pointer; }
+.modal__card {
+    position: relative; width: min(440px, 100%); max-height: calc(100vh - 40px);
+    background: var(--card); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; animation: modal-in 200ms ease-out;
+}
+@keyframes modal-in { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
+.modal__head {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    padding: 18px 18px 14px; border-bottom: 1px solid var(--border); flex: none;
+}
+.modal__eyebrow { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.modal__title { font-size: 17px; font-weight: 700; margin-top: 2px; }
+.modal__body { padding: 18px; overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.modal__foot { display: flex; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--border); flex: none; }
+.modal__foot .btn { flex: 1 1 0; }
+.tx-hero {
+    display: grid; gap: 6px; justify-items: center; text-align: center;
+    padding: 18px; border-radius: 10px; background: var(--tint); color: var(--tint-fg);
+    border: 1px solid var(--tint-border); margin-bottom: 16px;
+}
+.tx-hero__label { font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; }
+.tx-hero__amount { font-size: clamp(26px, 6vw, 34px); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tx-rows { display: grid; gap: 0; margin: 0; }
+.tx-row {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+    padding: 11px 0; border-top: 1px solid var(--border);
+}
+.tx-row:first-child { border-top: 0; }
+.tx-row dt { font-size: 13.5px; color: var(--muted); }
+.tx-row dd { margin: 0; font-size: 14.5px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) {
+    .modal { place-items: end center; padding: 0; }
+    .modal__card {
+        width: 100%; max-width: 100%; border-radius: 16px 16px 0 0;
+        max-height: 90vh; animation: sheet-in 200ms ease-out;
+    }
+}
+@keyframes sheet-in { from { transform: translateY(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+
+/* ============ Toast ============ */
+.toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(8px);
+    z-index: 80; max-width: min(92vw, 420px);
+    background: var(--ink); color: var(--bg);
+    padding: 12px 18px; border-radius: 10px; font-size: 14.5px; font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    opacity: 0; pointer-events: none; transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+.toast.is-on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ============ Responsive ============ */
+@media (max-width: 1023px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.is-open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .menu-btn { display: grid; }
+}
+@media (min-width: 1024px) {
+    .sidebar { transform: translateX(0); }
+    .scrim { display: none !important; }
+}
+@media (max-width: 767px) {
+    .content { padding: 16px; gap: 16px; }
+    .topbar { padding: 10px 14px; }
+    .pill span.pill__text { display: none; }
+    .page-head .btn { width: 100%; }
+    .tabs { display: flex; width: 100%; }
+    .tabs button { flex: 1 1 0; }
+    .ledger-head { display: none; }
+    .ledger-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "date    amount"
+            "ref     balance"
+            "break   break";
+        gap: 6px 12px; padding: 15px 16px;
+    }
+    .c-amount, .c-balance { text-align: right; }
+    .sched-row { flex-wrap: wrap; }
+    .card__foot { flex-direction: column; align-items: stretch; }
+    .pager { justify-content: center; }
+}
+/* ============ Print document ============ */
+.print-doc { display: none; }
+@media print {
+    @page { margin: 13mm; }
+    html, body { background: #fff !important; }
+    .shell, .toast, .modal, .scrim { display: none !important; }
+    .print-doc {
+        display: block !important;
+        color: #14170f; font-size: 12px; line-height: 1.4;
+        font-family: "Instrument Sans", -apple-system, "Segoe UI", Arial, sans-serif;
+    }
+    .print-doc__head {
+        display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+        padding-bottom: 12px; border-bottom: 2px solid #14170f; margin-bottom: 14px;
+    }
+    .print-doc__brand { font-size: 16px; font-weight: 700; letter-spacing: 0.02em; }
+    .print-doc__title { font-size: 13.5px; font-weight: 600; margin-top: 2px; }
+    .print-doc__sub { font-size: 11px; color: #55604a; margin-top: 1px; }
+    .print-doc__meta { font-size: 11px; line-height: 1.65; text-align: right; color: #3c4234; }
+    .print-doc__meta strong { color: #14170f; }
+    .print-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 12px; margin: 0 0 16px; }
+    .print-summary div { border: 1px solid #c9cfbd; border-radius: 6px; padding: 7px 9px; }
+    .print-summary dt { margin: 0 0 2px; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #55604a; font-weight: 600; }
+    .print-summary dd { margin: 0; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .print-doc table { width: 100%; border-collapse: collapse; }
+    .print-doc thead { display: table-header-group; }
+    .print-doc tr { break-inside: avoid; }
+    .print-doc thead th {
+        font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.04em; text-align: left;
+        padding: 6px 8px; background: #eef3de; border-bottom: 1px solid #7f8f5c; color: #14170f;
+    }
+    .print-doc tbody td { padding: 6px 8px; border-bottom: 1px solid #d7ddcb; font-variant-numeric: tabular-nums; }
+    .print-doc tbody tr:nth-child(even) td { background: #f7f9f1; }
+    .print-doc .num { text-align: right; white-space: nowrap; }
+    .print-doc .print-status { font-weight: 700; white-space: nowrap; }
+    .print-doc tr.print-total td { font-weight: 700; background: #eef3de !important; border-top: 1px solid #7f8f5c; }
+    .print-doc__foot {
+        display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+        margin-top: 14px; padding-top: 10px; border-top: 1px solid #c9cfbd;
+        font-size: 10.5px; color: #55604a;
+    }
+    .print-doc__foot strong { color: #14170f; }
+    /* SOA statement layout */
+    .soa-band { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+        padding: 10px 14px; background: #14170f; color: #fff; border-radius: 6px; margin-bottom: 12px; }
+    .soa-band__title { font-size: 14px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+    .soa-band__period { font-size: 11px; color: #d8e2c4; }
+    .soa-address { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; font-size: 11px; margin-bottom: 14px; }
+    .soa-address dt { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: #55604a; font-weight: 600; }
+    .soa-address dd { margin: 0; font-weight: 600; }
+    .soa-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 14px; }
+    .soa-tiles div { border: 1px solid #c9cfbd; border-radius: 6px; padding: 8px 10px; background: #fbfdf6; }
+    .soa-tiles dt { margin: 0 0 2px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: #55604a; font-weight: 600; }
+    .soa-tiles dd { margin: 0; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .soa-tiles div.soa--hero dd { font-size: 15px; color: #2f3a1e; }
+    .soa-table caption { text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #55604a; padding-bottom: 6px; }
+    .soa-table tr.soa-open td, .soa-table tr.soa-close td { font-weight: 700; background: #f2f6e6; }
+    .soa-note { margin-top: 12px; padding: 10px 12px; border: 1px solid #d7ddcb; border-radius: 6px;
+        font-size: 10px; color: #3c4234; line-height: 1.6; background: #ffffff; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+/* ============ Documents (scoped to this loan) ============ */
+.doc-row {
+    display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+}
+.doc-row:last-child { border-bottom: 0; }
+.doc-row__icon {
+    flex: none; width: 40px; height: 40px; border-radius: 8px;
+    background: var(--tile); color: var(--primary);
+    display: grid; place-items: center;
+}
+.doc-row__text { flex: 1 1 auto; min-width: 0; }
+.doc-row__name { display: block; font-size: 14.5px; font-weight: 600; overflow-wrap: anywhere; }
+.doc-row__meta { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.doc-row .btn { flex: none; }
+.doc-hint {
+    margin: 0; padding: 14px 18px; font-size: 13px; color: var(--muted);
+    border-top: 1px solid var(--border); background: var(--tile);
+}
+
+/* ---- Statement of Account preview ---- */
+#soaModal { padding: 12px; }
+#soaModal .modal__card { width: min(1080px, 100%); max-width: 1080px; max-height: calc(100vh - 24px); }
+#soaModal .modal__body { padding: 20px 24px; }
+.soa { display: grid; gap: 18px; }
+.soa__head { display: grid; gap: 2px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.soa__org { font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.soa__doc { font-size: 17px; font-weight: 700; }
+.soa__period { font-size: 13.5px; color: var(--muted); }
+.soa__facts { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 18px; }
+.soa__fact { display: grid; gap: 2px; min-width: 0; }
+.soa__fact dt { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.soa__fact dd { margin: 0; font-size: 14.5px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.soa__expand { display: block; max-width: 100%; padding: 0; border: 0; border-bottom: 1px dashed var(--muted); background: none; font: inherit; text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.soa__expand[aria-expanded="true"] { white-space: normal; overflow-wrap: anywhere; border-bottom-style: solid; }
+.soa__ledger--wrap { overflow-x: auto; background: linear-gradient(to left, var(--card) 0%, transparent 24px) right top / 24px 100% no-repeat; }
+.soa__empty { margin: 0; padding: 18px; border: 1px dashed var(--border); border-radius: 10px; color: var(--muted); font-size: 14px; }
+.soa__ledger { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.soa__ledger th {
+    text-align: left; font-size: 11.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--muted); padding: 8px 10px;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.soa__ledger td { padding: 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.soa__ledger tbody tr:last-child td { border-bottom: 0; }
+.soa__ledger .num { text-align: right; white-space: nowrap; }
+.soa__ledger .soa__ref { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.soa__sum { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; }
+.soa__sumrow {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+    padding: 9px 0; border-top: 1px solid var(--border); font-size: 14px;
+}
+.soa__sumrow dt { color: var(--muted); }
+.soa__sumrow dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 767px) {
+    .doc-row { flex-wrap: wrap; }
+    .doc-row__text { flex: 1 1 auto; }
+    .doc-row .btn { width: 100%; }
+    .soa__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .soa__sum { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+    <nav class="sidebar" id="sidebar" aria-label="Main">
+        <div class="brand">
+            <span class="brand__mark" aria-hidden="true">MR</span>
+            <span>MRDINC Portal</span>
+        </div>
+        <p class="nav-label">Member</p>
+        <a class="nav-item" href="#overview">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+            Overview
+        </a>
+        <a class="nav-item" href="#loans">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+            Loans
+        </a>
+        <a class="nav-item nav-item--sub" href="#payments" aria-current="page">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+            Loan Payments
+        </a>
+        <a class="nav-item" href="#security">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Loan Security
+        </a>
+        <a class="nav-item" href="#requests">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6M9 11h3"/></svg>
+            Loan requests
+        </a>
+        <p class="nav-label">Account</p>
+        <a class="nav-item" href="#settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>
+            Settings
+        </a>
+        <div class="sidebar__foot">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Secure session
+        </div>
+    </nav>
+    <button type="button" class="scrim is-hidden" id="scrim" aria-label="Close menu" tabindex="-1"></button>
+
+    <div class="main">
+        <header class="topbar">
+            <button type="button" class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a href="#loans">Loans</a>
+                <span aria-hidden="true">/</span>
+                <span aria-current="page">Payments</span>
+            </nav>
+            <span class="pill">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span class="pill__text">Secure session</span>
+            </span>
+            <button type="button" class="icon-btn" id="themeToggle" aria-label="Toggle dark mode">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+            </button>
+        </header>
+
+        <main class="content">
+            <div class="page-head">
+                <div class="page-head__text">
+                    <h1 class="page-title">Loan Payments</h1>
+                    <p class="page-sub" id="pageSub">Client ID 06-0124 · Loan SBA-4F2183</p>
+                </div>
+                <span class="badge-outline" id="acctBadge">Account 010204 · Staff Loans</span>
+                <a class="btn" href="#loans">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                    Back to loans
+                </a>
+            </div>
+
+            <div class="alert is-hidden" id="acctAlert" role="alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                <div>
+                    <strong>Account number missing</strong>
+                    Add an account number to view this loan's payment records.
+                </div>
+            </div>
+
+            <section class="stats" aria-label="Loan payment summary">
+                <div class="stat stat--primary">
+                    <div class="stat__top">
+                        <p class="stat__label">Outstanding Balance</p>
+                        <svg class="stat__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                    </div>
+                    <p class="stat__value" id="statBalance">₱0.00</p>
+                    <p class="stat__helper" id="statBalanceHelper">Remaining balance of this loan.</p>
+                </div>
+                <div class="stat stat--due" id="statDueCard">
+                    <div class="stat__top">
+                        <p class="stat__label">Next Payment Due</p>
+                        <svg class="stat__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                    </div>
+                    <p class="stat__value" id="statDue">₱0.00</p>
+                    <p class="stat__helper" id="statDueHelper">—</p>
+                </div>
+                <div class="stat stat--plain">
+                    <div class="stat__top">
+                        <p class="stat__label">Last Payment</p>
+                        <svg class="stat__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted)"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    </div>
+                    <p class="stat__value stat__value--date" id="statLast">—</p>
+                    <p class="stat__helper" id="statLastHelper">Most recent posted payment.</p>
+                </div>
+                <div class="stat stat--plain">
+                    <div class="stat__top">
+                        <p class="stat__label">Loan Security Contribution</p>
+                        <svg class="stat__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted)"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <p class="stat__value" id="statSecurity">₱0.00</p>
+                    <p class="stat__helper">Held against your loan balance.</p>
+                </div>
+            </section>
+
+            <div class="tabs" role="tablist" aria-label="Loan payment views">
+                <button type="button" role="tab" id="tabHistory" aria-selected="true" aria-controls="panelHistory" data-tab="history">Payment history</button>
+                <button type="button" role="tab" id="tabSchedule" aria-selected="false" aria-controls="panelSchedule" data-tab="schedule" tabindex="-1">Repayment schedule</button>
+                <button type="button" role="tab" id="tabDocs" aria-selected="false" aria-controls="panelDocs" data-tab="documents" tabindex="-1">Documents</button>
+            </div>
+
+            <section class="panel" id="panelHistory" role="tabpanel" aria-labelledby="tabHistory">
+                <div class="card filters-card">
+                    <div class="card__head">
+                        <div>
+                            <h2 class="card__title">Payment filters</h2>
+                            <p class="card__desc">Filter and download payment records.</p>
+                        </div>
+                        <button type="button" class="btn btn--sm" id="resetFilters" style="margin-left:auto" data-variant="ghost">
+                            Reset
+                        </button>
+                    </div>
+                    <div class="card__body filters">
+                        <div class="filter-block">
+                            <span class="filter-block__label" id="periodLabel">Period</span>
+                            <div class="od-rail" role="group" aria-labelledby="periodLabel" id="periodRail">
+                                <button type="button" class="chip" data-period="all" aria-pressed="true">All transactions</button>
+                                <button type="button" class="chip" data-period="current-term" aria-pressed="false">Current term</button>
+                                <button type="button" class="chip" data-period="last-30" aria-pressed="false">Last 30 days</button>
+                                <button type="button" class="chip" data-period="last-90" aria-pressed="false">Last 90 days</button>
+                                <button type="button" class="chip" data-period="custom" aria-pressed="false">Custom range</button>
+                            </div>
+                        </div>
+                        <div class="range-grid">
+                            <div class="field">
+                                <label for="startDate">Start date</label>
+                                <input class="input" type="date" id="startDate" value="2025-10-08" disabled />
+                            </div>
+                            <div class="field">
+                                <label for="endDate">End date</label>
+                                <input class="input" type="date" id="endDate" value="2026-10-02" disabled />
+                            </div>
+                            <div class="field">
+                                <label for="minAmount">Amount from (₱)</label>
+                                <input class="input" type="number" id="minAmount" inputmode="numeric" min="0" step="100" placeholder="0" />
+                            </div>
+                            <div class="field">
+                                <label for="maxAmount">Amount to (₱)</label>
+                                <input class="input" type="number" id="maxAmount" inputmode="numeric" min="0" step="100" placeholder="Any" />
+                            </div>
+                        </div>
+                        <div class="filters__actions">
+                            <span class="filters__spacer"></span>
+                            <button type="button" class="btn" id="downloadCsv">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+                                Download
+                            </button>
+                            <button type="button" class="btn" id="printBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+                                Print
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:16px">
+                    <div class="card__head">
+                        <div>
+                            <h2 class="card__title">Loan Payments</h2>
+                            <p class="card__desc">Payment history for this loan.</p>
+                        </div>
+                    </div>
+
+                    <div class="skeleton" id="ledgerSkeleton" aria-hidden="true">
+                        <div class="skeleton__row"></div>
+                        <div class="skeleton__row"></div>
+                        <div class="skeleton__row"></div>
+                    </div>
+
+                    <div class="ledger is-hidden" id="ledger">
+                        <div class="ledger-head" aria-hidden="true">
+                            <span class="c-date">Transaction date</span>
+                            <span class="c-ref">Reference no</span>
+                            <span class="c-break">Principal · Interest</span>
+                            <span class="c-amount">Amount</span>
+                            <span class="c-balance">Balance</span>
+                        </div>
+                        <div id="ledgerRows"></div>
+                    </div>
+
+                    <div class="state-box is-hidden" id="ledgerLoadingError" hidden>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--danger)"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                        <strong>Unable to load payments</strong>
+                        <span>Something went wrong while fetching this loan's payment records.</span>
+                        <button type="button" class="btn btn--sm" id="retryBtn">Try again</button>
+                    </div>
+
+                    <div class="state-box is-hidden" id="ledgerEmpty" hidden>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+                        <strong>No payments found for this period.</strong>
+                        <span>Try a wider date range or clear the amount filter.</span>
+                    </div>
+
+                    <div class="card__foot" id="ledgerFoot">
+                        <span class="pager__info" id="pagerInfo">Showing 0 of 0 payments</span>
+                        <div class="pager" id="pager" role="navigation" aria-label="Payments pagination"></div>
+                    </div>
+                </div>
+
+                <div class="note" style="margin-top:16px">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    <span>Payment records are posted by the cooperative once your payment is confirmed. Tap any payment to see its full transaction summary and download a receipt.</span>
+                </div>
+            </section>
+
+            <section class="panel" id="panelSchedule" role="tabpanel" aria-labelledby="tabSchedule" hidden>
+                <div class="card">
+                    <div class="card__head">
+                        <div>
+                            <h2 class="card__title">Repayment progress</h2>
+                            <p class="card__desc">How far along this loan is.</p>
+                        </div>
+                        <span class="status status--due" id="schedNextChip" style="margin-left:auto">—</span>
+                    </div>
+                    <div class="card__body">
+                        <div class="sched-hero">
+                            <div class="sched-main">
+                                <div class="sched-summary">
+                                    <div class="sched-fig"><span class="sched-fig__label">Principal</span><span class="sched-fig__value" id="schedPrincipal">₱0.00</span></div>
+                                    <div class="sched-fig"><span class="sched-fig__label">Outstanding balance</span><span class="sched-fig__value" id="schedBalance">₱0.00</span></div>
+                                    <div class="sched-fig"><span class="sched-fig__label">Monthly due</span><span class="sched-fig__value" id="schedMonthly">₱0.00</span></div>
+                                    <div class="sched-fig"><span class="sched-fig__label">Rate per month</span><span class="sched-fig__value" id="schedRate">—</span></div>
+                                    <div class="sched-fig"><span class="sched-fig__label">Payments left</span><span class="sched-fig__value" id="schedLeft">—</span></div>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress__meta">
+                                        <span>Repaid: <strong id="schedPct">0%</strong></span>
+                                        <span><strong id="schedRepaid">₱0.00</strong> of <strong id="schedTotal">₱0.00</strong></span>
+                                    </div>
+                                    <div class="progress__track" role="img" id="schedTrack" aria-label="0 percent of principal repaid">
+                                        <div class="progress__fill" id="schedFill" style="width:0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="nextdue" id="schedNextDue">
+                                <span class="nextdue__label">Next due</span>
+                                <span class="nextdue__amt" id="schedNextAmt">₱0.00</span>
+                                <div class="nextdue__meta" id="schedNextMeta"></div>
+                                <span class="nextdue__pill is-due" id="schedNextPill">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:16px">
+                    <div class="card__head">
+                        <div>
+                            <h2 class="card__title">Amortization schedule</h2>
+                            <p class="card__desc">Principal and interest breakdown for every installment.</p>
+                        </div>
+                        <button type="button" class="btn btn--sm" id="printScheduleBtn" style="margin-left:auto">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+                            Print schedule
+                        </button>
+                    </div>
+                    <div class="sched-rail" role="group" aria-label="Filter installments by status">
+                        <div class="sched-rail__chips" id="schedRail">
+                            <button type="button" class="chip" data-sched-filter="all" aria-pressed="true">All</button>
+                            <button type="button" class="chip" data-sched-filter="paid" aria-pressed="false">Paid</button>
+                            <button type="button" class="chip" data-sched-filter="due" aria-pressed="false">Due</button>
+                            <button type="button" class="chip" data-sched-filter="overdue" aria-pressed="false">Overdue</button>
+                            <button type="button" class="chip" data-sched-filter="upcoming" aria-pressed="false">Scheduled</button>
+                        </div>
+                        <span class="sched-rail__spacer"></span>
+                        <span class="sched-rail__count" id="schedCount">—</span>
+                    </div>
+                    <div class="od-scroll sched-scroll">
+                        <div class="skeleton is-hidden" id="schedSkeleton" aria-hidden="true">
+                            <div class="skeleton__row"></div>
+                            <div class="skeleton__row"></div>
+                            <div class="skeleton__row"></div>
+                        </div>
+                        <div class="sched-list" id="schedList"></div>
+                    </div>
+                    <div class="state-box is-hidden" id="schedEmpty" hidden role="status">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M9 16h6"/></svg>
+                        <strong>No installments match this filter.</strong>
+                        <span>Choose a different status to see more rows.</span>
+                    </div>
+                    <div class="card__foot">
+                        <span class="pager__info" id="schedFootInfo">Showing 0 of 0 installments</span>
+                        <span class="pager__info">Amounts are estimates based on the current amortization.</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel" id="panelDocs" role="tabpanel" aria-labelledby="tabDocs" hidden>
+                <div class="card">
+                    <div class="card__head">
+                        <div>
+                            <h2 class="card__title">Documents</h2>
+                            <p class="card__desc" id="docsScope">Statements, schedules and certificates for this loan.</p>
+                        </div>
+                    </div>
+                    <div id="docList"></div>
+                    <p class="doc-hint">Payment receipts are not listed here — open any payment in Payment history to download its receipt.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<div class="modal is-hidden" id="txModal" role="dialog" aria-modal="true" aria-labelledby="txTitle" hidden>
+    <button type="button" class="modal__scrim" id="txScrim" aria-label="Close transaction summary" tabindex="-1"></button>
+    <div class="modal__card" role="document">
+        <div class="modal__head">
+            <div>
+                <p class="modal__eyebrow">Payment receipt</p>
+                <h2 class="modal__title" id="txTitle">Transaction summary</h2>
+            </div>
+            <button type="button" class="icon-btn" id="txClose" aria-label="Close transaction summary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal__body">
+            <div class="tx-hero">
+                <span class="tx-hero__label">Amount paid</span>
+                <span class="tx-hero__amount" id="txAmount">₱0.00</span>
+                <span class="status status--paid" id="txStatus">Posted</span>
+            </div>
+            <dl class="tx-rows">
+                <div class="tx-row"><dt>Reference no</dt><dd id="txRef">—</dd></div>
+                <div class="tx-row"><dt>Transaction date</dt><dd id="txDate">—</dd></div>
+                <div class="tx-row"><dt>Loan</dt><dd id="txLoan">—</dd></div>
+                <div class="tx-row"><dt>Principal</dt><dd id="txPrincipal">—</dd></div>
+                <div class="tx-row"><dt>Interest</dt><dd id="txInterest">—</dd></div>
+                <div class="tx-row"><dt>Balance after payment</dt><dd id="txBalance">—</dd></div>
+            </dl>
+        </div>
+        <div class="modal__foot">
+            <button type="button" class="btn" id="txReceipt">Download receipt</button>
+            <button type="button" class="btn btn--primary" id="txDone">Done</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal is-hidden" id="soaModal" role="dialog" aria-modal="true" aria-labelledby="soaTitle" hidden>
+    <button type="button" class="modal__scrim" id="soaScrim" aria-label="Close statement of account" tabindex="-1"></button>
+    <div class="modal__card" role="document">
+        <div class="modal__head">
+            <div>
+                <p class="modal__eyebrow">MRDINC Portal</p>
+                <h2 class="modal__title" id="soaTitle">Statement of Account</h2>
+            </div>
+            <button type="button" class="icon-btn" id="soaClose" aria-label="Close statement of account">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal__body" id="soaBody"></div>
+        <div class="modal__foot">
+            <button type="button" class="btn" id="soaPrint">Print</button>
+            <button type="button" class="btn" id="soaDownload">Download</button>
+            <button type="button" class="btn btn--primary" id="soaDone">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="print-doc" id="printDoc" aria-hidden="true"></div>
+
+<script>
+(function () {
+    'use strict';
+
+    /* =========================================================
+       Demo data — mirrors the real MemberLoan / payment shape.
+       Replace with Inertia page props in the app.
+       ========================================================= */
+    var account = {
+        accountNumber: '010204',
+        clientId: '06-0124',
+        lnnumber: 'SBA-4F2183',
+        lntype: 'Staff Loans'
+    };
+    var TODAY = '2026-10-02';
+
+    var loan = {
+        principal: 180000,
+        rate: 2.5,          // percent per month
+        term: 36,           // months
+        monthlyDue: 6381,
+        startDate: '2025-10-08',
+        dueDate: '2026-10-08',
+        securityBalance: 12500
+    };
+
+    /* Build the payment ledger forward so principal/interest/balance stay consistent. */
+    function buildPayments() {
+        var rows = [];
+        var bal = loan.principal;
+        var d = new Date(loan.startDate + 'T00:00:00');
+        for (var i = 0; i < 12; i++) {
+            var interest = Math.round(bal * (loan.rate / 100) * 100) / 100;
+            var principal = Math.round((loan.monthlyDue - interest) * 100) / 100;
+            bal = Math.round((bal - principal) * 100) / 100;
+            var dt = new Date(d); dt.setMonth(d.getMonth() + i);
+            rows.push({
+                date: iso(dt),
+                reference: loan.lnnumber + '-' + String(i + 1).padStart(5, '0'),
+                principal: principal,
+                interest: interest,
+                amount: loan.monthlyDue,
+                balance: bal
+            });
+        }
+        return rows.reverse(); // most recent first
+    }
+    var payments = buildPayments();
+    loan.balance = payments[0].balance;
+    loan.lastPaymentDate = payments[0].date;
+    loan.lastPaymentAmount = payments[0].amount;
+
+    /* =========================================================
+       Helpers
+       ========================================================= */
+    function php(n) {
+        return '\u20B1' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtDate(iso) {
+        if (!iso) return '--';
+        var d = new Date(iso + 'T00:00:00');
+        if (isNaN(d)) return iso;
+        return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    function iso(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+    function progressOf() {
+        if (!loan.principal) return 0;
+        var repaid = Math.max(0, loan.principal - loan.balance);
+        return Math.min(100, Math.round((repaid / loan.principal) * 100));
+    }
+    function paymentsLeft() {
+        if (!loan.monthlyDue) return 0;
+        return Math.min(loan.term, Math.ceil(loan.balance / loan.monthlyDue));
+    }
+    function daysBetween(a, b) {
+        return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000);
+    }
+    /* Full amortization forward from the original principal so every
+       installment carries its own principal/interest split and running
+       balance. Paid rows reconcile with the payment ledger. */
+    function scheduleFor() {
+        var rows = [];
+        var d = new Date(loan.startDate + 'T00:00:00');
+        var paidCount = payments.length;
+        var bal = loan.principal;
+        for (var i = 0; i < loan.term; i++) {
+            var dt = new Date(d); dt.setMonth(d.getMonth() + i);
+            var s = iso(dt);
+            var interest = Math.round(bal * (loan.rate / 100) * 100) / 100;
+            var principal = Math.round((loan.monthlyDue - interest) * 100) / 100;
+            if (principal > bal) principal = Math.round(bal * 100) / 100;
+            bal = Math.round((bal - principal) * 100) / 100;
+            var status = i < paidCount ? 'paid' : (s < TODAY ? 'overdue' : (i === paidCount ? 'due' : 'upcoming'));
+            rows.push({
+                n: i + 1, date: s,
+                amount: Math.round((principal + interest) * 100) / 100,
+                principal: principal, interest: interest,
+                balance: bal, status: status
+            });
+        }
+        return rows;
+    }
+    var $ = function (id) { return document.getElementById(id); };
+
+    /* =========================================================
+       Theme + drawer + toast
+       ========================================================= */
+    var root = document.documentElement;
+    function setTheme(t) {
+        root.setAttribute('data-theme', t);
+        try { localStorage.setItem('wibs-theme', t); } catch (e) {}
+    }
+    $('themeToggle').addEventListener('click', function () {
+        setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+    try {
+        var saved = localStorage.getItem('wibs-theme');
+        if (saved === 'dark' || saved === 'light') setTheme(saved);
+    } catch (e) {}
+
+    var sidebar = $('sidebar'), scrim = $('scrim'), menuBtn = $('menuBtn');
+    function setDrawer(open) {
+        sidebar.classList.toggle('is-open', open);
+        scrim.classList.toggle('is-hidden', !open);
+        scrim.tabIndex = open ? 0 : -1;
+        menuBtn.setAttribute('aria-expanded', String(open));
+        if (open) { sidebar.querySelector('.nav-item').focus(); }
+        else { menuBtn.focus(); }
+    }
+    menuBtn.addEventListener('click', function () { setDrawer(!sidebar.classList.contains('is-open')); });
+    scrim.addEventListener('click', function () { setDrawer(false); });
+    sidebar.addEventListener('click', function (e) {
+        if (e.target.closest('a') && window.matchMedia('(max-width: 1023px)').matches) setDrawer(false);
+    });
+
+    var toast = $('toast'), toastTimer = null;
+    function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add('is-on');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove('is-on'); }, 2600);
+    }
+
+    /* ---------- transaction summary modal ---------- */
+    var txModal = $('txModal'), txScrim = $('txScrim'), lastFocused = null, currentTx = null;
+    function openTxModal(p, trigger) {
+        if (!p) return;
+        currentTx = p;
+        lastFocused = trigger || document.activeElement;
+        $('txAmount').textContent = php(p.amount);
+        $('txRef').textContent = p.reference;
+        $('txDate').textContent = fmtDate(p.date);
+        $('txLoan').textContent = account.lnnumber + ' \u00B7 ' + account.lntype;
+        $('txPrincipal').textContent = php(p.principal);
+        $('txInterest').textContent = php(p.interest);
+        $('txBalance').textContent = php(p.balance);
+        txModal.hidden = false;
+        txModal.classList.remove('is-hidden');
+        document.body.style.overflow = 'hidden';
+        $('txClose').focus();
+    }
+    function closeTxModal() {
+        txModal.classList.add('is-hidden');
+        txModal.hidden = true;
+        document.body.style.overflow = '';
+        if (lastFocused && lastFocused.focus) lastFocused.focus();
+    }
+    $('txClose').addEventListener('click', closeTxModal);
+    $('txDone').addEventListener('click', closeTxModal);
+    txScrim.addEventListener('click', closeTxModal);
+    txModal.addEventListener('click', function (e) { if (e.target === txModal) closeTxModal(); });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !txModal.classList.contains('is-hidden')) closeTxModal();
+    });
+    $('txReceipt').addEventListener('click', function () {
+        if (!currentTx) return;
+        var p = currentTx;
+        var lines = [
+            'WIBS Online Banking \u2014 Payment Receipt',
+            '--------------------------------------',
+            'Reference no    : ' + p.reference,
+            'Transaction date: ' + fmtDate(p.date),
+            'Loan            : ' + account.lnnumber + ' (' + account.lntype + ')',
+            'Account         : ' + account.accountNumber,
+            '--------------------------------------',
+            'Principal       : ' + php(p.principal),
+            'Interest        : ' + php(p.interest),
+            'Amount paid     : ' + php(p.amount),
+            'Balance after   : ' + php(p.balance)
+        ].join('\n');
+        var blob = new Blob([lines], { type: 'text/plain;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = 'receipt-' + p.reference + '.txt';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Receipt downloaded for ' + p.reference + '.');
+    });
+
+    /* =========================================================
+       Tabs
+       ========================================================= */
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+    function selectTab(tab) {
+        tabs.forEach(function (t) {
+            var on = t === tab;
+            t.setAttribute('aria-selected', String(on));
+            t.tabIndex = on ? 0 : -1;
+            $(t.getAttribute('aria-controls')).hidden = !on;
+        });
+    }
+    tabs.forEach(function (t) {
+        t.addEventListener('click', function () { selectTab(t); });
+        t.addEventListener('keydown', function (e) {
+            var i = tabs.indexOf(t);
+            if (e.key === 'ArrowRight') { e.preventDefault(); var n = tabs[(i + 1) % tabs.length]; n.focus(); selectTab(n); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); var p = tabs[(i - 1 + tabs.length) % tabs.length]; p.focus(); selectTab(p); }
+        });
+    });
+    (function () {
+        var hash = (location.hash || '').replace('#', '');
+        if (!hash) return;
+        var match = tabs.filter(function (t) { return t.getAttribute('data-tab') === hash; })[0];
+        if (match) selectTab(match);
+    })();
+
+    /* =========================================================
+       Stats
+       ========================================================= */
+    function renderStats() {
+        $('pageSub').textContent = 'Client ID ' + account.clientId + ' \u00B7 Loan ' + account.lnnumber;
+        $('acctBadge').textContent = 'Account ' + account.accountNumber + ' \u00B7 ' + account.lntype;
+
+        $('statBalance').textContent = php(loan.balance);
+        $('statBalanceHelper').textContent = progressOf() + '% repaid \u00B7 of ' + php(loan.principal) + ' principal';
+
+        var overdue = loan.dueDate < TODAY;
+        $('statDue').textContent = php(loan.monthlyDue);
+        $('statDueHelper').textContent = (overdue ? 'Overdue since ' : 'Due ') + fmtDate(loan.dueDate);
+        $('statDueCard').classList.toggle('is-overdue', overdue);
+
+        $('statLast').textContent = fmtDate(loan.lastPaymentDate);
+        $('statLastHelper').textContent = php(loan.lastPaymentAmount) + ' posted';
+
+        $('statSecurity').textContent = php(loan.securityBalance);
+    }
+
+    /* =========================================================
+       Filters + ledger
+       ========================================================= */
+    var filterState = { period: 'all', start: '2025-10-08', end: '2026-10-02', min: null, max: null };
+    var perPage = 6;
+    var page = 1;
+    var viewState = 'ready'; // ready | loading | error | empty
+
+    function periodRange() {
+        var end = TODAY, start = null;
+        if (filterState.period === 'last-30') { var d = new Date(TODAY + 'T00:00:00'); d.setDate(d.getDate() - 30); start = iso(d); }
+        else if (filterState.period === 'last-90') { var d2 = new Date(TODAY + 'T00:00:00'); d2.setDate(d2.getDate() - 90); start = iso(d2); }
+        else if (filterState.period === 'current-term') { start = loan.startDate; }
+        else if (filterState.period === 'custom') { start = filterState.start; end = filterState.end; }
+        return { start: start, end: end };
+    }
+
+    function filteredPayments() {
+        var r = periodRange();
+        return payments.filter(function (p) {
+            if (r.start && p.date < r.start) return false;
+            if (r.end && p.date > r.end) return false;
+            if (filterState.min != null && p.amount < filterState.min) return false;
+            if (filterState.max != null && p.amount > filterState.max) return false;
+            return true;
+        });
+    }
+
+    function renderLedger() {
+        var skeleton = $('ledgerSkeleton'), ledger = $('ledger'),
+            empty = $('ledgerEmpty'), err = $('ledgerLoadingError'), foot = $('ledgerFoot');
+
+        if (viewState === 'loading') {
+            skeleton.classList.remove('is-hidden'); ledger.classList.add('is-hidden');
+            empty.classList.add('is-hidden'); err.classList.add('is-hidden'); foot.hidden = true;
+            return;
+        }
+        skeleton.classList.add('is-hidden');
+        if (viewState === 'error') {
+            ledger.classList.add('is-hidden'); empty.classList.add('is-hidden'); err.classList.remove('is-hidden'); foot.hidden = true;
+            return;
+        }
+        err.classList.add('is-hidden');
+
+        var rows = filteredPayments();
+        var total = rows.length;
+        var lastPage = Math.max(1, Math.ceil(total / perPage));
+        if (page > lastPage) page = lastPage;
+        var startIdx = (page - 1) * perPage;
+        var slice = rows.slice(startIdx, startIdx + perPage);
+
+        if (!slice.length) {
+            ledger.classList.add('is-hidden'); empty.classList.remove('is-hidden'); foot.hidden = true;
+            return;
+        }
+        empty.classList.add('is-hidden'); foot.hidden = false; ledger.classList.remove('is-hidden');
+
+        $('ledgerRows').innerHTML = slice.map(function (p, i) {
+            var idx = startIdx + i;
+            return '<button type="button" class="ledger-row" data-tx="' + idx + '" aria-label="View transaction summary for ' + esc(p.reference) + ' on ' + fmtDate(p.date) + '">' +
+                '<span class="c-date">' +
+                    '<span class="ledger__date">' + fmtDate(p.date) + '</span>' +
+                    '<span class="ledger__time">Posted</span>' +
+                '</span>' +
+                '<span class="c-ref">' +
+                    '<span class="ledger__ref od-truncate">' + esc(p.reference) + '</span>' +
+                    '<span class="ledger__type">' + esc(account.lntype) + '</span>' +
+                '</span>' +
+                '<span class="c-break pi">' +
+                    '<span class="pi__line">Principal <strong>' + php(p.principal) + '</strong></span>' +
+                    '<span class="pi__line">Interest <strong>' + php(p.interest) + '</strong></span>' +
+                '</span>' +
+                '<span class="c-amount"><span class="ledger__amt">' + php(p.amount) + '</span></span>' +
+                '<span class="c-balance">' +
+                    '<span class="ledger__bal-label">Balance</span>' +
+                    '<span class="ledger__bal">' + php(p.balance) + '</span>' +
+                '</span>' +
+            '</button>';
+        }).join('');
+
+        $('pagerInfo').textContent = 'Showing ' + (startIdx + 1) + '\u2013' + Math.min(startIdx + perPage, total) + ' of ' + total + ' payments';
+        var html = '<button type="button" class="page-btn" data-page="' + (page - 1) + '"' + (page <= 1 ? ' disabled' : '') + ' aria-label="Previous page">Prev</button>';
+        for (var j = 1; j <= lastPage; j++) {
+            html += '<button type="button" class="page-btn" data-page="' + j + '"' + (j === page ? ' aria-current="page"' : '') + ' aria-label="Page ' + j + '">' + j + '</button>';
+        }
+        html += '<button type="button" class="page-btn" data-page="' + (page + 1) + '"' + (page >= lastPage ? ' disabled' : '') + ' aria-label="Next page">Next</button>';
+        $('pager').innerHTML = html;
+    }
+
+    /* period chips */
+    Array.prototype.slice.call(document.querySelectorAll('#periodRail .chip')).forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            Array.prototype.slice.call(document.querySelectorAll('#periodRail .chip')).forEach(function (c) {
+                c.setAttribute('aria-pressed', String(c === chip));
+            });
+            filterState.period = chip.getAttribute('data-period');
+            var custom = filterState.period === 'custom';
+            $('startDate').disabled = !custom;
+            $('endDate').disabled = !custom;
+            page = 1;
+            renderLedger();
+        });
+    });
+    $('startDate').addEventListener('change', function () { filterState.start = this.value; if (filterState.period === 'custom') { page = 1; renderLedger(); } });
+    $('endDate').addEventListener('change', function () { filterState.end = this.value; if (filterState.period === 'custom') { page = 1; renderLedger(); } });
+    $('minAmount').addEventListener('input', function () { filterState.min = this.value === '' ? null : Number(this.value); page = 1; renderLedger(); });
+    $('maxAmount').addEventListener('input', function () { filterState.max = this.value === '' ? null : Number(this.value); page = 1; renderLedger(); });
+    $('resetFilters').addEventListener('click', function () {
+        filterState = { period: 'all', start: '2025-10-08', end: '2026-10-02', min: null, max: null };
+        Array.prototype.slice.call(document.querySelectorAll('#periodRail .chip')).forEach(function (c, i) { c.setAttribute('aria-pressed', String(i === 0)); });
+        $('startDate').value = '2025-10-08'; $('endDate').value = '2026-10-02';
+        $('startDate').disabled = true; $('endDate').disabled = true;
+        $('minAmount').value = ''; $('maxAmount').value = '';
+        page = 1; renderLedger(); showToast('Filters reset.');
+    });
+
+    $('pager').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-page]');
+        if (!b || b.disabled) return;
+        page = Number(b.getAttribute('data-page'));
+        renderLedger();
+    });
+    $('ledgerRows').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-tx]');
+        if (!b) return;
+        openTxModal(payments[Number(b.getAttribute('data-tx'))], b);
+    });
+    $('downloadCsv').addEventListener('click', function () {
+        var rows = filteredPayments();
+        if (!rows.length) { showToast('No payments to download for this period.'); return; }
+        var lines = ['Transaction date,Reference no,Principal,Interest,Amount,Balance'];
+        rows.forEach(function (p) {
+            lines.push([p.date, p.reference, p.principal.toFixed(2), p.interest.toFixed(2), p.amount.toFixed(2), p.balance.toFixed(2)].join(','));
+        });
+        var blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = loan.lnnumber + '-payments.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Payment records downloaded.');
+    });
+    /* =========================================================
+       Print (context-aware)
+       Payment history prints the filtered range; the schedule
+       prints the whole amortization for a personal copy.
+       ========================================================= */
+    function rangeLabel() {
+        var r = periodRange();
+        if (!r.start && !r.end) return 'All transactions';
+        if (r.start && r.end) return fmtDate(r.start) + ' \u2013 ' + fmtDate(r.end);
+        if (r.start) return 'From ' + fmtDate(r.start);
+        return 'Up to ' + fmtDate(r.end);
+    }
+    function printHead(title, subtitle) {
+        return '<div class="print-doc__head">' +
+            '<div>' +
+                '<div class="print-doc__brand">MRDINC Portal</div>' +
+                '<div class="print-doc__title">' + esc(title) + '</div>' +
+                '<div class="print-doc__sub">' + esc(subtitle) + '</div>' +
+            '</div>' +
+            '<div class="print-doc__meta">' +
+                'Client ID <strong>' + esc(account.clientId) + '</strong><br>' +
+                'Loan no <strong>' + esc(account.lnnumber) + '</strong><br>' +
+                'Account <strong>' + esc(account.accountNumber) + '</strong> &middot; ' + esc(account.lntype) + '<br>' +
+                'Generated <strong>' + fmtDate(TODAY) + '</strong>' +
+            '</div>' +
+        '</div>';
+    }
+    function printSummary(items) {
+        return '<dl class="print-summary">' + items.map(function (it) {
+            return '<div><dt>' + esc(it[0]) + '</dt><dd>' + esc(it[1]) + '</dd></div>';
+        }).join('') + '</dl>';
+    }
+    function printFoot(left, right) {
+        return '<div class="print-doc__foot"><span>' + left + '</span><span>' + right + '</span></div>';
+    }
+
+    function printPayments() {
+        var rows = filteredPayments();
+        if (!rows.length) { showToast('No payments to print for this period.'); return; }
+        var totAmt = 0, totPrin = 0, totInt = 0;
+        rows.forEach(function (p) { totAmt += p.amount; totPrin += p.principal; totInt += p.interest; });
+
+        var body = rows.map(function (p) {
+            return '<tr>' +
+                '<td>' + fmtDate(p.date) + '</td>' +
+                '<td>' + esc(p.reference) + '</td>' +
+                '<td class="num">' + php(p.principal) + '</td>' +
+                '<td class="num">' + php(p.interest) + '</td>' +
+                '<td class="num">' + php(p.amount) + '</td>' +
+                '<td class="num">' + php(p.balance) + '</td>' +
+            '</tr>';
+        }).join('');
+
+        $('printDoc').innerHTML =
+            printHead('Payment History', rangeLabel()) +
+            printSummary([
+                ['Transactions', String(rows.length)],
+                ['Period', rangeLabel()],
+                ['Total principal', php(totPrin)],
+                ['Total interest', php(totInt)]
+            ]) +
+            '<table><thead><tr>' +
+                '<th>Transaction date</th><th>Reference no</th>' +
+                '<th class="num">Principal</th><th class="num">Interest</th>' +
+                '<th class="num">Amount</th><th class="num">Balance</th>' +
+            '</tr></thead><tbody>' + body +
+                '<tr class="print-total"><td colspan="2">Totals</td>' +
+                    '<td class="num">' + php(totPrin) + '</td>' +
+                    '<td class="num">' + php(totInt) + '</td>' +
+                    '<td class="num">' + php(totAmt) + '</td>' +
+                    '<td class="num">&mdash;</td>' +
+                '</tr>' +
+            '</tbody></table>' +
+            printFoot('Total paid in range: <strong>' + php(totAmt) + '</strong>', 'Loan ' + esc(account.lnnumber));
+        window.print();
+    }
+
+    function printSchedule() {
+        var rows = scheduleFor();
+        var paid = rows.filter(function (r) { return r.status === 'paid'; }).length;
+        var totalInt = rows.reduce(function (s, r) { return s + r.interest; }, 0);
+        var label = { paid: 'Paid', due: 'Due', upcoming: 'Scheduled', overdue: 'Overdue' };
+
+        var body = rows.map(function (r) {
+            return '<tr>' +
+                '<td class="num">' + r.n + '</td>' +
+                '<td>' + fmtDate(r.date) + '</td>' +
+                '<td class="num">' + php(r.principal) + '</td>' +
+                '<td class="num">' + php(r.interest) + '</td>' +
+                '<td class="num">' + php(r.amount) + '</td>' +
+                '<td class="num">' + php(r.balance) + '</td>' +
+                '<td class="print-status">' + label[r.status] + '</td>' +
+            '</tr>';
+        }).join('');
+
+        $('printDoc').innerHTML =
+            printHead('Loan Amortization Schedule', 'Full repayment schedule for this loan') +
+            printSummary([
+                ['Principal', php(loan.principal)],
+                ['Outstanding balance', php(loan.balance)],
+                ['Monthly due', php(loan.monthlyDue)],
+                ['Rate per month', loan.rate + '%'],
+                ['Term', loan.term + ' months'],
+                ['Payments made', String(paid)],
+                ['Repaid', progressOf() + '%'],
+                ['Maturity date', fmtDate(loan.dueDate)]
+            ]) +
+            '<table><thead><tr>' +
+                '<th class="num">#</th><th>Due date</th>' +
+                '<th class="num">Principal</th><th class="num">Interest</th>' +
+                '<th class="num">Installment</th><th class="num">Balance</th>' +
+                '<th>Status</th>' +
+            '</tr></thead><tbody>' + body + '</tbody></table>' +
+            printFoot('Total interest over the term: <strong>' + php(totalInt) + '</strong>', 'Amounts are estimates based on the amortization.');
+        window.print();
+    }
+
+    $('printBtn').addEventListener('click', printPayments);
+    $('printScheduleBtn').addEventListener('click', printSchedule);
+    $('retryBtn').addEventListener('click', function () { viewState = 'ready'; renderLedger(); showToast('Payments reloaded.'); });
+
+    /* =========================================================
+       Schedule
+       ========================================================= */
+    var schedFilter = 'all';
+
+    function renderSchedule() {
+        var rows = scheduleFor();
+        var pct = progressOf();
+        var repaid = loan.principal - loan.balance;
+
+        $('schedPrincipal').textContent = php(loan.principal);
+        $('schedBalance').textContent = php(loan.balance);
+        $('schedMonthly').textContent = php(loan.monthlyDue);
+        $('schedRate').textContent = loan.rate + '%/mo';
+        $('schedLeft').textContent = paymentsLeft() + ' of ' + loan.term;
+        $('schedPct').textContent = pct + '%';
+        $('schedRepaid').textContent = php(repaid);
+        $('schedTotal').textContent = php(loan.principal);
+        $('schedFill').style.width = pct + '%';
+        $('schedTrack').setAttribute('aria-label', pct + ' percent of principal repaid');
+
+        var next = rows.filter(function (r) { return r.status === 'due'; })[0];
+        var overdue = rows.filter(function (r) { return r.status === 'overdue'; });
+        var chip = $('schedNextChip'), banner = $('schedNextDue'), pill = $('schedNextPill'), meta = $('schedNextMeta');
+
+        if (next) {
+            var days = daysBetween(TODAY, next.date);
+            chip.textContent = 'Next: ' + fmtDate(next.date);
+            chip.className = 'status status--due';
+            banner.className = 'nextdue';
+            pill.className = 'nextdue__pill is-due';
+            pill.textContent = days <= 0 ? 'Due today' : 'Due in ' + days + ' day' + (days === 1 ? '' : 's');
+            $('schedNextAmt').textContent = php(next.amount);
+            meta.innerHTML = '<span>Installment <strong>' + next.n + '</strong> of ' + loan.term + '</span>' +
+                '<span>Due date <strong>' + fmtDate(next.date) + '</strong></span>' +
+                '<span>Projected balance after <strong>' + php(next.balance) + '</strong></span>';
+        } else if (overdue.length) {
+            var owed = overdue.reduce(function (s, r) { return s + r.amount; }, 0);
+            chip.textContent = overdue.length + ' overdue';
+            chip.className = 'status status--overdue';
+            banner.className = 'nextdue is-overdue';
+            pill.className = 'nextdue__pill is-overdue';
+            pill.textContent = overdue.length + ' installment' + (overdue.length === 1 ? '' : 's') + ' overdue';
+            $('schedNextAmt').textContent = php(owed);
+            meta.innerHTML = '<span><strong>' + overdue.length + '</strong> payment' + (overdue.length === 1 ? '' : 's') + ' past due</span>' +
+                '<span>Earliest missed <strong>' + fmtDate(overdue[0].date) + '</strong></span>';
+        } else {
+            chip.textContent = 'Fully paid';
+            chip.className = 'status status--paid';
+            banner.className = 'nextdue is-paid';
+            pill.className = 'nextdue__pill is-paid';
+            pill.textContent = 'No balance remaining';
+            $('schedNextAmt').textContent = php(0);
+            meta.innerHTML = '<span>All <strong>' + loan.term + '</strong> installments settled</span>';
+        }
+
+        var label = { paid: 'Paid', due: 'Due', upcoming: 'Scheduled', overdue: 'Overdue' };
+        var shown = schedFilter === 'all' ? rows : rows.filter(function (r) { return r.status === schedFilter; });
+
+        $('schedCount').textContent = rows.length + ' installments';
+        $('schedFootInfo').textContent = 'Showing ' + shown.length + ' of ' + rows.length + ' installments';
+        var empty = $('schedEmpty');
+        empty.classList.toggle('is-hidden', shown.length > 0);
+        empty.hidden = shown.length > 0;
+
+        $('schedList').innerHTML = shown.map(function (r) {
+            return '<div class="sched-row' + (r.status === 'due' ? ' is-current' : '') + '">' +
+                '<span class="sched-row__no">' + r.n + '</span>' +
+                '<div class="sched-row__datewrap">' +
+                    '<span class="sched-row__date">' + fmtDate(r.date) + '</span>' +
+                    '<span class="sched-row__sub">Installment ' + r.n + ' of ' + loan.term + '</span>' +
+                '</div>' +
+                '<div class="pi">' +
+                    '<span class="pi__line">Principal <strong>' + php(r.principal) + '</strong></span>' +
+                    '<span class="pi__line">Interest <strong>' + php(r.interest) + '</strong></span>' +
+                '</div>' +
+                '<div class="sched-row__amt">' +
+                    '<b>' + php(r.amount) + '</b>' +
+                    '<span class="sched-row__bal">Balance ' + php(r.balance) + '</span>' +
+                '</div>' +
+                '<span class="status status--' + r.status + ' sched-row__status">' + label[r.status] + '</span>' +
+            '</div>';
+        }).join('');
+    }
+
+    Array.prototype.slice.call(document.querySelectorAll('#schedRail .chip')).forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            Array.prototype.slice.call(document.querySelectorAll('#schedRail .chip')).forEach(function (c) {
+                c.setAttribute('aria-pressed', String(c === chip));
+            });
+            schedFilter = chip.getAttribute('data-sched-filter');
+renderSchedule();
+    renderDocuments();
+        });
+    });
+
+    /* =========================================================
+   Documents — scoped to this loan only.
+   A Statement of Account is issued per loan per month, so the
+   periods are derived from the payment ledger rather than listed
+   by hand. The certificate exists only once the balance is zero.
+   ========================================================= */
+    /* The loan manager named on the statement resolves through wmaster: the
+       signed-in appuser points at the wmaster row of the loan manager. Replace
+       with the session and member props in the app. */
+    var member = {
+        wmasterId: 'WM-0147',
+        fname: 'Ana', mname: 'L.', lname: 'Reyes'
+    };
+    var appUser = { id: 'USR-0007', wmasterId: 'WM-0007', role: 'Loan Manager' };
+    var loanManager = {
+        wmasterId: appUser.wmasterId,
+        name: 'Rina Bautista',
+        role: appUser.role
+    };
+    function memberName() {
+        return [member.fname, member.mname, member.lname].filter(Boolean).join(' ');
+    }
+    function r2(n) { return Math.round(n * 100) / 100; }
+    function monthKey(d) { return d.slice(0, 7); }
+    function monthLabel(key) {
+        return new Date(key + '-01T00:00:00').toLocaleDateString('en-PH', { year: 'numeric', month: 'long' });
+    }
+    /* Payments grouped by calendar month, newest period first. */
+    function soaPeriods() {
+        var groups = {};
+        payments.forEach(function (p) {
+            var k = monthKey(p.date);
+            (groups[k] = groups[k] || []).push(p);
+        });
+        Object.keys(groups).forEach(function (k) {
+            groups[k].sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+        });
+        return groups;
+    }
+    function docIcon(kind) {
+        if (kind === 'schedule') {
+            return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 15h8M8 18h5"/></svg>';
+        }
+        if (kind === 'certificate') {
+            return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="m8.5 14-1.5 7 5-3 5 3-1.5-7"/></svg>';
+        }
+        return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>';
+    }
+
+    var documents = [];
+    function renderDocuments() {
+        var groups = soaPeriods();
+        documents = [];
+
+        Object.keys(groups).forEach(function (k) {
+            documents.push({
+                kind: 'soa', key: k, rows: groups[k],
+                name: 'Statement of Account \u2014 ' + monthLabel(k),
+                meta: groups[k].length + ' transaction' + (groups[k].length === 1 ? '' : 's') + ' \u00B7 ' + account.lnnumber,
+                action: 'View'
+            });
+        });
+
+        documents.push({
+            kind: 'schedule',
+            name: 'Amortization schedule',
+            meta: loan.term + ' installments \u00B7 ' + loan.rate + '% per month \u00B7 matures ' + fmtDate(loan.dueDate),
+            action: 'Download'
+        });
+
+        if (loan.balance <= 0) {
+            documents.push({
+                kind: 'certificate',
+                name: 'Certificate of Full Payment',
+                meta: 'Loan fully settled \u00B7 ' + account.lnnumber,
+                action: 'Download'
+            });
+        }
+
+        $('docsScope').textContent = 'Statements, schedules and certificates for ' + account.lnnumber + ' only.';
+        $('docList').innerHTML = documents.map(function (d, i) {
+            return '<div class="doc-row">' +
+                '<span class="doc-row__icon" aria-hidden="true">' + docIcon(d.kind) + '</span>' +
+                '<div class="doc-row__text">' +
+                    '<span class="doc-row__name">' + esc(d.name) + '</span>' +
+                    '<span class="doc-row__meta">' + esc(d.meta) + '</span>' +
+                '</div>' +
+                '<button type="button" class="btn btn--sm" data-doc="' + i + '">' + esc(d.action) + '</button>' +
+            '</div>';
+        }).join('');
+    }
+
+    /* ---- Statement of Account rendering ---- */
+    function soaFact(k, v) {
+        return '<div class="soa__fact"><dt>' + esc(k) + '</dt><dd>' + v + '</dd></div>';
+    }
+    function soaSum(k, v) {
+        return '<div class="soa__sumrow"><dt>' + esc(k) + '</dt><dd>' + v + '</dd></div>';
+    }
+    function soaFigures(rows) {
+        if (!rows.length) return { opening: r2(loan.balance), closing: r2(loan.balance), amount: 0, principal: 0, interest: 0 };
+        var tAmt = 0, tPrin = 0, tInt = 0;
+        rows.forEach(function (p) { tAmt += p.amount; tPrin += p.principal; tInt += p.interest; });
+        return {
+            opening: r2(rows[0].balance + rows[0].amount),
+            closing: r2(rows[rows.length - 1].balance),
+            amount: r2(tAmt), principal: r2(tPrin), interest: r2(tInt)
+        };
+    }
+    function soaHtml(rows, key) {
+        var f = soaFigures(rows);
+        var emptyLedger = rows.length === 0
+            ? '<p class="soa__empty" role="status">No movements in this period. Once a payment, fee, or adjustment posts to loan ' + esc(account.lnnumber) + ', it will appear here.</p>'
+            : '';
+        var body = rows.map(function (p) {
+            return '<tr>' +
+                '<td>' + fmtDate(p.date) + '</td>' +
+                '<td class="soa__ref">' + esc(p.reference) + '</td>' +
+                '<td>Payment \u2014 principal ' + php(p.principal) + '</td>' +
+                '<td class="num">' + php(p.interest) + '</td>' +
+                '<td class="num">' + php(p.amount) + '</td>' +
+                '<td class="num">' + php(p.balance) + '</td>' +
+            '</tr>';
+        }).join('');
+
+        return '<div class="soa">' +
+            '<div class="soa__head">' +
+                '<p class="soa__org">MRDINC Portal</p>' +
+                '<p class="soa__doc">Statement of Account</p>' +
+                '<p class="soa__period">' + esc(monthLabel(key)) + ' \u00B7 issued ' + fmtDate(TODAY) + '</p>' +
+            '</div>' +
+            '<dl class="soa__facts">' +
+                soaFact('Borrower', esc(memberName())) +
+                soaFact('Account no', esc(account.accountNumber)) +
+                soaFact('Loan no', esc(account.lnnumber)) +
+                soaFact('Loan type', '<button type="button" class="soa__expand" id="soaLoanType" aria-expanded="false" title="Tap to see full value">' + esc(account.lntype) + '</button>') +
+                soaFact('Original principal', php(loan.principal)) +
+                soaFact('Monthly due', php(loan.monthlyDue)) +
+                soaFact('Rate', loan.rate + '% per month') +
+                soaFact('Term', loan.term + ' months') +
+            '</dl>' +
+            (rows.length ? '<div class="soa__ledger--wrap">' +
+                '<table class="soa__ledger" aria-label="Loan movements for ' + esc(monthLabel(key)) + '">' +
+                    '<thead><tr>' +
+                        '<th scope="col">Date</th><th scope="col">Reference</th><th scope="col">Description</th>' +
+                        '<th scope="col" class="num">Interest</th><th scope="col" class="num">Payment</th><th scope="col" class="num">Balance</th>' +
+                    '</tr></thead>' +
+                    '<tbody>' + body + '</tbody>' +
+                '</table>' +
+            '</div>' : emptyLedger) +
+            '<dl class="soa__sum">' +
+                soaSum('Opening balance \u00B7 ' + monthLabel(key), php(f.opening)) +
+                soaSum('Total principal applied', php(f.principal)) +
+                soaSum('Total interest charged', php(f.interest)) +
+                soaSum('Total payments received', php(f.amount)) +
+                soaSum('Closing balance \u00B7 ' + monthLabel(key), php(f.closing)) +
+                soaSum('Installments paid to date', payments.length + ' of ' + loan.term) +
+                soaSum('Outstanding balance now', php(loan.balance)) +
+            '</dl>' +
+        '</div>';
+    }
+
+    var soaModal = $('soaModal'), currentSoa = null, lastSoaFocus = null;
+    function openSoa(doc, trigger) {
+        currentSoa = doc;
+        lastSoaFocus = trigger || document.activeElement;
+        $('soaTitle').textContent = 'Statement of Account \u2014 ' + monthLabel(doc.key);
+        $('soaBody').innerHTML = soaHtml(doc.rows, doc.key);
+        soaModal.hidden = false;
+        soaModal.classList.remove('is-hidden');
+        document.body.style.overflow = 'hidden';
+        $('soaClose').focus();
+    }
+    function closeSoa() {
+        if (soaModal.hidden) return;
+        soaModal.classList.add('is-hidden');
+        soaModal.hidden = true;
+        document.body.style.overflow = '';
+        $('soaBody').innerHTML = '';
+        currentSoa = null;
+        if (lastSoaFocus && lastSoaFocus.focus) lastSoaFocus.focus();
+    }
+    $('soaClose').addEventListener('click', closeSoa);
+    $('soaDone').addEventListener('click', closeSoa);
+    $('soaScrim').addEventListener('click', closeSoa);
+    soaModal.addEventListener('click', function (e) { if (e.target === soaModal) closeSoa(); });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !soaModal.hidden) closeSoa();
+    });
+
+    /* Keep Tab cycling inside whichever modal is open. */
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Tab') return;
+        var open = !soaModal.hidden ? soaModal : (!$('txModal').hidden ? $('txModal') : null);
+        if (!open) return;
+        var focusables = Array.prototype.slice.call(open.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+            .filter(function (el) { return !el.disabled && el.offsetParent !== null; });
+        if (!focusables.length) return;
+        var first = focusables[0], last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('.soa__expand') : null;
+        if (b) b.setAttribute('aria-expanded', b.getAttribute('aria-expanded') === 'true' ? 'false' : 'true');
+    });
+
+    function saveFile(name, text, mime) {
+        var blob = new Blob([text], { type: (mime || 'text/plain') + ';charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    function soaText(doc) {
+        var f = soaFigures(doc.rows);
+        var lines = [
+            'MRDINC Portal \u2014 Statement of Account',
+            '======================================',
+            'Borrower      : ' + memberName(),
+            'Account no    : ' + account.accountNumber,
+            'Loan no       : ' + account.lnnumber + ' (' + account.lntype + ')',
+            'Period        : ' + monthLabel(doc.key),
+            'Issued        : ' + fmtDate(TODAY),
+            '--------------------------------------',
+            'Date       Reference            Interest        Payment     Balance'
+        ];
+        doc.rows.forEach(function (p) {
+            lines.push(fmtDate(p.date) + '  ' + p.reference + '  ' + php(p.interest) + '  ' + php(p.amount) + '  ' + php(p.balance));
+        });
+        lines = lines.concat([
+            '--------------------------------------',
+            'Opening balance                    : ' + php(f.opening),
+            'Total principal applied            : ' + php(f.principal),
+            'Total interest charged             : ' + php(f.interest),
+            'Total payments received            : ' + php(f.amount),
+            'Closing balance                    : ' + php(f.closing),
+            'Installments paid to date         : ' + payments.length + ' of ' + loan.term,
+            'Outstanding balance now            : ' + php(loan.balance),
+        ]);
+        return lines.join('\n');
+    }
+    $('soaDownload').addEventListener('click', function () {
+        if (!currentSoa) return;
+        saveFile('SOA_' + account.lnnumber + '_' + currentSoa.key + '.txt', soaText(currentSoa));
+        showToast('Statement of Account downloaded.');
+    });
+    $('soaPrint').addEventListener('click', function () {
+        if (!currentSoa) return;
+        var f = soaFigures(currentSoa.rows);
+        var body = currentSoa.rows.map(function (p) {
+            return '<tr><td>' + fmtDate(p.date) + '</td><td>' + esc(p.reference) + '</td>' +
+                '<td class="num">' + php(p.principal) + '</td>' +
+                '<td class="num">' + php(p.interest) + '</td>' +
+                '<td class="num">' + php(p.amount) + '</td>' +
+                '<td class="num">' + php(p.balance) + '</td></tr>';
+        }).join('');
+        $('printDoc').innerHTML =
+            printHead('Statement of Account', monthLabel(currentSoa.key)) +
+            printSummary([
+                ['Borrower', memberName()],
+                ['Account no', account.accountNumber],
+                ['Loan no', account.lnnumber],
+                ['Opening balance', php(f.opening)],
+                ['Total payments received', php(f.amount)],
+                ['Closing balance', php(f.closing)]
+            ]) +
+            '<table><thead><tr><th>Date</th><th>Reference</th>' +
+                '<th class="num">Principal</th><th class="num">Interest</th>' +
+                '<th class="num">Amount</th><th class="num">Balance</th>' +
+            '</tr></thead><tbody>' + body + '</tbody></table>' +
+            printFoot('Member: <strong>' + esc(memberName()) + '</strong>', 'Loan Manager');
+        window.print();
+    });
+
+    function downloadScheduleFile() {
+        var lines = ['#,Due date,Principal,Interest,Installment,Balance,Status'];
+        scheduleFor().forEach(function (r) {
+            lines.push([r.n, r.date, r.principal.toFixed(2), r.interest.toFixed(2), r.amount.toFixed(2), r.balance.toFixed(2), r.status].join(','));
+        });
+        saveFile('AMS_' + account.lnnumber + '.csv', lines.join('\n'), 'text/csv');
+        showToast('Amortization schedule downloaded.');
+    }
+    function downloadCertificate() {
+        var lines = [
+            'MRDINC Portal \u2014 Certificate of Full Payment',
+            '==========================================',
+            'This certifies that ' + memberName() + ', holder of account ' + account.accountNumber + ',',
+            'has fully paid loan ' + account.lnnumber + ' (' + account.lntype + ').',
+            'Original principal : ' + php(loan.principal),
+            'Outstanding balance: ' + php(loan.balance),
+            'Total interest     : ' + php(scheduleFor().reduce(function (s, r) { return s + r.interest; }, 0)),
+            'Last payment       : ' + fmtDate(loan.lastPaymentDate),
+            '------------------------------------------'
+        ];
+        saveFile('CFP_' + account.lnnumber + '.txt', lines.join('\n'));
+        showToast('Certificate of Full Payment downloaded.');
+    }
+    $('docList').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-doc]');
+        if (!b) return;
+        var d = documents[Number(b.getAttribute('data-doc'))];
+        if (!d) return;
+        if (d.kind === 'soa') { openSoa(d, b); return; }
+        if (d.kind === 'schedule') { downloadScheduleFile(); return; }
+        downloadCertificate();
+    });
+
+    /* =========================================================
+       Boot
+       ========================================================= */
+    if (!account.accountNumber) $('acctAlert').classList.remove('is-hidden');
+    renderStats();
+    renderLedger();
+    renderSchedule();
+    renderDocuments();
+
+    /* Preview: surface the Statement of Account modal with mock data. */
+    var firstSoa = documents.filter(function (d) { return d.kind === 'soa'; })[0];
+    if (firstSoa) openSoa(firstSoa, null);
+})();
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@ import {
     ArrowDown,
     ArrowUp,
     ArrowUpDown,
+    Flag,
     Eye,
     Loader2,
     MoreHorizontal,
@@ -14,25 +15,15 @@ import {
 import { useCallback, useMemo, useState } from 'react';
 import { AssignOfficerDialog } from '@/components/loan-request/assign-officer-dialog';
 import { BulkCancelDialog } from '@/components/loan-request/bulk-cancel-dialog';
-import {
-    LoanRequestPageHero,
-    LoanRequestSearchBox,
-    LoanRequestStatusFilters,
-    LoanRequestSummaryCards,
-    type LoanRequestStatusFilterOption,
-} from '@/components/loan-request/loan-request-page-sections';
+import type { LoanRequestStatusFilterOption } from '@/components/loan-request/loan-request-page-sections';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
-import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
-import {
-    DataTablePagination,
-    DataTablePaginationSkeleton,
-} from '@/components/ui/data-table-pagination';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -40,6 +31,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -49,10 +42,6 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    TableFilterField,
-    TableFilterPopover,
-} from '@/components/ui/table-filter-bar';
-import {
     TableSkeleton,
     type TableSkeletonColumn,
 } from '@/components/ui/table-skeleton';
@@ -61,8 +50,8 @@ import { useBulkLoanRequestActions } from '@/hooks/loan-request/use-bulk-loan-re
 import { useRequestQueue } from '@/hooks/loan-request/use-request-queue';
 import AppLayout from '@/layouts/app-layout';
 import type { RequestQueueWorkspace } from '@/lib/api/request-queue';
-import { formatCurrency } from '@/lib/formatters';
 import { type LoanRequestQueueStatusFilter } from '@/lib/loan-request-queue';
+import { statusTones } from '@/lib/status-tones';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
@@ -101,6 +90,7 @@ type Props = {
     showRequestHref: (requestId: number) => string;
     summaryHelperText: string;
     showReportedSummary?: boolean;
+    reportedQueueHref?: string;
     initialStatusFilter?: LoanRequestQueueStatusFilter;
 };
 
@@ -109,19 +99,35 @@ const formatDate = (value?: string | null): string => {
         return '--';
     }
 
-    return new Date(value).toLocaleDateString();
+    return new Date(value)
+        .toLocaleString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+        })
+        .replace(/\b(am|pm)\b/, (meridiem) => meridiem.toUpperCase());
 };
 
-const parseAmount = (value: string): number | undefined => {
-    const trimmed = value.trim();
+const formatPeso = (value: number): string =>
+    `₱ ${value.toLocaleString('en-PH', { maximumFractionDigits: 2 })}`;
 
-    if (trimmed === '') {
-        return undefined;
-    }
-
-    const parsed = Number(trimmed);
-
-    return Number.isFinite(parsed) ? parsed : undefined;
+// Mockup status palette (design/admin-requests.html): bg / ink / border per tone.
+const statusToneClassNames: Partial<Record<LoanRequestStatusValue, string>> = {
+    pending_review: statusTones.warn,
+    under_review: statusTones.info,
+    needs_revision: statusTones.hold,
+    awaiting_member_information: statusTones.hold,
+    recommended_for_approval: statusTones.act,
+    awaiting_member_acceptance: statusTones.act,
+    rejected: statusTones.bad,
+    declined: statusTones.bad,
+    member_declined_terms: statusTones.bad,
+    approved: statusTones.ok,
+    converted_to_loan: statusTones.ok,
+    cancelled: statusTones.neutral,
 };
 
 const formatCountLabel = (count: number, label: string): string => {
@@ -245,10 +251,11 @@ function SortableColumnHeader({
         : ArrowUpDown;
 
     return (
-        <button
+        <Button
+            variant="ghost"
             type="button"
             onClick={() => onToggle(column)}
-            className="flex items-center gap-1 text-left font-medium hover:text-foreground"
+            className="flex h-auto items-center justify-start gap-0 gap-1 rounded-none px-0 py-0 text-left font-medium font-normal whitespace-normal hover:bg-transparent hover:text-current hover:text-foreground has-[>svg]:px-0 md:h-auto"
         >
             {label}
             <Icon
@@ -257,7 +264,68 @@ function SortableColumnHeader({
                     isActive ? 'text-foreground' : 'text-muted-foreground',
                 )}
             />
-        </button>
+        </Button>
+    );
+}
+
+// Footer bar from the mockup: "Page x of y" + Prev / numbered pages / Next.
+export function RequestsPager({
+    page,
+    perPage,
+    total,
+    onPageChange,
+}: {
+    page: number;
+    perPage: number;
+    total: number;
+    onPageChange: (page: number) => void;
+}) {
+    const lastPage = Math.max(1, Math.ceil(total / perPage));
+    const start = Math.max(1, Math.min(page - 2, lastPage - 4));
+    const pages = Array.from(
+        { length: Math.min(5, lastPage) },
+        (_, index) => start + index,
+    );
+
+    return (
+        <div className="flex flex-wrap items-center gap-2.5 border-t border-border bg-muted px-4 py-3 text-[13px] text-muted-foreground">
+            <span className="font-semibold text-foreground">
+                Page {page} of {lastPage}
+            </span>
+            <span className="flex-1" />
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => onPageChange(page - 1)}
+                aria-label="Previous page"
+            >
+                Prev
+            </Button>
+            {pages.map((number) => (
+                <Button
+                    key={number}
+                    type="button"
+                    size="sm"
+                    variant={number === page ? 'default' : 'outline'}
+                    aria-current={number === page ? 'page' : undefined}
+                    onClick={() => onPageChange(number)}
+                >
+                    {number}
+                </Button>
+            ))}
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={page >= lastPage}
+                onClick={() => onPageChange(page + 1)}
+                aria-label="Next page"
+            >
+                Next
+            </Button>
+        </div>
     );
 }
 
@@ -283,6 +351,7 @@ export function LoanRequestQueuePage({
     showRequestHref,
     summaryHelperText,
     showReportedSummary = false,
+    reportedQueueHref,
     initialStatusFilter = 'all',
 }: Props) {
     const [search, setSearch] = useState('');
@@ -293,8 +362,6 @@ export function LoanRequestQueuePage({
         'unassigned' | 'mine' | 'all' | null
     >(null);
     const [officerId, setOfficerId] = useState<number | null>(null);
-    const [minAmount, setMinAmount] = useState('');
-    const [maxAmount, setMaxAmount] = useState('');
     const [sortBy, setSortBy] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [page, setPage] = useState(1);
@@ -325,8 +392,6 @@ export function LoanRequestQueuePage({
     );
 
     const searchValue = search.trim();
-    const minAmountValue = parseAmount(minAmount);
-    const maxAmountValue = parseAmount(maxAmount);
     const status =
         statusFilter === 'all' || statusFilter === 'reported'
             ? null
@@ -342,8 +407,6 @@ export function LoanRequestQueuePage({
         assignment: assignmentFilter,
         officerId,
         reported,
-        minAmount: minAmountValue,
-        maxAmount: maxAmountValue,
         sortBy,
         sortDirection,
     });
@@ -521,13 +584,24 @@ export function LoanRequestQueuePage({
                         onToggle={toggleSort}
                     />
                 ),
-                cell: ({ row }) => row.original.reference ?? '--',
+                cell: ({ row }) => (
+                    <span className="font-semibold whitespace-nowrap tabular-nums">
+                        {row.original.reference ?? '--'}
+                    </span>
+                ),
             },
             {
                 accessorKey: 'member_name',
-                meta: { priority: 'title', text: (row) => row.member_name ?? '' },
+                meta: {
+                    priority: 'title',
+                    text: (row) => row.member_name ?? '',
+                },
                 header: 'Member',
-                cell: ({ row }) => row.original.member_name ?? '--',
+                cell: ({ row }) => (
+                    <span className="font-bold">
+                        {row.original.member_name ?? '--'}
+                    </span>
+                ),
             },
             {
                 accessorKey: 'assigned_officer',
@@ -554,19 +628,24 @@ export function LoanRequestQueuePage({
                 accessorKey: 'requested_amount',
                 meta: { priority: 'amount', label: 'Amount' },
                 header: () => (
-                    <SortableColumnHeader
-                        label="Amount"
-                        column="amount"
-                        sortBy={sortBy}
-                        sortDirection={sortDirection}
-                        onToggle={toggleSort}
-                    />
+                    <div className="flex justify-end">
+                        <SortableColumnHeader
+                            label="Amount"
+                            column="amount"
+                            sortBy={sortBy}
+                            sortDirection={sortDirection}
+                            onToggle={toggleSort}
+                        />
+                    </div>
                 ),
-                cell: ({ row }) =>
-                    row.original.requested_amount !== null &&
-                    row.original.requested_amount !== undefined
-                        ? formatCurrency(Number(row.original.requested_amount))
-                        : '--',
+                cell: ({ row }) => (
+                    <div className="text-right font-semibold whitespace-nowrap tabular-nums">
+                        {row.original.requested_amount !== null &&
+                        row.original.requested_amount !== undefined
+                            ? formatPeso(Number(row.original.requested_amount))
+                            : '--'}
+                    </div>
+                ),
             },
             {
                 accessorKey: 'status',
@@ -582,7 +661,15 @@ export function LoanRequestQueuePage({
                 ),
                 cell: ({ row }) => (
                     <div className="flex flex-wrap items-center gap-2">
-                        <LoanRequestStatusBadge status={row.original.status} />
+                        <LoanRequestStatusBadge
+                            status={row.original.status}
+                            className={cn(
+                                'px-2.5 py-0.5 font-bold',
+                                row.original.status
+                                    ? statusToneClassNames[row.original.status]
+                                    : undefined,
+                            )}
+                        />
                         {row.original.has_open_correction_report ? (
                             <Badge
                                 variant="outline"
@@ -606,12 +693,15 @@ export function LoanRequestQueuePage({
                         onToggle={toggleSort}
                     />
                 ),
-                cell: ({ row }) =>
-                    formatDate(
-                        row.original.last_activity_at ??
-                            row.original.submitted_at ??
-                            row.original.created_at,
-                    ),
+                cell: ({ row }) => (
+                    <span className="font-semibold whitespace-nowrap tabular-nums">
+                        {formatDate(
+                            row.original.last_activity_at ??
+                                row.original.submitted_at ??
+                                row.original.created_at,
+                        )}
+                    </span>
+                ),
             },
             {
                 id: 'action',
@@ -625,7 +715,17 @@ export function LoanRequestQueuePage({
                     }
 
                     return (
-                        <div className="flex justify-end">
+                        <div className="flex items-center justify-end gap-1">
+                            <Button
+                                asChild
+                                variant="ghost"
+                                size="sm"
+                                className="text-primary"
+                            >
+                                <Link href={showRequestHref(requestId)}>
+                                    Open
+                                </Link>
+                            </Button>
                             <RequestRowActionsMenu
                                 request={row.original}
                                 requestId={requestId}
@@ -693,23 +793,10 @@ export function LoanRequestQueuePage({
             : 'No requests found yet.'
         : (meta.message ?? 'Requests module coming soon.');
     const emptyMessage = meta.available
-        ? searchValue !== '' ||
-          statusFilter !== 'all' ||
-          loanType !== null ||
-          minAmountValue !== undefined ||
-          maxAmountValue !== undefined
+        ? searchValue !== '' || statusFilter !== 'all' || loanType !== null
             ? 'No requests match the current filters.'
             : 'No requests found yet.'
         : (meta.message ?? 'Requests module coming soon.');
-    const filterCount = [
-        searchValue !== '' ? searchValue : null,
-        loanType,
-        statusFilter !== 'all' ? statusFilter : null,
-        assignmentFilter,
-        officerId,
-        minAmountValue,
-        maxAmountValue,
-    ].filter((value) => value !== null && value !== undefined).length;
     const summaryCountsByStatus = meta.statusCounts ?? {};
     const summaryCountFor = (...statuses: string[]) =>
         statuses.reduce(
@@ -732,304 +819,346 @@ export function LoanRequestQueuePage({
         declinedOrRejected: summaryCountFor('declined', 'rejected'),
         reported: meta.openCorrectionReports ?? 0,
     };
-    const summaryItems = [
-        { label: 'Total', value: summaryCounts.total },
+    const summaryItems: Array<{
+        label: string;
+        value: number;
+        filter: LoanRequestQueueStatusFilter;
+        warn?: boolean;
+    }> = [
+        { label: 'Total', value: summaryCounts.total, filter: 'all' },
         {
             label: 'Pending Review',
             value: summaryCounts.pendingReview,
-            emphasisClassName: 'text-amber-700 dark:text-amber-400',
+            filter: 'pending_review',
         },
         {
             label: 'Under Review',
             value: summaryCounts.underReview,
-            emphasisClassName: 'text-sky-700 dark:text-sky-400',
+            filter: 'under_review',
         },
         {
             label: 'Needs Revision',
             value: summaryCounts.needsRevision,
-            emphasisClassName: 'text-orange-700 dark:text-orange-400',
+            filter: 'needs_revision',
         },
         {
             label: 'Recommended',
             value: summaryCounts.recommended,
-            emphasisClassName: 'text-indigo-600 dark:text-indigo-400',
+            filter: 'recommended_for_approval',
         },
         {
             label: 'Approved',
             value: summaryCounts.approved,
-            emphasisClassName: 'text-emerald-700 dark:text-emerald-400',
+            filter: 'approved',
         },
         {
             label: 'Converted',
             value: summaryCounts.converted,
-            emphasisClassName: 'text-teal-700 dark:text-teal-400',
+            filter: 'converted_to_loan',
         },
         {
             label: 'Declined/Rejected',
             value: summaryCounts.declinedOrRejected,
-            emphasisClassName: 'text-rose-600 dark:text-rose-400',
+            filter: 'declined',
         },
         ...(showReportedSummary
             ? [
                   {
                       label: 'Reported',
                       value: summaryCounts.reported,
-                      emphasisClassName: 'text-amber-700 dark:text-amber-400',
-                  },
-                  {
-                      label: 'Open correction reports',
-                      value: meta.openCorrectionReports,
-                      emphasisClassName: 'text-amber-700 dark:text-amber-400',
+                      filter: 'reported' as const,
+                      warn: true,
                   },
               ]
             : []),
     ];
+    const labelClass =
+        'text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase';
+    const clearFilters = () => {
+        setSearch('');
+        setLoanType(null);
+        setStatusFilter('all');
+        setAssignmentFilter(null);
+        setOfficerId(null);
+        setSortBy(null);
+        setSortDirection('desc');
+        setPage(1);
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={headTitle} />
             <PageShell size="wide">
-                <LoanRequestPageHero
-                    kicker={heroKicker}
-                    title={heroTitle}
-                    description={heroDescription}
-                    badges={
-                        <>
+                <section className="flex flex-wrap items-start gap-5">
+                    <div>
+                        <p className="text-[11px] font-bold tracking-[0.14em] text-primary uppercase">
+                            {heroKicker}
+                        </p>
+                        <h1 className="mt-1 text-[22px] leading-tight font-bold sm:text-[26px]">
+                            {heroTitle}
+                        </h1>
+                        <p className="mt-1.5 max-w-prose text-sm text-muted-foreground">
+                            {heroDescription}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
                             <Badge variant="secondary">
                                 {formatCountLabel(totalResults, 'request')}
                             </Badge>
-                            {filterCount > 0 ? (
-                                <Badge variant="secondary">
+                            {showReportedSummary ? (
+                                <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200">
                                     {formatCountLabel(
-                                        filterCount,
-                                        'active filter',
+                                        meta.openCorrectionReports ?? 0,
+                                        'open correction report',
                                     )}
                                 </Badge>
                             ) : null}
                             {loading ? (
                                 <Badge variant="secondary">Updating</Badge>
                             ) : null}
-                        </>
-                    }
-                />
+                        </div>
+                    </div>
+                    {reportedQueueHref ? (
+                        <div className="w-full pt-1.5 sm:ml-auto sm:w-auto">
+                            <Button
+                                asChild
+                                variant="outline"
+                                className="w-full sm:w-auto"
+                            >
+                                <Link href={reportedQueueHref}>
+                                    <Flag />
+                                    Open reported queue
+                                </Link>
+                            </Button>
+                        </div>
+                    ) : null}
+                </section>
 
-                <LoanRequestSummaryCards
-                    items={summaryItems}
-                    helperText={summaryHelperText}
-                />
+                <section aria-label="Status summary" className="space-y-2.5">
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
+                        {summaryItems.map((item) => (
+                            <button
+                                key={item.label}
+                                type="button"
+                                aria-pressed={statusFilter === item.filter}
+                                onClick={() => {
+                                    setStatusFilter(item.filter);
+                                    setPage(1);
+                                }}
+                                className="rounded-xl border border-border bg-card px-4 py-3.5 text-left shadow-card transition-colors hover:bg-muted aria-pressed:border-primary aria-pressed:ring-1 aria-pressed:ring-primary"
+                            >
+                                <span className="block text-[26px] leading-tight font-bold tabular-nums">
+                                    {item.value}
+                                </span>
+                                <span
+                                    className={cn(
+                                        'mt-0.5 block text-[13px] text-muted-foreground',
+                                        item.warn &&
+                                            'font-semibold text-amber-700 dark:text-amber-400',
+                                    )}
+                                >
+                                    {item.label}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        {summaryHelperText}
+                    </p>
+                </section>
 
-                <section className="rounded-xl border border-border bg-card p-4 shadow-card sm:p-5">
-                    <div className="space-y-4">
-                        <LoanRequestSearchBox
-                            value={search}
-                            onChange={(nextSearch) => {
-                                setSearch(nextSearch);
-                                setPage(1);
-                            }}
-                            placeholder="Search by account, member, loan type, or status"
-                            resultsText={resultsLabel}
-                            actions={
-                                <TableFilterPopover
-                                    filterCount={filterCount}
-                                    onClearFilters={() => {
-                                        setSearch('');
-                                        setLoanType(null);
-                                        setStatusFilter('all');
-                                        setAssignmentFilter(null);
-                                        setOfficerId(null);
-                                        setMinAmount('');
-                                        setMaxAmount('');
-                                        setSortBy(null);
-                                        setSortDirection('desc');
+                <Card
+                    className="gap-0 overflow-hidden py-0"
+                    aria-label="Search and filter requests"
+                >
+                    <div className="flex flex-wrap items-end gap-3 px-5 py-4">
+                        <div className="grid min-w-[260px] flex-1 gap-1">
+                            <Label
+                                htmlFor={`${workspace}-requests-search`}
+                                className={labelClass}
+                            >
+                                Search
+                            </Label>
+                            <Input
+                                id={`${workspace}-requests-search`}
+                                type="search"
+                                value={search}
+                                onChange={(event) => {
+                                    setSearch(event.target.value);
+                                    setPage(1);
+                                }}
+                                placeholder="Search by account, member, loan type, or status"
+                            />
+                        </div>
+                        <div className="grid gap-1">
+                            <Label
+                                htmlFor={`${workspace}-requests-status`}
+                                className={labelClass}
+                            >
+                                Status
+                            </Label>
+                            <Select
+                                value={statusFilter}
+                                onValueChange={(value) => {
+                                    setStatusFilter(
+                                        value as LoanRequestQueueStatusFilter,
+                                    );
+                                    setPage(1);
+                                }}
+                            >
+                                <SelectTrigger
+                                    id={`${workspace}-requests-status`}
+                                    className="w-full sm:w-52"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {statusOptions.map((option) => (
+                                        <SelectItem
+                                            key={option.value}
+                                            value={option.value}
+                                        >
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {workspace === 'staff' &&
+                        (meta.assignmentFilters?.length ?? 0) > 0 ? (
+                            <div className="grid gap-1">
+                                <Label className={labelClass}>Assignment</Label>
+                                <Select
+                                    value={assignmentFilter ?? 'default'}
+                                    onValueChange={(value) => {
+                                        const next =
+                                            value === 'default'
+                                                ? null
+                                                : (value as
+                                                      | 'unassigned'
+                                                      | 'mine'
+                                                      | 'all');
+
+                                        setAssignmentFilter(next);
+
+                                        if (next !== null && next !== 'all') {
+                                            setOfficerId(null);
+                                        }
+
                                         setPage(1);
                                     }}
                                 >
-                                    <LoanRequestStatusFilters
-                                        options={statusOptions}
-                                        activeValue={statusFilter}
-                                        onChange={(nextStatus) => {
-                                            setStatusFilter(nextStatus);
-                                            setPage(1);
-                                        }}
-                                    />
-
-                                    {workspace === 'staff' &&
-                                    (meta.assignmentFilters?.length ?? 0) >
-                                        0 ? (
-                                        <TableFilterField label="Assignment">
-                                            <Select
-                                                value={
-                                                    assignmentFilter ??
-                                                    'default'
-                                                }
-                                                onValueChange={(value) => {
-                                                    const nextAssignment =
-                                                        value === 'default'
-                                                            ? null
-                                                            : (value as
-                                                                  | 'unassigned'
-                                                                  | 'mine'
-                                                                  | 'all');
-
-                                                    setAssignmentFilter(
-                                                        nextAssignment,
-                                                    );
-
-                                                    if (
-                                                        nextAssignment !==
-                                                            null &&
-                                                        nextAssignment !== 'all'
-                                                    ) {
-                                                        setOfficerId(null);
-                                                    }
-
-                                                    setPage(1);
-                                                }}
-                                            >
-                                                <SelectTrigger aria-label="Assignment">
-                                                    <SelectValue placeholder="Default view" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="default">
-                                                        Default view
-                                                    </SelectItem>
-                                                    {meta.assignmentFilters?.map(
-                                                        (option) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    option.value
-                                                                }
-                                                                value={
-                                                                    option.value
-                                                                }
-                                                            >
-                                                                {option.label}
-                                                            </SelectItem>
-                                                        ),
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                        </TableFilterField>
-                                    ) : null}
-
-                                    {workspace === 'staff' &&
-                                    (meta.assignmentOfficers?.length ?? 0) >
-                                        0 &&
-                                    (assignmentFilter === null ||
-                                        assignmentFilter === 'all') ? (
-                                        <TableFilterField label="Loan officer">
-                                            <Select
-                                                value={
-                                                    officerId !== null
-                                                        ? `${officerId}`
-                                                        : 'all'
-                                                }
-                                                onValueChange={(value) => {
-                                                    setOfficerId(
-                                                        value === 'all'
-                                                            ? null
-                                                            : Number(value),
-                                                    );
-                                                    setPage(1);
-                                                }}
-                                            >
-                                                <SelectTrigger aria-label="Loan officer">
-                                                    <SelectValue placeholder="All loan processors" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="all">
-                                                        All loan processors
-                                                    </SelectItem>
-                                                    {meta.assignmentOfficers?.map(
-                                                        (officer) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    officer.user_id
-                                                                }
-                                                                value={`${officer.user_id}`}
-                                                            >
-                                                                {`${officer.name} - ${officer.active_assignment_count} active application${officer.active_assignment_count === 1 ? '' : 's'}${officer.has_workload_warning ? ' - High workload' : ''}`}
-                                                            </SelectItem>
-                                                        ),
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                        </TableFilterField>
-                                    ) : null}
-
-                                    <TableFilterField label="Loan type">
-                                        <Select
-                                            value={loanType ?? 'all'}
-                                            onValueChange={(value) => {
-                                                setLoanType(
-                                                    value === 'all'
-                                                        ? null
-                                                        : value,
-                                                );
-                                                setPage(1);
-                                            }}
-                                        >
-                                            <SelectTrigger aria-label="Loan type">
-                                                <SelectValue placeholder="All loan types" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">
-                                                    All loan types
+                                    <SelectTrigger
+                                        aria-label="Assignment"
+                                        className="w-full sm:w-44"
+                                    >
+                                        <SelectValue placeholder="Default view" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="default">
+                                            Default view
+                                        </SelectItem>
+                                        {meta.assignmentFilters?.map(
+                                            (option) => (
+                                                <SelectItem
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
+                                                    {option.label}
                                                 </SelectItem>
-                                                {loanTypeOptions.map(
-                                                    (option) => (
-                                                        <SelectItem
-                                                            key={option}
-                                                            value={option}
-                                                        >
-                                                            {option}
-                                                        </SelectItem>
-                                                    ),
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                    </TableFilterField>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-1">
-                                            <label
-                                                className="text-xs font-medium text-muted-foreground"
-                                                htmlFor={`${workspace}-requests-min-amount`}
-                                            >
-                                                Min amount
-                                            </label>
-                                            <CurrencyInput
-                                                id={`${workspace}-requests-min-amount`}
-                                                value={minAmount}
-                                                onValueChange={(nextValue) => {
-                                                    setMinAmount(nextValue);
-                                                    setPage(1);
-                                                }}
-                                            />
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            <label
-                                                className="text-xs font-medium text-muted-foreground"
-                                                htmlFor={`${workspace}-requests-max-amount`}
-                                            >
-                                                Max amount
-                                            </label>
-                                            <CurrencyInput
-                                                id={`${workspace}-requests-max-amount`}
-                                                value={maxAmount}
-                                                onValueChange={(nextValue) => {
-                                                    setMaxAmount(nextValue);
-                                                    setPage(1);
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                </TableFilterPopover>
-                            }
-                        />
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        ) : null}
+                        {(meta.assignmentOfficers?.length ?? 0) > 0 &&
+                        (assignmentFilter === null ||
+                            assignmentFilter === 'all') ? (
+                            <div className="grid gap-1">
+                                <Label className={labelClass}>
+                                    Loan processor
+                                </Label>
+                                <Select
+                                    value={
+                                        officerId !== null
+                                            ? `${officerId}`
+                                            : 'all'
+                                    }
+                                    onValueChange={(value) => {
+                                        setOfficerId(
+                                            value === 'all'
+                                                ? null
+                                                : Number(value),
+                                        );
+                                        setPage(1);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        aria-label="Loan processor"
+                                        className="w-full sm:w-52"
+                                    >
+                                        <SelectValue placeholder="All loan processors" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            All loan processors
+                                        </SelectItem>
+                                        {meta.assignmentOfficers?.map(
+                                            (officer) => (
+                                                <SelectItem
+                                                    key={officer.user_id}
+                                                    value={`${officer.user_id}`}
+                                                >
+                                                    {officer.name}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        ) : null}
+                        <div className="grid gap-1">
+                            <Label className={labelClass}>Loan type</Label>
+                            <Select
+                                value={loanType ?? 'all'}
+                                onValueChange={(value) => {
+                                    setLoanType(value === 'all' ? null : value);
+                                    setPage(1);
+                                }}
+                            >
+                                <SelectTrigger
+                                    aria-label="Loan type"
+                                    className="w-full sm:w-44"
+                                >
+                                    <SelectValue placeholder="All loan types" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        All loan types
+                                    </SelectItem>
+                                    {loanTypeOptions.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={clearFilters}
+                        >
+                            Clear filters
+                        </Button>
                     </div>
-                </section>
+                    <p
+                        className="px-5 pb-4 text-[13px] text-muted-foreground"
+                        role="status"
+                    >
+                        {resultsLabel}
+                    </p>
+                </Card>
 
                 {warning && !error ? (
                     <Alert>
@@ -1096,22 +1225,20 @@ export function LoanRequestQueuePage({
                 ) : null}
 
                 <section className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
-                    <div className="border-b border-border bg-card px-4 py-4 sm:px-6">
-                        <h2 className="text-lg font-semibold">
-                            Request results
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                            {resultsLabel}
-                        </p>
+                    <div className="flex flex-wrap items-baseline gap-2 px-5 pt-[18px] pb-4">
+                        <h2 className="text-base font-bold">Results</h2>
+                        <span className="text-[13px] text-muted-foreground">
+                            {formatCountLabel(totalResults, 'request')}
+                        </span>
                     </div>
 
-                    <div className="px-2 pb-2 sm:px-4 sm:pb-4">
+                    <div>
                         <div>
                             {showSkeleton ? (
                                 <TableSkeleton
                                     columns={requestsTableSkeletonColumns}
                                     rows={perPage}
-                                    className="hidden pt-4 md:block"
+                                    className="hidden md:block"
                                     tableClassName="bg-transparent"
                                 />
                             ) : (
@@ -1119,7 +1246,7 @@ export function LoanRequestQueuePage({
                                     columns={columns}
                                     data={items}
                                     emptyMessage={emptyMessage}
-                                    className="border-0 bg-transparent"
+                                    className="rounded-none border-0 border-t border-border bg-transparent shadow-none"
                                     getRowId={(item, index) =>
                                         String(item.id ?? index)
                                     }
@@ -1159,18 +1286,16 @@ export function LoanRequestQueuePage({
                             ) : null}
                         </div>
                     </div>
-                </section>
 
-                {showSkeleton ? (
-                    <DataTablePaginationSkeleton />
-                ) : (
-                    <DataTablePagination
-                        page={meta.page}
-                        perPage={meta.perPage}
-                        total={meta.total}
-                        onPageChange={(nextPage) => setPage(nextPage)}
-                    />
-                )}
+                    {showSkeleton ? null : (
+                        <RequestsPager
+                            page={meta.page}
+                            perPage={meta.perPage}
+                            total={meta.total}
+                            onPageChange={setPage}
+                        />
+                    )}
+                </section>
             </PageShell>
 
             <AssignOfficerDialog

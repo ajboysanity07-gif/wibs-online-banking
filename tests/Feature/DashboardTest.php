@@ -89,7 +89,7 @@ test('admin-only users are redirected to the admin dashboard', function () {
     $response->assertRedirect(route('admin.dashboard'));
 });
 
-test('superadmins are redirected to staff management first', function () {
+test('superadmins are redirected to the admin dashboard first', function () {
     $superadmin = User::factory()->create([
         'acctno' => null,
     ]);
@@ -100,7 +100,7 @@ test('superadmins are redirected to staff management first', function () {
     $this->actingAs($superadmin);
 
     $response = $this->get(route('dashboard'));
-    $response->assertRedirect(route('superadmin.staff.index'));
+    $response->assertRedirect(route('admin.dashboard'));
 });
 
 test('hybrid users see the workspace chooser dashboard', function () {

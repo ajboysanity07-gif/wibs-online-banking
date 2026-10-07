@@ -417,10 +417,15 @@ test('loan request form uses member profile work fields for the applicant', func
         'user_id' => $user->user_id,
         'employment_type' => 'Regular',
         'employer_business_name' => 'Acme Corp',
-        'employer_business_address' => 'Acme Building',
+        'employer_business_address' => null,
+        'employer_business_address1' => 'Acme Building',
+        'employer_business_address_barangay' => 'Aglipay',
+        'employer_business_address2' => null,
+        'employer_business_address3' => null,
         'employer_business_address_zip' => '8100',
         'current_position' => 'Supervisor',
         'nature_of_business' => 'Finance',
+        'years_in_work_business' => '5',
     ]);
     DB::table('wlntype')->insert([
         'typecode' => 'LN-010',
@@ -1212,6 +1217,12 @@ test('loan request form resumes existing draft', function () {
     ]);
     MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
+        'birthplace' => 'Quezon City',
+        'birthplace_city' => 'Quezon City',
+        'birthplace_province' => 'Metro Manila',
+        'civil_status' => 'Married',
+        'housing_status' => 'RENT',
+        'payday' => 'Quincenal',
     ]);
 
     $loanRequest = LoanRequest::factory()
@@ -1263,11 +1274,11 @@ test('loan request form resumes existing draft', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('client/loan-request')
             ->where('draft.id', $loanRequest->id)
-            ->where('applicant.first_name', 'Draft')
-            ->where('applicant.birthplace', 'Quezon City')
+            ->where('applicant.first_name', 'Loan')
+            ->where('applicant.birthplace', 'Quezon City, Metro Manila')
             ->where('applicant.birthdate', '1990-04-10')
             ->where('applicant.housing_status', 'RENT')
-            ->where('applicant.civil_status', 'Married')
+            ->where('applicant.civil_status', 'Single')
             ->where('applicant.payday', 'Quincenal')
             ->where('coMakerOne.birthdate', '1989-03-12')
             ->where('coMakerOne.housing_status', 'RENT')
@@ -6352,6 +6363,7 @@ test('client loan requests page lists member loan requests', function () {
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
             ->component('client/loan-requests')
+            ->where('accountNo', $user->acctno)
             ->has('loanRequests.items', 2)
             ->where('loanRequests.items.0.id', $draft->id)
             ->where('loanRequests.items.0.reference', $draft->reference)
@@ -6566,3 +6578,23 @@ function createApprovedMemberForLoanRequestTests(string $acctno): User
 
     return $user;
 }
+
+test('loan request decision sms is skipped when the approved message is switched off', function () {
+    Http::fake();
+
+    config()->set('services.semaphore.api_key', 'test-key');
+    config()->set('services.semaphore.base_url', 'https://api.semaphore.co/api/v4/messages');
+
+    OrganizationSetting::factory()->create(['loan_sms_approved_enabled' => false]);
+
+    $member = User::factory()->create(['acctno' => '000511', 'phoneno' => '09175551235']);
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Approved,
+        'approved_amount' => 100000,
+        'approved_term' => 12,
+    ]);
+
+    SendLoanDecisionSmsJob::dispatchSync($loanRequest->id);
+
+    Http::assertNothingSent();
+});

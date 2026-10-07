@@ -465,6 +465,20 @@ Route::get(
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-payments.export');
 
+Route::get(
+    'client/loans/{loanNumber}/statement',
+    \App\Http\Controllers\Client\LoanStatementController::class,
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-statement');
+
+Route::get(
+    'client/signature/{acctno}',
+    \App\Http\Controllers\Client\MemberSignatureController::class,
+)
+    ->middleware(['auth', 'verified'])
+    ->name('client.member-signature');
+
 Route::get('client/savings', ClientMemberSavingsController::class)
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.savings');

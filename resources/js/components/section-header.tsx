@@ -8,6 +8,7 @@ type SectionHeaderProps = {
     className?: string;
     titleClassName?: string;
     descriptionClassName?: string;
+    actionsClassName?: string;
 };
 
 export function SectionHeader({
@@ -17,6 +18,7 @@ export function SectionHeader({
     className,
     titleClassName,
     descriptionClassName,
+    actionsClassName,
 }: SectionHeaderProps) {
     return (
         <div
@@ -41,7 +43,11 @@ export function SectionHeader({
                 ) : null}
             </div>
             {actions ? (
-                <div className="flex items-center gap-2">{actions}</div>
+                <div
+                    className={cn('flex items-center gap-2', actionsClassName)}
+                >
+                    {actions}
+                </div>
             ) : null}
         </div>
     );

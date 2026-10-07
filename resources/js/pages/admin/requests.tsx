@@ -1,6 +1,10 @@
 import { LoanRequestQueuePage } from '@/components/loan-request/loan-request-queue-page';
 import { adminLoanRequestQueueStatusOptions } from '@/lib/loan-request-queue';
-import { index as requestsIndex, show as requestsShow } from '@/routes/admin/requests';
+import {
+    index as requestsIndex,
+    reported as reportedIndex,
+    show as requestsShow,
+} from '@/routes/admin/requests';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -23,6 +27,7 @@ export default function RequestsPage() {
             showRequestHref={(requestId) => requestsShow(requestId).url}
             summaryHelperText="Status cards reflect the current results page. Open correction reports shows the current system-wide open report count."
             showReportedSummary
+            reportedQueueHref={reportedIndex().url}
         />
     );
 }

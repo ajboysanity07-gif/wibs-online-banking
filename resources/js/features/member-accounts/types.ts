@@ -9,6 +9,10 @@ export type MemberLoan = {
     initial: number | null;
     monthlyDue: number | null;
     dueDate: string | null;
+    intRate?: number | null;
+    monthlyRate?: number | null;
+    termMonths?: number | null;
+    penalty?: number | null;
 };
 
 export type MemberRecentLoanPayment = {

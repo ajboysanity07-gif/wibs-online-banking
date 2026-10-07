@@ -2,6 +2,7 @@
 
 namespace App\Domains\MemberAccounts\Resources;
 
+use App\Support\LoanPaymentSplit;
 use DateTimeInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -20,8 +21,8 @@ class MemberLoanPaymentResource extends JsonResource
             'lnnumber' => $this->lnnumber === null ? null : (string) $this->lnnumber,
             'lntype' => $this->lntype === null ? null : (string) $this->lntype,
             'amount' => $this->castNumber($this->payments ?? null),
-            'principal' => $this->castNumber($this->principal ?? null),
-            'interest' => $this->castNumber($this->accruedint ?? null),
+            'principal' => $this->castNumber(LoanPaymentSplit::read($this->resource, 'split_principal', 'principal')),
+            'interest' => $this->castNumber(LoanPaymentSplit::read($this->resource, 'split_interest', 'accruedint')),
         ];
     }
 

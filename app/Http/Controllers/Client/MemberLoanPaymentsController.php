@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Client;
 
 use App\Domains\MemberAccounts\Resources\MemberLoanResource;
+use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Client\MemberLoanPaymentsRequest;
 use App\Http\Resources\Admin\MemberLoanPaymentResource;
+use App\Http\Resources\Admin\MemberLoanScheduleResource;
 use App\Http\Resources\Admin\MemberLoanSummaryResource;
+use App\Models\Wmaster;
 use App\Services\Admin\MemberLoans\MemberLoanExportService;
 use App\Services\Admin\MemberLoans\MemberLoanService;
+use App\Services\LoanRequests\OfficialLoanManagerResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Schema;
@@ -22,6 +26,7 @@ class MemberLoanPaymentsController extends Controller
         MemberLoanPaymentsRequest $request,
         string $loanNumber,
         MemberLoanService $service,
+        MemberAccountsService $accounts,
     ): Response|RedirectResponse {
         $user = $request->user();
 
@@ -29,7 +34,7 @@ class MemberLoanPaymentsController extends Controller
             return redirect()->route('login');
         }
 
-        $user->loadMissing('userProfile', 'adminProfile');
+        $user->loadMissing('userProfile', 'adminProfile', 'roles');
 
         if ($user->isAdminOnly()) {
             return redirect()->route('admin.dashboard');
@@ -77,6 +82,15 @@ class MemberLoanPaymentsController extends Controller
         $memberPayload = $this->sanitizePayload([
             'member_name' => $memberName,
             'acctno' => $user->acctno,
+            'signatureUrl' => $this->memberSignatureUrl($user),
+        ]);
+
+        $officialManager = app(OfficialLoanManagerResolver::class);
+
+        $loanManagerPayload = $this->sanitizePayload([
+            'name' => $officialManager->name(),
+            'role' => $officialManager->position(),
+            'signatureUrl' => $this->memberSignatureUrl($user),
         ]);
         $loanPayload = $this->sanitizePayload(
             (new MemberLoanResource($payload['loan']))->resolve(),
@@ -98,12 +112,44 @@ class MemberLoanPaymentsController extends Controller
             'openingBalance' => $payload['openingBalance'],
             'closingBalance' => $payload['closingBalance'],
         ]);
+        $schedulePayload = $this->sanitizePayload([
+            'items' => MemberLoanScheduleResource::collection(
+                $payload['schedule'],
+            )->resolve(),
+        ]);
+
+        $soaMonths = [];
+        $certificateEligible = false;
+
+        try {
+            $soaMonths = $service->getStatementMonths($user, $loanNumber);
+            $certificateEligible = (float) data_get($payload['loan'], 'balance', 0) <= 0;
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        $securityBalance = 0.0;
+
+        try {
+            $securityBalance = (float) $accounts->getLoanSecurityLedgerSummary($user)['latestBalance'];
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        $documentsPayload = $this->sanitizePayload([
+            'soaMonths' => $soaMonths,
+            'certificateEligible' => $certificateEligible,
+        ]);
 
         return Inertia::render('client/loan-payments', [
             'member' => $memberPayload,
+            'loanManager' => $loanManagerPayload,
             'loan' => $loanPayload,
             'summary' => $summaryPayload,
             'payments' => $paymentsPayload,
+            'schedule' => $schedulePayload,
+            'documents' => $documentsPayload,
+            'securityBalance' => $securityBalance,
         ]);
     }
 
@@ -131,6 +177,33 @@ class MemberLoanPaymentsController extends Controller
             $request->query('start'),
             $request->query('end'),
         );
+    }
+
+    private function memberSignatureUrl(mixed $user): ?string
+    {
+        $acctno = trim((string) ($user->acctno ?? ''));
+
+        if ($acctno === '') {
+            return null;
+        }
+
+        try {
+            if (! Schema::hasTable('wmaster') || ! Schema::hasColumn('wmaster', 'bsignature')) {
+                return null;
+            }
+
+            $blob = Wmaster::query()->where('acctno', $acctno)->value('bsignature');
+
+            if (! is_string($blob) || strlen($blob) < 8) {
+                return null;
+            }
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
+
+        return route('client.member-signature', ['acctno' => $acctno]);
     }
 
     private function sanitizePayload(mixed $value): mixed

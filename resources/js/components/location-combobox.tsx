@@ -1,5 +1,6 @@
 import { CheckIcon, ChevronsUpDownIcon, XIcon } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Command,
     CommandEmpty,
@@ -159,7 +160,8 @@ export function LocationCombobox({
         >
             <div className="relative">
                 <PopoverTrigger asChild>
-                    <button
+                    <Button
+                        variant="outline"
                         data-slot="combobox-trigger"
                         id={id}
                         type="button"
@@ -171,10 +173,11 @@ export function LocationCombobox({
                         disabled={!isInteractive}
                         className={cn(
                             inputClassName,
-                            'inline-flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:h-9 md:text-sm',
+                            'h-11 w-full min-w-0 justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1 text-base font-normal shadow-xs transition-[color,box-shadow] outline-none hover:bg-transparent disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:h-9 md:text-sm',
                             'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
                             'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
-                            !hasValue && 'text-muted-foreground',
+                            !hasValue &&
+                                'text-muted-foreground hover:text-muted-foreground',
                             hasValue && isInteractive && 'pr-14',
                             readOnly &&
                                 'pointer-events-none border-border bg-muted/30 text-muted-foreground/80',
@@ -190,19 +193,21 @@ export function LocationCombobox({
                         ) : (
                             <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
                         )}
-                    </button>
+                    </Button>
                 </PopoverTrigger>
                 {hasValue && isInteractive ? (
                     <span className="pointer-events-none absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1">
-                        <button
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             type="button"
                             aria-label="Clear selection"
                             tabIndex={-1}
                             onClick={handleClear}
-                            className="pointer-events-auto flex size-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                            className="pointer-events-auto size-5 rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground md:size-5"
                         >
                             <XIcon className="size-3.5" />
-                        </button>
+                        </Button>
                         <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
                     </span>
                 ) : null}

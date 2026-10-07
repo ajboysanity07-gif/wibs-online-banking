@@ -6,6 +6,8 @@ import {
     loanEstimateNote,
 } from '@/components/loan-request/loan-application-estimate';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type {
@@ -86,7 +88,7 @@ export function LoanApplicationCalculator({
                                 const active = type.typecode === typecode;
 
                                 return (
-                                    <button
+                                    <Button variant="ghost"
                                         key={type.typecode}
                                         type="button"
                                         aria-pressed={active}
@@ -94,14 +96,15 @@ export function LoanApplicationCalculator({
                                             onTypecodeChange(type.typecode)
                                         }
                                         className={cn(
-                                            'min-h-11 rounded-full border-[1.5px] px-4 text-sm font-semibold transition-colors duration-150 motion-reduce:transition-none',
+'h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal hover:bg-transparent hover:text-current',
+                                            'min-h-11 rounded-full border-[1.5px] px-4 has-[>svg]:px-4 text-sm font-semibold transition-colors duration-150 motion-reduce:transition-none',
                                             active
                                                 ? 'border-primary bg-primary text-primary-foreground'
                                                 : 'border-input bg-transparent text-foreground hover:bg-muted',
                                         )}
                                     >
                                         {type.label}
-                                    </button>
+                                    </Button>
                                 );
                             })}
                         </div>
@@ -110,17 +113,17 @@ export function LoanApplicationCalculator({
 
                 <div>
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-                        <label
+                        <Label
                             htmlFor="calculator_amount"
                             className="text-sm font-semibold"
                         >
                             Amount
-                        </label>
+                        </Label>
                         <div className="flex h-12 w-56 max-w-full items-center gap-1.5 rounded-lg border-[1.5px] border-input bg-card px-3 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
                             <span className="text-sm text-muted-foreground">
                                 PHP
                             </span>
-                            <input
+                            <Input
                                 id="calculator_amount"
                                 inputMode="decimal"
                                 autoComplete="off"
@@ -139,7 +142,7 @@ export function LoanApplicationCalculator({
                                         ),
                                     )
                                 }
-                                className="h-full min-w-0 flex-1 bg-transparent text-right text-xl font-bold tabular-nums outline-none"
+                                className="h-full md:h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 py-0 text-right text-xl font-bold tabular-nums shadow-none focus-visible:ring-0 md:text-xl"
                             />
                         </div>
                     </div>
@@ -164,12 +167,12 @@ export function LoanApplicationCalculator({
 
                 <div>
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-                        <label
+                        <Label
                             htmlFor="calculator_term"
                             className="text-sm font-semibold"
                         >
                             Term
-                        </label>
+                        </Label>
                         <div className="flex items-center gap-1.5">
                             <Button
                                 type="button"
@@ -184,7 +187,7 @@ export function LoanApplicationCalculator({
                                 <Minus />
                             </Button>
                             <div className="flex h-12 w-32 items-center gap-1.5 rounded-lg border-[1.5px] border-input bg-card px-3 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
-                                <input
+                                <Input
                                     id="calculator_term"
                                     inputMode="numeric"
                                     autoComplete="off"
@@ -197,7 +200,7 @@ export function LoanApplicationCalculator({
                                             ),
                                         )
                                     }
-                                    className="h-full min-w-0 flex-1 bg-transparent text-right text-xl font-bold tabular-nums outline-none"
+                                    className="h-full md:h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 py-0 text-right text-xl font-bold tabular-nums shadow-none focus-visible:ring-0 md:text-xl"
                                 />
                                 <span className="text-sm text-muted-foreground">
                                     months

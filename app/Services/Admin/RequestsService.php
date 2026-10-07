@@ -25,7 +25,8 @@ class RequestsService
      * @var array<string, string>
      */
     private const SORTABLE_COLUMNS = [
-        'reference' => 'reference',
+        // The reference (LNREQ-000123) is derived from the id; there is no column.
+        'reference' => 'id',
         'loanType' => 'loan_type_label_snapshot',
         'amount' => 'requested_amount',
         'status' => 'status',

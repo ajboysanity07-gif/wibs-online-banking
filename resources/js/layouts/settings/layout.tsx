@@ -4,6 +4,7 @@ import type { PropsWithChildren } from 'react';
 import { PageShell } from '@/components/page-shell';
 import type { ProfileSectionControl } from '@/components/settings/settings-nav';
 import { SettingsNav } from '@/components/settings/settings-nav';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { edit as profileEdit } from '@/routes/profile';
 
@@ -46,14 +47,15 @@ export default function SettingsLayout({
                     )}
                 >
                     {isProfile ? (
-                        <button
+                        <Button
+                            variant="link"
                             type="button"
                             onClick={onMobileBack}
-                            className={backClassName}
+                            className={cn(backClassName, 'h-auto p-0')}
                         >
                             <ChevronLeft className="size-4" />
                             Settings
-                        </button>
+                        </Button>
                     ) : (
                         <Link href={profileEdit()} className={backClassName}>
                             <ChevronLeft className="size-4" />

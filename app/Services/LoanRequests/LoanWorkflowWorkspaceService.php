@@ -473,12 +473,12 @@ class LoanWorkflowWorkspaceService
 
     private function staffWorkspaceRoute(AppUser $user): string
     {
-        if ($user->canViewStaffManagement()) {
-            return route('superadmin.staff.index', absolute: false);
-        }
-
         if ($user->isAdmin() && $user->hasActiveStaffAccess()) {
             return route('admin.dashboard', absolute: false);
+        }
+
+        if ($user->canViewStaffManagement()) {
+            return route('superadmin.staff.index', absolute: false);
         }
 
         if ($this->canAccessLoanWorkflow($user)) {

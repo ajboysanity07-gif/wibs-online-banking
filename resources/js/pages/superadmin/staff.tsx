@@ -13,18 +13,14 @@ import {
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
-import { PageHero } from '@/components/page-hero';
+import { RequestsPager } from '@/components/loan-request/loan-request-queue-page';
 import { PageShell } from '@/components/page-shell';
-import { SectionHeader } from '@/components/section-header';
 import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
-import {
-    DataTablePagination,
-    DataTablePaginationSkeleton,
-} from '@/components/ui/data-table-pagination';
 import {
     Dialog,
     DialogContent,
@@ -44,6 +40,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Select,
     SelectContent,
@@ -60,18 +57,15 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import {
-    TableFilterField,
-    TableFilterPopover,
-    TableSearchBox,
-} from '@/components/ui/table-filter-bar';
-import {
     TableSkeleton,
     type TableSkeletonColumn,
 } from '@/components/ui/table-skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import { useStaffDirectory } from '@/hooks/admin/use-staff-directory';
 import AppLayout from '@/layouts/app-layout';
 import { mapValidationErrors } from '@/lib/api';
 import { adminApi } from '@/lib/api/admin';
+import { statusTones } from '@/lib/status-tones';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { index as superadminStaffIndex } from '@/routes/superadmin/staff';
@@ -98,9 +92,6 @@ const tableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-36', cellClassName: 'w-40' },
     { headerClassName: 'w-12', cellClassName: 'h-8 w-10', align: 'right' },
 ];
-
-const textareaClassName =
-    'border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-24 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50';
 
 const editableRoleOptions: Array<{
     value: EditableStaffRoleName;
@@ -167,6 +158,24 @@ const staffAccessVariant = (
     return 'outline';
 };
 
+const toneClassNames = statusTones;
+
+const roleToneClassName = (roleName: string): string => {
+    if (roleName === 'superadmin') {
+        return toneClassNames.act;
+    }
+
+    if (roleName === 'loan_manager') {
+        return toneClassNames.ok;
+    }
+
+    if (roleName === 'loan_processor') {
+        return toneClassNames.info;
+    }
+
+    return toneClassNames.neutral;
+};
+
 const staffAccessLabel = (status: StaffAccessStatus): string => {
     if (status === 'active') {
         return 'Active';
@@ -177,20 +186,6 @@ const staffAccessLabel = (status: StaffAccessStatus): string => {
     }
 
     return 'Not managed';
-};
-
-const describeLastChange = (staff: StaffAccount): string => {
-    if (!staff.last_change) {
-        return 'No recorded staff changes yet.';
-    }
-
-    const actor = staff.last_change.actor_name
-        ? ` by ${staff.last_change.actor_name}`
-        : '';
-
-    return `${staff.last_change.action_label}${actor} on ${formatDateTime(
-        staff.last_change.created_at,
-    )}`;
 };
 
 const historyStatusLabel = (status: StaffAccessStatus | null): string => {
@@ -783,14 +778,20 @@ export default function SuperadminStaffPage() {
             },
             header: 'Staff account',
             cell: ({ row }) => (
-                <div className="space-y-1">
-                    <p className="font-medium">{row.original.display_name}</p>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <span>{row.original.display_code}</span>
-                        {row.original.username ? (
-                            <span>{row.original.username}</span>
-                        ) : null}
-                    </div>
+                <div className="flex flex-col">
+                    <span className="font-bold">
+                        {row.original.display_name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                        {[
+                            row.original.username,
+                            row.original.acctno
+                                ? `Account ${row.original.acctno}`
+                                : row.original.display_code,
+                        ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                    </span>
                 </div>
             ),
         },
@@ -798,27 +799,33 @@ export default function SuperadminStaffPage() {
             accessorKey: 'has_member_access',
             meta: { priority: 'detail' },
             header: 'Member access',
-            cell: ({ row }) => (
-                <div className="space-y-1 text-sm">
-                    <p className="font-medium">
-                        {row.original.has_member_access ? 'Yes' : 'No'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                        {row.original.acctno ?? '--'}
-                    </p>
-                </div>
-            ),
+            cell: ({ row }) =>
+                row.original.has_member_access ? (
+                    <Badge
+                        variant="outline"
+                        className={cn('font-bold', toneClassNames.info)}
+                    >
+                        Has member access
+                    </Badge>
+                ) : (
+                    <Badge
+                        variant="outline"
+                        className={cn('font-bold', toneClassNames.neutral)}
+                    >
+                        Staff only
+                    </Badge>
+                ),
         },
         {
             accessorKey: 'email',
             meta: { priority: 'detail' },
             header: 'Contact',
             cell: ({ row }) => (
-                <div className="space-y-1 text-sm">
-                    <p>{row.original.email ?? '--'}</p>
-                    <p className="text-xs text-muted-foreground">
+                <div className="flex flex-col text-sm">
+                    <span>{row.original.email ?? '--'}</span>
+                    <span className="text-xs text-muted-foreground">
                         {row.original.phoneno ?? '--'}
-                    </p>
+                    </span>
                 </div>
             ),
         },
@@ -834,7 +841,11 @@ export default function SuperadminStaffPage() {
                         row.original.roles.map((role) => (
                             <Badge
                                 key={`${row.original.user_id}-${role.name}`}
-                                variant={roleBadgeVariant(role.name)}
+                                variant="outline"
+                                className={cn(
+                                    'font-bold',
+                                    roleToneClassName(role.name),
+                                )}
                             >
                                 {role.label}
                             </Badge>
@@ -848,18 +859,23 @@ export default function SuperadminStaffPage() {
             meta: { priority: 'badge' },
             header: 'Status',
             cell: ({ row }) => (
-                <div className="space-y-2">
-                    <Badge
-                        variant={staffAccessVariant(
-                            row.original.staff_access_status,
-                        )}
-                    >
-                        {staffAccessLabel(row.original.staff_access_status)}
-                    </Badge>
-                    <p className="max-w-xs text-xs text-muted-foreground">
-                        {describeLastChange(row.original)}
-                    </p>
-                </div>
+                <Badge
+                    variant="outline"
+                    className={cn(
+                        'font-bold',
+                        row.original.staff_access_status === 'active'
+                            ? toneClassNames.ok
+                            : row.original.staff_access_status === 'suspended'
+                              ? toneClassNames.bad
+                              : toneClassNames.neutral,
+                    )}
+                >
+                    <span
+                        className="size-[7px] rounded-full bg-current"
+                        aria-hidden="true"
+                    />
+                    {staffAccessLabel(row.original.staff_access_status)}
+                </Badge>
             ),
         },
         {
@@ -881,13 +897,12 @@ export default function SuperadminStaffPage() {
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     type="button"
-                                    variant="ghost"
-                                    size="icon"
+                                    variant="outline"
+                                    size="sm"
+                                    aria-label={`Manage ${staff.display_name}`}
                                 >
+                                    Manage
                                     <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">
-                                        Manage staff
-                                    </span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">
@@ -995,12 +1010,20 @@ export default function SuperadminStaffPage() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Staff management" />
             <PageShell size="wide">
-                <PageHero
-                    kicker="Superadmin"
-                    title="Staff and role management"
-                    description="Create staff-only accounts, assign workflow roles, suspend staff access without touching member access, and review the audit trail for every change."
-                    badges={
-                        <>
+                <section className="flex flex-wrap items-start gap-5">
+                    <div>
+                        <p className="text-[11px] font-bold tracking-[0.14em] text-primary uppercase">
+                            Superadmin
+                        </p>
+                        <h1 className="mt-1 text-[22px] leading-tight font-bold sm:text-[26px]">
+                            Staff and role management
+                        </h1>
+                        <p className="mt-1.5 max-w-prose text-sm text-muted-foreground">
+                            Create staff-only accounts, assign workflow roles,
+                            suspend staff access without touching member access,
+                            and review the audit trail for every change.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
                             <Badge variant="secondary">
                                 {totalResults} staff account
                                 {totalResults === 1 ? '' : 's'}
@@ -1011,129 +1034,152 @@ export default function SuperadminStaffPage() {
                                     {filterCount === 1 ? '' : 's'}
                                 </Badge>
                             ) : null}
-                        </>
-                    }
-                    rightSlot={
-                        <div className="flex flex-wrap gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                    setPromoteDialog((current) => ({
-                                        ...current,
-                                        open: true,
-                                    }))
-                                }
-                            >
-                                <Users className="h-4 w-4" />
-                                Promote existing member
-                            </Button>
-                            <Button
-                                type="button"
-                                onClick={() => setCreateDialogOpen(true)}
-                            >
-                                <UserPlus className="h-4 w-4" />
-                                Create staff account
-                            </Button>
                         </div>
-                    }
-                />
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1.5 max-sm:w-full sm:ml-auto">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="max-sm:flex-1"
+                            onClick={() =>
+                                setPromoteDialog((current) => ({
+                                    ...current,
+                                    open: true,
+                                }))
+                            }
+                        >
+                            <Users className="h-4 w-4" />
+                            Promote existing member
+                        </Button>
+                        <Button
+                            type="button"
+                            className="max-sm:flex-1"
+                            onClick={() => setCreateDialogOpen(true)}
+                        >
+                            <UserPlus className="h-4 w-4" />
+                            Create staff account
+                        </Button>
+                    </div>
+                </section>
 
-                <SurfaceCard variant="default" padding="md">
-                    <TableSearchBox
-                        value={search}
-                        onChange={(nextSearch) => {
-                            setSearch(nextSearch);
-                            setPage(1);
-                        }}
-                        placeholder="Search by username, name, email, phone, or account no"
-                        resultsText={resultsLabel}
-                        actions={
-                            <TableFilterPopover
-                                filterCount={filterCount}
-                                onClearFilters={() => {
-                                    setSearch('');
-                                    setRoleFilter('all');
-                                    setAccessFilter('all');
+                <Card
+                    className="gap-0 overflow-hidden py-0"
+                    aria-label="Search and filter staff"
+                >
+                    <div className="flex flex-wrap items-end gap-3 px-5 py-4">
+                        <div className="grid min-w-[260px] flex-1 gap-1">
+                            <Label
+                                htmlFor="staff-search"
+                                className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase"
+                            >
+                                Search staff
+                            </Label>
+                            <Input
+                                id="staff-search"
+                                type="search"
+                                value={search}
+                                onChange={(event) => {
+                                    setSearch(event.target.value);
+                                    setPage(1);
+                                }}
+                                placeholder="Search by username, name, email, phone, or account no"
+                            />
+                        </div>
+                        <div className="grid gap-1">
+                            <Label
+                                htmlFor="staff-role-filter"
+                                className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase"
+                            >
+                                Role
+                            </Label>
+                            <Select
+                                value={roleFilter}
+                                onValueChange={(value) => {
+                                    setRoleFilter(
+                                        value as EditableStaffRoleName | 'all',
+                                    );
                                     setPage(1);
                                 }}
                             >
-                                <TableFilterField
-                                    label="Role"
-                                    htmlFor="staff-role-filter"
+                                <SelectTrigger
+                                    id="staff-role-filter"
+                                    aria-label="Filter by role"
+                                    className="w-full sm:w-48"
                                 >
-                                    <Select
-                                        value={roleFilter}
-                                        onValueChange={(value) => {
-                                            setRoleFilter(
-                                                value as
-                                                    | EditableStaffRoleName
-                                                    | 'all',
-                                            );
-                                            setPage(1);
-                                        }}
-                                    >
-                                        <SelectTrigger
-                                            id="staff-role-filter"
-                                            aria-label="Filter by role"
+                                    <SelectValue placeholder="All staff roles" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        All staff roles
+                                    </SelectItem>
+                                    {editableRoleOptions.map((role) => (
+                                        <SelectItem
+                                            key={role.value}
+                                            value={role.value}
                                         >
-                                            <SelectValue placeholder="All roles" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">
-                                                All staff roles
-                                            </SelectItem>
-                                            {editableRoleOptions.map((role) => (
-                                                <SelectItem
-                                                    key={role.value}
-                                                    value={role.value}
-                                                >
-                                                    {role.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </TableFilterField>
-
-                                <TableFilterField
-                                    label="Staff access"
-                                    htmlFor="staff-access-filter"
+                                            {role.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-1">
+                            <Label
+                                htmlFor="staff-access-filter"
+                                className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase"
+                            >
+                                Staff access
+                            </Label>
+                            <Select
+                                value={accessFilter}
+                                onValueChange={(value) => {
+                                    setAccessFilter(
+                                        value as 'all' | 'active' | 'suspended',
+                                    );
+                                    setPage(1);
+                                }}
+                            >
+                                <SelectTrigger
+                                    id="staff-access-filter"
+                                    aria-label="Filter by staff access"
+                                    className="w-full sm:w-48"
                                 >
-                                    <Select
-                                        value={accessFilter}
-                                        onValueChange={(value) => {
-                                            setAccessFilter(
-                                                value as
-                                                    | 'all'
-                                                    | 'active'
-                                                    | 'suspended',
-                                            );
-                                            setPage(1);
-                                        }}
-                                    >
-                                        <SelectTrigger
-                                            id="staff-access-filter"
-                                            aria-label="Filter by staff access"
-                                        >
-                                            <SelectValue placeholder="All access states" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">
-                                                All access states
-                                            </SelectItem>
-                                            <SelectItem value="active">
-                                                Active
-                                            </SelectItem>
-                                            <SelectItem value="suspended">
-                                                Suspended
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </TableFilterField>
-                            </TableFilterPopover>
-                        }
-                    />
-                </SurfaceCard>
+                                    <SelectValue placeholder="All access states" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        All access states
+                                    </SelectItem>
+                                    <SelectItem value="active">
+                                        Active
+                                    </SelectItem>
+                                    <SelectItem value="suspended">
+                                        Suspended
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                setSearch('');
+                                setRoleFilter('all');
+                                setAccessFilter('all');
+                                setPage(1);
+                            }}
+                        >
+                            Clear filters
+                        </Button>
+                    </div>
+                    <p
+                        className="px-5 pb-4 text-[13px] text-muted-foreground"
+                        role="status"
+                    >
+                        {resultsLabel}
+                    </p>
+                </Card>
 
                 {error ? (
                     <Alert variant="destructive">
@@ -1142,82 +1188,74 @@ export default function SuperadminStaffPage() {
                     </Alert>
                 ) : null}
 
-                <SurfaceCard
-                    variant="default"
-                    padding="none"
-                    className="overflow-hidden"
-                >
-                    <div className="border-b border-border bg-card px-6 py-4">
-                        <SectionHeader
-                            title="Results"
-                            description={resultsLabel}
-                            titleClassName="text-lg"
-                            actions={
-                                loading ? (
-                                    <Badge variant="outline">Updating</Badge>
-                                ) : null
-                            }
+                <Card className="gap-0 overflow-hidden py-0">
+                    <div className="flex flex-wrap items-baseline gap-2 px-5 pt-[18px] pb-4">
+                        <h2 className="text-base font-bold">Results</h2>
+                        <span className="text-[13px] text-muted-foreground">
+                            {totalResults} staff account
+                            {totalResults === 1 ? '' : 's'}
+                        </span>
+                        <span className="ml-auto flex items-center gap-2">
+                            {loading ? (
+                                <span className="text-xs text-muted-foreground">
+                                    Updating...
+                                </span>
+                            ) : null}
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-primary"
+                                onClick={refreshDirectory}
+                            >
+                                Refresh
+                            </Button>
+                        </span>
+                    </div>
+                    {showSkeleton ? (
+                        <>
+                            <div
+                                className="space-y-3 px-4 pb-3 md:hidden"
+                                aria-busy="true"
+                            >
+                                {Array.from({ length: 4 }).map((_, index) => (
+                                    <SurfaceCard
+                                        key={`staff-mobile-skeleton-${index}`}
+                                        variant="default"
+                                        padding="sm"
+                                        className="space-y-3"
+                                    >
+                                        <div className="h-4 w-36 animate-pulse rounded bg-muted" />
+                                        <div className="h-16 animate-pulse rounded-xl bg-muted/70" />
+                                        <div className="h-8 w-28 animate-pulse rounded bg-muted" />
+                                    </SurfaceCard>
+                                ))}
+                            </div>
+                            <div className="hidden md:block" aria-busy="true">
+                                <TableSkeleton
+                                    columns={tableSkeletonColumns}
+                                    rows={perPage}
+                                    tableClassName="bg-transparent"
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <DataTable
+                            columns={columns}
+                            data={items}
+                            emptyMessage="No staff accounts found."
+                            className="rounded-none border-0 border-t border-border bg-transparent"
                         />
-                    </div>
-                    <div className="px-2 pb-2 sm:px-4 sm:pb-4">
-                        {showSkeleton ? (
-                            <>
-                                <div
-                                    className="space-y-3 px-2 pt-4 pb-3 md:hidden"
-                                    aria-busy="true"
-                                >
-                                    {Array.from({ length: 4 }).map(
-                                        (_, index) => (
-                                            <SurfaceCard
-                                                key={`staff-mobile-skeleton-${index}`}
-                                                variant="default"
-                                                padding="sm"
-                                                className="space-y-3"
-                                            >
-                                                <div className="h-4 w-36 animate-pulse rounded bg-muted" />
-                                                <div className="h-16 animate-pulse rounded-xl bg-muted/70" />
-                                                <div className="h-8 w-28 animate-pulse rounded bg-muted" />
-                                            </SurfaceCard>
-                                        ),
-                                    )}
-                                </div>
-                                <div
-                                    className="hidden md:block"
-                                    aria-busy="true"
-                                >
-                                    <TableSkeleton
-                                        columns={tableSkeletonColumns}
-                                        rows={perPage}
-                                        className="pt-4"
-                                        tableClassName="bg-transparent"
-                                    />
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div>
-                                    <DataTable
-                                        columns={columns}
-                                        data={items}
-                                        emptyMessage="No staff accounts found."
-                                        className="border-0 bg-transparent"
-                                    />
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </SurfaceCard>
-
-                {showSkeleton ? (
-                    <DataTablePaginationSkeleton />
-                ) : (
-                    <DataTablePagination
-                        page={meta.page}
-                        perPage={meta.perPage}
-                        total={meta.total}
-                        onPageChange={(nextPage) => setPage(nextPage)}
-                    />
-                )}
+                    )}
+                    {showSkeleton ? null : (
+                        <RequestsPager
+                            page={meta.page}
+                            perPage={meta.perPage}
+                            total={meta.total}
+                            onPageChange={setPage}
+                        />
+                    )}
+                </Card>
             </PageShell>
 
             <Dialog
@@ -1340,9 +1378,14 @@ export default function SuperadminStaffPage() {
                                     or removed from this page.
                                 </p>
                             </div>
-                            <div
+                            <RadioGroup
                                 className="grid gap-3 md:grid-cols-3"
-                                role="radiogroup"
+                                value={createForm.roles[0] ?? ''}
+                                onValueChange={(value) =>
+                                    handleCreateRoleSelect(
+                                        value as EditableStaffRoleName,
+                                    )
+                                }
                             >
                                 {editableRoleOptions.map((role) => {
                                     const checked = createForm.roles.includes(
@@ -1350,7 +1393,7 @@ export default function SuperadminStaffPage() {
                                     );
 
                                     return (
-                                        <label
+                                        <Label
                                             key={role.value}
                                             className={cn(
                                                 'flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-card p-4 transition-colors',
@@ -1359,18 +1402,9 @@ export default function SuperadminStaffPage() {
                                                     : 'hover:border-border',
                                             )}
                                         >
-                                            <input
-                                                type="radio"
-                                                role="radio"
-                                                name="create-staff-role"
-                                                aria-checked={checked}
-                                                checked={checked}
-                                                onChange={() =>
-                                                    handleCreateRoleSelect(
-                                                        role.value,
-                                                    )
-                                                }
-                                                className="mt-1 h-4 w-4 accent-primary"
+                                            <RadioGroupItem
+                                                value={role.value}
+                                                className="mt-1"
                                             />
                                             <div className="space-y-1">
                                                 <p className="text-sm font-medium">
@@ -1380,18 +1414,18 @@ export default function SuperadminStaffPage() {
                                                     {role.description}
                                                 </p>
                                             </div>
-                                        </label>
+                                        </Label>
                                     );
                                 })}
-                            </div>
+                            </RadioGroup>
                             <InputError message={createErrors.roles} />
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="create-staff-reason">Reason</Label>
-                            <textarea
+                            <Textarea
                                 id="create-staff-reason"
-                                className={textareaClassName}
+                                className="min-h-24"
                                 value={createForm.reason}
                                 onChange={(event) =>
                                     setCreateForm((current) => ({
@@ -1460,9 +1494,9 @@ export default function SuperadminStaffPage() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="role-mutation-reason">Reason</Label>
-                            <textarea
+                            <Textarea
                                 id="role-mutation-reason"
-                                className={textareaClassName}
+                                className="min-h-24"
                                 value={roleMutation.reason}
                                 onChange={(event) =>
                                     setRoleMutation((current) => ({
@@ -1549,9 +1583,9 @@ export default function SuperadminStaffPage() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="staff-access-reason">Reason</Label>
-                            <textarea
+                            <Textarea
                                 id="staff-access-reason"
-                                className={textareaClassName}
+                                className="min-h-24"
                                 value={accessMutation.reason}
                                 onChange={(event) =>
                                     setAccessMutation((current) => ({
@@ -1629,9 +1663,9 @@ export default function SuperadminStaffPage() {
                             <Label htmlFor="reset-password-reason">
                                 Reason
                             </Label>
-                            <textarea
+                            <Textarea
                                 id="reset-password-reason"
-                                className={textareaClassName}
+                                className="min-h-24"
                                 value={resetPasswordMutation.reason}
                                 onChange={(event) =>
                                     setResetPasswordMutation((current) => ({
@@ -2242,14 +2276,27 @@ export default function SuperadminStaffPage() {
 
                                 <div className="space-y-3">
                                     <Label>Staff role to assign</Label>
-                                    <div className="grid gap-3">
+                                    <RadioGroup
+                                        className="grid gap-3"
+                                        value={promoteDialog.role}
+                                        onValueChange={(value) =>
+                                            setPromoteDialog((current) => ({
+                                                ...current,
+                                                role: value as typeof current.role,
+                                                errors: {
+                                                    ...current.errors,
+                                                    role: '',
+                                                },
+                                            }))
+                                        }
+                                    >
                                         {editableRoleOptions.map((role) => {
                                             const checked =
                                                 promoteDialog.role ===
                                                 role.value;
 
                                             return (
-                                                <label
+                                                <Label
                                                     key={role.value}
                                                     className={cn(
                                                         'flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-card p-4 transition-colors',
@@ -2258,24 +2305,9 @@ export default function SuperadminStaffPage() {
                                                             : 'hover:border-border',
                                                     )}
                                                 >
-                                                    <input
-                                                        type="radio"
-                                                        className="mt-0.5"
-                                                        name="promote-role"
+                                                    <RadioGroupItem
                                                         value={role.value}
-                                                        checked={checked}
-                                                        onChange={() =>
-                                                            setPromoteDialog(
-                                                                (current) => ({
-                                                                    ...current,
-                                                                    role: role.value,
-                                                                    errors: {
-                                                                        ...current.errors,
-                                                                        role: '',
-                                                                    },
-                                                                }),
-                                                            )
-                                                        }
+                                                        className="mt-0.5"
                                                     />
                                                     <div className="space-y-1">
                                                         <p className="text-sm font-medium">
@@ -2285,10 +2317,10 @@ export default function SuperadminStaffPage() {
                                                             {role.description}
                                                         </p>
                                                     </div>
-                                                </label>
+                                                </Label>
                                             );
                                         })}
-                                    </div>
+                                    </RadioGroup>
                                     <InputError
                                         message={promoteDialog.errors.role}
                                     />
@@ -2298,9 +2330,9 @@ export default function SuperadminStaffPage() {
                                     <Label htmlFor="promote-reason">
                                         Notes
                                     </Label>
-                                    <textarea
+                                    <Textarea
                                         id="promote-reason"
-                                        className={textareaClassName}
+                                        className="min-h-24"
                                         value={promoteDialog.reason}
                                         onChange={(event) =>
                                             setPromoteDialog((current) => ({

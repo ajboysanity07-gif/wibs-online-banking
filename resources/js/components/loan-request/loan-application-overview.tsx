@@ -152,10 +152,10 @@ export function LoanApplicationOverview({
                                     index > 0 && 'border-t border-border',
                                 )}
                             >
-                                <button
+                                <Button variant="ghost"
                                     type="button"
                                     onClick={() => onOpenSection(section)}
-                                    className="flex min-h-16 w-full items-center gap-3.5 px-5 py-4 text-left transition-colors duration-150 hover:bg-muted focus-visible:bg-muted focus-visible:outline-none motion-reduce:transition-none"
+                                    className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal hover:bg-transparent hover:text-current flex min-h-16 w-full items-center gap-3.5 px-5 has-[>svg]:px-5 py-4 text-left transition-colors duration-150 hover:bg-muted focus-visible:bg-muted focus-visible:outline-none motion-reduce:transition-none"
                                 >
                                     <span
                                         aria-hidden="true"
@@ -185,16 +185,16 @@ export function LoanApplicationOverview({
                                         aria-hidden="true"
                                         className="size-[18px] shrink-0 text-muted-foreground"
                                     />
-                                </button>
+                                </Button>
                             </li>
                         );
                     })}
                     <li className="border-t border-border bg-muted">
-                        <button
+                        <Button variant="ghost"
                             type="button"
                             disabled={!ready}
                             onClick={onReview}
-                            className="flex min-h-16 w-full items-center gap-3.5 px-5 py-4 text-left disabled:cursor-default"
+                            className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal hover:bg-transparent hover:text-current flex min-h-16 w-full items-center gap-3.5 px-5 has-[>svg]:px-5 py-4 text-left disabled:cursor-default"
                         >
                             <span
                                 aria-hidden="true"
@@ -233,7 +233,7 @@ export function LoanApplicationOverview({
                             >
                                 {ready ? 'Ready' : 'Cannot start yet'}
                             </Badge>
-                        </button>
+                        </Button>
                     </li>
                 </ol>
             </nav>

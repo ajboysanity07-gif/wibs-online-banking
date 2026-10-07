@@ -1,4 +1,7 @@
-import { useRequestQueue, type RequestQueueParams } from '@/hooks/loan-request/use-request-queue';
+import {
+    useRequestQueue,
+    type RequestQueueParams,
+} from '@/hooks/loan-request/use-request-queue';
 
 export type RequestsParams = Omit<RequestQueueParams, 'workspace'>;
 

@@ -64,6 +64,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { useSavedPaymentAccounts } from '@/hooks/use-saved-payment-accounts';
 import {
     calculateAge,
@@ -1514,7 +1515,7 @@ export function LoanRequestDataSectionStep({
                                     )}
                                 </>
                             ) : isNotesField ? (
-                                <textarea
+                                <Textarea
                                     id={`${sectionKey}_${fieldKey}`}
                                     aria-label={field.label}
                                     className={textareaClassName}
@@ -1852,7 +1853,7 @@ export function LoanRequestDependentsStep({
                         {missingCycleStatusNames.join(', ')}{' '}
                         {missingCycleStatusNames.length === 1 ? 'is' : 'are'}{' '}
                         missing a group life coverage status (New/Old).{' '}
-                        <button
+                        <Button variant="ghost"
                             type="button"
                             onClick={() =>
                                 setUnlockedKeys(
@@ -1865,10 +1866,10 @@ export function LoanRequestDependentsStep({
                                         ]),
                                 )
                             }
-                            className="font-medium underline underline-offset-2"
+                            className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal hover:bg-transparent hover:text-current font-medium underline underline-offset-2"
                         >
                             Edit here
-                        </button>{' '}
+                        </Button>{' '}
                         to complete it before submitting.
                     </AlertDescription>
                 </Alert>

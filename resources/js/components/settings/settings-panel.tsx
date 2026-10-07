@@ -1,6 +1,7 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 export function SettingsPanel({
@@ -75,28 +76,10 @@ export function RowEditButton({
 export function SettingsSwitch({
     checked,
     label,
-    className,
     ...props
-}: { checked: boolean; label: string } & ComponentPropsWithoutRef<'button'>) {
-    return (
-        <button
-            type="button"
-            role="switch"
-            aria-checked={checked}
-            aria-label={label}
-            className={cn(
-                'relative inline-flex h-[26px] w-[46px] shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50',
-                checked ? 'bg-primary' : 'bg-input',
-                className,
-            )}
-            {...props}
-        >
-            <span
-                className={cn(
-                    'block size-5 rounded-full bg-card transition-transform',
-                    checked ? 'translate-x-[22px]' : 'translate-x-0',
-                )}
-            />
-        </button>
-    );
+}: { checked: boolean; label: string } & Omit<
+    ComponentPropsWithoutRef<typeof Switch>,
+    'checked'
+>) {
+    return <Switch checked={checked} aria-label={label} {...props} />;
 }

@@ -278,7 +278,8 @@ svg { display: block; }
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
     padding: 16px 18px; border-bottom: 1px solid var(--border);
 }
-.card__title { font-size: 16px; font-weight: 700; }
+.card__title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.card__title-ic { flex: none; display: inline-flex; color: var(--muted); }
 .card__desc { font-size: 13.5px; color: var(--muted); }
 .card__body { padding: 18px; }
 .card__foot {
@@ -357,9 +358,84 @@ tbody tr:hover { background: var(--tile); }
 .state-box strong { color: var(--ink); font-size: 16px; }
 .state-box[hidden] { display: none; }
 
+/* ============ List tools (search + filter) ============ */
+.table-tools { margin-left: auto; display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.table-search { min-width: 220px; }
+.table-search__field {
+    display: flex; align-items: center; gap: 8px; padding: 0 10px; min-height: 38px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--card);
+}
+.table-search__field:focus-within { border-color: var(--primary); }
+.table-search__icon { flex: none; color: var(--muted); }
+.table-search__input {
+    flex: 1 1 auto; min-width: 0; border: 0; background: transparent; color: var(--ink);
+    font: inherit; font-size: 14px; padding: 8px 0;
+}
+.table-search__input:focus { outline: none; }
+.table-search__input::placeholder { color: var(--muted); }
+.table-search__input::-webkit-search-cancel-button { display: none; }
+.table-search__clear {
+    flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border: 0; border-radius: 999px; cursor: pointer;
+    background: transparent; color: var(--muted);
+}
+.table-search__clear:hover { background: var(--tile); color: var(--ink); }
+.table-search__clear[hidden] { display: none; }
+
+/* ============ Filter menus ============ */
+.filter-menu { position: relative; display: grid; gap: 8px; justify-items: end; }
+.filter-menu__trigger { gap: 6px; }
+.filter-menu__badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px; padding: 0 6px; border-radius: 999px;
+    background: var(--primary); color: var(--primary-fg);
+    font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.filter-menu__badge[hidden] { display: none; }
+
+/* The popover floats over the page instead of pushing card content down. */
+.filter-pop {
+    position: fixed; z-index: 70; width: 320px; max-width: calc(100vw - 24px);
+    padding: 14px;
+    border: 1px solid var(--border); border-radius: 12px; background: var(--card);
+    box-shadow: 0 12px 32px rgba(20, 23, 15, 0.16), 0 2px 6px rgba(20, 23, 15, 0.08);
+}
+.filter-pop[hidden] { display: none; }
+.filter-pop__grid { display: grid; gap: 12px; }
+.filter-pop__row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fsel { display: grid; gap: 6px; min-width: 0; }
+.fsel__label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.fsel__control { position: relative; }
+.fsel__control::after {
+    content: ""; position: absolute; right: 11px; top: 50%; width: 8px; height: 8px;
+    margin-top: -6px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(45deg); pointer-events: none;
+}
+.fsel__select {
+    appearance: none; -webkit-appearance: none;
+    width: 100%; min-height: 38px; padding: 8px 32px 8px 11px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--ink);
+    font: inherit; font-size: 14px; cursor: pointer;
+}
+.fsel__select:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+.filter-pop__foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding-top: 2px;
+}
+.filter-pop__summary { margin: 0; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+@media (max-width: 767px) {
+    .table-tools { margin-left: 0; width: 100%; }
+    .table-search { flex: 1 1 100%; width: 100%; }
+    .filter-menu { width: 100%; justify-items: stretch; }
+    .filter-menu__trigger { width: 100%; justify-content: center; }
+    .filter-pop { width: auto; left: 12px !important; right: 12px; }
+    .filter-pop__row { grid-template-columns: 1fr; }
+}
+
 /* ============ Pagination ============ */
 .pager { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.pager__info { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pager__info { margin: 0; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pager-foot[hidden] { display: none; }
 .page-btn {
     min-width: 40px; min-height: 40px; padding: 6px 10px; border-radius: 8px;
     border: 1px solid var(--border); background: var(--card); color: var(--ink);
@@ -465,6 +541,58 @@ tbody tr:hover { background: var(--tile); }
 .doc-row__name { display: block; font-size: 14.5px; font-weight: 600; overflow-wrap: anywhere; }
 .doc-row__meta { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
 .doc-row .btn { flex: none; }
+
+/* ============ Inline action button ============ */
+.link-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    min-height: 40px; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid transparent; background: transparent; color: var(--primary);
+    font-size: 13.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    text-decoration: none;
+    transition: background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out;
+}
+.link-btn:hover { background: var(--tint); border-color: var(--tint-border); color: var(--tint-fg); }
+.link-btn svg { flex: none; }
+.td-act { text-align: right; }
+.row-actions { display: inline-flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+
+/* ============ Detail modal ============ */
+.modal { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 20px; }
+.modal[hidden] { display: none; }
+.modal__scrim { position: absolute; inset: 0; border: 0; width: 100%; cursor: pointer; background: rgba(10, 12, 8, 0.55); }
+.modal__panel {
+    position: relative; z-index: 1; width: 100%; max-width: 560px;
+    max-height: calc(100vh - 40px); display: flex; flex-direction: column;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 18px 50px rgba(20, 23, 15, 0.35); overflow: hidden;
+    animation: modalIn 200ms ease-out;
+}
+@keyframes modalIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.modal__head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 18px 14px; border-bottom: 1px solid var(--border); }
+.modal__title { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.modal__sub { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+.modal__sub[hidden] { display: none; }
+.modal__close { flex: none; margin-left: auto; }
+.modal__body { padding: 18px; overflow-y: auto; }
+.modal__foot {
+    padding: 14px 18px; border-top: 1px solid var(--border);
+    display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;
+}
+.modal__foot[hidden] { display: none; }
+
+/* payment details hero */
+.pay-hero { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 6px 0 18px; }
+.pay-hero__label { font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.pay-hero__amt { font-size: clamp(28px, 6vw, 36px); font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pay-hero__meta { font-size: 13.5px; color: var(--muted); }
+
+/* key–value detail list */
+.dl { margin: 0; }
+.dl__row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 0; border-top: 1px solid var(--border); }
+.dl__row:first-child { border-top: 0; }
+.dl__k { font-size: 13.5px; color: var(--muted); }
+.dl__v { font-size: 14.5px; font-variant-numeric: tabular-nums; text-align: right; }
+.dl__v strong { font-weight: 700; }
 
 /* ============ Responsive ============ */
 @media (max-width: 1023px) {
@@ -651,28 +779,93 @@ tbody tr:hover { background: var(--tile); }
             <section class="card" aria-labelledby="payHistHeading">
                 <div class="card__head">
                     <div>
-                        <h2 class="card__title" id="payHistHeading">Payment history</h2>
-                        <p class="card__desc">Recent payments across all loans.</p>
+                        <h2 class="card__title" id="payHistHeading"><span class="card__title-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 15h8"/></svg></span>Payment history</h2>
+                        <p class="card__desc">Recent payments across all loans. Select a payment to open that loan's payment history.</p>
+                    </div>
+                    <div class="table-tools">
+                        <div class="table-search">
+                            <div class="table-search__field">
+                                <svg class="table-search__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                                <input class="table-search__input" type="search" id="search-payments" autocomplete="off" placeholder="Search payments" aria-label="Search payments by loan no or date" />
+                                <button type="button" class="table-search__clear" id="searchClear-payments" hidden aria-label="Clear payment search">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="filter-menu" data-filter="payments">
+                            <button type="button" class="btn btn--sm filter-menu__trigger" aria-expanded="false" aria-haspopup="dialog">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+                                Filter<span class="filter-menu__badge" data-filter-badge hidden></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="pay-list" id="payList"></div>
+                <div class="card__foot pager-foot" id="payPagerFoot">
+                    <p class="pager__info" id="payPagerInfo" role="status" aria-live="polite"></p>
+                    <div class="pager" id="payPager"></div>
+                </div>
             </section>
 
-            <section class="card" aria-labelledby="docsHeading">
+            <section class="card" aria-labelledby="closedHeading">
                 <div class="card__head">
                     <div>
-                        <h2 class="card__title" id="docsHeading">Statements &amp; documents</h2>
-                        <p class="card__desc">Statements, receipts and certificates for your records.</p>
+                        <h2 class="card__title" id="closedHeading">Closed loans</h2>
+                        <p class="card__desc">Loans you have fully paid. Statements, schedules and certificates live on each loan's own page.</p>
+                    </div>
+                    <div class="table-tools">
+                        <div class="table-search">
+                            <div class="table-search__field">
+                                <svg class="table-search__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                                <input class="table-search__input" type="search" id="search-closed" autocomplete="off" placeholder="Search closed loans" aria-label="Search closed loans by loan no or type" />
+                                <button type="button" class="table-search__clear" id="searchClear-closed" hidden aria-label="Clear closed loan search">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="filter-menu" data-filter="closed">
+                            <button type="button" class="btn btn--sm filter-menu__trigger" aria-expanded="false" aria-haspopup="dialog">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+                                Filter<span class="filter-menu__badge" data-filter-badge hidden></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="doc-list" id="docList"></div>
+                <div class="doc-list" id="closedList"></div>
+                <div class="card__foot pager-foot" id="closedPagerFoot" hidden>
+                    <p class="pager__info" id="closedPagerInfo" role="status" aria-live="polite"></p>
+                    <div class="pager" id="closedPager"></div>
+                </div>
+                <div class="state-box" id="closedEmpty" hidden>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg>
+                    <strong id="closedEmptyTitle">No closed loans.</strong>
+                    <span id="closedEmptyText">Fully paid loans stay listed here with their certificates.</span>
+                    <button type="button" class="btn btn--sm" id="closedEmptyClear" hidden>Clear filter</button>
+                </div>
             </section>
 
             <section class="card table-section" aria-labelledby="allLoansHeading">
                 <div class="card__head">
                     <div>
-                        <h2 class="card__title" id="allLoansHeading">All loans</h2>
-                        <p class="card__desc">Full loan list with pagination.</p>
+                        <h2 class="card__title" id="allLoansHeading"><span class="card__title-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M3 12h18M3 19h18M8 3v18"/></svg></span>All loans</h2>
+                        <p class="card__desc">Select a loan's details to open its payment records.</p>
+                    </div>
+                    <div class="table-tools">
+                        <div class="table-search">
+                            <div class="table-search__field">
+                                <svg class="table-search__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                                <input class="table-search__input" type="search" id="search-loans" autocomplete="off" placeholder="Search loans" aria-label="Search loans by loan no or type" />
+                                <button type="button" class="table-search__clear" id="searchClear-loans" hidden aria-label="Clear loan search">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="filter-menu" data-filter="loans">
+                            <button type="button" class="btn btn--sm filter-menu__trigger" aria-expanded="false" aria-haspopup="dialog">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+                                Filter<span class="filter-menu__badge" data-filter-badge hidden></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="table-wrap">
@@ -684,13 +877,15 @@ tbody tr:hover { background: var(--tile); }
                                 <th scope="col" class="th-num">Principal</th>
                                 <th scope="col" class="th-num">Balance</th>
                                 <th scope="col">Last payment</th>
+                                <th scope="col"><span class="sr-only">Actions</span></th>
                             </tr>
                         </thead>
                         <tbody id="loanTbody"></tbody>
                     </table>
                     <div class="state-box" id="tableEmpty" hidden>
-                        <strong>No loans found.</strong>
-                        <span>Your loan records will be listed here.</span>
+                        <strong id="tableEmptyTitle">No loans found.</strong>
+                        <span id="tableEmptyText">Your loan records will be listed here.</span>
+                        <button type="button" class="btn btn--sm" id="tableEmptyClear" hidden>Clear filter</button>
                     </div>
                     <div class="state-box" id="tableError" hidden>
                         <strong>Unable to load loans</strong>
@@ -698,7 +893,7 @@ tbody tr:hover { background: var(--tile); }
                     </div>
                 </div>
                 <div class="card__foot">
-                    <span class="pager__info" id="pagerInfo">Showing 0 of 0 loans</span>
+                    <span class="pager__info" id="pagerInfo" role="status" aria-live="polite">Showing 0 of 0 loans</span>
                     <div class="pager" id="pager" role="navigation" aria-label="Loans pagination"></div>
                 </div>
             </section>
@@ -707,6 +902,12 @@ tbody tr:hover { background: var(--tile); }
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- One shared filter popover for all three lists. It lives outside the cards so
+     nothing clips it: the cards use overflow:hidden for their rounded corners. -->
+<div class="filter-pop" id="filterPop" role="dialog" aria-label="Filter and sort" hidden>
+    <div class="filter-pop__grid" id="filterPopBody"></div>
+</div>
 
 <script>
 (function () {
@@ -737,14 +938,11 @@ tbody tr:hover { background: var(--tile); }
         { date: '2026-07-15', lnnumber: 'LN-00045', amount: 3150,  principal: 2350,  interest: 800 },
         { date: '2026-05-20', lnnumber: 'LN-00019', amount: 5000,  principal: 4750,  interest: 250 }
     ];
-    var documents = [
-        { name: 'Statement of Account \u2014 September 2026', meta: 'PDF \u00B7 148 KB' },
-        { name: 'Statement of Account \u2014 August 2026', meta: 'PDF \u00B7 146 KB' },
-        { name: 'Payment Receipt \u2014 Sep 15, 2026 \u00B7 LN-00045', meta: 'PDF \u00B7 62 KB' },
-        { name: 'Certificate of Full Payment \u2014 LN-00031', meta: 'PDF \u00B7 84 KB' }
-    ];
     var perPage = 5;
     var page = 1;
+    /* Payment history and closed loans paginate independently of the table. */
+    var listPage = { payments: 1, closed: 1 };
+    var listPerPage = { payments: 5, closed: 5 };
     var state = 'ready'; // ready | loading | empty | error
 
     /* ---------- helpers ---------- */
@@ -916,46 +1114,310 @@ tbody tr:hover { background: var(--tile); }
         }).join('');
     }
 
+    /* ---------- search, filter and sort ---------- */
+    /* Which list's filter popover is currently open, if any. */
+    var popKey = null;
+    /* Each list keeps its own state: which dimension to filter on, the chosen
+       value, the sort field and direction, and the search text. */
+    var listState = {
+        loans: { dim: 'status', val: 'all', sort: 'date', dir: 'desc', q: '' },
+        closed: { dim: 'type', val: 'all', sort: 'date', dir: 'desc', q: '' },
+        payments: { dim: 'loan', val: 'all', sort: 'date', dir: 'desc', q: '' }
+    };
+    function monthName(key) {
+        return new Date(key + '-01T00:00:00').toLocaleDateString('en-PH', { year: 'numeric', month: 'long' });
+    }
+    function uniqueValues(list, read) {
+        var out = [];
+        list.forEach(function (item) {
+            var v = read(item);
+            if (v && out.indexOf(v) === -1) out.push(v);
+        });
+        return out;
+    }
+    function isClosed(l) { return !isActive(l); }
+    /* The dimension decides which values make sense, so the value list always
+       matches the field the member picked. */
+    function filterDims(key) {
+        if (key === 'loans') return [{ value: 'status', label: 'Status' }, { value: 'type', label: 'Loan type' }];
+        if (key === 'closed') return [{ value: 'type', label: 'Loan type' }];
+        return [{ value: 'loan', label: 'Loan' }, { value: 'month', label: 'Month' }];
+    }
+    function filterValues(key) {
+        var dim = listState[key].dim;
+        var all = { value: 'all', label: 'All' };
+        var types = function (src) {
+            return uniqueValues(src, function (l) { return l.lntype || ''; }).sort().map(function (t) {
+                return { value: t, label: t };
+            });
+        };
+        if (dim === 'status') {
+            return [all, { value: 'active', label: 'Active' }, { value: 'closed', label: 'Closed' }];
+        }
+        if (dim === 'type') {
+            var src = key === 'closed' ? loans.filter(isClosed) : loans;
+            return [all].concat(types(src));
+        }
+        if (dim === 'loan') {
+            return [all].concat(uniqueValues(payments, function (p) { return p.lnnumber || ''; }).sort().map(function (n) {
+                return { value: n, label: n };
+            }));
+        }
+        return [all].concat(uniqueValues(payments, function (p) { return p.date.slice(0, 7); }).sort().reverse().map(function (m) {
+            return { value: m, label: monthName(m) };
+        }));
+    }
+    function sortOptions(key) {
+        if (key === 'payments') {
+            return [
+                { value: 'date', label: 'Date' },
+                { value: 'amount', label: 'Amount' },
+                { value: 'loan', label: 'Loan no' }
+            ];
+        }
+        if (key === 'closed') {
+            return [
+                { value: 'date', label: 'Date closed' },
+                { value: 'loan', label: 'Loan no' },
+                { value: 'type', label: 'Loan type' }
+            ];
+        }
+        return [
+            { value: 'date', label: 'Last payment' },
+            { value: 'loan', label: 'Loan no' },
+            { value: 'type', label: 'Loan type' },
+            { value: 'principal', label: 'Principal' },
+            { value: 'balance', label: 'Balance' }
+        ];
+    }
+    function isTextSort(key) {
+        return listState[key].sort === 'loan' || listState[key].sort === 'type';
+    }
+    function sortValue(item, key) {
+        if (key === 'loan') return item.lnnumber || '';
+        if (key === 'type') return item.lntype || '';
+        if (key === 'date') return item.lastmove || (item.date || '');
+        if (key === 'amount') return Number(item.amount) || 0;
+        if (key === 'principal') return Number(item.principal) || 0;
+        if (key === 'balance') return Number(item.balance) || 0;
+        return 0;
+    }
+    function matchFilter(list, key) {
+        var st = listState[key];
+        if (st.val === 'all') return list;
+        if (st.dim === 'status') {
+            if (st.val === 'active') return list.filter(isActive);
+            if (st.val === 'closed') return list.filter(isClosed);
+            return list;
+        }
+        if (st.dim === 'type') return list.filter(function (l) { return (l.lntype || '') === st.val; });
+        if (st.dim === 'loan') return list.filter(function (p) { return p.lnnumber === st.val; });
+        return list.filter(function (p) { return p.date.slice(0, 7) === st.val; });
+    }
+    function matchSearch(list, key, typeOfLoan) {
+        var q = listState[key].q.trim().toLowerCase();
+        if (!q) return list;
+        return list.filter(function (item) {
+            var type = key === 'payments' ? ((typeOfLoan(item.lnnumber) || {}).lntype || '') : (item.lntype || '');
+            return ((item.lnnumber || '') + ' ' + type + ' ' + (item.lastmove || '') + ' ' + (item.date || '') + ' ' +
+                (item.amount != null ? item.amount : '') + ' ' + (item.balance != null ? item.balance : '') + ' ' +
+                (item.principal != null ? item.principal : '')).toLowerCase().indexOf(q) > -1;
+        });
+    }
+    function applySort(list, key) {
+        var st = listState[key];
+        var mul = st.dir === 'asc' ? 1 : -1;
+        return list.slice().sort(function (a, b) {
+            var x = sortValue(a, st.sort), y = sortValue(b, st.sort);
+            var out;
+            if (typeof x === 'number' || typeof y === 'number') out = x - y;
+            else out = String(x).localeCompare(String(y));
+            if (out === 0) out = String(a.lnnumber || '').localeCompare(String(b.lnnumber || ''));
+            return out * mul;
+        });
+    }
+    /* Filter, then search, then sort: one shared pipeline for every list. */
+    function visibleList(list, key, typeOfLoan) {
+        return applySort(matchSearch(matchFilter(list, key), key, typeOfLoan), key);
+    }
+    function isNarrowed(key) {
+        var st = listState[key];
+        return st.val !== 'all' || st.q.trim() !== '';
+    }
+    function filterSummary(key) {
+        var parts = [];
+        var st = listState[key];
+        if (st.val !== 'all') {
+            var dim = filterDims(key).filter(function (d) { return d.value === st.dim; })[0];
+            var val = filterValues(key).filter(function (o) { return o.value === st.val; })[0];
+            if (dim && val) parts.push(dim.label + ': ' + val.label);
+        }
+        if (st.q.trim()) parts.push('search "' + st.q.trim() + '"');
+        return parts.join(' \u00B7 ');
+    }
+    function closeFilterPop() {
+        var pop = $('filterPop');
+        pop.hidden = true;
+        popKey = null;
+        Array.prototype.slice.call(document.querySelectorAll('.filter-menu__trigger')).forEach(function (t) { t.setAttribute('aria-expanded', 'false'); });
+    }
+    /* Anchored to its trigger, aligned to the trigger's right edge and flipped
+       above the button when there is not enough room below. */
+    function placeFilterPop() {
+        if (!popKey) return;
+        var pop = $('filterPop');
+        var trigger = document.querySelector('[data-filter="' + popKey + '"] .filter-menu__trigger');
+        if (!trigger) { closeFilterPop(); return; }
+        var r = trigger.getBoundingClientRect();
+        var w = pop.offsetWidth;
+        var h = pop.offsetHeight;
+        var gap = 8;
+        var left = Math.min(Math.max(12, r.right - w), window.innerWidth - w - 12);
+        var below = r.bottom + gap;
+        var top = (below + h + 12 <= window.innerHeight || below + 40 >= r.top)
+            ? below
+            : Math.max(12, r.top - gap - h);
+        pop.style.left = left + 'px';
+        pop.style.top = top + 'px';
+    }
+    function renderFilterPanel(key) {
+        var st = listState[key];
+        $('filterPopBody').innerHTML =
+            '<div class="filter-pop__row">' +
+                selectHtml('fselDim-' + key, 'Filter by', filterDims(key), st.dim, 'dim') +
+                selectHtml('fselVal-' + key, 'Is', filterValues(key), st.val, 'val') +
+            '</div>' +
+            '<div class="filter-pop__row">' +
+                selectHtml('fselSort-' + key, 'Sort by', sortOptions(key), st.sort, 'sort') +
+                selectHtml('fselDir-' + key, 'Order', dirOptions(key), st.dir, 'dir') +
+            '</div>' +
+            '<div class="filter-pop__foot">' +
+                '<p class="filter-pop__summary">' + (isNarrowed(key) ? esc(filterSummary(key)) : 'No filter applied') + '</p>' +
+                '<button type="button" class="btn btn--sm" data-filter-clear="' + key + '"' + (isNarrowed(key) ? '' : ' disabled') + '>Clear</button>' +
+            '</div>';
+    }
+    function openFilterPop(key) {
+        var pop = $('filterPop');
+        var trigger = document.querySelector('[data-filter="' + key + '"] .filter-menu__trigger');
+        if (!trigger) return;
+        popKey = key;
+        Array.prototype.slice.call(document.querySelectorAll('.filter-menu__trigger')).forEach(function (t) { t.setAttribute('aria-expanded', 'false'); });
+        trigger.setAttribute('aria-expanded', 'true');
+        renderFilterPanel(key);
+        pop.hidden = false;
+        placeFilterPop();
+    }
+    function syncFilterBadges() {
+        ['loans', 'closed', 'payments'].forEach(function (key) {
+            var wrap = document.querySelector('[data-filter="' + key + '"]');
+            if (!wrap) return;
+            var st = listState[key];
+            var badge = wrap.querySelector('[data-filter-badge]');
+            badge.textContent = st.val !== 'all' ? filterValues(key).filter(function (o) { return o.value === st.val; })[0].label : '';
+            badge.hidden = st.val === 'all';
+        });
+    }
+    function optionsHtml(options, selected) {
+        return options.map(function (o) {
+            return '<option value="' + esc(o.value) + '"' + (o.value === selected ? ' selected' : '') + '>' + esc(o.label) + '</option>';
+        }).join('');
+    }
+    function selectHtml(id, label, options, selected, role) {
+        return '<div class="fsel">' +
+            '<label class="fsel__label" for="' + id + '">' + label + '</label>' +
+            '<div class="fsel__control"><select class="fsel__select" id="' + id + '" data-role="' + role + '">' +
+            optionsHtml(options, selected) +
+            '</select></div></div>';
+    }
+    function dirOptions(key) {
+        var text = isTextSort(key);
+        return [
+            { value: 'desc', label: text ? 'Z \u2013 A' : 'Highest first' },
+            { value: 'asc', label: text ? 'A \u2013 Z' : 'Lowest first' }
+        ];
+    }
+    function syncSearchInputs() {
+        ['loans', 'closed', 'payments'].forEach(function (key) {
+            var input = $('search-' + key);
+            var clear = $('searchClear-' + key);
+            if (!input) return;
+            if (input.value !== listState[key].q) input.value = listState[key].q;
+            if (clear) clear.hidden = listState[key].q === '';
+        });
+    }
+
     /* ---------- table ---------- */
+    var chevIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+    function visibleLoans() { return visibleList(loans, 'loans'); }
     function renderTable() {
+        var rows = visibleLoans();
+        var total = rows.length;
+        var lastPage = Math.max(1, Math.ceil(total / perPage));
+        if (page > lastPage) page = lastPage;
+        if (page < 1) page = 1;
         var start = (page - 1) * perPage;
-        var slice = loans.slice(start, start + perPage);
+        var slice = rows.slice(start, start + perPage);
         var tbody = $('loanTbody');
         tbody.innerHTML = slice.map(function (l) {
+            var no = l.lnnumber || '';
+            var base = 'loan-payments-improved.html?ln=' + encodeURIComponent(no);
+            var detailLink = '<a class="link-btn" href="' + base + '" aria-label="View details for loan ' + esc(no) + '">Details' + chevIcon + '</a>';
             return '<tr>' +
-                '<td><strong>' + esc(l.lnnumber || '--') + '</strong></td>' +
+                '<td><strong>' + esc(no || '--') + '</strong></td>' +
                 '<td>' + esc(l.lntype || '--') + '</td>' +
                 '<td class="td-num">' + php(l.principal) + '</td>' +
                 '<td class="td-num"><strong>' + php(l.balance) + '</strong></td>' +
                 '<td>' + fmtDate(l.lastmove) + '</td>' +
+                '<td class="td-act"><div class="row-actions">' + detailLink + '</div></td>' +
             '</tr>';
         }).join('');
 
+        var narrowed = isNarrowed('loans');
+        var summary = filterSummary('loans');
         $('tableEmpty').hidden = slice.length > 0;
         $('loanTable').style.display = slice.length ? '' : 'none';
+        $('tableEmptyTitle').textContent = narrowed ? 'No matching loans.' : 'No loans found.';
+        $('tableEmptyText').textContent = narrowed
+            ? 'Nothing matches ' + summary + '. Try widening the search or filter.'
+            : 'Your loan records will be listed here.';
+        $('tableEmptyClear').hidden = !narrowed;
 
-        var total = loans.length;
-        var from = total ? start + 1 : 0;
-        var to = Math.min(start + perPage, total);
-        $('pagerInfo').textContent = 'Showing ' + from + '\u2013' + to + ' of ' + total + ' loans';
+        page = renderPager($('pager'), $('pagerInfo'), total, page, perPage, 'loans', narrowed, summary);
+    }
 
-        var lastPage = Math.max(1, Math.ceil(total / perPage));
-        var pager = $('pager');
-        var html = '<button type="button" class="page-btn" data-page="' + (page - 1) + '"' + (page <= 1 ? ' disabled' : '') + ' aria-label="Previous page">Prev</button>';
+    /* ---------- shared pager ---------- */
+    /* One renderer for every list: number buttons plus Prev/Next, so the three
+       sections can never drift apart. */
+    function renderPager(pagerEl, infoEl, total, current, per, noun, narrowed, summary) {
+        var lastPage = Math.max(1, Math.ceil(total / per));
+        if (current > lastPage) current = lastPage;
+        if (current < 1) current = 1;
+        var from = total ? (current - 1) * per + 1 : 0;
+        var to = Math.min(current * per, total);
+        infoEl.textContent = narrowed
+            ? from + '\u2013' + to + ' of ' + total + ' ' + noun + ' \u00B7 ' + summary
+            : 'Showing ' + from + '\u2013' + to + ' of ' + total + ' ' + noun;
+        var html = '<button type="button" class="page-btn" data-page="' + (current - 1) + '"' + (current <= 1 ? ' disabled' : '') + ' aria-label="Previous page">Prev</button>';
         for (var i = 1; i <= lastPage; i++) {
-            html += '<button type="button" class="page-btn" data-page="' + i + '"' + (i === page ? ' aria-current="page"' : '') + ' aria-label="Page ' + i + '">' + i + '</button>';
+            html += '<button type="button" class="page-btn" data-page="' + i + '"' + (i === current ? ' aria-current="page"' : '') + ' aria-label="Page ' + i + '">' + i + '</button>';
         }
-        html += '<button type="button" class="page-btn" data-page="' + (page + 1) + '"' + (page >= lastPage ? ' disabled' : '') + ' aria-label="Next page">Next</button>';
-        pager.innerHTML = html;
+        html += '<button type="button" class="page-btn" data-page="' + (current + 1) + '"' + (current >= lastPage ? ' disabled' : '') + ' aria-label="Next page">Next</button>';
+        pagerEl.innerHTML = html;
+        return current;
     }
 
     /* ---------- payment history ---------- */
     function renderPayments() {
         var byNo = {};
         loans.forEach(function (l) { byNo[l.lnnumber] = l; });
-        var dlIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>';
-        $('payList').innerHTML = payments.map(function (p, i) {
+        var rows = visibleList(payments, 'payments', function (no) { return byNo[no]; });
+        var per = listPerPage.payments;
+        var lastPage = Math.max(1, Math.ceil(rows.length / per));
+        if (listPage.payments > lastPage) listPage.payments = lastPage;
+        var start = (listPage.payments - 1) * per;
+        $('payList').innerHTML = rows.slice(start, start + per).map(function (p) {
             var l = byNo[p.lnnumber] || {};
+            var loanHref = 'loan-payments-improved.html?ln=' + encodeURIComponent(p.lnnumber || '') + '#history';
             return '<div class="pay-row">' +
                 '<div class="pay-row__who">' +
                     '<span class="pay-row__date">' + fmtDate(p.date) + '</span>' +
@@ -967,26 +1429,57 @@ tbody tr:hover { background: var(--tile); }
                 '</div>' +
                 '<div class="pay-row__right">' +
                     '<span class="pay-row__amt">' + php(p.amount) + '</span>' +
-                    '<button type="button" class="icon-btn" data-act="receipt" data-pay="' + i + '" aria-label="Download receipt for the ' + esc(p.lnnumber) + ' payment on ' + fmtDate(p.date) + '">' + dlIcon + '</button>' +
+                    '<a class="link-btn" href="' + loanHref + '" aria-label="Open the payment history of loan ' + esc(p.lnnumber) + ' for the payment on ' + fmtDate(p.date) + '">Details' + chevIcon + '</a>' +
                 '</div>' +
             '</div>';
         }).join('');
+        $('payPagerFoot').hidden = false;
+        listPage.payments = renderPager(
+            $('payPager'), $('payPagerInfo'), rows.length, listPage.payments, per, 'payments',
+            isNarrowed('payments'), filterSummary('payments')
+        );
     }
 
-    /* ---------- documents ---------- */
-    function renderDocuments() {
-        var dlIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>';
-        var fileIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>';
-        $('docList').innerHTML = documents.map(function (d, i) {
+    /* ---------- closed loans ---------- */
+    var closedDocIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="m8.5 14-1.5 7 5-3 5 3-1.5-7"/></svg>';
+    function renderClosedLoans() {
+        var all = loans.filter(isClosed);
+        var closed = visibleList(all, 'closed');
+        var narrowed = isNarrowed('closed');
+        var summary = filterSummary('closed');
+        var per = listPerPage.closed;
+        var lastPage = Math.max(1, Math.ceil(closed.length / per));
+        if (listPage.closed > lastPage) listPage.closed = lastPage;
+        var start = (listPage.closed - 1) * per;
+        $('closedList').innerHTML = closed.slice(start, start + per).map(function (l) {
+            var no = l.lnnumber || '--';
+            var base = 'loan-payments-improved.html?ln=' + encodeURIComponent(no);
             return '<div class="doc-row">' +
-                '<span class="doc-row__icon" aria-hidden="true">' + fileIcon + '</span>' +
+                '<span class="doc-row__icon" aria-hidden="true">' + closedDocIcon + '</span>' +
                 '<div class="doc-row__text">' +
-                    '<span class="doc-row__name">' + esc(d.name) + '</span>' +
-                    '<span class="doc-row__meta">' + esc(d.meta) + '</span>' +
+                    '<span class="doc-row__name">' + esc(no) + '</span>' +
+                    '<span class="doc-row__meta">' + esc(l.lntype || 'Loan') + ' \u00B7 closed ' + fmtDate(l.lastmove) + ' \u00B7 certificate of full payment</span>' +
                 '</div>' +
-                '<button type="button" class="btn btn--sm" data-act="doc" data-doc="' + i + '">' + dlIcon + 'Download</button>' +
+                '<a class="btn btn--sm" href="' + base + '">Open</a>' +
             '</div>';
         }).join('');
+        $('closedEmpty').hidden = closed.length > 0;
+        $('closedEmptyTitle').textContent = narrowed
+            ? 'No matching closed loans.'
+            : 'No closed loans.';
+        $('closedEmptyText').textContent = narrowed
+            ? 'Nothing matches ' + summary + '. Try widening the search or filter.'
+            : 'Fully paid loans stay listed here with their certificates.';
+        $('closedEmptyClear').hidden = !narrowed;
+
+        /* The pager only earns its space once the list has rows to page. */
+        $('closedPagerFoot').hidden = closed.length === 0;
+        if (closed.length) {
+            listPage.closed = renderPager(
+                $('closedPager'), $('closedPagerInfo'), closed.length, listPage.closed, per, 'closed loans',
+                narrowed, summary
+            );
+        }
     }
 
     /* ---------- state rendering ---------- */
@@ -1000,8 +1493,8 @@ tbody tr:hover { background: var(--tile); }
         $('loanEmpty').hidden = !empty;
         $('loanError').hidden = !error;
 
-        $('loanTable').style.display = (!loading && !error && loans.length) ? '' : 'none';
-        $('tableEmpty').hidden = loading || error || loans.length > 0;
+        $('loanTable').style.display = (!loading && !error && visibleLoans().length) ? '' : 'none';
+        $('tableEmpty').hidden = loading || error || visibleLoans().length > 0;
         $('tableError').hidden = !error;
         $('pager').style.visibility = (loading || error) ? 'hidden' : 'visible';
         $('pagerInfo').textContent = loading ? 'Loading loans\u2026' : (error ? 'Loans unavailable' : $('pagerInfo').textContent);
@@ -1020,37 +1513,101 @@ tbody tr:hover { background: var(--tile); }
     }
 
     /* ---------- events ---------- */
+    function refresh(key) {
+        page = 1;
+        listPage.payments = 1;
+        listPage.closed = 1;
+        syncFilterBadges();
+        syncSearchInputs();
+        if (popKey) renderFilterPanel(popKey);
+        render();
+        renderPayments();
+        renderClosedLoans();
+    }
+    function clearList(key) {
+        var st = listState[key];
+        st.val = 'all';
+        st.q = '';
+        refresh(key);
+    }
+    $('tableEmptyClear').addEventListener('click', function () { clearList('loans'); });
+    $('closedEmptyClear').addEventListener('click', function () { clearList('closed'); });
+    ['loans', 'closed', 'payments'].forEach(function (key) {
+        var input = $('search-' + key);
+        input.addEventListener('input', function () {
+            listState[key].q = input.value;
+            refresh(key);
+        });
+        $('searchClear-' + key).addEventListener('click', function () {
+            listState[key].q = '';
+            input.value = '';
+            input.focus();
+            refresh(key);
+        });
+    });
+    document.addEventListener('change', function (e) {
+        var sel = e.target.closest('.fsel__select');
+        if (!sel || !popKey) return;
+        var key = popKey;
+        var st = listState[key];
+        var role = sel.getAttribute('data-role');
+        if (role === 'dim') {
+            st.dim = sel.value;
+            st.val = 'all';
+        } else if (role === 'val') {
+            st.val = sel.value;
+        } else if (role === 'sort') {
+            st.sort = sel.value;
+        } else {
+            st.dir = sel.value;
+        }
+        refresh(key);
+    });
     document.addEventListener('click', function (e) {
+        var clear = e.target.closest('[data-filter-clear]');
+        if (clear) {
+            clearList(clear.getAttribute('data-filter-clear'));
+            return;
+        }
+        var trigger = e.target.closest('.filter-menu__trigger');
+        if (trigger) {
+            var key = trigger.closest('.filter-menu').getAttribute('data-filter');
+            if (popKey === key) closeFilterPop();
+            else openFilterPop(key);
+            return;
+        }
+        /* Keep it open while the pointer is inside the popover itself. */
+        if (popKey && !e.target.closest('#filterPop')) closeFilterPop();
         var pageBtn = e.target.closest('.page-btn');
         if (pageBtn && !pageBtn.disabled) {
             var p = Number(pageBtn.getAttribute('data-page'));
-            if (p && p !== page) loadPage(p);
-            return;
-        }
-        var actBtn = e.target.closest('[data-act]');
-        if (actBtn && !actBtn.disabled) {
-            var act = actBtn.getAttribute('data-act');
-            if (act === 'receipt') {
-                var payIdx = Number(actBtn.getAttribute('data-pay'));
-                var pay = payments[payIdx];
-                if (pay) showToast('Preparing receipt for the ' + pay.lnnumber + ' payment on ' + fmtDate(pay.date) + '\u2026');
-            }
-            if (act === 'doc') {
-                var docIdx = Number(actBtn.getAttribute('data-doc'));
-                if (documents[docIdx]) showToast('Downloading ' + documents[docIdx].name + '\u2026');
+            if (!p) return;
+            if (pageBtn.closest('#payPager')) {
+                if (p !== listPage.payments) { listPage.payments = p; renderPayments(); }
+            } else if (pageBtn.closest('#closedPager')) {
+                if (p !== listPage.closed) { listPage.closed = p; renderClosedLoans(); }
+            } else if (p !== page) {
+                loadPage(p);
             }
         }
     });
     $('retryBtn').addEventListener('click', function () { loadPage(page); });
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && sidebar.classList.contains('is-open')) setDrawer(false);
+        if (e.key !== 'Escape') return;
+        closeFilterPop();
+        if (sidebar.classList.contains('is-open')) setDrawer(false);
     });
+    /* Follow the trigger while the page scrolls or the viewport resizes. */
+    window.addEventListener('scroll', placeFilterPop, true);
+    window.addEventListener('resize', placeFilterPop);
 
     /* ---------- init ---------- */
     renderStats();
+    syncFilterBadges();
+    syncSearchInputs();
     render();
     renderPayments();
-    renderDocuments();
+    renderClosedLoans();
 })();
 </script>
 </body>

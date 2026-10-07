@@ -117,6 +117,8 @@ class OrganizationSettingsService
             'business_address1' => null,
             'business_address2' => null,
             'business_address3' => null,
+            'business_address_barangay' => null,
+            'business_address_zip' => null,
             'company_logo_path' => null,
             'logo_preset' => self::DEFAULT_LOGO_PRESET,
             'logo_mark_path' => null,
@@ -125,9 +127,13 @@ class OrganizationSettingsService
             'favicon_path' => null,
             'brand_primary_color' => null,
             'brand_accent_color' => null,
+            'brand_palette' => null,
             'support_email' => null,
             'support_phone' => null,
             'support_contact_name' => null,
+            'business_tin' => null,
+            'registration_no' => null,
+            'payment_instructions' => null,
             'loan_sms_approved_template' => self::DEFAULT_LOAN_SMS_APPROVED_TEMPLATE,
             'loan_sms_declined_template' => self::DEFAULT_LOAN_SMS_DECLINED_TEMPLATE,
             'report_header_design_path' => null,
@@ -141,6 +147,15 @@ class OrganizationSettingsService
             'report_value_font_variant' => null,
             'report_value_font_weight' => null,
             'report_value_font_size' => null,
+            'short_name' => null,
+            'timezone' => 'Asia/Manila',
+            'statement_currency' => 'PHP',
+            'report_footer' => null,
+            'report_footer_enabled' => true,
+            'service_hours' => null,
+            'loan_sms_approved_enabled' => true,
+            'loan_sms_declined_enabled' => true,
+            'sms_send_window' => 'any',
         ];
     }
 
@@ -175,6 +190,8 @@ class OrganizationSettingsService
             'businessAddress1' => $businessAddress['address1'],
             'businessAddress2' => $businessAddress['address2'],
             'businessAddress3' => $businessAddress['address3'],
+            'businessAddressBarangay' => $businessAddress['barangay'],
+            'businessAddressZip' => $businessAddress['zip'],
             'portalLabel' => $portalLabel,
             'appTitle' => $this->resolveAppTitle($companyName, $portalLabel),
             'logoPreset' => $logoPreset,
@@ -196,12 +213,30 @@ class OrganizationSettingsService
             'brandAccentColor' => $this->normalizeValue(
                 $setting?->brand_accent_color,
             ),
+            'brandPalette' => $this->resolveBrandPalette($setting),
             'supportEmail' => $this->normalizeValue($setting?->support_email),
             'supportPhone' => $this->normalizeValue($setting?->support_phone),
             'supportContactName' => $this->normalizeValue(
                 $setting?->support_contact_name,
             ),
+            'businessTin' => $this->normalizeValue($setting?->business_tin),
+            'registrationNo' => $this->normalizeValue($setting?->registration_no),
+            'paymentInstructions' => $this->normalizeValue(
+                $setting?->payment_instructions,
+            ),
             'reportHeader' => $reportHeader,
+            'shortName' => $this->normalizeValue($setting?->short_name),
+            'timezone' => $setting?->timezone ?: 'Asia/Manila',
+            'statementCurrency' => $setting?->statement_currency ?: 'PHP',
+            'reportFooter' => $this->reportFooter($setting),
+            'reportFooterText' => $this->normalizeValue($setting?->report_footer),
+            'reportFooterEnabled' => $setting?->report_footer_enabled ?? true,
+            'serviceHours' => $this->normalizeValue($setting?->service_hours),
+            'smsSendWindow' => $setting?->sms_send_window ?: 'any',
+            'loanSmsEnabled' => [
+                'approved' => $setting?->loan_sms_approved_enabled ?? true,
+                'declined' => $setting?->loan_sms_declined_enabled ?? true,
+            ],
             'reportTypography' => $reportTypography,
             'general' => [
                 'companyName' => $companyName,
@@ -209,6 +244,13 @@ class OrganizationSettingsService
                 'businessAddress1' => $businessAddress['address1'],
                 'businessAddress2' => $businessAddress['address2'],
                 'businessAddress3' => $businessAddress['address3'],
+                'businessAddressBarangay' => $businessAddress['barangay'],
+                'businessAddressZip' => $businessAddress['zip'],
+                'businessTin' => $this->normalizeValue($setting?->business_tin),
+                'registrationNo' => $this->normalizeValue($setting?->registration_no),
+                'paymentInstructions' => $this->normalizeValue(
+                    $setting?->payment_instructions,
+                ),
                 'portalLabel' => $portalLabel,
                 'appTitle' => $this->resolveAppTitle($companyName, $portalLabel),
             ],
@@ -232,6 +274,7 @@ class OrganizationSettingsService
                 'brandAccentColor' => $this->normalizeValue(
                     $setting?->brand_accent_color,
                 ),
+                'brandPalette' => $this->resolveBrandPalette($setting),
             ],
             'contact' => [
                 'supportEmail' => $this->normalizeValue(
@@ -259,14 +302,26 @@ class OrganizationSettingsService
      *     address: string|null,
      *     address1: string|null,
      *     address2: string|null,
-     *     address3: string|null
+     *     address3: string|null,
+     *     barangay: string|null,
+     *     zip: string|null
      * }
      */
+    /** Footer line to print on generated documents, or null when off/empty. */
+    private function reportFooter(?OrganizationSetting $setting): ?string
+    {
+        return ($setting?->report_footer_enabled ?? true)
+            ? $this->normalizeValue($setting?->report_footer)
+            : null;
+    }
+
     private function resolveBusinessAddress(?OrganizationSetting $setting): array
     {
         $address1 = $this->normalizeValue($setting?->business_address1);
         $address2 = $this->normalizeValue($setting?->business_address2);
         $address3 = $this->normalizeValue($setting?->business_address3);
+        $barangay = $this->normalizeValue($setting?->business_address_barangay);
+        $zip = $this->normalizeValue($setting?->business_address_zip);
         $legacyAddress = $this->normalizeValue($setting?->business_address);
 
         if (
@@ -282,7 +337,7 @@ class OrganizationSettingsService
         }
 
         $address = $address1 !== null || $address2 !== null || $address3 !== null
-            ? LocationComposer::compose($address1, $address2, $address3)
+            ? LocationComposer::compose($address1, $address2, $address3, $barangay)
             : $legacyAddress;
 
         return [
@@ -290,6 +345,8 @@ class OrganizationSettingsService
             'address1' => $address1,
             'address2' => $address2,
             'address3' => $address3,
+            'barangay' => $barangay,
+            'zip' => $zip,
         ];
     }
 
@@ -626,6 +683,7 @@ class OrganizationSettingsService
                 'designPath' => null,
                 'designUrl' => null,
                 'designData' => null,
+                'footer' => $this->reportFooter($setting),
             ];
         }
 
@@ -633,6 +691,7 @@ class OrganizationSettingsService
             'designPath' => $storedPath,
             'designUrl' => Storage::disk('public')->url($storedPath),
             'designData' => $this->buildReportHeaderDesignDataUri($storedPath),
+            'footer' => $this->reportFooter($setting),
         ];
     }
 
@@ -944,6 +1003,28 @@ class OrganizationSettingsService
             'https://fonts.googleapis.com/css2?%s&display=swap',
             implode('&', $googleFontParams),
         );
+    }
+
+    /**
+     * Saved palette overrides keyed by OrganizationSetting::PALETTE_KEYS;
+     * keys without a valid hex are null so the built-in default applies.
+     *
+     * @return array<string, string|null>
+     */
+    private function resolveBrandPalette(?OrganizationSetting $setting): array
+    {
+        $saved = is_array($setting?->brand_palette) ? $setting->brand_palette : [];
+        $palette = [];
+
+        foreach (OrganizationSetting::PALETTE_KEYS as $key) {
+            $value = $saved[$key] ?? null;
+            $palette[$key] = is_string($value)
+                && preg_match('/^#[0-9a-fA-F]{6}$/', $value) === 1
+                ? strtolower($value)
+                : null;
+        }
+
+        return $palette;
     }
 
     private function normalizeValue(?string $value): ?string

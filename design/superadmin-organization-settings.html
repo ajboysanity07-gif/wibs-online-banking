@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Organization settings — WIBS Online Banking</title>
+<style data-od-inline-asset="wibs-admin.css">/* WIBS staff/admin mockup design system — shadcn/ui (new-york) restyle.
+   The token layer is verbatim from the WIBS app (components.json + resources/css/app.css);
+   legacy aliases map every page's inline styles back onto those shadcn tokens.
+   Structure stays in the page files. */
+
+/* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio.
+   Put this @layer first; product CSS outside the layer always wins. */
+@layer od-layout {
+  :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+
+  /* containers */
+  .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+  .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+  .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+  .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+  .od-fill    { flex: 1 1 0; min-width: 0; }
+  .od-fixed   { flex: none; }
+  .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+
+  /* stacked information: each piece is its own line — never sibling inline spans */
+  .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+  :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+  .od-tile { display: grid; grid-template-rows: auto 1fr; }
+  :where(.od-tile) > :where(*) { display: block; }
+
+  /* media keeps its intrinsic ratio by default; never a distorted or cropped
+     cover by accident. height:auto lets the ratio win over an <img height="…">
+     attribute. Cropping to a uniform box is an explicit opt-in: set --od-ratio
+     AND add .od-media-cover together (per the core rule, only where a crop is
+     deliberate — tile thumbs, decorative fills — never on full-frame content). */
+  .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+  .od-media-cover { object-fit: cover; }
+
+  /* data text only — authored copy is rewritten to its budget instead */
+  .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .od-clamp-2 { -webkit-line-clamp: 2; }
+  .od-clamp-3 { -webkit-line-clamp: 3; }
+  .od-lines-2 { min-height: calc(2 * 1.4em); }   /* block-level reservation for a shared baseline */
+  .od-nowrap  { white-space: nowrap; }           /* 数字+单位 · 价格+起 · 日期+星期 */
+  .od-keep    { word-break: keep-all; overflow-wrap: anywhere; } /* CJK labels break at spaces / <wbr> first */
+
+  /* screen skeleton (optional): bars take their own space, the middle scrolls — no padding guessed for chrome */
+  .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+  .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+
+  /* horizontal rail: the next item peeks at the edge; trailing room survives overflow */
+  .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+             padding-inline: var(--od-rail-pad, 16px); scroll-padding-inline: var(--od-rail-pad, 16px); }
+  .od-rail::-webkit-scrollbar { display: none; }
+  :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+  :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+
+  .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+  .od-touch  { min-width: 44px; min-height: 44px; }
+}
+/* /OD-LAYOUT-PRIMITIVES v1 */
+
+/* ---------- shadcn/ui tokens — light (verbatim: app resources/css/app.css) ---------- */
+:root {
+  color-scheme: light;
+  --background: #dfe7cb;
+  --foreground: #14170f;
+  --card: #ffffff;
+  --card-foreground: #14170f;
+  --popover: #ffffff;
+  --popover-foreground: #14170f;
+  --primary: #176433;
+  --primary-foreground: #ffffff;
+  --secondary: #d3e6a6;
+  --secondary-foreground: #0f4123;
+  --muted: #eef3de;
+  --muted-foreground: #4a4f3f;
+  --accent: #9abd53;
+  --accent-foreground: #14170f;
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: #ffffff;
+  --border: #b7c399;
+  --input: #7f8f5c;
+  --ring: #176433;
+  --sidebar: #176433;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #9abd53;
+  --sidebar-primary-foreground: #14170f;
+  --sidebar-accent: #9abd53;
+  --sidebar-accent-foreground: #14170f;
+  --sidebar-border: #0f4123;
+  --sidebar-ring: #9abd53;
+
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --card-shadow: 0 2px 4px rgba(20, 23, 15, 0.1), 0 10px 28px rgba(20, 23, 15, 0.16);
+
+  --font: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* legacy aliases → shadcn tokens (page inline styles keep resolving from one source) */
+  --bg: var(--background);
+  --ink: var(--foreground);
+  --tile: var(--muted);
+  --sidebar-ink: var(--sidebar-foreground);
+  --border-strong: var(--input);
+  --primary-ink: var(--primary-foreground);
+  --accent-ink: var(--accent-foreground);
+  --focus: var(--ring);
+  --shadow: var(--card-shadow);
+  --shadow-lg: 0 18px 48px rgba(20, 23, 15, 0.22);
+  --r-sm: var(--radius-md);
+  --r-md: var(--radius-lg);
+
+  /* status badges — semantic extension (shadcn ships 4 variants; the product needs these states) */
+  --ok-bg: #e3f0d8; --ok-ink: #1c5a2a; --ok-bd: #a9c58c;
+  --warn-bg: #fbeecb; --warn-ink: #7a4c00; --warn-bd: #dcb96a;
+  --info-bg: #dcecf7; --info-ink: #0f4c71; --info-bd: #93beda;
+  --act-bg: #e4e6f7; --act-ink: #343a8f; --act-bd: #a8adde;
+  --bad-bg: #fadfe4; --bad-ink: #8c1d30; --bad-bd: #e3a3af;
+  --hold-bg: #fbe6d5; --hold-ink: #8a3d00; --hold-bd: #e0ab7d;
+}
+
+/* ---------- shadcn/ui tokens — dark ---------- */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #1d2b20;
+  --foreground: #f4f8ea;
+  --card: #2a3b2e;
+  --card-foreground: #f4f8ea;
+  --popover: #2a3b2e;
+  --popover-foreground: #f4f8ea;
+  --primary: #9abd53;
+  --primary-foreground: #14170f;
+  --secondary: #3b5a2c;
+  --secondary-foreground: #e3f0c4;
+  --muted: #233427;
+  --muted-foreground: #c5d1b6;
+  --accent: #9abd53;
+  --accent-foreground: #14170f;
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: #ffffff;
+  --border: #4a6350;
+  --input: #7f9a80;
+  --ring: #9abd53;
+  --sidebar: #0f1d14;
+  --sidebar-foreground: #f4f8ea;
+  --sidebar-primary: #9abd53;
+  --sidebar-primary-foreground: #14170f;
+  --sidebar-accent: #9abd53;
+  --sidebar-accent-foreground: #14170f;
+  --sidebar-border: #2a3b2e;
+  --sidebar-ring: #9abd53;
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.22), 0 10px 28px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.45);
+
+  --ok-bg: #1e3324; --ok-ink: #a8d95c; --ok-bd: #38613f;
+  --warn-bg: #332913; --warn-ink: #ecc66a; --warn-bd: #5f4d20;
+  --info-bg: #14282f; --info-ink: #86c3e6; --info-bd: #2b4a58;
+  --act-bg: #1f2140; --act-ink: #aeb3f0; --act-bd: #3d427c;
+  --bad-bg: #38191f; --bad-ink: #f0a3b1; --bad-bd: #6b3341;
+  --hold-bg: #33220f; --hold-ink: #efb384; --hold-bd: #5f4123;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: var(--font); background: var(--background); color: var(--foreground); line-height: 1.6; font-size: 16px; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+img, svg { display: block; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--radius-sm); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---------- Shell ---------- */
+.app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+
+.side { background: var(--sidebar); color: var(--sidebar-foreground); padding: 20px 14px; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.side .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px; }
+.side .brand-mark { width: 36px; height: 36px; border-radius: 50%; background: var(--sidebar-primary); color: var(--sidebar-primary-foreground); display: grid; place-items: center; font-weight: 700; flex: none; }
+.side .brand-name { font-weight: 700; font-size: 15px; line-height: 1.2; }
+.side .brand-sub { font-size: 11px; opacity: 0.8; }
+.side nav { display: flex; flex-direction: column; gap: 4px; }
+.side .nav-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; padding: 6px 10px 2px; }
+.side a.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); font-size: 14px; font-weight: 500; min-height: 44px; }
+.side a.nav-item:hover { background: color-mix(in srgb, var(--sidebar-foreground) 12%, transparent); }
+.side a.nav-item[aria-current="page"] { background: var(--sidebar-accent); color: var(--sidebar-accent-foreground); font-weight: 600; }
+.side a.nav-item svg { flex: none; }
+.side .spacer { flex: 1; }
+.side .user-chip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--sidebar-foreground) 12%, transparent); font-size: 13px; }
+.side .user-chip .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--sidebar-primary); color: var(--sidebar-primary-foreground); display: grid; place-items: center; font-weight: 700; font-size: 12px; flex: none; }
+.side .user-chip .labels { min-width: 0; }
+
+.scrim { display: none; }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 72px minmax(0, 1fr); }
+  .side .labels, .side .portal-name, .side .nav-label { display: none; }
+  .side .brand { justify-content: center; padding: 4px 0; }
+  .side a.nav-item { justify-content: center; padding: 10px; }
+}
+@media (max-width: 640px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side { position: fixed; inset: 0 auto 0 0; width: 264px; z-index: 70; transform: translateX(-100%); transition: transform 200ms ease-out; }
+  .side .labels, .side .portal-name, .side .nav-label { display: block; }
+  .side .brand { justify-content: flex-start; padding: 4px 8px; }
+  .side a.nav-item { justify-content: flex-start; padding: 10px 12px; }
+  .app.nav-open .side { transform: none; }
+  .app.nav-open .scrim { display: block; position: fixed; inset: 0; z-index: 65; background: rgba(20, 23, 15, 0.5); animation: fade 160ms ease-out; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .side { transition: none; }
+  .app.nav-open .scrim { animation: none; }
+}
+
+/* ---------- Main + topbar ---------- */
+.main { padding: 24px clamp(16px, 4vw, 48px) 72px; max-width: 1160px; width: 100%; margin: 0 auto; min-width: 0; }
+.main.wide { max-width: 1320px; }
+.topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.topbar .crumb { font-size: 13px; color: var(--muted-foreground); font-weight: 500; }
+.topbar .spacer { flex: 1; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600; background: var(--card); white-space: nowrap; }
+.pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok-ink); flex: none; }
+.icon-btn { width: 40px; height: 40px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card); display: grid; place-items: center; flex: none; }
+.icon-btn:hover { background: var(--tile); }
+.menu-btn { display: none; }
+@media (max-width: 640px) { .menu-btn { display: grid; } }
+
+/* ---------- Hero ---------- */
+.hero { display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+.hero .kicker { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--primary); }
+.hero h1 { font-size: 26px; font-weight: 700; line-height: 1.25; margin-top: 4px; }
+.hero .desc { font-size: 14px; color: var(--muted-foreground); margin-top: 6px; max-width: 68ch; }
+.hero .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.hero .hero-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; padding-top: 6px; }
+@media (max-width: 640px) {
+  .hero h1 { font-size: 22px; }
+  .hero .hero-actions { margin-left: 0; width: 100%; }
+  .hero .hero-actions .btn { flex: 1 1 auto; justify-content: center; }
+}
+/* ---------- Buttons, badges, chips ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 18px; border-radius: var(--radius-md); font-weight: 600; font-size: 14px; border: 1px solid transparent; cursor: pointer; }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); }
+.btn-primary:hover { filter: brightness(0.94); }
+.btn-outline { border-color: var(--input); background: var(--card); color: var(--foreground); }
+.btn-outline:hover { background: var(--tile); }
+.btn-ghost { color: var(--primary); padding: 8px 10px; min-height: 40px; }
+.btn-ghost:hover { background: var(--tile); }
+.btn-danger { background: var(--bad-bg); color: var(--bad-ink); border-color: var(--bad-bd); }
+.btn-danger:hover { filter: brightness(0.97); }
+.btn-sm { min-height: 36px; padding: 6px 12px; font-size: 13px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.5; white-space: nowrap; border: 1px solid transparent; }
+.badge.neutral { background: var(--tile); border-color: var(--border); color: var(--ink); }
+.badge.ok { background: var(--ok-bg); color: var(--ok-ink); border-color: var(--ok-bd); }
+.badge.warn { background: var(--warn-bg); color: var(--warn-ink); border-color: var(--warn-bd); }
+.badge.info { background: var(--info-bg); color: var(--info-ink); border-color: var(--info-bd); }
+.badge.act { background: var(--act-bg); color: var(--act-ink); border-color: var(--act-bd); }
+.badge.bad { background: var(--bad-bg); color: var(--bad-ink); border-color: var(--bad-bd); }
+.badge.hold { background: var(--hold-bg); color: var(--hold-ink); border-color: var(--hold-bd); }
+.badge .bdot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+
+.chip-btn { min-height: 40px; padding: 8px 14px; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--card); font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.chip-btn:hover { background: var(--tile); }
+.chip-btn[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+
+/* ---------- Cards ---------- */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow); }
+.card-h { padding: 18px 20px 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.card-h h2 { font-size: 16px; font-weight: 700; }
+.card-h .sub { font-size: 13px; color: var(--muted-foreground); }
+.card-h .spacer { flex: 1; }
+.card-b { padding: 16px 20px 20px; }
+.card-b.tight { padding: 0; }
+.card-h:has(+ .card-b.tight) { padding-bottom: 16px; }
+.section-title { font-size: 17px; font-weight: 700; margin: 28px 0 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.section-title .spacer { flex: 1; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+
+.kpis { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.kpi { background: var(--card); border: 1px solid var(--border); border-top: 4px solid var(--primary); border-radius: var(--r-md); padding: 16px 18px; box-shadow: var(--shadow); }
+.kpi .k { font-size: 13px; color: var(--muted-foreground); font-weight: 500; }
+.kpi .v { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; margin-top: 4px; }
+.kpi .v.sm { font-size: 24px; }
+.kpi .d { font-size: 12px; color: var(--muted-foreground); margin-top: 4px; }
+
+.stat { display: grid; gap: 2px; }
+.stat .sv { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.stat .sk { font-size: 13px; color: var(--muted-foreground); }
+
+/* ---------- Toolbar / forms ---------- */
+.toolbar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--card); }
+.card > .toolbar:first-child { border-top-left-radius: calc(var(--r-md) - 1px); border-top-right-radius: calc(var(--r-md) - 1px); }
+.toolbar .grow { flex: 1 1 260px; min-width: 0; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field > label, .lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground); }
+.input, .select, textarea.input { min-height: 40px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--card); color: var(--ink); font: inherit; font-size: 14px; width: 100%; }
+.input::placeholder { color: var(--muted-foreground); opacity: 0.85; }
+textarea.input { min-height: 96px; line-height: 1.5; resize: vertical; }
+.select { appearance: auto; }
+.hint { font-size: 12px; color: var(--muted-foreground); }
+.err { font-size: 12px; color: var(--bad-ink); font-weight: 600; }
+.results-label { font-size: 13px; color: var(--muted-foreground); padding: 12px 16px; }
+.form-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); padding: 16px 20px 20px; }
+.form-grid .full { grid-column: 1 / -1; }
+.field-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.field-grid .span2 { grid-column: 1 / -1; }
+textarea.textarea { min-height: 96px; line-height: 1.5; resize: vertical; }
+.check { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; }
+.check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--primary); flex: none; }
+.switch { position: relative; width: 44px; height: 26px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.switch .track { position: absolute; inset: 0; background: var(--border-strong); border-radius: 999px; transition: background 150ms ease-out; pointer-events: none; }
+.switch .thumb { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform 150ms ease-out; pointer-events: none; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.switch input:checked ~ .track { background: var(--primary); }
+.switch input:checked ~ .thumb { transform: translateX(18px); }
+.switch input:focus-visible ~ .track { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+/* ---------- Tables ---------- */
+.table-card { overflow: hidden; }
+.tbl-scroll { overflow-x: auto; }
+.dtable { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+.dtable th { background: var(--tile); border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground); text-align: left; padding: 11px 14px; white-space: nowrap; }
+.dtable th.num, .dtable td.num { text-align: right; }
+.dtable td { padding: 13px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.dtable td.wrap { white-space: normal; min-width: 180px; }
+.dtable tbody tr:last-child td { border-bottom: none; }
+.dtable tbody tr:hover td { background: var(--tile); }
+.dtable .who { font-weight: 700; }
+.dtable .sub { font-size: 12px; color: var(--muted-foreground); }
+.dtable .num-cell { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.dtable .act { text-align: right; white-space: nowrap; }
+.dtable tr[hidden] { display: none; }
+
+.rowcards { display: none; list-style: none; }
+.rowcard { padding: 14px 16px; border-bottom: 1px solid var(--border); display: grid; gap: 8px; }
+.rowcard:last-child { border-bottom: none; }
+.rowcard .rc-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rowcard .rc-title { font-weight: 700; font-size: 14px; flex: 1 1 auto; min-width: 0; }
+.rowcard .rc-line { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.rowcard .rc-line .k { color: var(--muted-foreground); flex: none; }
+.rowcard .rc-line .v { font-weight: 600; text-align: left; overflow-wrap: anywhere; }
+.rowcard .rc-line.rc-block { display: grid; gap: 2px; }
+.rowcard .rc-line.rc-block .v { font-weight: 500; }
+.rowcard .btn { min-height: 44px; }
+
+@media (max-width: 767px) {
+  .dtable { display: none; }
+  .rowcards { display: block; }
+}
+
+/* ---------- Pager ---------- */
+.pager { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; border-top: 1px solid var(--border); background: var(--tile); font-size: 13px; color: var(--muted-foreground); }
+.pager .spacer { flex: 1; }
+.pager .status { font-weight: 600; color: var(--ink); }
+.pg { min-width: 36px; min-height: 36px; padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--card); font-size: 13px; font-weight: 600; display: inline-grid; place-items: center; color: var(--ink); }
+.pg:hover:not(:disabled) { background: var(--tile); }
+.pg[aria-current="page"] { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+.pg:disabled { opacity: 0.45; cursor: default; }
+/* ---------- Key/value + details ---------- */
+.cols { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; }
+@media (max-width: 900px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+.kv { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.kv .k { color: var(--muted-foreground); }
+.kv .v { font-weight: 600; text-align: right; }
+.details { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.detail { background: var(--tile); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px 14px; }
+.detail .k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground); font-weight: 600; }
+.detail .v { font-size: 14px; font-weight: 600; margin-top: 2px; overflow-wrap: anywhere; }
+
+/* ---------- Alerts, empty, toast ---------- */
+.alert { display: flex; gap: 12px; padding: 14px 16px; border-radius: var(--r-md); border: 1px solid var(--info-bd); background: var(--info-bg); color: var(--info-ink); font-size: 14px; }
+.alert .t { font-weight: 700; }
+.alert.warn { border-color: var(--warn-bd); background: var(--warn-bg); color: var(--warn-ink); }
+.empty { display: grid; gap: 6px; justify-items: center; padding: 48px 20px; text-align: center; }
+.empty .et { font-size: 15px; font-weight: 700; }
+.empty p { font-size: 14px; color: var(--muted-foreground); max-width: 46ch; }
+.empty[hidden] { display: none; }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(8px); z-index: 90; background: var(--foreground); color: var(--background); padding: 12px 18px; border-radius: 999px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(20,23,15,0.3); opacity: 0; pointer-events: none; transition: opacity 180ms ease-out, transform 180ms ease-out; max-width: calc(100vw - 32px); text-align: center; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; transform: translateX(-50%); } .toast.show { transform: translateX(-50%); } }
+
+/* ---------- Dialog ---------- */
+.overlay { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(20, 23, 15, 0.55); animation: fade 180ms ease-out; }
+.overlay[hidden] { display: none; }
+.dlg { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: min(620px, 100%); max-height: min(88vh, 860px); background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; box-shadow: var(--shadow-lg); animation: pop 180ms ease-out; }
+.dlg.wide { width: min(880px, 100%); }
+.dlg-head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+.dlg-head .t { flex: 1 1 auto; min-width: 0; }
+.dlg-head h2 { font-size: 17px; font-weight: 700; line-height: 1.3; }
+.dlg-head .d { font-size: 13px; color: var(--muted-foreground); margin-top: 2px; }
+.dlg-close { width: 36px; height: 36px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card); display: grid; place-items: center; flex: none; }
+.dlg-close:hover { background: var(--tile); }
+.dlg-body { overflow-y: auto; overscroll-behavior: contain; padding: 18px 20px; min-height: 0; }
+.dlg-foot { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; padding: 14px 20px; border-top: 1px solid var(--border); background: var(--tile); }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .overlay, .dlg { animation: none; } }
+@media (max-width: 640px) {
+  .overlay { padding: 0; align-items: stretch; }
+  .dlg { width: 100%; max-width: none; height: 100%; max-height: none; border-radius: 0; border: none; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  .dlg-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom)); justify-content: stretch; }
+  .dlg-foot .btn { flex: 1 1 auto; }
+}
+
+/* ---------- Settings sections ---------- */
+.set-section { scroll-margin-top: 20px; }
+.set-nav { display: flex; gap: 8px; flex-wrap: wrap; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.swatch { width: 44px; height: 44px; border-radius: var(--r-sm); border: 1px solid var(--border-strong); cursor: pointer; }
+.swatch[aria-pressed="true"] { outline: 2px solid var(--ring); outline-offset: 2px; }
+.upload { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px dashed var(--border-strong); border-radius: var(--r-sm); background: var(--tile); }
+.upload .box { width: 56px; height: 56px; border-radius: var(--r-sm); background: var(--card); border: 1px solid var(--border); display: grid; place-items: center; color: var(--primary); flex: none; }
+.upload .meta { min-width: 0; }
+.upload .meta .t { font-size: 14px; font-weight: 600; }
+.upload .meta .s { font-size: 12px; color: var(--muted-foreground); }
+.preview-pane { background: var(--tile); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 18px; }
+.preview-doc { background: var(--popover); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 18px; color: var(--popover-foreground); box-shadow: var(--shadow); }
+.preview-doc .ph { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 12px; }
+.preview-doc .ph .mk { width: 34px; height: 34px; border-radius: 6px; background: var(--primary); color: var(--primary-foreground); display: grid; place-items: center; font-weight: 700; }
+.preview-doc .ph .nm { font-weight: 700; font-size: 14px; }
+.preview-doc .ph .sb { font-size: 11px; color: var(--muted-foreground); }
+.preview-doc .line { height: 8px; background: var(--tile); border-radius: 4px; margin-bottom: 8px; }
+.preview-doc .line.s { width: 62%; }
+
+/* ---------- Timeline (audit / history) ---------- */
+.timeline { list-style: none; display: grid; gap: 0; }
+.timeline li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 12px; padding-bottom: 16px; position: relative; }
+.timeline li:last-child { padding-bottom: 0; }
+.timeline .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--primary); margin-top: 6px; justify-self: center; }
+.timeline li::before { content: ""; position: absolute; left: 9px; top: 20px; bottom: 0; width: 2px; background: var(--border); }
+.timeline li:last-child::before { display: none; }
+.timeline .tt { font-size: 14px; font-weight: 600; }
+.timeline .td { font-size: 12px; color: var(--muted-foreground); }
+
+/* ---------- Hub (index) ---------- */
+.hub-hero { padding: 28px 0 8px; }
+.hub-hero .kicker { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--primary); }
+.hub-hero h1 { font-size: clamp(28px, 4vw, 38px); font-weight: 700; line-height: 1.2; margin-top: 6px; }
+.hub-hero p { font-size: 15px; color: var(--muted-foreground); margin-top: 8px; max-width: 68ch; }
+.hub-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 20px; }
+.hub-card { display: flex; flex-direction: column; gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 18px; box-shadow: var(--shadow); transition: background 150ms ease-out, transform 150ms ease-out; min-height: 44px; }
+.hub-card:hover { background: var(--tile); transform: translateY(-2px); }
+.hub-card .ic { width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--tile); border: 1px solid var(--border); display: grid; place-items: center; color: var(--primary); }
+.hub-card .grp { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted-foreground); }
+.hub-card h2 { font-size: 17px; font-weight: 700; }
+.hub-card p { font-size: 13px; color: var(--muted-foreground); flex: 1 1 auto; }
+.hub-card .go { font-size: 13px; font-weight: 700; color: var(--primary); }
+@media (prefers-reduced-motion: reduce) { .hub-card { transition: none; } .hub-card:hover { transform: none; } }
+
+.hub-list { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 12px; }
+.hub-list a { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm); font-size: 14px; font-weight: 600; }
+.hub-list a:hover { background: var(--tile); }
+
+@media (max-width: 640px) {
+  .main { padding-top: 16px; }
+  .toolbar { padding: 12px; }
+  .results-label { padding: 12px; }
+  .kpi .v { font-size: 28px; }
+}
+</style>
+<style>
+.set-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); align-items: start; }
+@media (max-width: 980px) {
+  .set-grid { grid-template-columns: minmax(0, 1fr); }
+  .settings-shell { grid-template-columns: minmax(0, 1fr); }
+  .set-rail { position: static; }
+  .set-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .set-tab { width: auto; }
+}
+.savebar { position: sticky; bottom: 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px 16px; box-shadow: var(--shadow-lg); z-index: 5; }
+.savebar .status { font-size: 13px; font-weight: 600; }
+.savebar .save-note { font-size: 12px; color: var(--muted-foreground); }
+
+.set-search { position: relative; width: 100%; }
+.set-search .s-ic { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted-foreground); pointer-events: none; }
+.set-search .input { padding-left: 34px; }
+.tab-dirty { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--warn-ink); flex: none; }
+.tab-dirty[hidden] { display: none; }
+.settings-shell { display: grid; grid-template-columns: 216px minmax(0, 1fr); gap: 16px; align-items: start; }
+.set-rail { position: sticky; top: 16px; display: grid; gap: 12px; align-content: start; }
+.set-tabs { display: grid; gap: 4px; }
+.set-tab { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 9px 12px; border: 1px solid transparent; border-radius: var(--r-sm); background: transparent; color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
+.set-tab .lbl { flex: 1 1 auto; min-width: 0; }
+.set-tab svg { flex: none; }
+.set-tab:hover { background: var(--tile); }
+.set-tab:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.set-tab.is-on, .set-tab.is-on:hover { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); font-weight: 700; }
+.search-results { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 30; display: grid; gap: 4px; padding: 8px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--popover); box-shadow: var(--shadow-lg); }
+.search-results[hidden] { display: none; }
+.sr-item { display: grid; gap: 3px; min-height: 44px; padding: 9px 12px; border: 1px solid transparent; border-radius: var(--r-sm); background: var(--card); font-size: 14px; font-weight: 600; text-align: left; }
+.sr-item:hover { border-color: var(--border); background: var(--tile); }
+.sr-item .sec { justify-self: start; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); }
+.sr-empty { padding: 10px 12px; font-size: 13px; color: var(--muted-foreground); }
+
+.pane-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; font-weight: 700; }
+.row-toggle { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--tile); }
+.rt-title { display: block; font-size: 14px; font-weight: 600; }
+.switch-hit { display: grid; place-items: center; min-width: 44px; min-height: 44px; flex: none; }
+.tmpl { display: grid; gap: 10px; }
+.upload .btn { margin-top: 8px; }
+.swatch { width: auto; height: auto; cursor: pointer; }
+.color-field { gap: 8px; }
+
+.card-note { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 20px; border-top: 1px solid var(--border); background: var(--tile); border-bottom-left-radius: calc(var(--r-md) - 1px); border-bottom-right-radius: calc(var(--r-md) - 1px); font-size: 12.5px; color: var(--muted-foreground); }
+.card-note .link { color: var(--primary); font-weight: 700; text-decoration: underline; }
+.card-note .spacer { flex: 1; }
+.flash { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+.dz-card { border-color: var(--bad-bd); }
+.dz-list { display: grid; gap: 14px; }
+.dz-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.dz-t { font-size: 14px; font-weight: 700; }
+
+.preview-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow); overflow: hidden; }
+.preview-head { padding: 18px; color: var(--primary-foreground); background: var(--primary); }
+.pv-row { display: flex; align-items: center; gap: 10px; }
+.pv-mark { width: 36px; height: 36px; border-radius: 8px; background: #fff; color: #14170f; display: grid; place-items: center; font-weight: 700; font-size: 15px; flex: none; }
+.pv-id { min-width: 0; }
+.preview-head .pv-name { font-weight: 700; font-size: 17px; overflow-wrap: anywhere; }
+.preview-head .pv-sub { font-size: 13px; opacity: 0.88; margin-top: 2px; }
+.preview-body { padding: 16px 18px 18px; display: grid; gap: 10px; font-size: 14px; }
+.pv-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pv-top .et { font-size: 13px; font-weight: 700; }
+.pv-block { display: grid; gap: 10px; }
+.pv-block[hidden] { display: none; }
+.swatch-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-color { display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 6px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); font-size: 12px; font-weight: 600; }
+.chip-color i { display: block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(20, 23, 15, 0.2); }
+.sms-bubble { max-width: 34ch; padding: 10px 12px; border: 1px solid var(--border); border-radius: 14px 14px 14px 4px; background: var(--tile); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.hdr-thumb { flex: none; width: 160px; }
+.hdr-thumb img { display: block; width: 100%; height: auto; border: 1px solid var(--border); border-radius: var(--r-sm); background: #fff; }
+.hdr-upload:focus-within { outline: 2px solid var(--ring); outline-offset: 2px; }
+.pv-doc-hdr { display: block; width: 100%; height: auto; border: 1px solid var(--border); border-radius: 4px; background: #fff; }
+.preview-doc .pv-foot { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border); font-size: 11.5px; color: var(--muted-foreground); }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="side" id="side">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">W</span>
+      <span class="portal-name">
+        <span class="brand-name">WIBS Online Banking</span><br />
+        <span class="brand-sub">Staff workspace</span>
+      </span>
+    </div>
+    <nav aria-label="Staff workspace">
+      <div class="nav-label">Staff Workspace</div>
+      <a class="nav-item" href="superadmin-staff.html" title="Staff management">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>
+        <span class="labels">Staff management</span>
+      </a>
+      <a class="nav-item" href="superadmin-audit-log.html" title="Audit Log">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 3h6v4H9z"/><path d="M15 5h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h3"/><path d="M9 12h6M9 16h4"/></svg>
+        <span class="labels">Audit Log</span>
+      </a>
+      <a class="nav-item" href="admin-dashboard.html" title="Admin Dashboard">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        <span class="labels">Admin Dashboard</span>
+      </a>
+      <a class="nav-item" href="admin-members.html" title="Members">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20"/><circle cx="9.5" cy="7.5" r="3.5"/><path d="M21 20v-1.5a4 4 0 0 0-3-3.87"/><path d="M16 4.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="labels">Members</span>
+      </a>
+      <a class="nav-item" href="admin-requests.html" title="Requests">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg>
+        <span class="labels">Requests</span>
+      </a>
+      <a class="nav-item" href="admin-reported-requests.html" title="Reported Requests">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 21V4"/><path d="M5 5h11l-1.5 3.5L16 12H5z"/></svg>
+        <span class="labels">Reported Requests</span>
+      </a>
+      <a class="nav-item" href="superadmin-organization-settings.html" aria-current="page" title="Organization settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M4.6 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.11a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V10a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.11a1.7 1.7 0 0 0-1.56 1.03 1.7 1.7 0 0 0-.34 1.87v.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34H15a1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.11a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87V15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.11A1.7 1.7 0 0 0 4.6 8.9z"/></svg>
+        <span class="labels">Organization settings</span>
+      </a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="user-chip">
+      <span class="avatar" aria-hidden="true">AR</span>
+      <span class="labels"><strong>admin.reyes</strong><br />Superadmin</span>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main class="main wide">
+    <div class="topbar">
+      <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open navigation" aria-expanded="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <span class="crumb">Organization settings</span>
+      <span class="spacer"></span>
+      <span class="pill"><span class="dot"></span>Superadmin session</span>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+      </button>
+    </div>
+
+    <section class="hero">
+      <div class="hero-main">
+        <p class="kicker">Configuration</p>
+        <h1>Organization settings</h1>
+        <p class="desc">Branding, report headers, contact details, and member messaging shared by every WIBS portal.</p>
+        <div class="hero-badges">
+          <span class="badge ok"><span class="bdot"></span>Live on portal</span>
+          <span class="badge neutral" id="lastSaved">Last saved 4 Oct 2026 by admin.reyes</span>
+          <span class="badge info">Superadmin only</span>
+        </div>
+      </div>
+    </section>
+    <div class="settings-shell">
+      <nav class="set-rail" aria-label="Settings sections">
+        <div class="set-search">
+          <svg class="s-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input class="input" id="findSetting" type="search" placeholder="Find a setting" aria-label="Find a setting" aria-controls="searchResults" aria-expanded="false" autocomplete="off" />
+        </div>
+        <div class="set-tabs">
+          <button type="button" class="set-tab is-on" data-tab="general" aria-current="page">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v17"/><path d="M14 10h4a1 1 0 0 1 1 1v10"/><path d="M8 7h2M8 11h2M8 15h2"/></svg>
+            <span class="lbl">General</span><span class="tab-dirty" hidden></span><span class="sr-only" hidden> — unsaved changes</span>
+          </button>
+          <button type="button" class="set-tab" data-tab="branding">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3a9 9 0 0 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.6-1.4-.4-.4-.6-.9-.6-1.4 0-1.1.9-2 2-2H16a5 5 0 0 0 5-5c0-3.9-4-6.2-9-6.2z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="11" cy="7" r="1"/><circle cx="15.5" cy="8.5" r="1"/></svg>
+            <span class="lbl">Branding</span><span class="tab-dirty" hidden></span><span class="sr-only" hidden> — unsaved changes</span>
+          </button>
+          <button type="button" class="set-tab" data-tab="documents">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 13h6M9 17h4"/></svg>
+            <span class="lbl">Documents</span><span class="tab-dirty" hidden></span><span class="sr-only" hidden> — unsaved changes</span>
+          </button>
+          <button type="button" class="set-tab" data-tab="contact">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7.5l9 6 9-6"/></svg>
+            <span class="lbl">Contact</span><span class="tab-dirty" hidden></span><span class="sr-only" hidden> — unsaved changes</span>
+          </button>
+          <button type="button" class="set-tab" data-tab="messaging">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4z"/></svg>
+            <span class="lbl">Messaging</span><span class="tab-dirty" hidden></span><span class="sr-only" hidden> — unsaved changes</span>
+          </button>
+        </div>
+        <div class="search-results" id="searchResults" hidden></div>
+      </nav>
+      <div class="set-grid">
+        <div class="stack">
+          <section class="card" aria-label="Organization settings sections">
+            <div class="set-section card-b" id="panel-general" data-title="General" data-keywords="identity legal name registration address timezone currency locale format" aria-label="General">
+              <div class="stack">
+                <div>
+                  <h2 class="pane-title">General <span class="badge neutral">All portals</span></h2>
+                  <p class="hint">Legal identity printed on statements, receipts, and member correspondence.</p>
+                </div>
+                <div class="field-grid">
+                  <div class="field span2">
+                    <label for="orgName">Organization name</label>
+                    <input class="input" id="orgName" value="WIBS Community Credit Cooperative" />
+                  </div>
+                  <div class="field">
+                    <label for="orgShort">Short name</label>
+                    <input class="input" id="orgShort" value="WIBS" />
+                  </div>
+                  <div class="field">
+                    <label for="orgReg">Registration No</label>
+                    <input class="input" id="orgReg" value="COOP-0088-2011" />
+                  </div>
+                  <div class="field span2">
+                    <label for="orgAddr">Registered address</label>
+                    <input class="input" id="orgAddr" value="128 Rizal Avenue, Bacolod City, Negros Occidental" />
+                  </div>
+                  <div class="field">
+                    <label for="orgTz">Timezone</label>
+                    <select class="select" id="orgTz">
+                      <option selected>Asia/Manila (UTC+8)</option>
+                      <option>Asia/Singapore (UTC+8)</option>
+                      <option>UTC</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="orgCurrency">Statement currency</label>
+                    <select class="select" id="orgCurrency">
+                      <option selected>PHP &#8369;</option>
+                      <option>USD $</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="set-section card-b" id="panel-branding" data-title="Branding" data-keywords="logo brand colors theme accent primary ink mark favicon appearance" aria-label="Branding" hidden>
+              <div class="stack">
+                <div>
+                  <h2 class="pane-title">Branding <span class="badge neutral">Member portal</span></h2>
+                  <p class="hint">Logo and colors used on the member portal, statements, and emails.</p>
+                </div>
+                <div class="upload">
+                  <div class="box" aria-hidden="true">W</div>
+                  <div class="meta">
+                    <div class="t">wibs-logo.png <span class="badge ok">Active</span></div>
+                    <div class="s">PNG · 512×512 · uploaded 12 Aug 2026</div>
+                    <button type="button" class="btn btn-outline btn-sm" data-toast="File picker opened (prototype)">Replace logo</button>
+                  </div>
+                </div>
+                <div class="field color-field">
+                  <span class="lbl">Brand colors</span>
+                  <div class="swatches">
+                    <label class="swatch"><input type="color" id="cPrimary" value="#176433" />Primary green</label>
+                    <label class="swatch"><input type="color" id="cAccent" value="#9abd53" />Accent lime</label>
+                    <label class="swatch"><input type="color" id="cInk" value="#14170f" />Ink</label>
+                  </div>
+                  <p class="hint">Colors update the preview on the right and reach member-facing screens once you save.</p>
+                </div>
+              </div>
+            </div>
+            <div class="set-section card-b" id="panel-documents" data-title="Documents" data-keywords="report header image letterhead upload png svg print pdf statement receipt footer output" aria-label="Documents" hidden>
+              <div class="stack">
+                <div>
+                  <h2 class="pane-title">Documents <span class="badge neutral">All generated documents</span></h2>
+                  <p class="hint">Uploaded letterhead stamped on every statement, SOA, receipt, and notice the system prints.</p>
+                </div>
+                <div class="field-grid">
+                  <div class="field span2">
+                    <label for="repHeaderFile">Report header image</label>
+                    <div class="upload hdr-upload">
+                      <div class="hdr-thumb"><img id="hdrThumb" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAwIDQwMCIgd2lkdGg9IjE2MDAiIGhlaWdodD0iNDAwIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IldJQlMgQ29tbXVuaXR5IENyZWRpdCBDb29wZXJhdGl2ZSBsZXR0ZXJoZWFkIj4KICA8cmVjdCB3aWR0aD0iMTYwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB3aWR0aD0iMTYwMCIgaGVpZ2h0PSIxNiIgZmlsbD0iIzE3NjQzMyIvPgogIDxyZWN0IHg9Ijk2IiB5PSI3NiIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxNTAiIHJ4PSIyMCIgZmlsbD0iIzE3NjQzMyIvPgogIDx0ZXh0IHg9IjE3MSIgeT0iMTg0IiBmb250LWZhbWlseT0iSW5zdHJ1bWVudCBTYW5zLCBTZWdvZSBVSSwgc3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9Ijk0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmZmZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XPC90ZXh0PgogIDx0ZXh0IHg9IjI4NiIgeT0iMTQwIiBmb250LWZhbWlseT0iSW5zdHJ1bWVudCBTYW5zLCBTZWdvZSBVSSwgc3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjYyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMTQxNzBmIj5XSUJTIENvbW11bml0eSBDcmVkaXQgQ29vcGVyYXRpdmU8L3RleHQ+CiAgPHRleHQgeD0iMjg2IiB5PSIxOTYiIGZvbnQtZmFtaWx5PSJJbnN0cnVtZW50IFNhbnMsIFNlZ29lIFVJLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSI1MDAiIGZpbGw9IiM0YTRmM2YiPjEyOCBSaXphbCBBdmVudWUsIEJhY29sb2QgQ2l0eSwgTmVncm9zIE9jY2lkZW50YWw8L3RleHQ+CiAgPHRleHQgeD0iMjg2IiB5PSIyNDgiIGZvbnQtZmFtaWx5PSJJbnN0cnVtZW50IFNhbnMsIFNlZ29lIFVJLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzYiIGZvbnQtd2VpZ2h0PSI0MDAiIGZpbGw9IiM0YTRmM2YiPigwMzQpIDQ0MS04ODIwIMK3IGhlbHBAd2licy5jb29wIMK3IFJlZy4gTm8uIENPT1AtMDA4OC0yMDExPC90ZXh0PgogIDxyZWN0IHg9Ijk2IiB5PSIzMTYiIHdpZHRoPSIxNDA4IiBoZWlnaHQ9IjgiIHJ4PSI0IiBmaWxsPSIjOWFiZDUzIi8+Cjwvc3ZnPgo=" width="1600" height="400" alt="Current letterhead" /></div>
+                      <div class="meta">
+                        <div class="t">wibs-report-header.svg <span class="badge ok">Active</span></div>
+                        <div class="s">SVG · 1600 × 400 · stamped on every document the system generates</div>
+                        <label class="btn btn-outline btn-sm" for="repHeaderFile">Replace header</label>
+                      </div>
+                    </div>
+                    <input class="sr-only" type="file" id="repHeaderFile" accept="image/png,image/svg+xml,image/jpeg" aria-label="Replace report header image" />
+                    <p class="hint" style="margin:6px 0 0">The header is an image, not text — it is the same letterhead on every PDF and printout, so branding never drifts between documents.</p>
+                  </div>
+                  <div class="field span2">
+                    <label for="repFooter">Report footer</label>
+                    <input class="input" id="repFooter" value="Generated by WIBS Online Banking · For member copy only" />
+                  </div>
+                </div>
+                <div class="row-toggle">
+                  <div class="od-fill">
+                    <label class="rt-title" for="repFooterOn">Include footer on printed reports</label>
+                    <div class="hint">Turn off to print the letterhead alone with no footer line.</div>
+                  </div>
+                  <div class="switch-hit">
+                    <label class="switch"><input type="checkbox" id="repFooterOn" checked aria-label="Include footer on printed reports" /><span class="track"></span><span class="thumb"></span></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="set-section card-b" id="panel-contact" data-title="Contact" data-keywords="email phone hotline hours support service address reach" aria-label="Contact" hidden>
+              <div class="stack">
+                <div>
+                  <h2 class="pane-title">Contact &amp; communications <span class="badge neutral">Member-facing</span></h2>
+                  <p class="hint">Shown in member emails, portal footers, and printed statements.</p>
+                </div>
+                <div class="field-grid">
+                  <div class="field">
+                    <label for="cEmail">Support email</label>
+                    <input class="input" id="cEmail" type="email" value="help@wibs.coop" />
+                  </div>
+                  <div class="field">
+                    <label for="cPhone">Hotline</label>
+                    <input class="input" id="cPhone" value="(034) 441-8820" />
+                  </div>
+                  <div class="field span2">
+                    <label for="cHours">Service hours</label>
+                    <input class="input" id="cHours" value="Mon–Fri 8:00 AM–5:00 PM · Sat 8:00 AM–12:00 NN" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="set-section card-b" id="panel-messaging" data-title="Messaging" data-keywords="sms text message notification template token loan approval correction alert" aria-label="Messaging" hidden>
+              <div class="stack">
+                <div>
+                  <h2 class="pane-title">Member messaging <span class="badge neutral">Loan updates</span></h2>
+                  <p class="hint">Tokens {member}, {reference}, and {amount} are replaced when the message is sent.</p>
+                </div>
+
+                <div class="tmpl">
+                  <div class="row-toggle">
+                    <div class="od-fill">
+                      <label class="rt-title" for="smsApproved">Loan approved message</label>
+                      <div class="hint">Sent to the member when a loan request is approved.</div>
+                    </div>
+                    <div class="switch-hit">
+                      <label class="switch"><input type="checkbox" id="smsApprovedOn" checked aria-label="Send the loan approved message" /><span class="track"></span><span class="thumb"></span></label>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <textarea class="textarea" id="smsApproved" aria-label="Loan approved message text">WIBS: Hi {member}, your loan {reference} for {amount} has been approved. Sign in to review your terms.</textarea>
+                    <p class="hint">Sent from WIBS · member replies are not monitored.</p>
+                  </div>
+                </div>
+
+                <div class="tmpl">
+                  <div class="row-toggle">
+                    <div class="od-fill">
+                      <label class="rt-title" for="smsRevision">Correction request message</label>
+                      <div class="hint">Sent when a loan request needs a member update.</div>
+                    </div>
+                    <div class="switch-hit">
+                      <label class="switch"><input type="checkbox" id="smsRevisionOn" checked aria-label="Send the correction request message" /><span class="track"></span><span class="thumb"></span></label>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <textarea class="textarea" id="smsRevision" aria-label="Correction request message text">WIBS: Hi {member}, request {reference} needs an update. Please sign in and submit the correction.</textarea>
+                    <p class="hint">Sent from WIBS · member replies are not monitored.</p>
+                  </div>
+                </div>
+
+                <div class="row-toggle">
+                  <div class="od-fill">
+                    <label class="rt-title" for="smsWindow">Send window</label>
+                    <div class="hint">Messages outside this window wait until the next window opens.</div>
+                  </div>
+                  <div class="od-fixed" style="min-width: 190px;">
+                    <select class="select" id="smsWindow" aria-label="Send window">
+                      <option>7:00 AM – 8:00 PM daily</option>
+                      <option selected>8:00 AM – 6:00 PM, Mon–Sat</option>
+                      <option>Any time</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-note">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+              <span>These settings apply to every WIBS portal and can only be changed by a superadmin.</span>
+              <span class="spacer"></span>
+              <a class="link" href="superadmin-audit-log.html">Every save is recorded in the Audit Log</a>
+            </div>
+          </section>
+
+          <section class="card dz-card" aria-labelledby="dzTitle">
+            <div class="card-h"><h2 id="dzTitle">Danger zone</h2><span class="sub">Organization-wide actions that cannot be undone here</span></div>
+            <div class="card-b dz-list">
+              <div class="dz-row">
+                <div class="od-fill">
+                  <div class="dz-t">Reset branding to defaults</div>
+                  <div class="hint">Restores the WIBS palette and default portal mark. Statements and the member portal revert on your next save.</div>
+                </div>
+                <button type="button" class="btn btn-danger" data-danger="brand">Reset branding</button>
+              </div>
+              <div class="dz-row">
+                <div class="od-fill">
+                  <div class="dz-t">Clear all SMS templates</div>
+                  <div class="hint">Removes both loan templates. Members stop receiving loan status texts until a template is saved again.</div>
+                </div>
+                <button type="button" class="btn btn-danger" data-danger="sms">Clear templates</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="savebar">
+            <span class="status" id="saveStatus">All changes saved</span>
+            <span class="save-note">Changes apply to all portals after you save.</span>
+            <span class="spacer" style="flex:1"></span>
+            <button class="btn btn-outline" id="resetBtn" disabled>Discard changes</button>
+            <button class="btn btn-primary" id="saveBtn" disabled>Save changes</button>
+          </div>
+        </div>
+        <aside class="preview-card" aria-labelledby="pvTitle">
+          <div class="preview-head" id="pvHead">
+            <div class="pv-row">
+              <span class="pv-mark" aria-hidden="true">W</span>
+              <div class="pv-id">
+                <div class="pv-name" id="pvName">WIBS Community Credit Cooperative</div>
+                <div class="pv-sub" id="pvShort">WIBS · COOP-0088-2011</div>
+              </div>
+            </div>
+          </div>
+          <div class="preview-body">
+            <div class="pv-top">
+              <p class="et" id="pvTitle" style="margin:0">Live preview</p>
+              <span class="badge neutral" id="pvTab">General</span>
+            </div>
+
+            <div class="pv-block" data-pv="general">
+              <div class="kv"><span class="k">Registration</span><span class="v" id="pvReg">COOP-0088-2011</span></div>
+              <div class="kv"><span class="k">Address</span><span class="v" id="pvAddr">128 Rizal Avenue, Bacolod City</span></div>
+              <div class="kv"><span class="k">Timezone</span><span class="v" id="pvTz">Asia/Manila (UTC+8)</span></div>
+              <div class="kv"><span class="k">Currency</span><span class="v" id="pvCur">PHP ₱</span></div>
+            </div>
+
+            <div class="pv-block" data-pv="branding" hidden>
+              <div class="swatch-row">
+                <span class="chip-color"><i id="chipPrimary"></i>Primary</span>
+                <span class="chip-color"><i id="chipAccent"></i>Accent</span>
+                <span class="chip-color"><i id="chipInk"></i>Ink</span>
+              </div>
+              <p class="hint" style="margin:0">Applied to the portal header, buttons, and statement accents after saving.</p>
+            </div>
+
+            <div class="pv-block" data-pv="documents" hidden>
+              <div class="preview-doc">
+                <img class="pv-doc-hdr" id="pvDocImg" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAwIDQwMCIgd2lkdGg9IjE2MDAiIGhlaWdodD0iNDAwIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IldJQlMgQ29tbXVuaXR5IENyZWRpdCBDb29wZXJhdGl2ZSBsZXR0ZXJoZWFkIj4KICA8cmVjdCB3aWR0aD0iMTYwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB3aWR0aD0iMTYwMCIgaGVpZ2h0PSIxNiIgZmlsbD0iIzE3NjQzMyIvPgogIDxyZWN0IHg9Ijk2IiB5PSI3NiIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxNTAiIHJ4PSIyMCIgZmlsbD0iIzE3NjQzMyIvPgogIDx0ZXh0IHg9IjE3MSIgeT0iMTg0IiBmb250LWZhbWlseT0iSW5zdHJ1bWVudCBTYW5zLCBTZWdvZSBVSSwgc3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9Ijk0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmZmZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XPC90ZXh0PgogIDx0ZXh0IHg9IjI4NiIgeT0iMTQwIiBmb250LWZhbWlseT0iSW5zdHJ1bWVudCBTYW5zLCBTZWdvZSBVSSwgc3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjYyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMTQxNzBmIj5XSUJTIENvbW11bml0eSBDcmVkaXQgQ29vcGVyYXRpdmU8L3RleHQ+CiAgPHRleHQgeD0iMjg2IiB5PSIxOTYiIGZvbnQtZmFtaWx5PSJJbnN0cnVtZW50IFNhbnMsIFNlZ29lIFVJLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSI1MDAiIGZpbGw9IiM0YTRmM2YiPjEyOCBSaXphbCBBdmVudWUsIEJhY29sb2QgQ2l0eSwgTmVncm9zIE9jY2lkZW50YWw8L3RleHQ+CiAgPHRleHQgeD0iMjg2IiB5PSIyNDgiIGZvbnQtZmFtaWx5PSJJbnN0cnVtZW50IFNhbnMsIFNlZ29lIFVJLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzYiIGZvbnQtd2VpZ2h0PSI0MDAiIGZpbGw9IiM0YTRmM2YiPigwMzQpIDQ0MS04ODIwIMK3IGhlbHBAd2licy5jb29wIMK3IFJlZy4gTm8uIENPT1AtMDA4OC0yMDExPC90ZXh0PgogIDxyZWN0IHg9Ijk2IiB5PSIzMTYiIHdpZHRoPSIxNDA4IiBoZWlnaHQ9IjgiIHJ4PSI0IiBmaWxsPSIjOWFiZDUzIi8+Cjwvc3ZnPgo=" width="1600" height="400" alt="Report header letterhead preview" />
+                <div class="line" style="margin-top:12px"></div>
+                <div class="line s"></div>
+                <div class="line"></div>
+                <p class="pv-foot" id="pvDocFooter">Generated by WIBS Online Banking</p>
+              </div>
+            </div>
+
+            <div class="pv-block" data-pv="contact" hidden>
+              <div class="kv"><span class="k">Support</span><span class="v" id="pvEmail">help@wibs.coop</span></div>
+              <div class="kv"><span class="k">Hotline</span><span class="v" id="pvPhone">(034) 441-8820</span></div>
+              <div class="kv"><span class="k">Hours</span><span class="v" id="pvHours">Mon–Fri 8:00 AM–5:00 PM</span></div>
+            </div>
+
+            <div class="pv-block" data-pv="messaging" hidden>
+              <p class="hint" style="margin:0">Sample text a member receives</p>
+              <div class="sms-bubble" id="pvSms">WIBS: Hi Maria, your loan LN-20416 for ₱25,000.00 has been approved. Sign in to review your terms.</div>
+              <p class="hint" style="margin:0" id="pvSmsState">Sent to the member's registered mobile number.</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+  </main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="overlay" id="confirmOverlay" hidden>
+  <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="cfTitle" aria-describedby="cfImpactText">
+    <div class="dlg-head">
+      <div class="t">
+        <h2 id="cfTitle">Reset branding to defaults?</h2>
+        <p class="d" id="cfDesc">This affects every WIBS portal.</p>
+      </div>
+      <button type="button" class="dlg-close" id="cfClose" aria-label="Close dialog">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="dlg-body">
+      <div class="alert warn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        <div>
+          <span class="t">Cannot be undone from this screen.</span>
+          <span id="cfImpactText">The change takes effect after you save.</span>
+        </div>
+      </div>
+      <div class="field" style="margin-top: 14px;">
+        <label for="cfInput">Type <span id="cfWord">RESET</span> to confirm</label>
+        <input class="input" id="cfInput" autocomplete="off" spellcheck="false" />
+        <p class="hint" id="cfHint">Confirmation must match exactly.</p>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn-outline" id="cfCancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="cfConfirm" disabled>Reset branding</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var stored = localStorage.getItem('wibs-theme');
+  if (stored) root.setAttribute('data-theme', stored);
+  document.getElementById('themeToggle').addEventListener('click', function () {
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('wibs-theme', next);
+  });
+  var app = document.getElementById('app');
+  var menuBtn = document.getElementById('menuBtn');
+  function setNav(open) {
+    app.classList.toggle('nav-open', open);
+    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  menuBtn.addEventListener('click', function () { setNav(!app.classList.contains('nav-open')); });
+  document.getElementById('scrim').addEventListener('click', function () { setNav(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setNav(false); });
+
+  var toastEl = document.getElementById('toast');
+  var toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 2600);
+  }
+  window.wibsToast = toast;
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-toast]');
+    if (b) toast(b.getAttribute('data-toast'));
+  });
+})();
+</script>
+<script>
+(function () {
+  var PANELS = ['general', 'branding', 'documents', 'contact', 'messaging'];
+  var FIELDS = ['orgName', 'orgShort', 'orgReg', 'orgAddr', 'orgTz', 'orgCurrency', 'repHeaderFile', 'repFooter', 'repFooterOn', 'cEmail', 'cPhone', 'cHours', 'smsApproved', 'smsRevision', 'smsApprovedOn', 'smsRevisionOn', 'smsWindow'];
+  var COLORS = ['cPrimary', 'cAccent', 'cInk'];
+  var DEFAULT_HEADER = 'wibs-report-header.svg';
+  var headerDataUrl = null;
+  var savedHeaderUrl = null;
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.set-rail [data-tab]'));
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var toast = window.wibsToast || function () {};
+
+  function el(id) { return document.getElementById(id); }
+  function value(id) {
+    var node = el(id);
+    return node.type === 'checkbox' ? node.checked : node.value;
+  }
+
+  var snapshot = {};
+  function capture() {
+    FIELDS.forEach(function (id) { snapshot[id] = value(id); });
+    COLORS.forEach(function (id) { snapshot[id] = el(id).value; });
+    savedHeaderUrl = headerDataUrl;
+  }
+  capture();
+
+  var tabFields = {};
+  PANELS.forEach(function (name) {
+    tabFields[name] = Array.prototype.map.call(document.querySelectorAll('#panel-' + name + ' [id]'), function (node) { return node.id; })
+      .filter(function (id) { return FIELDS.indexOf(id) > -1 || COLORS.indexOf(id) > -1; });
+  });
+
+  function dirtyIn(name) {
+    return tabFields[name].some(function (id) {
+      if (COLORS.indexOf(id) > -1) return el(id).value !== snapshot[id];
+      return value(id) !== snapshot[id];
+    });
+  }
+  function isDirty() {
+    return FIELDS.some(function (id) { return value(id) !== snapshot[id]; }) ||
+      COLORS.some(function (id) { return el(id).value !== snapshot[id]; });
+  }
+
+  function refreshStatus() {
+    var dirty = isDirty();
+    var status = el('saveStatus');
+    status.textContent = dirty ? 'Unsaved changes' : 'All changes saved';
+    status.style.color = dirty ? 'var(--warn-ink)' : '';
+    tabs.forEach(function (tab) {
+      var dot = tab.querySelector('.tab-dirty');
+      var note = tab.querySelector('.sr-only');
+      var on = dirtyIn(tab.getAttribute('data-tab'));
+      if (dot) dot.hidden = !on;
+      if (note) note.hidden = !on;
+    });
+    el('saveBtn').disabled = !dirty;
+    el('resetBtn').disabled = !dirty;
+  }
+
+  function syncPreview() {
+    el('pvName').textContent = value('orgName');
+    el('pvShort').textContent = value('orgShort') + ' · ' + value('orgReg');
+    el('pvReg').textContent = value('orgReg');
+    el('pvAddr').textContent = value('orgAddr');
+    el('pvTz').textContent = value('orgTz');
+    el('pvCur').textContent = value('orgCurrency');
+    el('pvEmail').textContent = value('cEmail');
+    el('pvPhone').textContent = value('cPhone');
+    el('pvHours').textContent = value('cHours');
+    el('pvDocFooter').textContent = value('repFooter');
+    el('pvDocFooter').hidden = !el('repFooterOn').checked;
+    applyHeader();
+
+    var head = el('pvHead');
+    head.style.background = el('cPrimary').value;
+    head.style.color = readableInk(el('cPrimary').value);
+    el('chipPrimary').style.background = el('cPrimary').value;
+    el('chipAccent').style.background = el('cAccent').value;
+    el('chipInk').style.background = el('cInk').value;
+
+    var tpl = value('smsApproved');
+    var sample = tpl.replace('{member}', 'Maria').replace('{reference}', 'LN-20416').replace('{amount}', '\u20B125,000.00');
+    if (!el('smsApprovedOn').checked) {
+      sample = 'Loan approved message is switched off — nothing is sent when a loan is approved.';
+    } else if (!tpl.trim()) {
+      sample = 'No message configured yet. Members will not receive a loan approval text.';
+    }
+    el('pvSms').textContent = sample;
+    el('pvSmsState').textContent = el('smsApprovedOn').checked
+      ? 'Sent to the member\u2019s registered mobile number during the send window.'
+      : 'Sending is off for this message.';
+
+    refreshStatus();
+  }
+
+  function readableInk(hex) {
+    var c = String(hex).replace('#', '');
+    if (c.length === 3) c = c.charAt(0) + c.charAt(0) + c.charAt(1) + c.charAt(1) + c.charAt(2) + c.charAt(2);
+    if (c.length !== 6) return '#ffffff';
+    function chan(v) { v = parseInt(v, 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+    var lum = 0.2126 * chan(c.substr(0, 2)) + 0.7152 * chan(c.substr(2, 2)) + 0.0722 * chan(c.substr(4, 2));
+    return lum > 0.19 ? '#14170f' : '#ffffff';
+  }
+
+  function applyHeader() {
+    var src = headerDataUrl || DEFAULT_HEADER;
+    el('pvDocImg').src = src;
+    el('hdrThumb').src = src;
+  }
+
+  FIELDS.concat(COLORS).forEach(function (id) {
+    var node = el(id);
+    node.addEventListener('input', syncPreview);
+    node.addEventListener('change', syncPreview);
+  });
+
+  el('repHeaderFile').addEventListener('change', function () {
+    var file = this.files && this.files[0];
+    if (!file) {
+      headerDataUrl = null;
+      applyHeader();
+      syncPreview();
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      headerDataUrl = e.target.result;
+      applyHeader();
+      syncPreview();
+    };
+    reader.onerror = function () { toast('Could not read that image'); };
+    reader.readAsDataURL(file);
+  });
+
+  function activate(name) {
+    if (PANELS.indexOf(name) === -1) name = 'general';
+    tabs.forEach(function (tab) {
+      var on = tab.getAttribute('data-tab') === name;
+      tab.classList.toggle('is-on', on);
+      if (on) { tab.setAttribute('aria-current', 'page'); } else { tab.removeAttribute('aria-current'); }
+    });
+    PANELS.forEach(function (panel) { el('panel-' + panel).hidden = panel !== name; });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pv]'), function (block) {
+      block.hidden = block.getAttribute('data-pv') !== name;
+    });
+    el('pvTab').textContent = el('panel-' + name).getAttribute('data-title');
+    if (history.replaceState) history.replaceState(null, '', '#panel-' + name);
+  }
+  window.wibsActivate = activate;
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () { activate(tab.getAttribute('data-tab')); });
+  });
+
+  el('saveBtn').addEventListener('click', function () {
+    capture();
+    syncPreview();
+    el('lastSaved').textContent = 'Last saved just now by admin.reyes';
+    toast('Organization settings saved');
+  });
+
+  el('resetBtn').addEventListener('click', function () {
+    FIELDS.forEach(function (id) {
+      var node = el(id);
+      if (node.type === 'checkbox') { node.checked = snapshot[id]; }
+      else if (node.type === 'file') { if (!snapshot[id]) node.value = ''; }
+      else { node.value = snapshot[id]; }
+    });
+    COLORS.forEach(function (id) { el(id).value = snapshot[id]; });
+    headerDataUrl = savedHeaderUrl;
+    applyHeader();
+    syncPreview();
+    toast('Changes discarded');
+  });
+
+  window.addEventListener('beforeunload', function (e) {
+    if (isDirty()) { e.preventDefault(); e.returnValue = ''; return ''; }
+  });
+
+  activate((location.hash || '').replace('#panel-', ''));
+  syncPreview();
+})();
+</script>
+<script>
+(function () {
+  var PANELS = ['general', 'branding', 'documents', 'contact', 'messaging'];
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var toast = window.wibsToast || function () {};
+  var activate = window.wibsActivate || function () {};
+  function el(id) { return document.getElementById(id); }
+
+  /* ---------- settings search ---------- */
+  var index = [];
+  PANELS.forEach(function (name) {
+    var panel = el('panel-' + name);
+    var title = panel.getAttribute('data-title') || name;
+    var keys = ((panel.getAttribute('data-keywords') || '') + ' ' + title).toLowerCase();
+    Array.prototype.forEach.call(panel.querySelectorAll('label'), function (node) {
+      var text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      var target = node.getAttribute('for');
+      if (!target && node.control && node.control.id) target = node.control.id;
+      index.push({ label: text, section: title, tab: name, target: target, keys: (text + ' ' + keys).toLowerCase() });
+    });
+  });
+
+  var searchInput = el('findSetting');
+  var results = el('searchResults');
+
+  function jump(item) {
+    activate(item.tab);
+    results.hidden = true;
+    searchInput.value = '';
+    searchInput.setAttribute('aria-expanded', 'false');
+    var node = item.target ? el(item.target) : null;
+    if (!node) return;
+    var box = node.closest('.field, .row-toggle, .upload, .swatches') || node;
+    if (box.scrollIntoView) box.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' });
+    try { node.focus({ preventScroll: true }); } catch (err) { node.focus(); }
+    box.classList.add('flash');
+    setTimeout(function () { box.classList.remove('flash'); }, 1800);
+  }
+
+  function renderResults() {
+    var query = searchInput.value.trim().toLowerCase();
+    results.innerHTML = '';
+    if (!query) {
+      results.hidden = true;
+      searchInput.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    var hits = index.filter(function (item) { return item.keys.indexOf(query) > -1; }).slice(0, 7);
+    if (!hits.length) {
+      var empty = document.createElement('p');
+      empty.className = 'sr-empty';
+      empty.textContent = 'No settings match \u201C' + searchInput.value.trim() + '\u201D. Try logo, footer, hotline, or SMS.';
+      results.appendChild(empty);
+    } else {
+      hits.forEach(function (item) {
+        var row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'sr-item';
+        var name = document.createElement('span');
+        name.textContent = item.label;
+        var where = document.createElement('span');
+        where.className = 'sec';
+        where.textContent = item.section;
+        row.appendChild(name);
+        row.appendChild(where);
+        row.addEventListener('click', function () { jump(item); });
+        results.appendChild(row);
+      });
+    }
+    results.hidden = false;
+    searchInput.setAttribute('aria-expanded', 'true');
+  }
+
+  searchInput.addEventListener('input', renderResults);
+  searchInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { searchInput.value = ''; renderResults(); }
+    if (e.key === 'Enter') {
+      var first = results.querySelector('.sr-item');
+      if (first) { e.preventDefault(); first.click(); }
+    }
+  });
+  searchInput.addEventListener('blur', function () {
+    setTimeout(function () {
+      if (document.activeElement !== searchInput && !results.contains(document.activeElement)) {
+        results.hidden = true;
+        searchInput.setAttribute('aria-expanded', 'false');
+      }
+    }, 160);
+  });
+
+  /* ---------- danger zone ---------- */
+  var DANGER = {
+    brand: {
+      title: 'Reset branding to defaults?',
+      desc: 'Restores the WIBS palette and default portal mark on every portal.',
+      impact: 'Primary, accent, and ink colors go back to the WIBS defaults. Custom colors are not recoverable from this screen.',
+      word: 'RESET',
+      action: 'Reset branding',
+      run: function () {
+        el('cPrimary').value = '#176433';
+        el('cAccent').value = '#9abd53';
+        el('cInk').value = '#14170f';
+        el('cPrimary').dispatchEvent(new Event('input'));
+        toast('Branding reset to defaults — save to apply it');
+      }
+    },
+    sms: {
+      title: 'Clear all SMS templates?',
+      desc: 'Removes the loan approved and correction request templates.',
+      impact: 'Members stop receiving loan status texts until a new template is saved. Messages already sent are not affected.',
+      word: 'CLEAR',
+      action: 'Clear templates',
+      run: function () {
+        el('smsApproved').value = '';
+        el('smsRevision').value = '';
+        el('smsApproved').dispatchEvent(new Event('input'));
+        toast('SMS templates cleared — save to apply it');
+      }
+    }
+  };
+
+  var overlay = el('confirmOverlay');
+  var cfInput = el('cfInput');
+  var cfConfirm = el('cfConfirm');
+  var activeDanger = null;
+  var lastFocus = null;
+
+  function openDanger(key, trigger) {
+    var conf = DANGER[key];
+    if (!conf) return;
+    activeDanger = conf;
+    lastFocus = trigger;
+    el('cfTitle').textContent = conf.title;
+    el('cfDesc').textContent = conf.desc;
+    el('cfImpactText').textContent = conf.impact;
+    el('cfWord').textContent = conf.word;
+    el('cfHint').textContent = 'Type ' + conf.word + ' exactly to enable the action.';
+    cfConfirm.textContent = conf.action;
+    cfInput.value = '';
+    cfConfirm.disabled = true;
+    overlay.hidden = false;
+    cfInput.focus();
+  }
+
+  function closeDanger() {
+    overlay.hidden = true;
+    activeDanger = null;
+    cfInput.value = '';
+    if (lastFocus) { try { lastFocus.focus(); } catch (err) {} }
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-danger]'), function (btn) {
+    btn.addEventListener('click', function () { openDanger(btn.getAttribute('data-danger'), btn); });
+  });
+  cfInput.addEventListener('input', function () {
+    cfConfirm.disabled = !activeDanger || cfInput.value.trim() !== activeDanger.word;
+  });
+  cfConfirm.addEventListener('click', function () {
+    if (!activeDanger || cfInput.value.trim() !== activeDanger.word) return;
+    var conf = activeDanger;
+    closeDanger();
+    conf.run();
+  });
+  el('cfCancel').addEventListener('click', closeDanger);
+  el('cfClose').addEventListener('click', closeDanger);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeDanger(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !overlay.hidden) closeDanger();
+  });
+})();
+</script>
+
+
+</body>
+</html>

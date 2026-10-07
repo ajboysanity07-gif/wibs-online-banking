@@ -1,5 +1,11 @@
 import { Head } from '@inertiajs/react';
-import { Banknote, CalendarCheck, Clock, Download, Printer } from 'lucide-react';
+import {
+    Banknote,
+    CalendarCheck,
+    Clock,
+    Download,
+    Printer,
+} from 'lucide-react';
 import { useState } from 'react';
 import {
     MemberDetailPrimaryCard,

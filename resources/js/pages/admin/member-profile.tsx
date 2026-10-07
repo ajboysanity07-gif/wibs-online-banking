@@ -17,6 +17,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { MemberAccountsSummarySection } from '@/features/member-accounts/components/member-accounts-summary-section';
 import { MemberRecentAccountActionsCard } from '@/features/member-accounts/components/member-recent-account-actions-card';
 import {
@@ -507,7 +508,7 @@ export default function MemberProfile({
                                 <Label htmlFor="reset-password-reason">
                                     Reason
                                 </Label>
-                                <textarea
+                                <Textarea
                                     id="reset-password-reason"
                                     className={textareaClassName}
                                     value={resetPasswordReason}

@@ -1,45 +1,44 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Eye, EyeOff, FileClock, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
-import { MemberLoanStatusCard } from '@/components/member/member-loan-status-card';
+import { MemberLoanRequestStatusCard } from '@/components/member/member-loan-request-status-card';
+import { MemberQuickActions } from '@/components/member/member-quick-actions';
 import { MemberProfileDetailsCard } from '@/components/member-profile-details-card';
 import { MemberProfileHeader } from '@/components/member-profile-header';
-import { MemberStatusCard } from '@/components/member-status-card';
 import { PageShell } from '@/components/page-shell';
-import { SectionHeader } from '@/components/section-header';
 import { SurfaceCard } from '@/components/surface-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { AccountActionsQuery } from '@/features/member-accounts/components/member-account-actions-table';
 import { MemberBalanceCards } from '@/features/member-accounts/components/member-balance-cards';
-import { MemberRecentAccountActionsCard } from '@/features/member-accounts/components/member-recent-account-actions-card';
 import { MemberRecentTransactions } from '@/features/member-accounts/components/member-recent-transactions';
+import type { MemberRecentAccountAction } from '@/features/member-accounts/types';
 import { useHideBalances } from '@/hooks/use-hide-balances';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
-import {
-    formatDate,
-    formatDateTime,
-    maskAccountNumber,
-} from '@/lib/formatters';
+import { formatDate } from '@/lib/formatters';
 import {
     getMemberStatusLabel,
     getMemberStatusVariant,
 } from '@/lib/member-status';
 import {
     dashboard as clientDashboard,
+    loanPayments as clientLoanPayments,
     loans as clientLoans,
     savings as clientSavings,
 } from '@/routes/client';
-import { security as securitySettings } from '@/routes/settings';
 import type { Auth, BreadcrumbItem } from '@/types';
 import type {
     MemberAccountActionsResponse,
     MemberAccountsSummary,
     PaginationMeta,
 } from '@/types/admin';
-import type { LoanStatusSummaryForMember } from '@/types/loan-requests';
+import type {
+    ActiveLoanRequestSummary,
+    LoanStatusSummaryForMember,
+} from '@/types/loan-requests';
+import { security as securitySettings } from '@/routes/settings';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -67,6 +66,7 @@ type Props = {
     recentAccountActionsError?: string | null;
     loanSummary?: LoanStatusSummaryForMember | null;
     activeDraft?: { id: number; updated_at: string | null } | null;
+    activeRequest?: ActiveLoanRequestSummary | null;
 };
 
 type PageProps = {
@@ -88,6 +88,7 @@ export default function MemberProfile({
     recentAccountActionsError = null,
     loanSummary,
     activeDraft = null,
+    activeRequest = null,
 }: Props) {
     const { auth } = usePage<PageProps>().props;
     const getInitials = useInitials();
@@ -111,11 +112,25 @@ export default function MemberProfile({
     const actionsLoadingState =
         actionsLoading || (!recentAccountActions && !recentAccountActionsError);
 
-    const reloadWithActionsPage = (page: number) => {
+    const [actionsQuery, setActionsQuery] = useState<AccountActionsQuery>({
+        page: 1,
+        perPage: 5,
+        source: 'all',
+        search: '',
+    });
+
+    const reloadActions = (query: AccountActionsQuery) => {
+        setActionsQuery(query);
         setActionsLoading(true);
         router.get(
             clientDashboard().url,
-            { actions_page: page },
+            {
+                actions_page: query.page,
+                actions_per_page: query.perPage,
+                actions_source:
+                    query.source === 'all' ? undefined : query.source,
+                actions_search: query.search.trim() || undefined,
+            },
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -126,12 +141,16 @@ export default function MemberProfile({
         );
     };
 
-    const handleActionsPageChange = (page: number) => {
-        reloadWithActionsPage(page);
+    const resolveActionHref = (action: MemberRecentAccountAction) => {
+        if (action.source === 'LOAN' && action.number !== null) {
+            return clientLoanPayments({ loanNumber: action.number }).url;
+        }
+
+        return action.source === 'SAV' ? clientSavings().url : null;
     };
 
     const handleRetry = () => {
-        reloadWithActionsPage(actionsMeta.page);
+        reloadActions(actionsQuery);
     };
     const firstName = currentMember.name.trim().split(' ')[0] || 'there';
     const statusLabel = getMemberStatusLabel(currentMember.status);
@@ -164,8 +183,7 @@ export default function MemberProfile({
                     meta={
                         <>
                             <Badge variant="outline" className="bg-card">
-                                Account No:{' '}
-                                {maskAccountNumber(currentMember.acctno)}
+                                Account No: {currentMember.acctno ?? '--'}
                             </Badge>
                             <Badge variant="outline" className="bg-card">
                                 Username: {currentMember.username}
@@ -173,59 +191,6 @@ export default function MemberProfile({
                         </>
                     }
                 />
-
-                <SurfaceCard
-                    variant="default"
-                    padding="lg"
-                    className="space-y-6"
-                >
-                    <SectionHeader
-                        title="Profile summary"
-                        description="Key account details and access status."
-                        titleClassName="text-lg"
-                    />
-                    <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                        <MemberProfileDetailsCard
-                            title="Member details"
-                            description="Portal profile information and contact details."
-                            className="border-border bg-card shadow-none"
-                            itemClassName="border-border bg-muted"
-                            items={[
-                                {
-                                    label: 'Member name',
-                                    value: currentMember.name,
-                                },
-                                {
-                                    label: 'Username',
-                                    value: currentMember.username,
-                                },
-                                {
-                                    label: 'Email',
-                                    value: currentMember.email,
-                                },
-                                {
-                                    label: 'Phone',
-                                    value: currentMember.phone ?? '--',
-                                },
-                                {
-                                    label: 'Account No',
-                                    value: maskAccountNumber(
-                                        currentMember.acctno,
-                                    ),
-                                },
-                                {
-                                    label: 'Created',
-                                    value: formatDate(currentMember.created_at),
-                                },
-                            ]}
-                        />
-                        <MemberStatusCard
-                            className="h-full border-border bg-card shadow-none"
-                            statusLabel={statusLabel}
-                            statusVariant={statusVariant}
-                        />
-                    </div>
-                </SurfaceCard>
 
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <h2 className="text-lg font-semibold">Your accounts</h2>
@@ -249,6 +214,7 @@ export default function MemberProfile({
                     hideBalances={balancesHidden}
                     acctno={currentMember.acctno}
                     summary={summaryValue}
+                    loanSummary={loanSummary}
                     loading={summaryLoading}
                     error={summaryError}
                     onRetry={handleRetry}
@@ -256,39 +222,64 @@ export default function MemberProfile({
                     loanSecurityHref={clientSavings().url}
                 />
 
-                {activeDraft ? (
-                    <Card className="rounded-xl">
-                        <CardHeader className="space-y-2 pb-4">
-                            <CardTitle className="flex items-center gap-2 text-lg">
-                                <FileClock className="size-4 text-muted-foreground" />
-                                Continue your application
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-wrap items-center justify-between gap-3">
-                            <p className="text-sm text-muted-foreground">
-                                You have a loan request draft
-                                {activeDraft.updated_at
-                                    ? ` last saved ${formatDateTime(activeDraft.updated_at)}`
-                                    : ''}
-                                .
-                            </p>
-                            <Button asChild size="sm">
-                                <Link href={LoanRequestController.create().url}>
-                                    Resume
-                                </Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-                ) : null}
+                <MemberQuickActions />
 
-                {loanSummary ? (
-                    <MemberLoanStatusCard loanSummary={loanSummary} />
-                ) : null}
+                <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+                    <MemberRecentTransactions
+                        actions={actionsItems}
+                        hideAmounts={balancesHidden}
+                        meta={actionsMeta}
+                        loading={actionsLoadingState}
+                        error={recentAccountActionsError}
+                        onRetry={handleRetry}
+                        onQueryChange={reloadActions}
+                        resolveActionHref={resolveActionHref}
+                    />
+                    <MemberLoanRequestStatusCard
+                        activeRequest={activeRequest}
+                        activeDraft={activeDraft}
+                        hideAmounts={balancesHidden}
+                    />
+                </div>
 
-                <MemberRecentTransactions
-                    actions={actionsItems}
-                    hideAmounts={balancesHidden}
-                />
+                <section
+                    aria-labelledby="profile-summary-heading"
+                    className="space-y-3"
+                >
+                    <h2
+                        id="profile-summary-heading"
+                        className="text-lg font-semibold"
+                    >
+                        Profile summary
+                    </h2>
+                    <MemberProfileDetailsCard
+                        title="Member details"
+                        description="Portal profile information and contact details."
+                        className="border-border bg-card shadow-none"
+                        contentClassName="sm:grid-cols-2 lg:grid-cols-3"
+                        itemClassName="border-border bg-muted"
+                        items={[
+                            { label: 'Member name', value: currentMember.name },
+                            {
+                                label: 'Username',
+                                value: currentMember.username,
+                            },
+                            { label: 'Email', value: currentMember.email },
+                            {
+                                label: 'Phone',
+                                value: currentMember.phone ?? '--',
+                            },
+                            {
+                                label: 'Account No',
+                                value: currentMember.acctno ?? '--',
+                            },
+                            {
+                                label: 'Created',
+                                value: formatDate(currentMember.created_at),
+                            },
+                        ]}
+                    />
+                </section>
 
                 <SurfaceCard
                     padding="md"
@@ -312,17 +303,6 @@ export default function MemberProfile({
                         </Link>
                     </Button>
                 </SurfaceCard>
-
-                <MemberRecentAccountActionsCard
-                    hideBalances={balancesHidden}
-                    acctno={currentMember.acctno}
-                    actions={actionsItems}
-                    meta={actionsMeta}
-                    loading={actionsLoadingState}
-                    error={recentAccountActionsError}
-                    onRetry={handleRetry}
-                    onPageChange={handleActionsPageChange}
-                />
             </PageShell>
         </AppLayout>
     );

@@ -22,6 +22,7 @@ use App\Services\Notifications\NotificationRecipientService;
 use App\Support\LocationComposer;
 use App\Support\SchemaCapabilities;
 use DateTimeInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -1164,6 +1165,38 @@ class LoanRequestService
             ->where('status', LoanRequestStatus::Draft->value)
             ->orderByDesc('updated_at')
             ->first();
+    }
+
+    /**
+     * Latest request still moving through the member-facing workflow (see
+     * LoanRequestStatus::memberStep()). Drafts and finished requests excluded.
+     */
+    public function findInFlightForMember(AppUser $user): ?LoanRequest
+    {
+        return $this->inFlightQueryForMember($user)
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    public function countInFlightForMember(AppUser $user): int
+    {
+        return $this->inFlightQueryForMember($user)->count();
+    }
+
+    /**
+     * @return Builder<LoanRequest>
+     */
+    private function inFlightQueryForMember(AppUser $user): Builder
+    {
+        $statuses = collect(LoanRequestStatus::cases())
+            ->filter(fn (LoanRequestStatus $status): bool => $status->memberStep() !== null)
+            ->map(fn (LoanRequestStatus $status): string => $status->value)
+            ->all();
+
+        return LoanRequest::query()
+            ->where('user_id', $user->user_id)
+            ->whereIn('status', $statuses);
     }
 
     /**

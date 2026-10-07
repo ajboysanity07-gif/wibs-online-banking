@@ -160,15 +160,32 @@ export default function ProcessorDashboard({
                                     cells: {
                                         reference: item.reference,
                                         aging: item.is_aging ? (
-                                            <Badge variant="destructive">Aging</Badge>
+                                            <Badge variant="destructive">
+                                                Aging
+                                            </Badge>
                                         ) : (
-                                            <Badge variant="secondary">On time</Badge>
+                                            <Badge variant="secondary">
+                                                On time
+                                            </Badge>
                                         ),
-                                        status: <Badge variant="outline">{item.status}</Badge>,
+                                        status: (
+                                            <Badge variant="outline">
+                                                {item.status}
+                                            </Badge>
+                                        ),
                                         days: item.business_days_in_queue,
                                         action: (
-                                            <Button asChild size="sm" variant="outline">
-                                                <Link href={loanRequestShow(item.id).url}>
+                                            <Button
+                                                asChild
+                                                size="sm"
+                                                variant="outline"
+                                            >
+                                                <Link
+                                                    href={
+                                                        loanRequestShow(item.id)
+                                                            .url
+                                                    }
+                                                >
                                                     View request
                                                 </Link>
                                             </Button>

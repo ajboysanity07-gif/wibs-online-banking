@@ -395,6 +395,33 @@ test('loan summary uses balance, next scheduled payment, and last payment', func
     Carbon::setTestNow();
 });
 
+test('fully paid loan has no next payment date even with past schedule rows', function () {
+    $member = User::factory()->create(['acctno' => '000907']);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => 'LN-907',
+        'balance' => 0,
+    ]);
+
+    DB::table('Amortsched')->insert([
+        'lnnumber' => 'LN-907',
+        'Date_pay' => Carbon::parse('2024-03-13 00:00:00')->toDateTimeString(),
+        'Amortization' => 120,
+        'Interest' => 15,
+        'Balance' => 380,
+        'controlno' => 'SCH-907',
+    ]);
+
+    Carbon::setTestNow(Carbon::parse('2025-12-15 00:00:00'));
+
+    $payload = app(MemberLoanService::class)->getSchedulePageData($member, 'LN-907');
+
+    expect($payload['summary']['nextPaymentDate'])->toBeNull();
+
+    Carbon::setTestNow();
+});
+
 test('schedule api returns ordered entries', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);

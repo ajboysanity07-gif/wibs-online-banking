@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { SettingsPanel } from '@/components/settings/settings-panel';
+import { Button } from '@/components/ui/button';
 import type { Appearance as AppearanceMode } from '@/hooks/use-appearance';
 import { useAppearance } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
@@ -46,14 +47,15 @@ export default function Appearance() {
                             const selected = appearance === value;
 
                             return (
-                                <button
+                                <Button
+                                    variant="ghost"
                                     key={value}
                                     type="button"
                                     role="radio"
                                     aria-checked={selected}
                                     onClick={() => updateAppearance(value)}
                                     className={cn(
-                                        'flex flex-col items-center gap-3 rounded-xl border-2 p-5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                        'h-auto flex-col gap-3 rounded-xl border-2 p-5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                                         selected
                                             ? 'border-primary bg-secondary text-secondary-foreground'
                                             : 'border-border bg-card hover:bg-muted',
@@ -61,7 +63,7 @@ export default function Appearance() {
                                 >
                                     <Icon className="size-6 text-primary" />
                                     {label}
-                                </button>
+                                </Button>
                             );
                         })}
                     </div>

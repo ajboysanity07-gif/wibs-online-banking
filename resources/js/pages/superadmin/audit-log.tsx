@@ -1,5 +1,4 @@
 import { Head } from '@inertiajs/react';
-import axios from 'axios';
 import { Download, Filter } from 'lucide-react';
 import {
     type FormEvent,
@@ -35,6 +34,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
+import client from '@/lib/api/client';
 import { showErrorToast } from '@/lib/toast';
 import type { BreadcrumbItem } from '@/types';
 
@@ -130,7 +130,7 @@ export default function AuditLog() {
                 if (currentFilters.date_to)
                     params.date_to = currentFilters.date_to;
 
-                const response = await axios.get('/spa/superadmin/audit-log', {
+                const response = await client.get('/spa/superadmin/audit-log', {
                     params,
                 });
                 setItems(response.data.data.items);
@@ -303,7 +303,9 @@ export default function AuditLog() {
 
                     <ResponsiveDataList
                         columns={auditListColumns}
-                        emptyMessage={loading ? 'Loading…' : 'No audit records found.'}
+                        emptyMessage={
+                            loading ? 'Loading…' : 'No audit records found.'
+                        }
                         rows={(loading ? [] : items).map((entry) => ({
                             id: `${entry.type}-${entry.id}`,
                             initials: entry.actor ?? '',
@@ -311,14 +313,20 @@ export default function AuditLog() {
                                 actor: entry.actor ?? '—',
                                 action: (
                                     <Badge
-                                        variant={ACTION_BADGE_VARIANT[entry.action] ?? 'secondary'}
+                                        variant={
+                                            ACTION_BADGE_VARIANT[
+                                                entry.action
+                                            ] ?? 'secondary'
+                                        }
                                     >
                                         {entry.action}
                                     </Badge>
                                 ),
                                 target: describeEntry(entry),
                                 occurred: entry.occurred_at
-                                    ? new Date(entry.occurred_at).toLocaleString()
+                                    ? new Date(
+                                          entry.occurred_at,
+                                      ).toLocaleString()
                                     : '—',
                                 type: TYPE_LABELS[entry.type] ?? entry.type,
                                 reason: entry.reason ?? '—',
@@ -365,8 +373,9 @@ export default function AuditLog() {
                                             >
                                                 <TableCell>
                                                     <Badge variant="outline">
-                                                        {TYPE_LABELS[entry.type] ??
-                                                            entry.type}
+                                                        {TYPE_LABELS[
+                                                            entry.type
+                                                        ] ?? entry.type}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>

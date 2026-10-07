@@ -10,7 +10,7 @@ test('sidebar exposes a dedicated staff workflow navigation surface', async () =
     );
 
     assert.match(file, /auth\.canAccessLoanWorkflow/);
-    assert.match(file, /Loan Workflow/);
+    assert.match(file, /title: 'Requests'/);
     assert.match(file, /staffLoanRequestsIndex/);
     assert.match(file, /sidebar-staff-workspace-collapsed/);
     assert.match(file, /activeWorkspace === 'staff'/);

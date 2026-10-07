@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -21,7 +22,7 @@ export function LoanRequestCheckRow({
     ariaLabel,
 }: Props) {
     return (
-        <label
+        <Label
             htmlFor={id}
             className={cn(
                 'flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border-[1.5px] border-border bg-card p-4 text-sm leading-snug transition-colors hover:bg-muted has-data-[state=checked]:border-primary has-data-[state=checked]:bg-card',
@@ -37,6 +38,6 @@ export function LoanRequestCheckRow({
                 className="size-6 rounded-md [&_svg]:size-4"
             />
             <span className="min-w-0 flex-1">{children}</span>
-        </label>
+        </Label>
     );
 }

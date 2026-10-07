@@ -23,3 +23,14 @@ Schedule::command('loan-requests:archive')
 Schedule::command('loan-requests:purge-stale-drafts')
     ->daily()
     ->withoutOverlapping();
+
+Schedule::command('backup:run')
+    ->dailyAt('01:30')
+    ->withoutOverlapping();
+
+Schedule::command('backup:clean')
+    ->dailyAt('02:00')
+    ->withoutOverlapping();
+
+Schedule::command('backup:monitor')
+    ->dailyAt('08:00');

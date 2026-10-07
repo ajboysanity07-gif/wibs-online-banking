@@ -8,6 +8,7 @@ import type { AppLayoutProps } from '@/types';
 export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
+    statusLabel,
 }: AppLayoutProps) {
     const { component } = usePage();
 
@@ -15,7 +16,10 @@ export default function AppSidebarLayout({
         <AppShell variant="sidebar">
             <AppSidebar />
             <AppContent variant="sidebar" className="overflow-x-clip">
-                <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                <AppSidebarHeader
+                    breadcrumbs={breadcrumbs}
+                    statusLabel={statusLabel}
+                />
                 <div
                     key={component}
                     className="animate-page-in flex flex-1 flex-col"

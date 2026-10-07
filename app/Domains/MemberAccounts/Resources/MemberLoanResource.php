@@ -26,6 +26,10 @@ class MemberLoanResource extends JsonResource
             'initial' => $this->castNumber($initial),
             'monthlyDue' => $this->castNumber($this->monthlyDue ?? null),
             'dueDate' => $this->formatDateValue($this->dueDate ?? null),
+            'penalty' => $this->castNumber($this->penalty ?? null),
+            'intRate' => $this->castNumber($this->int_rate ?? null),
+            'monthlyRate' => $this->monthlyRate(),
+            'termMonths' => $this->castNumber($this->term_mons ?? null),
         ];
     }
 
@@ -36,6 +40,20 @@ class MemberLoanResource extends JsonResource
         }
 
         return (float) $value;
+    }
+
+    /**
+     * wlnmaster.int_rate is an ANNUAL percent; UI displays the monthly cut.
+     */
+    private function monthlyRate(): ?float
+    {
+        $annual = $this->castNumber($this->int_rate ?? null);
+
+        if ($annual === null) {
+            return null;
+        }
+
+        return round($annual / 12, 2);
     }
 
     private function formatDateValue(mixed $value): ?string

@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Member profile — MRDINC Portal</title>
+<style>
+/* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio.
+   Put this @layer first; product CSS outside the layer always wins. */
+@layer od-layout {
+  :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+  .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+  .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+  .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+  .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+  .od-fill    { flex: 1 1 0; min-width: 0; }
+  .od-fixed   { flex: none; }
+  .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+  .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+  :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+  .od-tile { display: grid; grid-template-rows: auto 1fr; }
+  :where(.od-tile) > :where(*) { display: block; }
+  .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+  .od-media-cover { object-fit: cover; }
+  .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .od-clamp-2 { -webkit-line-clamp: 2; }
+  .od-clamp-3 { -webkit-line-clamp: 3; }
+  .od-lines-2 { min-height: calc(2 * 1.4em); }
+  .od-nowrap  { white-space: nowrap; }
+  .od-keep    { word-break: keep-all; overflow-wrap: anywhere; }
+  .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+  .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+  .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+             padding-inline: var(--od-rail-pad, 16px); scroll-padding-inline: var(--od-rail-pad, 16px); }
+  .od-rail::-webkit-scrollbar { display: none; }
+  :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+  :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+  .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+  .od-touch  { min-width: 44px; min-height: 44px; }
+}
+/* /OD-LAYOUT-PRIMITIVES v1 */
+
+:root {
+  --font: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bg: #dfe7cb;
+  --sidebar: #176433;
+  --sidebar-ink: #eaf2dc;
+  --card: #ffffff;
+  --tile: #eef3de;
+  --ink: #14170f;
+  --muted: #4a4f3f;
+  --border: #b7c399;
+  --border-strong: #7f8f5c;
+  --primary: #176433;
+  --primary-ink: #ffffff;
+  --accent: #c2d65a;
+  --accent-ink: #14170f;
+  --focus: #176433;
+  --shadow: 0 1px 2px rgba(20, 23, 15, 0.06);
+  --r-sm: 8px; --r-md: 12px;
+}
+[data-theme="dark"] {
+  --bg: #1a1916;
+  --sidebar: #12110f;
+  --sidebar-ink: #e4e6dc;
+  --card: #242320;
+  --tile: #1f1e1b;
+  --ink: #f5f3ec;
+  --muted: #bdb8aa;
+  --border: #3a3832;
+  --border-strong: #8f8a7b;
+  --primary: #c2d65a;
+  --primary-ink: #14170f;
+  --accent: #c2d65a;
+  --focus: #c2d65a;
+  --shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: var(--font); background: var(--bg); color: var(--ink); line-height: 1.6; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-sm); }
+
+.app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+@media (max-width: 900px) { .app { grid-template-columns: 72px minmax(0, 1fr); } .side .labels, .side .portal-name { display: none; } }
+@media (max-width: 640px) { .app { grid-template-columns: 1fr; } .side { display: none; } }
+
+/* Sidebar */
+.side { background: var(--sidebar); color: var(--sidebar-ink); padding: 20px 14px; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 0; height: 100vh; }
+.side .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px; }
+.side .brand-mark { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; }
+.side .brand-name { font-weight: 700; font-size: 15px; line-height: 1.2; }
+.side .brand-sub { font-size: 11px; opacity: 0.8; }
+.side nav { display: flex; flex-direction: column; gap: 4px; }
+.side .nav-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; padding: 6px 10px 2px; }
+.side a.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); font-size: 14px; font-weight: 500; min-height: 44px; }
+.side a.nav-item:hover { background: rgba(255,255,255,0.08); }
+.side a.nav-item[aria-current="page"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.side .spacer { flex: 1; }
+.side .user-chip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); background: rgba(255,255,255,0.08); font-size: 13px; }
+.side .user-chip .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+
+/* Main */
+.main { padding: 24px clamp(16px, 4vw, 48px) 64px; max-width: 1120px; width: 100%; margin: 0 auto; }
+.topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.topbar .crumb { font-size: 13px; color: var(--muted); font-weight: 500; }
+.topbar .spacer { flex: 1; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600; background: var(--card); }
+.pill .dot { width: 8px; height: 8px; border-radius: 50%; background: #2e7d32; }
+[data-theme="dark"] .pill .dot { background: #c2d65a; }
+.icon-btn { width: 40px; height: 40px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card); display: grid; place-items: center; }
+.icon-btn:hover { background: var(--tile); }
+
+/* Greeting */
+.greet { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 24px; box-shadow: var(--shadow); margin-bottom: 20px; }
+.greet-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.greet .avatar-lg { width: 56px; height: 56px; border-radius: 50%; background: var(--tile); border: 1px solid var(--border); color: var(--primary); display: grid; place-items: center; font-weight: 700; font-size: 18px; }
+.greet h1 { font-size: 26px; font-weight: 700; line-height: 1.25; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.badge-active { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; background: var(--primary); color: var(--primary-ink); padding: 3px 10px; border-radius: 999px; }
+.greet p.sub { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.greet .meta-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.greet .cta { margin-left: auto; }
+.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 18px; border-radius: var(--r-sm); font-weight: 600; font-size: 14px; border: 1px solid transparent; }
+.btn-primary { background: var(--primary); color: var(--primary-ink); }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-outline { border-color: var(--border-strong); background: var(--card); }
+.btn-outline:hover { background: var(--tile); }
+
+/* Account cards */
+.section-title { font-size: 17px; font-weight: 700; margin: 28px 0 12px; display: flex; align-items: center; gap: 12px; }
+.section-title .spacer { flex: 1; }
+.accounts { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.acct { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; }
+.acct .label { font-size: 13px; color: var(--muted); font-weight: 500; }
+.acct .amount { font-size: 32px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.acct .amount.hidden-bal { letter-spacing: 0.1em; }
+.acct .sub { font-size: 13px; color: var(--muted); }
+.acct .bar { height: 8px; border-radius: 999px; background: var(--tile); border: 1px solid var(--border); overflow: hidden; }
+.acct .bar > span { display: block; height: 100%; width: 24%; background: var(--primary); border-radius: 999px; }
+.acct.feature { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+.acct.feature .label, .acct.feature .sub { color: inherit; opacity: 0.8; }
+.acct.feature .bar { background: rgba(255,255,255,0.25); border: none; }
+[data-theme="dark"] .acct.feature .bar { background: rgba(0,0,0,0.25); }
+.acct.feature .bar > span { background: var(--primary-ink); }
+.acct .foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.acct .chip { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--tile); border: 1px solid var(--border); }
+.acct.feature .chip { background: rgba(255,255,255,0.16); border: none; color: inherit; }
+
+/* Quick actions */
+.quick { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 768px) { .quick { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.quick a { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 16px; display: flex; flex-direction: column; gap: 10px; min-height: 96px; transition: background 150ms, transform 150ms; }
+.quick a:hover { background: var(--tile); }
+.quick .q-ic { width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--tile); border: 1px solid var(--border); display: grid; place-items: center; color: var(--primary); }
+.quick span.txt { font-size: 14px; font-weight: 600; }
+
+/* Two-column area */
+.cols { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow); }
+.card-h { padding: 18px 20px 0; display: flex; align-items: baseline; gap: 10px; }
+.card-h h2 { font-size: 16px; font-weight: 700; }
+.card-h .sub { font-size: 13px; color: var(--muted); }
+.tx-list { list-style: none; padding: 8px 12px 12px; }
+.tx-list li { display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-top: 1px solid var(--border); }
+.tx-list li:first-child { border-top: none; }
+.tx-ic { width: 38px; height: 38px; border-radius: 50%; background: var(--tile); border: 1px solid var(--border); display: grid; place-items: center; color: var(--primary); flex: none; }
+.tx-main { flex: 1 1 0; min-width: 0; }
+.tx-main .t { font-size: 14px; font-weight: 600; }
+.tx-main .d { font-size: 12px; color: var(--muted); }
+.tx-amt { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.tx-amt.in { color: #2e7d32; }
+[data-theme="dark"] .tx-amt.in { color: #a8d95c; }
+
+/* Loan status */
+.loan-body { padding: 8px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+.stage-path { display: flex; gap: 6px; }
+.stage-path span { flex: 1; height: 6px; border-radius: 999px; background: var(--tile); border: 1px solid var(--border); }
+.stage-path span.done { background: var(--primary); border-color: var(--primary); }
+.kv { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.kv .k { color: var(--muted); }
+.kv .v { font-weight: 600; text-align: right; }
+
+/* Detail grid */
+.details { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); padding: 16px 20px 20px; }
+.detail { background: var(--tile); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px 14px; }
+.detail .k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.detail .v { font-size: 14px; font-weight: 600; margin-top: 2px; overflow-wrap: anywhere; }
+
+/* Security banner */
+.safe { display: flex; align-items: center; gap: 14px; padding: 16px 20px; margin-top: 20px; }
+.safe .s-ic { width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--tile); color: var(--primary); display: grid; place-items: center; flex: none; }
+.safe .t { font-weight: 600; font-size: 14px; }
+.safe .s { font-size: 13px; color: var(--muted); }
+
+.mobile-nav { display: none; position: sticky; bottom: 0; background: var(--card); border-top: 1px solid var(--border); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
+@media (max-width: 640px) {
+  .mobile-nav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+  .mobile-nav a { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; padding: 6px 0; border-radius: var(--r-sm); color: var(--muted); }
+  .mobile-nav a[aria-current="page"] { color: var(--primary); font-weight: 700; }
+}
+
+/* All account activity modal */
+.mx-overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(20, 23, 15, 0.55); animation: mx-fade 200ms ease-out; }
+.mx-overlay[hidden] { display: none; }
+.mx-overlay.closing { animation: none; opacity: 0; transition: opacity 140ms ease-out; }
+.mx { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; width: min(1040px, 100%); max-height: min(86vh, 880px); background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; box-shadow: 0 18px 48px rgba(20, 23, 15, 0.28); animation: mx-pop 200ms ease-out; }
+@keyframes mx-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mx-pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mx-overlay, .mx { animation: none; } .mx-overlay.closing { transition: none; } }
+
+.mx-head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+.mx-head .t { flex: 1 1 auto; min-width: 0; }
+.mx-head h2 { font-size: 17px; font-weight: 700; line-height: 1.3; }
+.mx-head .d { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.mx-close { width: 36px; height: 36px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card); display: grid; place-items: center; flex: none; }
+.mx-close:hover { background: var(--tile); }
+
+.mx-tools { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--tile); }
+.mx-field { display: grid; gap: 4px; min-width: 0; }
+.mx-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.mx-search input { min-height: 40px; min-width: 220px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--card); color: var(--ink); font: inherit; font-size: 14px; }
+.mx-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.mx-chip { min-height: 40px; padding: 8px 14px; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--card); font-size: 13px; font-weight: 600; }
+.mx-chip:hover { background: var(--tile); }
+.mx-chip[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+.mx-rows select { min-height: 40px; padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--card); color: var(--ink); font: inherit; font-size: 14px; }
+
+.mx-body { overflow: auto; overscroll-behavior: contain; min-height: 0; }
+.mx-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+.mx-table th { position: sticky; top: 0; z-index: 1; background: var(--tile); border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 10px 14px; white-space: nowrap; }
+.mx-table th.num, .mx-table td.num { text-align: right; }
+.mx-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
+.mx-table td.wrap { white-space: normal; min-width: 150px; }
+.mx-table tbody tr:last-child td { border-bottom: none; }
+.mx-table tbody tr:hover td { background: var(--tile); }
+.mx-num { font-weight: 700; }
+.mx-amt { font-variant-numeric: tabular-nums; font-weight: 600; }
+.mx-bal { font-variant-numeric: tabular-nums; font-weight: 700; }
+.mx-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.5; white-space: nowrap; }
+.mx-badge.loan { background: var(--primary); color: var(--primary-ink); }
+.mx-badge.sec { background: var(--tile); border: 1px solid var(--border-strong); color: var(--ink); }
+.mx-view { font-weight: 700; color: var(--primary); white-space: nowrap; }
+.mx-view:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.mx-cards { display: none; list-style: none; margin: 0; padding: 0; }
+.mx-card { display: grid; gap: 8px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+.mx-card:last-child { border-bottom: none; }
+.mx-card .top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mx-card .type { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); min-width: 0; }
+.mx-card .date { font-size: 12px; color: var(--muted); flex: none; margin-left: auto; }
+.mx-card .no { font-size: 13px; font-weight: 700; }
+
+.mx-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 20px; border-top: 1px solid var(--border); background: var(--tile); font-size: 13px; color: var(--muted); }
+.mx-foot .spacer { flex: 1; }
+.mx-status { font-weight: 600; color: var(--ink); }
+.mx-pager { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mx-pg { min-width: 36px; min-height: 36px; padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--card); font-size: 13px; font-weight: 600; display: inline-grid; place-items: center; }
+.mx-pg:hover:not(:disabled) { background: var(--tile); }
+.mx-pg[aria-current="page"] { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+.mx-pg:disabled { opacity: 0.45; cursor: default; }
+.mx-pg.gap { border: none; background: none; min-width: auto; padding: 0 2px; cursor: default; }
+.pg-status { display: none; font-weight: 600; color: var(--ink); }
+
+.mx-empty { display: grid; gap: 8px; justify-items: center; padding: 48px 20px; text-align: center; }
+.mx-empty[hidden] { display: none; }
+.mx-empty .et { font-size: 15px; font-weight: 700; }
+.mx-empty p { font-size: 14px; color: var(--muted); }
+.mx-body.is-empty .mx-table, .mx-body.is-empty .mx-cards { display: none; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .mx-table th, .mx-table td { padding-inline: 10px; }
+  .mx-search input { min-width: 160px; }
+}
+@media (max-width: 767px) {
+  .mx-table { display: none; }
+  .mx-cards { display: block; }
+}
+@media (max-width: 640px) {
+  .mx-overlay { padding: 0; }
+  .mx { width: 100%; max-width: none; height: 100%; max-height: none; border-radius: 0; border: none; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  .mx-head { padding: 16px; }
+  .mx-tools { padding: 10px 16px; gap: 10px; }
+  .mx-search { flex: 1 1 100%; }
+  .mx-search input { min-width: 0; width: 100%; }
+  .mx-card { padding: 14px 16px; }
+  .mx-foot { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); text-align: center; }
+  .mx-foot .spacer { display: none; }
+  .mx-pager { display: none; }
+  .pg-status { display: block; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">M</span>
+      <span class="portal-name">
+        <span class="brand-name">MRDINC Portal</span><br />
+        <span class="brand-sub">Member online banking</span>
+      </span>
+    </div>
+    <nav aria-label="Member portal">
+      <div class="nav-label">Member Portal</div>
+      <a class="nav-item" href="#" aria-current="page">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        <span class="labels">Overview</span>
+      </a>
+      <a class="nav-item" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M5 6h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg><span class="labels">Loans</span></a>
+      <a class="nav-item" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg><span class="labels">Loan Security</span></a>
+      <a class="nav-item" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/></svg><span class="labels">Loan requests</span></a>
+      <a class="nav-item" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.4 1z"/></svg><span class="labels">Settings</span></a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="user-chip">
+      <span class="avatar">CG</span>
+      <span class="labels"><strong>cecilia.degracia</strong><br />Active member</span>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <span class="crumb">Member profile</span>
+      <span class="spacer"></span>
+      <span class="pill"><span class="dot"></span>Secure session</span>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+      </button>
+      <button class="icon-btn" aria-label="Notifications">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </div>
+
+    <section class="greet">
+      <div class="greet-row">
+        <span class="avatar-lg" aria-hidden="true">CG</span>
+        <div>
+          <h1>Hi, Cecilia. <span class="badge-active">Active</span></h1>
+          <p class="sub">Here's where your loans stand today.</p>
+        </div>
+        <div class="cta">
+          <a class="btn btn-primary" href="#">Apply for a loan</a>
+        </div>
+      </div>
+      <div class="meta-row">
+        <span class="pill">Account No: ••••3941</span>
+        <span class="pill">Username: cecilia.degracia</span>
+      </div>
+    </section>
+
+    <h2 class="section-title" style="margin-top:0">Your accounts
+      <span class="spacer"></span>
+      <button class="btn btn-outline" id="hideToggle" style="min-height:40px;padding:8px 14px" aria-pressed="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M1 1l22 22"/></svg>
+        Hide balances
+      </button>
+    </h2>
+
+    <div class="accounts">
+      <div class="acct feature">
+        <span class="label">Outstanding balance</span>
+        <span class="amount bal">PHP 343,356.00</span>
+        <div class="bar" role="img" aria-label="24 percent repaid"><span></span></div>
+        <div class="foot">
+          <span class="sub">24% repaid · next due Oct 15, 2026</span>
+          <a class="chip" href="#">View loans</a>
+        </div>
+      </div>
+      <div class="acct">
+        <span class="label">Loan security</span>
+        <span class="amount bal">PHP 94,120.00</span>
+        <span class="sub">Last transaction: 9/8/2026</span>
+        <div class="foot">
+          <span class="chip">Available for release</span>
+          <a class="chip" href="#">View loan security</a>
+        </div>
+      </div>
+      <div class="acct">
+        <span class="label">Active loans</span>
+        <span class="amount">2</span>
+        <span class="sub">1 salary loan · 1 emergency loan</span>
+        <div class="foot">
+          <span class="chip">On schedule</span>
+          <a class="chip" href="#">Loan ledger</a>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-title">Quick actions</h2>
+    <div class="quick">
+      <a href="#"><span class="q-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></span><span class="txt">New loan request</span></a>
+      <a href="#"><span class="q-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><span class="txt">Make a payment</span></a>
+      <a href="#"><span class="q-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></span><span class="txt">Statement of account</span></a>
+      <a href="#"><span class="q-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><span class="txt">Security settings</span></a>
+    </div>
+
+    <div class="cols" style="margin-top:24px">
+      <section class="card" aria-labelledby="tx-h">
+        <div class="card-h"><h2 id="tx-h">Recent activity</h2><span class="sub">Latest account actions</span>
+          <button class="btn btn-outline" id="openActivity" style="margin-left:auto;min-height:36px;padding:6px 14px;font-size:13px" aria-haspopup="dialog">Show all</button>
+        </div>
+        <ul class="tx-list">
+          <li>
+            <span class="tx-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17l5-5 5 5M7 7l5 5 5-5" transform="rotate(180 12 12)"/></svg></span>
+            <span class="tx-main"><span class="t od-truncate">Loan release — Emergency loan</span><span class="d od-truncate">Sep 8, 2026 · Ref EO-2609081</span></span>
+            <span class="tx-amt in bal">+PHP 20,000.00</span>
+          </li>
+          <li>
+            <span class="tx-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></span>
+            <span class="tx-main"><span class="t od-truncate">Loan payment posted</span><span class="d od-truncate">Aug 30, 2026 · Auto-debit</span></span>
+            <span class="tx-amt bal">−PHP 6,850.00</span>
+          </li>
+          <li>
+            <span class="tx-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
+            <span class="tx-main"><span class="t od-truncate">Service charge deducted</span><span class="d od-truncate">Aug 30, 2026 · Salary loan</span></span>
+            <span class="tx-amt bal">−PHP 1,200.00</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="card" aria-labelledby="ln-h">
+        <div class="card-h"><h2 id="ln-h">Loan request status</h2></div>
+        <div class="loan-body">
+          <span class="pill" style="align-self:flex-start">Under review · Step 2 of 4</span>
+          <div class="stage-path" aria-hidden="true"><span class="done"></span><span class="done"></span><span></span><span></span></div>
+          <div class="kv"><span class="k">Application</span><span class="v">LR-2026-0417</span></div>
+          <div class="kv"><span class="k">Amount</span><span class="v bal">PHP 50,000.00</span></div>
+          <div class="kv"><span class="k">Processor review</span><span class="v">Within 3 working days</span></div>
+          <div class="kv"><span class="k">Submitted</span><span class="v">Oct 2, 2026</span></div>
+          <a class="btn btn-outline" href="#" style="justify-content:center">Track request</a>
+        </div>
+      </section>
+    </div>
+
+    <h2 class="section-title">Profile summary</h2>
+    <section class="card" aria-label="Member details">
+      <div class="details">
+        <div class="detail"><span class="k">Member name</span><span class="v">Cecilia G. De Gracia</span></div>
+        <div class="detail"><span class="k">Username</span><span class="v">cecilia.degracia</span></div>
+        <div class="detail"><span class="k">Email</span><span class="v">degraciacecilia26@gmail.com</span></div>
+        <div class="detail"><span class="k">Phone</span><span class="v">09189673707</span></div>
+        <div class="detail"><span class="k">Account No</span><span class="v">••••3941</span></div>
+        <div class="detail"><span class="k">Created</span><span class="v">5/29/2026</span></div>
+      </div>
+    </section>
+
+    <div class="card safe">
+      <span class="s-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+      <div class="od-fill">
+        <div class="t">Stay safe</div>
+        <div class="s">WIBS never asks for your password by phone or email.</div>
+      </div>
+      <a class="btn btn-outline" href="#" style="min-height:40px;padding:8px 14px">Review security settings</a>
+    </div>
+  </main>
+</div>
+
+<nav class="mobile-nav" aria-label="Primary">
+  <a href="#" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Overview</a>
+  <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M5 6h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg>Loans</a>
+  <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg>Security</a>
+  <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v15H6z"/></svg>Requests</a>
+  <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profile</a>
+</nav>
+
+<div class="mx-overlay" id="mxOverlay" hidden>
+  <div class="mx" role="dialog" aria-modal="true" aria-labelledby="mxTitle" aria-describedby="mxDesc">
+    <header class="mx-head">
+      <div class="t">
+        <h2 id="mxTitle">All account activity</h2>
+        <p class="d" id="mxDesc">Latest loan and loan security movements.</p>
+      </div>
+      <button class="mx-close" id="mxClose" aria-label="Close all account activity">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </header>
+
+    <div class="mx-tools">
+      <div class="mx-field mx-search">
+        <label class="mx-lbl" for="mxSearch">Search</label>
+        <input id="mxSearch" type="search" placeholder="Number or type" autocomplete="off" />
+      </div>
+      <div class="mx-field">
+        <span class="mx-lbl" id="mxSrcLbl">Source</span>
+        <div class="mx-chips" role="group" aria-labelledby="mxSrcLbl">
+          <button type="button" class="mx-chip" data-src="all" aria-pressed="true">All</button>
+          <button type="button" class="mx-chip" data-src="LOAN" aria-pressed="false">Loan</button>
+          <button type="button" class="mx-chip" data-src="SAV" aria-pressed="false">Loan Security</button>
+        </div>
+      </div>
+      <div class="mx-field mx-rows">
+        <label class="mx-lbl" for="mxPerPage">Rows</label>
+        <select id="mxPerPage">
+          <option value="5" selected>5 per page</option>
+          <option value="10">10 per page</option>
+          <option value="25">25 per page</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="mx-body" id="mxBody">
+      <table class="mx-table" aria-label="All account activity">
+        <thead>
+          <tr>
+            <th scope="col">Number</th>
+            <th scope="col">Date</th>
+            <th scope="col">Type</th>
+            <th scope="col">Source</th>
+            <th scope="col" class="num">Amount</th>
+            <th scope="col" class="num">Balance</th>
+            <th scope="col" class="num"><span class="sr-only">View</span></th>
+          </tr>
+        </thead>
+        <tbody id="mxTbody"></tbody>
+      </table>
+      <ul class="mx-cards" id="mxCards" aria-label="All account activity"></ul>
+      <div class="mx-empty" id="mxEmpty" hidden>
+        <span class="et">No matching activity</span>
+        <p>Try a different search, or clear the filters.</p>
+        <button type="button" class="btn btn-outline" id="mxClear" style="min-height:40px;padding:8px 14px">Clear filters</button>
+      </div>
+    </div>
+
+    <footer class="mx-foot">
+      <span class="mx-status" id="mxStatus" aria-live="polite">Showing 1–5 of 198 transactions</span>
+      <span class="pg-status" id="mxPgStatus">Page 1 of 40</span>
+      <span class="spacer"></span>
+      <nav class="mx-pager" id="mxPager" aria-label="Account activity pagination"></nav>
+    </footer>
+  </div>
+</div>
+
+<script>
+(function () {
+  var html = document.documentElement;
+  var themeBtn = document.getElementById('themeToggle');
+  themeBtn.addEventListener('click', function () {
+    html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+
+  var hideBtn = document.getElementById('hideToggle');
+  var hidden = false;
+  function syncMask() {
+    document.querySelectorAll('.bal').forEach(function (n) {
+      if (!n.dataset.orig) n.dataset.orig = n.textContent;
+      if (hidden) {
+        n.textContent = n.dataset.orig.indexOf('PHP') === 0 ? 'PHP ••••••' : '••••••';
+        n.classList.add('hidden-bal');
+      } else {
+        n.textContent = n.dataset.orig;
+        n.classList.remove('hidden-bal');
+      }
+    });
+  }
+  hideBtn.addEventListener('click', function () {
+    hidden = !hidden;
+    hideBtn.setAttribute('aria-pressed', String(hidden));
+    hideBtn.lastChild.textContent = hidden ? ' Show balances' : ' Hide balances';
+    syncMask();
+  });
+
+  /* ————— All account activity modal ————— */
+
+  function fmtMoney(n) {
+    return 'PHP ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // 198 rows: first five match the live ledger, the rest seeded so the demo is stable.
+  var TX = [
+    { no: 'LN0102-001475', date: '9/8/2026', type: 'MICRO BUSINESS LOAN', src: 'LOAN', amt: 0, bal: 154057 },
+    { no: 'SV0101-000059', date: '9/8/2026', type: 'LOAN SECURITY', src: 'SAV', amt: 417, bal: 94120 },
+    { no: 'LN0102-001393', date: '9/7/2026', type: 'MICRO BUSINESS LOAN', src: 'LOAN', amt: 0, bal: 139299 },
+    { no: 'SV0101-000059', date: '9/7/2026', type: 'LOAN SECURITY', src: 'SAV', amt: 417, bal: 93703 },
+    { no: 'LN0102-001736', date: '8/14/2026', type: 'MICRO BUSINESS LOAN', src: 'LOAN', amt: 50000, bal: 50000 }
+  ];
+  (function buildRows() {
+    var s = 20260908 >>> 0;
+    function rnd() { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }
+    function pick(a) { return a[Math.floor(rnd() * a.length)]; }
+
+    var loanTypes = ['MICRO BUSINESS LOAN', 'SALARY LOAN', 'EMERGENCY LOAN'];
+    var loanPrefix = { 'MICRO BUSINESS LOAN': 'LN0102', 'SALARY LOAN': 'LN0101', 'EMERGENCY LOAN': 'LN0101' };
+    var usedNo = { 'LN0102-001475': 1, 'LN0102-001393': 1, 'LN0102-001736': 1 };
+    var loans = []; // open loans reused across rows so numbers repeat like the real ledger
+
+    function nextLoanNo(type) {
+      var key = loanPrefix[type];
+      for (var i = 0; i < 40; i++) {
+        var no = key + '-' + String(Math.floor(rnd() * 9000) + 1000).padStart(6, '0');
+        if (!usedNo[no]) { usedNo[no] = 1; return no; }
+      }
+      return key + '-' + String(Math.floor(rnd() * 900000) + 100000);
+    }
+
+    var END = Date.UTC(2026, 7, 13);   // newest generated row: 8/13/2026
+    var FLOOR = Date.UTC(2026, 4, 29); // member created: 5/29/2026
+    var totalDays = Math.round((END - FLOOR) / 86400000); // 76
+    var N = 193; // 198 total
+    var loanBal = 46000;
+    var savBal = 50400;
+
+    for (var i = 0; i < N; i++) {
+      var t = i / (N - 1);
+      var d = new Date(FLOOR + Math.round(t * totalDays) * 86400000);
+      var date = (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + '/' + d.getUTCFullYear();
+      var r = rnd();
+      var row;
+
+      if (r < 0.3) {
+        var dep = 417;
+        savBal += dep;
+        row = { no: 'SV0101-000059', date: date, type: 'LOAN SECURITY', src: 'SAV', amt: dep, bal: savBal };
+      } else {
+        var type = pick(loanTypes);
+        var loan;
+        if (loans.length && rnd() < 0.62) {
+          loan = pick(loans);
+        } else {
+          loan = { no: nextLoanNo(type), type: type, bal: 0 };
+          loans.push(loan);
+        }
+        var amt = 0;
+        var k = rnd();
+        if (loan.bal === 0) { amt = pick([10000, 20000, 30000, 50000]); loan.bal = amt; }
+        else if (k < 0.55) { amt = pick([417, 1200, 2500, 4800, 6850, 12000]); loan.bal = Math.max(0, loan.bal - amt); }
+        else if (k < 0.7) { amt = pick([15000, 30000, 50000]); loan.bal += amt; }
+        else { amt = 0; }
+        row = { no: loan.no, date: date, type: loan.type, src: 'LOAN', amt: amt, bal: loan.bal };
+      }
+      TX.push(row);
+    }
+  })();
+
+  var overlay = document.getElementById('mxOverlay');
+  var mxBody = document.getElementById('mxBody');
+  var mxTbody = document.getElementById('mxTbody');
+  var mxCards = document.getElementById('mxCards');
+  var mxEmpty = document.getElementById('mxEmpty');
+  var mxStatus = document.getElementById('mxStatus');
+  var mxPgStatus = document.getElementById('mxPgStatus');
+  var mxPager = document.getElementById('mxPager');
+  var mxSearch = document.getElementById('mxSearch');
+  var mxPerPage = document.getElementById('mxPerPage');
+  var mxChips = Array.prototype.slice.call(document.querySelectorAll('.mx-chip'));
+  var trigger = document.getElementById('openActivity');
+  var lastFocus = null;
+  var page = 1, perPage = 5, query = '', srcFilter = 'all';
+
+  function filtered() {
+    var q = query.trim().toLowerCase();
+    return TX.filter(function (r) {
+      if (srcFilter !== 'all' && r.src !== srcFilter) return false;
+      if (q && (r.no + ' ' + r.type).toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  function badge(src) {
+    return src === 'SAV'
+      ? '<span class="mx-badge sec">Loan Security</span>'
+      : '<span class="mx-badge loan">Loan</span>';
+  }
+  function viewHref(r) {
+    return r.src === 'SAV' ? 'statement-of-account.html' : 'loan-payments-improved.html';
+  }
+
+  function render() {
+    var list = filtered();
+    var total = list.length;
+    var pages = Math.max(1, Math.ceil(total / perPage));
+    if (page > pages) page = pages;
+    if (page < 1) page = 1;
+    var from = (page - 1) * perPage;
+    var slice = list.slice(from, from + perPage);
+    var empty = total === 0;
+
+    mxEmpty.hidden = !empty;
+    mxBody.classList.toggle('is-empty', empty);
+
+    var trs = '', cards = '';
+    slice.forEach(function (r) {
+      var href = viewHref(r);
+      var label = r.src === 'SAV' ? 'Loan Security' : 'Loan';
+      trs += '<tr>' +
+        '<td class="mx-num">' + esc(r.no) + '</td>' +
+        '<td>' + esc(r.date) + '</td>' +
+        '<td class="wrap">' + esc(r.type) + '</td>' +
+        '<td>' + badge(r.src) + '</td>' +
+        '<td class="num mx-amt bal">' + fmtMoney(r.amt) + '</td>' +
+        '<td class="num mx-bal bal">' + fmtMoney(r.bal) + '</td>' +
+        '<td class="num"><a class="mx-view" href="' + href + '" aria-label="View ' + esc(r.no) + ' details">View</a></td>' +
+        '</tr>';
+      cards += '<li class="mx-card">' +
+        '<div class="top">' + badge(r.src) + '<span class="type od-truncate">' + esc(r.type) + '</span><span class="date">' + esc(r.date) + '</span></div>' +
+        '<div class="no od-truncate">' + esc(r.no) + '</div>' +
+        '<div class="od-row">' +
+          '<span class="od-stat od-fill"><span class="mx-lbl">Amount</span><span class="mx-amt bal">' + fmtMoney(r.amt) + '</span></span>' +
+          '<span class="od-stat od-fill"><span class="mx-lbl">Balance</span><span class="mx-bal bal">' + fmtMoney(r.bal) + '</span></span>' +
+          '<a class="mx-view od-fixed" href="' + href + '" aria-label="View ' + esc(r.no) + ' details">View</a>' +
+        '</div>' +
+        '</li>';
+    });
+    mxTbody.innerHTML = trs;
+    mxCards.innerHTML = cards;
+
+    mxStatus.textContent = empty
+      ? 'No matching transactions'
+      : 'Showing ' + (from + 1) + '–' + (from + slice.length) + ' of ' + total + ' transactions';
+    mxPgStatus.textContent = 'Page ' + page + ' of ' + pages;
+
+    renderPager(pages);
+    syncMask();
+  }
+
+  function renderPager(pages) {
+    var out = '<button type="button" class="mx-pg" data-page="prev"' + (page <= 1 ? ' disabled' : '') + '>Prev</button>';
+    var add = function (n) {
+      out += '<button type="button" class="mx-pg" data-page="' + n + '"' +
+        (n === page ? ' aria-current="page"' : '') + '>' + n + '</button>';
+    };
+    var gap = function () { out += '<span class="mx-pg gap" aria-hidden="true">…</span>'; };
+    if (pages <= 7) {
+      for (var n = 1; n <= pages; n++) add(n);
+    } else {
+      add(1);
+      if (page > 3) gap();
+      for (var p = Math.max(2, page - 1); p <= Math.min(pages - 1, page + 1); p++) add(p);
+      if (page < pages - 2) gap();
+      add(pages);
+    }
+    out += '<button type="button" class="mx-pg" data-page="next"' + (page >= pages ? ' disabled' : '') + '>Next</button>';
+    mxPager.innerHTML = out;
+  }
+
+  function openModal() {
+    lastFocus = document.activeElement;
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+    render();
+    document.getElementById('mxClose').focus();
+  }
+  function closeModal() {
+    if (overlay.hidden) return;
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  trigger.addEventListener('click', openModal);
+  document.getElementById('mxClose').addEventListener('click', closeModal);
+  document.getElementById('mxClear').addEventListener('click', function () {
+    query = ''; srcFilter = 'all'; page = 1;
+    mxSearch.value = '';
+    mxChips.forEach(function (c) { c.setAttribute('aria-pressed', String(c.dataset.src === 'all')); });
+    render();
+    mxSearch.focus();
+  });
+  overlay.addEventListener('mousedown', function (e) { if (e.target === overlay) closeModal(); });
+
+  mxPager.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-page]');
+    if (!b || b.disabled) return;
+    var v = b.dataset.page;
+    var pages = Math.max(1, Math.ceil(filtered().length / perPage));
+    if (v === 'prev') page--;
+    else if (v === 'next') page++;
+    else page = parseInt(v, 10);
+    if (page < 1) page = 1;
+    if (page > pages) page = pages;
+    render();
+  });
+
+  mxSearch.addEventListener('input', function () { query = mxSearch.value; page = 1; render(); });
+  mxPerPage.addEventListener('change', function () { perPage = parseInt(mxPerPage.value, 10) || 5; page = 1; render(); });
+  mxChips.forEach(function (c) {
+    c.addEventListener('click', function () {
+      srcFilter = c.dataset.src;
+      page = 1;
+      mxChips.forEach(function (o) { o.setAttribute('aria-pressed', String(o === c)); });
+      render();
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (overlay.hidden) return;
+    if (e.key === 'Escape') { closeModal(); return; }
+    if (e.key !== 'Tab') return;
+    var f = overlay.querySelectorAll('a[href], button:not([disabled]), input, select');
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    else if (!overlay.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  });
+})();
+</script>
+</body>
+</html>

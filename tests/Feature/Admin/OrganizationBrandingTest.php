@@ -5,6 +5,7 @@ use App\Models\AppUser;
 use App\Models\OrganizationSetting;
 use App\Services\OrganizationSettingsService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -113,6 +114,9 @@ test('superadmin can update organization branding logo and name', function () {
             'support_contact_name' => 'Support Team',
             'support_email' => 'support@acme.test',
             'support_phone' => '+15551231234',
+            'business_tin' => '123-456-789-000',
+            'registration_no' => 'CDA-0001',
+            'payment_instructions' => 'Pay at any branch.',
             'brand_primary_color' => '#112233',
             'brand_accent_color' => '#445566',
         ],
@@ -131,6 +135,9 @@ test('superadmin can update organization branding logo and name', function () {
     expect($setting->support_contact_name)->toBe('Support Team');
     expect($setting->support_email)->toBe('support@acme.test');
     expect($setting->support_phone)->toBe('+15551231234');
+    expect($setting->business_tin)->toBe('123-456-789-000');
+    expect($setting->registration_no)->toBe('CDA-0001');
+    expect($setting->payment_instructions)->toBe('Pay at any branch.');
     expect($setting->brand_primary_color)->toBe('#112233');
     expect($setting->brand_accent_color)->toBe('#445566');
 
@@ -496,4 +503,137 @@ test('superadmin can reset logo mark and full to defaults', function () {
 
     Storage::disk('public')->assertMissing($markPath);
     Storage::disk('public')->assertMissing($fullPath);
+});
+
+test('brand palette is normalized, filtered to known keys, and shared', function () {
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $this->actingAs($admin)->patch(
+        route('admin.settings.organization.update'),
+        [
+            'company_name' => 'Acme Cooperative',
+            'brand_palette' => [
+                'card' => 'ABC',
+                'sidebar' => '#112233',
+                'success' => '',
+                'unknown' => '#ffffff',
+            ],
+        ],
+    )->assertRedirect(route('admin.settings.organization'));
+
+    expect(OrganizationSetting::query()->first()->brand_palette)
+        ->toBe(['card' => '#aabbcc', 'sidebar' => '#112233']);
+
+    $this->actingAs($admin)
+        ->get(route('admin.settings.organization'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('branding.brandPalette.card', '#aabbcc')
+            ->where('branding.brandPalette.sidebar', '#112233')
+            ->where('branding.brandPalette.success', null));
+});
+
+test('brand palette validation rejects invalid hex values', function () {
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $this->actingAs($admin)->patch(
+        route('admin.settings.organization.update'),
+        [
+            'company_name' => 'Acme Cooperative',
+            'brand_palette' => ['danger' => 'not-a-color'],
+        ],
+    )->assertSessionHasErrors(['brand_palette.danger']);
+});
+
+test('saving without a palette keeps the saved palette', function () {
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+    OrganizationSetting::factory()->create([
+        'brand_palette' => ['info' => '#123456'],
+    ]);
+
+    $this->actingAs($admin)->patch(
+        route('admin.settings.organization.update'),
+        ['company_name' => 'Acme Cooperative'],
+    )->assertRedirect(route('admin.settings.organization'));
+
+    expect(OrganizationSetting::query()->first()->brand_palette)
+        ->toBe(['info' => '#123456']);
+});
+
+test('extra organization settings persist, validate, and show who saved last', function () {
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $this->actingAs($admin)->patch(route('admin.settings.organization.update'), [
+        'company_name' => 'Acme Cooperative',
+        'short_name' => 'ACME',
+        'timezone' => 'UTC',
+        'statement_currency' => 'USD',
+        'report_footer' => 'Member copy only',
+        'report_footer_enabled' => '0',
+        'service_hours' => 'Mon-Fri 8-5',
+        'loan_sms_approved_enabled' => '0',
+        'loan_sms_declined_enabled' => '1',
+        'sms_send_window' => '7am-8pm-daily',
+        'brand_palette' => ['ink' => '#101010'],
+    ])->assertRedirect(route('admin.settings.organization'));
+
+    $setting = OrganizationSetting::query()->first();
+
+    expect($setting->short_name)->toBe('ACME')
+        ->and($setting->timezone)->toBe('UTC')
+        ->and($setting->statement_currency)->toBe('USD')
+        ->and($setting->report_footer_enabled)->toBeFalse()
+        ->and($setting->loan_sms_approved_enabled)->toBeFalse()
+        ->and($setting->sms_send_window)->toBe('7am-8pm-daily')
+        ->and($setting->updated_by)->toBe($admin->user_id);
+
+    $this->actingAs($admin)->get(route('admin.settings.organization'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('lastSaved.by', $admin->username)
+            ->where('branding.shortName', 'ACME')
+            ->where('branding.reportFooter', null)
+            ->where('branding.reportFooterText', 'Member copy only')
+            ->where('branding.loanSmsEnabled.approved', false)
+            ->where('branding.brandPalette.ink', '#101010'));
+});
+
+test('extra organization settings reject unsupported values', function () {
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $this->actingAs($admin)->patch(route('admin.settings.organization.update'), [
+        'company_name' => 'Acme Cooperative',
+        'timezone' => 'Mars/Base',
+        'statement_currency' => 'EUR',
+        'sms_send_window' => 'whenever',
+    ])->assertSessionHasErrors(['timezone', 'statement_currency', 'sms_send_window']);
+});
+
+test('report footer is exposed to documents only while enabled', function () {
+    OrganizationSetting::factory()->create([
+        'report_footer' => 'Member copy only',
+        'report_footer_enabled' => true,
+    ]);
+
+    expect(app(OrganizationSettingsService::class)->branding()['reportHeader']['footer'])
+        ->toBe('Member copy only');
+
+    OrganizationSetting::query()->update(['report_footer_enabled' => false]);
+    Cache::flush(); // cache key is per-second updated_at
+
+    expect(app(OrganizationSettingsService::class)->branding()['reportHeader']['footer'])
+        ->toBeNull();
 });
