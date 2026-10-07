@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { CalendarClock, CreditCard, WalletCards } from 'lucide-react';
+import { CalendarClock, CreditCard } from 'lucide-react';
 import { useMemo } from 'react';
 import { MemberMobileCardSkeleton } from '@/components/member-mobile-card';
 import { MemberRecordsCard } from '@/components/member-records-card';
@@ -185,17 +185,6 @@ export function MemberLoanRecordsCard({
                                 icon={CreditCard}
                                 disabled={
                                     !canNavigate || !row.original.lnnumber
-                                }
-                            />
-                            <LoanActionButton
-                                href={paymentsHref}
-                                label="Pay Now"
-                                icon={WalletCards}
-                                disabled={
-                                    !canNavigate ||
-                                    !row.original.lnnumber ||
-                                    !row.original.balance ||
-                                    row.original.balance <= 0
                                 }
                             />
                         </div>
