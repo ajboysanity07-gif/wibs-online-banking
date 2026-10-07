@@ -5,11 +5,8 @@ import { DateInputWithPicker } from '@/components/loan-request/date-input-with-p
 import { LoanRequestActivityTab } from '@/components/loan-request/loan-request-activity-tab';
 import { LoanRequestApplicantSnapshot } from '@/components/loan-request/loan-request-applicant-snapshot';
 import { LoanRequestAttentionCard } from '@/components/loan-request/loan-request-attention-card';
-import {
-    LoanRequestLoanInformationCard,
-    displayText,
-    personName,
-} from '@/components/loan-request/loan-request-detail-page';
+import { LoanRequestDetailView } from '@/components/loan-request/loan-request-detail';
+import { LoanRequestLoanInformationCard } from '@/components/loan-request/loan-request-detail-page';
 import {
     displayChecklistStatusTone,
     LoanRequestDocumentChecklistCard,
@@ -19,10 +16,6 @@ import {
     LoanRequestWorkFields,
 } from '@/components/loan-request/loan-request-fields';
 import { LoanRequestRecommendationSummary } from '@/components/loan-request/loan-request-recommendation-summary';
-import {
-    LoanRequestRecordHeader,
-    type RecordHeaderFigure,
-} from '@/components/loan-request/loan-request-record-header';
 import {
     LoanRequestApplicantPanel,
     LoanRequestCoMakerCard,
@@ -52,7 +45,6 @@ import {
 import {
     ProcessingDetailsPanel,
     type RecommendationPreviewState,
-    snapshotPercent,
     textareaClassName,
     toStringValue,
 } from '@/components/loan-request/processing-details-panel';
@@ -90,7 +82,7 @@ import { useApprovedDocumentPackageDownload } from '@/hooks/loan-request/use-app
 import AppLayout from '@/layouts/app-layout';
 import { adminApi } from '@/lib/api/admin';
 import { staffApprovedDocumentPackageApi } from '@/lib/api/approved-document-package';
-import { formatCurrency, formatDateTime } from '@/lib/formatters';
+import { formatDateTime } from '@/lib/formatters';
 import { institutionalEmployerCategoryMismatch } from '@/lib/institutional-employer-category';
 import { buildAttentionRows } from '@/lib/loan-request-attention';
 import {
@@ -1214,53 +1206,6 @@ export default function StaffLoanRequestShow({
             : null;
 
     const documentCounts = documentPackageCounts(currentDocumentChecklist);
-    const loanName =
-        currentRequest.other_loan_type_name ?? currentRequest.kind_of_loan;
-    const toAmount = (value: number | string | null) =>
-        value === null || `${value}`.trim() === '' ? null : Number(value);
-    const processingAgeDays = currentWorkflowHealth.processing_age_days;
-    const headerTerm =
-        currentRequest.recommended_term ?? currentRequest.requested_term;
-    const headerFigures: RecordHeaderFigure[] = [
-        {
-            label: 'Requested',
-            value: formatCurrency(toAmount(currentRequest.requested_amount)),
-        },
-        {
-            label: 'Recommended',
-            value: formatCurrency(toAmount(currentRequest.recommended_amount)),
-        },
-        {
-            label: 'Term · rate',
-            value: `${headerTerm === null ? '--' : `${headerTerm} mo`} · ${snapshotPercent(currentRequest.recommended_interest_rate)}`,
-        },
-        {
-            // Mirrored from the Processing details panel preview; no second formula.
-            label: 'Net proceeds',
-            value: formatCurrency(processingPreview?.net_proceeds_raw ?? null),
-            tone: 'primary',
-        },
-        {
-            label: 'Processing age',
-            value: `${processingAgeDays === null ? '-' : `${processingAgeDays}d`} of ${PROCESSING_AGE_ISSUE_THRESHOLD_DAYS}d`,
-            tone:
-                processingAgeDays !== null &&
-                processingAgeDays >= PROCESSING_AGE_ISSUE_THRESHOLD_DAYS
-                    ? 'destructive'
-                    : undefined,
-        },
-        {
-            label: 'Assigned to',
-            value:
-                normalizedAssignedProcessorId === null
-                    ? 'Unassigned'
-                    : normalizedAssignedProcessorId === normalizedActorUserId
-                      ? 'You'
-                      : (currentRequest.assigned_processor?.name ??
-                        currentRequest.assigned_officer?.name ??
-                        'Assigned processor'),
-        },
-    ];
 
     const workflowProps: LoanRequestWorkflowProps = {
         claim:
@@ -1479,196 +1424,156 @@ export default function StaffLoanRequestShow({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            <LoanRequestRecordHeader
-                eyebrow={`Loan request · ${displayText(
-                    currentRequest.loan_type_label_snapshot,
-                )}${loanName ? ` (${loanName})` : ''}`}
-                reference={currentRequest.reference}
-                status={currentRequest.status}
+            <LoanRequestDetailView
+                loanRequest={currentRequest}
+                auditTrail={currentAuditTrail}
+                releaseMethod={`${banking.release_method ?? ''}`}
+                repaymentMethod={`${banking.payment_option ?? ''}`}
+                backHref={requestsIndex().url}
+                pdfHref={pdfHref}
+                applicant={currentApplicant}
+                coMakerOne={currentCoMakerOne}
+                coMakerTwo={currentCoMakerTwo}
                 previousStatus={cancelledFromStatus}
-                applicantName={personName(currentApplicant)}
-                figures={headerFigures}
-            >
-                <LoanRequestWorkflowActions
-                    layout="header"
-                    loanRequest={currentRequest}
-                    workflow={workflowProps}
-                    memberAction={{
-                        show: canRequestMemberAction,
-                        onSelect: () => setIsMemberActionDialogOpen(true),
-                    }}
-                    recommendBlockedReason={blockedReason}
-                    openRecommendSignal={openRecommendSignal}
-                />
-            </LoanRequestRecordHeader>
-            <section className="mx-auto my-5 w-full max-w-[1440px] px-4 sm:px-6 lg:px-8">
-                <div className="grid items-start gap-[18px] lg:grid-cols-[210px_minmax(0,1fr)] xl:grid-cols-[210px_minmax(0,1fr)_320px]">
-                    <LoanRequestReviewTabs
-                        tab={tab}
-                        onSelect={setTab}
-                        badges={{
-                            signatories: signatoryMissing
-                                ? { label: '!', tone: 'destructive' }
-                                : null,
-                            docs:
-                                documentCounts.total > 0
-                                    ? {
-                                          label: `${documentCounts.current}/${documentCounts.total}`,
-                                          tone:
-                                              documentCounts.current ===
-                                              documentCounts.total
-                                                  ? 'success'
-                                                  : 'warning',
-                                      }
-                                    : null,
-                            history: {
-                                label: `${currentAuditTrail.length}`,
-                                tone: 'muted',
-                            },
+                headerActions={
+                    <LoanRequestWorkflowActions
+                        layout="header"
+                        loanRequest={currentRequest}
+                        workflow={workflowProps}
+                        memberAction={{
+                            show: canRequestMemberAction,
+                            onSelect: () => setIsMemberActionDialogOpen(true),
                         }}
+                        recommendBlockedReason={blockedReason}
+                        openRecommendSignal={openRecommendSignal}
                     />
-                    <div className="min-w-0">
-                        <ReviewTabPanel id="summary" tab={tab}>
-                            {summaryAttentionRows.length > 0 ? (
-                                <LoanRequestAttentionCard
-                                    rows={summaryAttentionRows}
-                                    blockingCount={attention.blockingCount}
-                                    loanStatus={
-                                        currentRequest.applicant_loan_status
-                                    }
-                                    onAction={(key) => {
-                                        if (key === 'edit-category') {
-                                            setProcessingEditSignal(
-                                                (n) => n + 1,
-                                            );
-                                            goToTab(
-                                                'terms',
-                                                'processing-details',
-                                            );
-                                        } else {
-                                            goToTab(
-                                                'docs',
-                                                'document-checklist',
-                                            );
+                }
+            >
+                <section className="w-full">
+                    <div className="grid items-start gap-[18px] lg:grid-cols-[210px_minmax(0,1fr)] xl:grid-cols-[210px_minmax(0,1fr)_320px]">
+                        <LoanRequestReviewTabs
+                            tab={tab}
+                            onSelect={setTab}
+                            badges={{
+                                signatories: signatoryMissing
+                                    ? { label: '!', tone: 'destructive' }
+                                    : null,
+                                docs:
+                                    documentCounts.total > 0
+                                        ? {
+                                              label: `${documentCounts.current}/${documentCounts.total}`,
+                                              tone:
+                                                  documentCounts.current ===
+                                                  documentCounts.total
+                                                      ? 'success'
+                                                      : 'warning',
+                                          }
+                                        : null,
+                                history: {
+                                    label: `${currentAuditTrail.length}`,
+                                    tone: 'muted',
+                                },
+                            }}
+                        />
+                        <div className="min-w-0">
+                            <ReviewTabPanel id="summary" tab={tab}>
+                                {summaryAttentionRows.length > 0 ? (
+                                    <LoanRequestAttentionCard
+                                        rows={summaryAttentionRows}
+                                        blockingCount={attention.blockingCount}
+                                        loanStatus={
+                                            currentRequest.applicant_loan_status
                                         }
-                                    }}
-                                />
-                            ) : null}
-                            {showProcessingSection ? (
-                                <LoanRequestRecommendationSummary
-                                    loanRequest={currentRequest}
-                                    applicant={currentApplicant}
-                                    processing={
-                                        currentDataSections.processing ?? {}
-                                    }
-                                    preview={processingPreview}
-                                    categoryConfirmation={
-                                        categoryCondition
-                                            ? {
-                                                  verified:
-                                                      categoryCondition.verified,
-                                                  by: categoryCondition.verified_by,
-                                              }
-                                            : null
-                                    }
-                                />
-                            ) : null}
-                            <div className="grid gap-4">
-                                {editingSection === 'loan_request' ? (
-                                    <LoanRequestSectionCard
-                                        title="Request details"
-                                        description="Update the verified request details used throughout the document package."
-                                        workspace
-                                        className="col-span-full"
-                                    >
-                                        <form
-                                            className="space-y-6"
-                                            onSubmit={submitLoanInfoCorrection}
+                                        onAction={(key) => {
+                                            if (key === 'edit-category') {
+                                                setProcessingEditSignal(
+                                                    (n) => n + 1,
+                                                );
+                                                goToTab(
+                                                    'terms',
+                                                    'processing-details',
+                                                );
+                                            } else {
+                                                goToTab(
+                                                    'docs',
+                                                    'document-checklist',
+                                                );
+                                            }
+                                        }}
+                                    />
+                                ) : null}
+                                {showProcessingSection ? (
+                                    <LoanRequestRecommendationSummary
+                                        loanRequest={currentRequest}
+                                        applicant={currentApplicant}
+                                        processing={
+                                            currentDataSections.processing ?? {}
+                                        }
+                                        preview={processingPreview}
+                                        categoryConfirmation={
+                                            categoryCondition
+                                                ? {
+                                                      verified:
+                                                          categoryCondition.verified,
+                                                      by: categoryCondition.verified_by,
+                                                  }
+                                                : null
+                                        }
+                                    />
+                                ) : null}
+                                <div className="grid gap-4">
+                                    {editingSection === 'loan_request' ? (
+                                        <LoanRequestSectionCard
+                                            title="Request details"
+                                            description="Update the verified request details used throughout the document package."
+                                            workspace
+                                            className="col-span-full"
                                         >
-                                            <div className="grid gap-4 md:grid-cols-2">
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="loan_info_typecode">
-                                                        Loan type
-                                                    </Label>
-                                                    <Select
-                                                        value={
-                                                            loanInfoForm.typecode ||
-                                                            undefined
-                                                        }
-                                                        onValueChange={(
-                                                            value,
-                                                        ) =>
-                                                            updateLoanInfoType(
-                                                                value,
-                                                            )
-                                                        }
-                                                    >
-                                                        <SelectTrigger
-                                                            id="loan_info_typecode"
-                                                            className="w-full"
-                                                        >
-                                                            <SelectValue placeholder="Select loan type" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {loanTypes.map(
-                                                                (option) => (
-                                                                    <SelectItem
-                                                                        key={
-                                                                            option.typecode
-                                                                        }
-                                                                        value={
-                                                                            option.typecode
-                                                                        }
-                                                                    >
-                                                                        {
-                                                                            option.label
-                                                                        }
-                                                                    </SelectItem>
-                                                                ),
-                                                            )}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                {isLoanInfoMicroBusinessLoan && (
+                                            <form
+                                                className="space-y-6"
+                                                onSubmit={
+                                                    submitLoanInfoCorrection
+                                                }
+                                            >
+                                                <div className="grid gap-4 md:grid-cols-2">
                                                     <div className="grid gap-2">
-                                                        <Label htmlFor="loan_info_kind_of_loan">
-                                                            Kind of loan
+                                                        <Label htmlFor="loan_info_typecode">
+                                                            Loan type
                                                         </Label>
                                                         <Select
                                                             value={
-                                                                loanInfoForm.kind_of_loan ||
+                                                                loanInfoForm.typecode ||
                                                                 undefined
                                                             }
                                                             onValueChange={(
                                                                 value,
                                                             ) =>
-                                                                updateLoanInfoField(
-                                                                    'kind_of_loan',
+                                                                updateLoanInfoType(
                                                                     value,
                                                                 )
                                                             }
                                                         >
                                                             <SelectTrigger
-                                                                id="loan_info_kind_of_loan"
+                                                                id="loan_info_typecode"
                                                                 className="w-full"
                                                             >
-                                                                <SelectValue placeholder="Select kind of loan" />
+                                                                <SelectValue placeholder="Select loan type" />
                                                             </SelectTrigger>
                                                             <SelectContent>
-                                                                {KIND_OF_LOAN_OPTIONS.map(
+                                                                {loanTypes.map(
                                                                     (
                                                                         option,
                                                                     ) => (
                                                                         <SelectItem
                                                                             key={
-                                                                                option
+                                                                                option.typecode
                                                                             }
                                                                             value={
-                                                                                option
+                                                                                option.typecode
                                                                             }
                                                                         >
                                                                             {
-                                                                                option
+                                                                                option.label
                                                                             }
                                                                         </SelectItem>
                                                                     ),
@@ -1676,288 +1581,494 @@ export default function StaffLoanRequestShow({
                                                             </SelectContent>
                                                         </Select>
                                                     </div>
-                                                )}
-                                                {isLoanInfoOtherLoan && (
+                                                    {isLoanInfoMicroBusinessLoan && (
+                                                        <div className="grid gap-2">
+                                                            <Label htmlFor="loan_info_kind_of_loan">
+                                                                Kind of loan
+                                                            </Label>
+                                                            <Select
+                                                                value={
+                                                                    loanInfoForm.kind_of_loan ||
+                                                                    undefined
+                                                                }
+                                                                onValueChange={(
+                                                                    value,
+                                                                ) =>
+                                                                    updateLoanInfoField(
+                                                                        'kind_of_loan',
+                                                                        value,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <SelectTrigger
+                                                                    id="loan_info_kind_of_loan"
+                                                                    className="w-full"
+                                                                >
+                                                                    <SelectValue placeholder="Select kind of loan" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {KIND_OF_LOAN_OPTIONS.map(
+                                                                        (
+                                                                            option,
+                                                                        ) => (
+                                                                            <SelectItem
+                                                                                key={
+                                                                                    option
+                                                                                }
+                                                                                value={
+                                                                                    option
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    option
+                                                                                }
+                                                                            </SelectItem>
+                                                                        ),
+                                                                    )}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    )}
+                                                    {isLoanInfoOtherLoan && (
+                                                        <div className="grid gap-2 md:col-span-2">
+                                                            <Label htmlFor="loan_info_other_loan_type_name">
+                                                                Other loan type
+                                                                name
+                                                            </Label>
+                                                            <Input
+                                                                id="loan_info_other_loan_type_name"
+                                                                value={
+                                                                    loanInfoForm.other_loan_type_name
+                                                                }
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
+                                                                    updateLoanInfoField(
+                                                                        'other_loan_type_name',
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="loan_info_requested_amount">
+                                                            Requested amount
+                                                        </Label>
+                                                        <CurrencyInput
+                                                            id="loan_info_requested_amount"
+                                                            value={
+                                                                loanInfoForm.requested_amount
+                                                            }
+                                                            onValueChange={(
+                                                                value,
+                                                            ) =>
+                                                                updateLoanInfoField(
+                                                                    'requested_amount',
+                                                                    value,
+                                                                )
+                                                            }
+                                                        />
+                                                    </div>
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="loan_info_requested_term">
+                                                            Requested term
+                                                        </Label>
+                                                        <MonthsInput
+                                                            id="loan_info_requested_term"
+                                                            value={
+                                                                loanInfoForm.requested_term
+                                                            }
+                                                            onChange={(value) =>
+                                                                updateLoanInfoField(
+                                                                    'requested_term',
+                                                                    value,
+                                                                )
+                                                            }
+                                                        />
+                                                    </div>
                                                     <div className="grid gap-2 md:col-span-2">
-                                                        <Label htmlFor="loan_info_other_loan_type_name">
-                                                            Other loan type name
+                                                        <Label htmlFor="loan_info_loan_purpose">
+                                                            Loan purpose
                                                         </Label>
                                                         <Input
-                                                            id="loan_info_other_loan_type_name"
+                                                            id="loan_info_loan_purpose"
                                                             value={
-                                                                loanInfoForm.other_loan_type_name
+                                                                loanInfoForm.loan_purpose
                                                             }
                                                             onChange={(event) =>
                                                                 updateLoanInfoField(
-                                                                    'other_loan_type_name',
+                                                                    'loan_purpose',
                                                                     event.target
                                                                         .value,
                                                                 )
                                                             }
                                                         />
                                                     </div>
-                                                )}
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="loan_info_requested_amount">
-                                                        Requested amount
-                                                    </Label>
-                                                    <CurrencyInput
-                                                        id="loan_info_requested_amount"
-                                                        value={
-                                                            loanInfoForm.requested_amount
-                                                        }
-                                                        onValueChange={(
-                                                            value,
-                                                        ) =>
-                                                            updateLoanInfoField(
-                                                                'requested_amount',
-                                                                value,
-                                                            )
-                                                        }
-                                                    />
+                                                    <div className="grid gap-2 md:col-span-2">
+                                                        <Label htmlFor="loan_info_availment_status">
+                                                            Availment status
+                                                        </Label>
+                                                        <Input
+                                                            id="loan_info_availment_status"
+                                                            value={
+                                                                loanInfoForm.availment_status
+                                                            }
+                                                            onChange={(event) =>
+                                                                updateLoanInfoField(
+                                                                    'availment_status',
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <div className="grid gap-2">
-                                                    <Label htmlFor="loan_info_requested_term">
-                                                        Requested term
+                                                    <Label htmlFor="loan_info_reason">
+                                                        Reason for correction
                                                     </Label>
-                                                    <MonthsInput
-                                                        id="loan_info_requested_term"
-                                                        value={
-                                                            loanInfoForm.requested_term
+                                                    <Textarea
+                                                        id="loan_info_reason"
+                                                        className={
+                                                            textareaClassName
                                                         }
-                                                        onChange={(value) =>
-                                                            updateLoanInfoField(
-                                                                'requested_term',
-                                                                value,
-                                                            )
-                                                        }
-                                                    />
-                                                </div>
-                                                <div className="grid gap-2 md:col-span-2">
-                                                    <Label htmlFor="loan_info_loan_purpose">
-                                                        Loan purpose
-                                                    </Label>
-                                                    <Input
-                                                        id="loan_info_loan_purpose"
-                                                        value={
-                                                            loanInfoForm.loan_purpose
-                                                        }
+                                                        required
+                                                        value={loanInfoReason}
                                                         onChange={(event) =>
-                                                            updateLoanInfoField(
-                                                                'loan_purpose',
+                                                            setLoanInfoReason(
                                                                 event.target
                                                                     .value,
                                                             )
                                                         }
                                                     />
                                                 </div>
-                                                <div className="grid gap-2 md:col-span-2">
-                                                    <Label htmlFor="loan_info_availment_status">
-                                                        Availment status
-                                                    </Label>
-                                                    <Input
-                                                        id="loan_info_availment_status"
-                                                        value={
-                                                            loanInfoForm.availment_status
-                                                        }
-                                                        onChange={(event) =>
-                                                            updateLoanInfoField(
-                                                                'availment_status',
-                                                                event.target
-                                                                    .value,
-                                                            )
-                                                        }
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="loan_info_reason">
-                                                    Reason for correction
-                                                </Label>
-                                                <Textarea
-                                                    id="loan_info_reason"
-                                                    className={
-                                                        textareaClassName
-                                                    }
-                                                    required
-                                                    value={loanInfoReason}
-                                                    onChange={(event) =>
-                                                        setLoanInfoReason(
-                                                            event.target.value,
-                                                        )
-                                                    }
-                                                />
-                                            </div>
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    onClick={closeSectionEdit}
-                                                    disabled={
-                                                        isWorkflowProcessing
-                                                    }
-                                                >
-                                                    Cancel
-                                                </Button>
-                                                <Button
-                                                    type="submit"
-                                                    disabled={
-                                                        isWorkflowProcessing
-                                                    }
-                                                >
-                                                    Save
-                                                </Button>
-                                            </div>
-                                        </form>
-                                    </LoanRequestSectionCard>
-                                ) : (
-                                    <div
-                                        key="loan_request-display"
-                                        className="animate-in duration-200 fade-in slide-in-from-top-2"
-                                    >
-                                        <LoanRequestLoanInformationCard
-                                            loanRequest={currentRequest}
-                                            extraFacts={bankingFacts}
-                                            headerAction={
-                                                canCorrectApplication ? (
+                                                <div className="flex items-center justify-end gap-2">
                                                     <Button
                                                         type="button"
                                                         variant="outline"
-                                                        size="sm"
-                                                        className={
-                                                            sectionEditButtonClassName
+                                                        onClick={
+                                                            closeSectionEdit
                                                         }
                                                         disabled={
                                                             isWorkflowProcessing
                                                         }
-                                                        onClick={() =>
-                                                            openSectionEdit(
-                                                                'loan_request',
-                                                            )
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        type="submit"
+                                                        disabled={
+                                                            isWorkflowProcessing
                                                         }
                                                     >
-                                                        <Pencil />
-                                                        Edit
+                                                        Save
                                                     </Button>
-                                                ) : undefined
+                                                </div>
+                                            </form>
+                                        </LoanRequestSectionCard>
+                                    ) : (
+                                        <div
+                                            key="loan_request-display"
+                                            className="animate-in duration-200 fade-in slide-in-from-top-2"
+                                        >
+                                            <LoanRequestLoanInformationCard
+                                                loanRequest={currentRequest}
+                                                extraFacts={bankingFacts}
+                                                headerAction={
+                                                    canCorrectApplication ? (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className={
+                                                                sectionEditButtonClassName
+                                                            }
+                                                            disabled={
+                                                                isWorkflowProcessing
+                                                            }
+                                                            onClick={() =>
+                                                                openSectionEdit(
+                                                                    'loan_request',
+                                                                )
+                                                            }
+                                                        >
+                                                            <Pencil />
+                                                            Edit
+                                                        </Button>
+                                                    ) : undefined
+                                                }
+                                            />
+                                        </div>
+                                    )}
+                                    <LoanRequestApplicantSnapshot
+                                        applicant={currentApplicant}
+                                        onFullProfile={() =>
+                                            goToTab('applicant')
+                                        }
+                                    />
+                                    {memberWaitItems.length > 0 ? (
+                                        <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-800 dark:text-amber-200">
+                                            <b>Waiting on member:</b>
+                                            <span className="min-w-52 flex-1">
+                                                {memberWaitItems.join('; ')}.{' '}
+                                                {memberWaitBlocks
+                                                    ? 'This must clear before you can recommend approval.'
+                                                    : 'This does not block your recommendation.'}
+                                            </span>
+                                        </p>
+                                    ) : null}
+                                </div>
+                            </ReviewTabPanel>
+                            <ReviewTabPanel id="terms" tab={tab}>
+                                {showProcessingSection ? (
+                                    <div
+                                        id="processing-details"
+                                        className="scroll-mt-40"
+                                    >
+                                        <ProcessingDetailsPanel
+                                            {...processingPanelProps}
+                                            view="terms"
+                                            onDocumentChecklistPreview={
+                                                applyDocumentChecklistPreview
+                                            }
+                                            onPreviewChange={
+                                                setProcessingPreview
+                                            }
+                                            openEditSignal={
+                                                processingEditSignal
                                             }
                                         />
                                     </div>
-                                )}
-                                <LoanRequestApplicantSnapshot
-                                    applicant={currentApplicant}
-                                    onFullProfile={() => goToTab('applicant')}
-                                />
-                                {memberWaitItems.length > 0 ? (
-                                    <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-800 dark:text-amber-200">
-                                        <b>Waiting on member:</b>
-                                        <span className="min-w-52 flex-1">
-                                            {memberWaitItems.join('; ')}.{' '}
-                                            {memberWaitBlocks
-                                                ? 'This must clear before you can recommend approval.'
-                                                : 'This does not block your recommendation.'}
-                                        </span>
-                                    </p>
-                                ) : null}
-                            </div>
-                        </ReviewTabPanel>
-                        <ReviewTabPanel id="terms" tab={tab}>
-                            {showProcessingSection ? (
-                                <div
-                                    id="processing-details"
-                                    className="scroll-mt-40"
-                                >
-                                    <ProcessingDetailsPanel
-                                        {...processingPanelProps}
-                                        view="terms"
-                                        onDocumentChecklistPreview={
-                                            applyDocumentChecklistPreview
-                                        }
-                                        onPreviewChange={setProcessingPreview}
-                                        openEditSignal={processingEditSignal}
-                                    />
-                                </div>
-                            ) : (
-                                <LoanRequestSectionCard
-                                    title="Terms and charges"
-                                    workspace
-                                >
-                                    <p className="text-sm text-muted-foreground">
-                                        Processing details become available once
-                                        the request is in processing.
-                                    </p>
-                                </LoanRequestSectionCard>
-                            )}
-                        </ReviewTabPanel>
-                        <ReviewTabPanel id="signatories" tab={tab}>
-                            {showProcessingSection ? (
-                                <div
-                                    id="signatories-details"
-                                    className="scroll-mt-40"
-                                >
-                                    {/* Same record and save endpoint as Terms; this instance only shows and edits the signatory half. */}
-                                    <ProcessingDetailsPanel
-                                        {...processingPanelProps}
-                                        view="signatories"
-                                        openEditSignal={signatoriesEditSignal}
-                                    />
-                                </div>
-                            ) : (
-                                <LoanRequestSectionCard
-                                    title="Signatories and insurance"
-                                    workspace
-                                >
-                                    <p className="text-sm text-muted-foreground">
-                                        Signatories become available once the
-                                        request is in processing.
-                                    </p>
-                                </LoanRequestSectionCard>
-                            )}
-                        </ReviewTabPanel>
-                        <ReviewTabPanel id="applicant" tab={tab}>
-                            <div
-                                id="applicant-details"
-                                className="scroll-mt-40"
-                            >
-                                {editingSection === 'applicant' ? (
+                                ) : (
                                     <LoanRequestSectionCard
-                                        title="Applicant"
-                                        description="Correct verified applicant data when supported by the processing record."
+                                        title="Terms and charges"
+                                        workspace
+                                    >
+                                        <p className="text-sm text-muted-foreground">
+                                            Processing details become available
+                                            once the request is in processing.
+                                        </p>
+                                    </LoanRequestSectionCard>
+                                )}
+                            </ReviewTabPanel>
+                            <ReviewTabPanel id="signatories" tab={tab}>
+                                {showProcessingSection ? (
+                                    <div
+                                        id="signatories-details"
+                                        className="scroll-mt-40"
+                                    >
+                                        {/* Same record and save endpoint as Terms; this instance only shows and edits the signatory half. */}
+                                        <ProcessingDetailsPanel
+                                            {...processingPanelProps}
+                                            view="signatories"
+                                            openEditSignal={
+                                                signatoriesEditSignal
+                                            }
+                                        />
+                                    </div>
+                                ) : (
+                                    <LoanRequestSectionCard
+                                        title="Signatories and insurance"
+                                        workspace
+                                    >
+                                        <p className="text-sm text-muted-foreground">
+                                            Signatories become available once
+                                            the request is in processing.
+                                        </p>
+                                    </LoanRequestSectionCard>
+                                )}
+                            </ReviewTabPanel>
+                            <ReviewTabPanel id="applicant" tab={tab}>
+                                <div
+                                    id="applicant-details"
+                                    className="scroll-mt-40"
+                                >
+                                    {editingSection === 'applicant' ? (
+                                        <LoanRequestSectionCard
+                                            title="Applicant"
+                                            description="Correct verified applicant data when supported by the processing record."
+                                        >
+                                            <form
+                                                className="space-y-6"
+                                                onSubmit={
+                                                    submitApplicantCorrection
+                                                }
+                                            >
+                                                <LoanRequestPersonalFields
+                                                    prefix="applicant"
+                                                    values={applicantForm}
+                                                    errors={{}}
+                                                    includeSpouse
+                                                    includeChildren
+                                                    portal={false}
+                                                    onChange={
+                                                        updateApplicantField
+                                                    }
+                                                />
+                                                <Separator className="bg-border/40" />
+                                                <LoanRequestWorkFields
+                                                    prefix="applicant"
+                                                    values={applicantForm}
+                                                    errors={{}}
+                                                    portal={false}
+                                                    onChange={
+                                                        updateApplicantField
+                                                    }
+                                                />
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="applicant_reason">
+                                                        Reason for correction
+                                                    </Label>
+                                                    <Textarea
+                                                        id="applicant_reason"
+                                                        className={
+                                                            textareaClassName
+                                                        }
+                                                        required
+                                                        value={applicantReason}
+                                                        onChange={(event) =>
+                                                            setApplicantReason(
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        onClick={
+                                                            closeSectionEdit
+                                                        }
+                                                        disabled={
+                                                            isWorkflowProcessing
+                                                        }
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        type="submit"
+                                                        disabled={
+                                                            isWorkflowProcessing
+                                                        }
+                                                    >
+                                                        Save
+                                                    </Button>
+                                                </div>
+                                            </form>
+                                        </LoanRequestSectionCard>
+                                    ) : (
+                                        <div
+                                            key="applicant-display"
+                                            className="animate-in duration-200 fade-in slide-in-from-top-2"
+                                        >
+                                            <LoanRequestApplicantPanel
+                                                applicant={currentApplicant}
+                                                headerAction={
+                                                    canCorrectApplication ? (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className={
+                                                                sectionEditButtonClassName
+                                                            }
+                                                            disabled={
+                                                                isWorkflowProcessing
+                                                            }
+                                                            onClick={() =>
+                                                                openSectionEdit(
+                                                                    'applicant',
+                                                                )
+                                                            }
+                                                        >
+                                                            <Pencil />
+                                                            Edit
+                                                        </Button>
+                                                    ) : undefined
+                                                }
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                {editingSection === 'co_maker_1' ||
+                                editingSection === 'co_maker_2' ? (
+                                    <LoanRequestSectionCard
+                                        title={
+                                            editingSection === 'co_maker_1'
+                                                ? 'Co-maker 1'
+                                                : 'Co-maker 2'
+                                        }
+                                        description="Update verified co-maker information when corrections are confirmed."
                                     >
                                         <form
                                             className="space-y-6"
-                                            onSubmit={submitApplicantCorrection}
+                                            onSubmit={
+                                                editingSection === 'co_maker_1'
+                                                    ? submitCoMakerOneCorrection
+                                                    : submitCoMakerTwoCorrection
+                                            }
                                         >
                                             <LoanRequestPersonalFields
-                                                prefix="applicant"
-                                                values={applicantForm}
+                                                prefix={editingSection}
+                                                values={
+                                                    editingSection ===
+                                                    'co_maker_1'
+                                                        ? coMakerOneForm
+                                                        : coMakerTwoForm
+                                                }
                                                 errors={{}}
-                                                includeSpouse
-                                                includeChildren
                                                 portal={false}
-                                                onChange={updateApplicantField}
+                                                onChange={
+                                                    editingSection ===
+                                                    'co_maker_1'
+                                                        ? updateCoMakerOneField
+                                                        : updateCoMakerTwoField
+                                                }
                                             />
                                             <Separator className="bg-border/40" />
                                             <LoanRequestWorkFields
-                                                prefix="applicant"
-                                                values={applicantForm}
+                                                prefix={editingSection}
+                                                values={
+                                                    editingSection ===
+                                                    'co_maker_1'
+                                                        ? coMakerOneForm
+                                                        : coMakerTwoForm
+                                                }
                                                 errors={{}}
                                                 portal={false}
-                                                onChange={updateApplicantField}
+                                                onChange={
+                                                    editingSection ===
+                                                    'co_maker_1'
+                                                        ? updateCoMakerOneField
+                                                        : updateCoMakerTwoField
+                                                }
                                             />
                                             <div className="grid gap-2">
-                                                <Label htmlFor="applicant_reason">
+                                                <Label htmlFor="co_maker_reason">
                                                     Reason for correction
                                                 </Label>
                                                 <Textarea
-                                                    id="applicant_reason"
+                                                    id="co_maker_reason"
                                                     className={
                                                         textareaClassName
                                                     }
                                                     required
-                                                    value={applicantReason}
+                                                    value={
+                                                        editingSection ===
+                                                        'co_maker_1'
+                                                            ? coMakerOneReason
+                                                            : coMakerTwoReason
+                                                    }
                                                     onChange={(event) =>
-                                                        setApplicantReason(
+                                                        (editingSection ===
+                                                            'co_maker_1'
+                                                            ? setCoMakerOneReason
+                                                            : setCoMakerTwoReason)(
                                                             event.target.value,
                                                         )
                                                     }
@@ -1986,315 +2097,229 @@ export default function StaffLoanRequestShow({
                                         </form>
                                     </LoanRequestSectionCard>
                                 ) : (
-                                    <div
-                                        key="applicant-display"
-                                        className="animate-in duration-200 fade-in slide-in-from-top-2"
+                                    <section
+                                        key="co-makers-display"
+                                        aria-label="Co-makers"
+                                        className="rounded-xl border border-border bg-card px-5 py-[18px] shadow-card motion-safe:animate-in motion-safe:duration-200 motion-safe:fade-in"
                                     >
-                                        <LoanRequestApplicantPanel
-                                            applicant={currentApplicant}
-                                            headerAction={
-                                                canCorrectApplication ? (
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className={
-                                                            sectionEditButtonClassName
-                                                        }
-                                                        disabled={
-                                                            isWorkflowProcessing
-                                                        }
-                                                        onClick={() =>
-                                                            openSectionEdit(
-                                                                'applicant',
-                                                            )
-                                                        }
-                                                    >
-                                                        <Pencil />
-                                                        Edit
-                                                    </Button>
-                                                ) : undefined
-                                            }
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                            {editingSection === 'co_maker_1' ||
-                            editingSection === 'co_maker_2' ? (
-                                <LoanRequestSectionCard
-                                    title={
-                                        editingSection === 'co_maker_1'
-                                            ? 'Co-maker 1'
-                                            : 'Co-maker 2'
-                                    }
-                                    description="Update verified co-maker information when corrections are confirmed."
-                                >
-                                    <form
-                                        className="space-y-6"
-                                        onSubmit={
-                                            editingSection === 'co_maker_1'
-                                                ? submitCoMakerOneCorrection
-                                                : submitCoMakerTwoCorrection
-                                        }
-                                    >
-                                        <LoanRequestPersonalFields
-                                            prefix={editingSection}
-                                            values={
-                                                editingSection === 'co_maker_1'
-                                                    ? coMakerOneForm
-                                                    : coMakerTwoForm
-                                            }
-                                            errors={{}}
-                                            portal={false}
-                                            onChange={
-                                                editingSection === 'co_maker_1'
-                                                    ? updateCoMakerOneField
-                                                    : updateCoMakerTwoField
-                                            }
-                                        />
-                                        <Separator className="bg-border/40" />
-                                        <LoanRequestWorkFields
-                                            prefix={editingSection}
-                                            values={
-                                                editingSection === 'co_maker_1'
-                                                    ? coMakerOneForm
-                                                    : coMakerTwoForm
-                                            }
-                                            errors={{}}
-                                            portal={false}
-                                            onChange={
-                                                editingSection === 'co_maker_1'
-                                                    ? updateCoMakerOneField
-                                                    : updateCoMakerTwoField
-                                            }
-                                        />
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="co_maker_reason">
-                                                Reason for correction
-                                            </Label>
-                                            <Textarea
-                                                id="co_maker_reason"
-                                                className={textareaClassName}
-                                                required
-                                                value={
-                                                    editingSection ===
-                                                    'co_maker_1'
-                                                        ? coMakerOneReason
-                                                        : coMakerTwoReason
+                                        <h2 className="mb-2.5 text-[17px] font-semibold">
+                                            Co-makers
+                                        </h2>
+                                        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(240px,100%),1fr))] gap-2.5">
+                                            <LoanRequestCoMakerCard
+                                                number={1}
+                                                person={currentCoMakerOne}
+                                                action={
+                                                    canCorrectApplication ? (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className={
+                                                                sectionEditButtonClassName
+                                                            }
+                                                            disabled={
+                                                                isWorkflowProcessing
+                                                            }
+                                                            onClick={() =>
+                                                                openSectionEdit(
+                                                                    'co_maker_1',
+                                                                )
+                                                            }
+                                                        >
+                                                            <Pencil />
+                                                            Edit
+                                                        </Button>
+                                                    ) : undefined
                                                 }
-                                                onChange={(event) =>
-                                                    (editingSection ===
-                                                        'co_maker_1'
-                                                        ? setCoMakerOneReason
-                                                        : setCoMakerTwoReason)(
-                                                        event.target.value,
-                                                    )
+                                            />
+                                            <LoanRequestCoMakerCard
+                                                number={2}
+                                                person={currentCoMakerTwo}
+                                                action={
+                                                    canCorrectApplication ? (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className={
+                                                                sectionEditButtonClassName
+                                                            }
+                                                            disabled={
+                                                                isWorkflowProcessing
+                                                            }
+                                                            onClick={() =>
+                                                                openSectionEdit(
+                                                                    'co_maker_2',
+                                                                )
+                                                            }
+                                                        >
+                                                            <Pencil />
+                                                            Edit
+                                                        </Button>
+                                                    ) : undefined
                                                 }
                                             />
                                         </div>
-                                        <div className="flex items-center justify-end gap-2">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={closeSectionEdit}
-                                                disabled={isWorkflowProcessing}
-                                            >
-                                                Cancel
-                                            </Button>
-                                            <Button
-                                                type="submit"
-                                                disabled={isWorkflowProcessing}
-                                            >
-                                                Save
-                                            </Button>
-                                        </div>
-                                    </form>
-                                </LoanRequestSectionCard>
-                            ) : (
-                                <section
-                                    key="co-makers-display"
-                                    aria-label="Co-makers"
-                                    className="rounded-xl border border-border bg-card px-5 py-[18px] shadow-card motion-safe:animate-in motion-safe:duration-200 motion-safe:fade-in"
+                                    </section>
+                                )}
+                            </ReviewTabPanel>
+                            <ReviewTabPanel id="docs" tab={tab}>
+                                {documentResultsAlert}
+                                <div
+                                    id="document-checklist"
+                                    className="scroll-mt-40"
                                 >
-                                    <h2 className="mb-2.5 text-[17px] font-semibold">
-                                        Co-makers
-                                    </h2>
-                                    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(240px,100%),1fr))] gap-2.5">
-                                        <LoanRequestCoMakerCard
-                                            number={1}
-                                            person={currentCoMakerOne}
-                                            action={
-                                                canCorrectApplication ? (
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className={
-                                                            sectionEditButtonClassName
-                                                        }
-                                                        disabled={
-                                                            isWorkflowProcessing
-                                                        }
-                                                        onClick={() =>
-                                                            openSectionEdit(
-                                                                'co_maker_1',
-                                                            )
-                                                        }
-                                                    >
-                                                        <Pencil />
-                                                        Edit
-                                                    </Button>
-                                                ) : undefined
-                                            }
-                                        />
-                                        <LoanRequestCoMakerCard
-                                            number={2}
-                                            person={currentCoMakerTwo}
-                                            action={
-                                                canCorrectApplication ? (
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className={
-                                                            sectionEditButtonClassName
-                                                        }
-                                                        disabled={
-                                                            isWorkflowProcessing
-                                                        }
-                                                        onClick={() =>
-                                                            openSectionEdit(
-                                                                'co_maker_2',
-                                                            )
-                                                        }
-                                                    >
-                                                        <Pencil />
-                                                        Edit
-                                                    </Button>
-                                                ) : undefined
-                                            }
-                                        />
-                                    </div>
-                                </section>
-                            )}
-                        </ReviewTabPanel>
-                        <ReviewTabPanel id="docs" tab={tab}>
-                            {documentResultsAlert}
-                            <div
-                                id="document-checklist"
-                                className="scroll-mt-40"
-                            >
-                                <LoanRequestDocumentChecklistCard
-                                    documentChecklist={currentDocumentChecklist}
-                                    generatedDocumentBaseHref={`/staff/loan-requests/${currentRequest.id}/documents/generated`}
-                                    canGenerateDocuments={canGenerateDocuments}
-                                    isProcessing={isWorkflowProcessing}
-                                    onGenerate={(
-                                        documentKeys,
-                                        onDocumentSettled,
-                                    ) =>
-                                        submitGenerateSelectedDocuments(
+                                    <LoanRequestDocumentChecklistCard
+                                        documentChecklist={
+                                            currentDocumentChecklist
+                                        }
+                                        generatedDocumentBaseHref={`/staff/loan-requests/${currentRequest.id}/documents/generated`}
+                                        canGenerateDocuments={
+                                            canGenerateDocuments
+                                        }
+                                        isProcessing={isWorkflowProcessing}
+                                        onGenerate={(
                                             documentKeys,
                                             onDocumentSettled,
-                                        )
-                                    }
-                                    onRegenerate={async (documentKey) => {
-                                        await submitGenerateDocuments(
-                                            documentKey as LoanRequestDocumentKey,
-                                        );
-                                    }}
-                                    packageZipDownload={packageZipDownload}
-                                    lockFinalizedDocuments={[
-                                        'approved',
-                                        'converted_to_loan',
-                                    ].includes(currentRequest.status ?? '')}
-                                    processingDetailsSaved={
-                                        !currentRequest.is_first_processing_save
-                                    }
-                                    onFixMissingFields={
-                                        showProcessingSection &&
-                                        processingPanelProps.canUpdateProcessing
-                                            ? openSignatoriesEdit
-                                            : undefined
-                                    }
-                                />
-                            </div>
-                            {showWibsTrackingSection ? (
-                                <LoanRequestSectionCard
-                                    title="WIBS Tracking"
-                                    description="Official loan tracking in the WIBS system."
-                                    icon={Truck}
-                                    className="border-border bg-card shadow-card"
-                                    contentClassName="space-y-4"
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-muted-foreground">
-                                            Status:
-                                        </span>
-                                        <Badge variant="secondary">
-                                            {currentRequest.status ===
-                                            'converted_to_loan'
-                                                ? 'Converted to Loan'
-                                                : currentRequest.status ===
-                                                    'for_wibs_encoding'
-                                                  ? 'For WIBS Encoding'
-                                                  : currentRequest.status ===
-                                                      'wibs_loan_created'
-                                                    ? 'WIBS Loan Created'
+                                        ) =>
+                                            submitGenerateSelectedDocuments(
+                                                documentKeys,
+                                                onDocumentSettled,
+                                            )
+                                        }
+                                        onRegenerate={async (documentKey) => {
+                                            await submitGenerateDocuments(
+                                                documentKey as LoanRequestDocumentKey,
+                                            );
+                                        }}
+                                        packageZipDownload={packageZipDownload}
+                                        lockFinalizedDocuments={[
+                                            'approved',
+                                            'converted_to_loan',
+                                        ].includes(currentRequest.status ?? '')}
+                                        processingDetailsSaved={
+                                            !currentRequest.is_first_processing_save
+                                        }
+                                        onFixMissingFields={
+                                            showProcessingSection &&
+                                            processingPanelProps.canUpdateProcessing
+                                                ? openSignatoriesEdit
+                                                : undefined
+                                        }
+                                    />
+                                </div>
+                                {showWibsTrackingSection ? (
+                                    <LoanRequestSectionCard
+                                        title="WIBS Tracking"
+                                        description="Official loan tracking in the WIBS system."
+                                        icon={Truck}
+                                        className="border-border bg-card shadow-card"
+                                        contentClassName="space-y-4"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-muted-foreground">
+                                                Status:
+                                            </span>
+                                            <Badge variant="secondary">
+                                                {currentRequest.status ===
+                                                'converted_to_loan'
+                                                    ? 'Converted to Loan'
                                                     : currentRequest.status ===
-                                                        'release_scheduled'
-                                                      ? 'Release Scheduled'
-                                                      : 'Released'}
-                                        </Badge>
-                                    </div>
-
-                                    {currentRequest.wibs_loan_reference ? (
-                                        <div className="text-sm">
-                                            <span className="font-medium">
-                                                WIBS Reference:
-                                            </span>{' '}
-                                            {currentRequest.wibs_loan_reference}
+                                                        'for_wibs_encoding'
+                                                      ? 'For WIBS Encoding'
+                                                      : currentRequest.status ===
+                                                          'wibs_loan_created'
+                                                        ? 'WIBS Loan Created'
+                                                        : currentRequest.status ===
+                                                            'release_scheduled'
+                                                          ? 'Release Scheduled'
+                                                          : 'Released'}
+                                            </Badge>
                                         </div>
-                                    ) : null}
 
-                                    {currentRequest.wibs_release_date ? (
-                                        <div className="text-sm">
-                                            <span className="font-medium">
-                                                Scheduled Release:
-                                            </span>{' '}
-                                            {currentRequest.wibs_release_date}
-                                        </div>
-                                    ) : null}
+                                        {currentRequest.wibs_loan_reference ? (
+                                            <div className="text-sm">
+                                                <span className="font-medium">
+                                                    WIBS Reference:
+                                                </span>{' '}
+                                                {
+                                                    currentRequest.wibs_loan_reference
+                                                }
+                                            </div>
+                                        ) : null}
 
-                                    {currentRequest.wibs_released_at ? (
-                                        <div className="text-sm">
-                                            <span className="font-medium">
-                                                Released at:
-                                            </span>{' '}
-                                            {formatDateTime(
-                                                currentRequest.wibs_released_at,
-                                            )}
-                                        </div>
-                                    ) : null}
+                                        {currentRequest.wibs_release_date ? (
+                                            <div className="text-sm">
+                                                <span className="font-medium">
+                                                    Scheduled Release:
+                                                </span>{' '}
+                                                {
+                                                    currentRequest.wibs_release_date
+                                                }
+                                            </div>
+                                        ) : null}
 
-                                    <Separator />
+                                        {currentRequest.wibs_released_at ? (
+                                            <div className="text-sm">
+                                                <span className="font-medium">
+                                                    Released at:
+                                                </span>{' '}
+                                                {formatDateTime(
+                                                    currentRequest.wibs_released_at,
+                                                )}
+                                            </div>
+                                        ) : null}
 
-                                    {currentRequest.status ===
-                                    'converted_to_loan' ? (
-                                        <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">
-                                                Forward this loan to WIBS for
-                                                encoding.
-                                            </p>
-                                            <Button
-                                                disabled={isWibsSubmitting}
-                                                onClick={() => {
+                                        <Separator />
+
+                                        {currentRequest.status ===
+                                        'converted_to_loan' ? (
+                                            <div className="space-y-2">
+                                                <p className="text-sm text-muted-foreground">
+                                                    Forward this loan to WIBS
+                                                    for encoding.
+                                                </p>
+                                                <Button
+                                                    disabled={isWibsSubmitting}
+                                                    onClick={() => {
+                                                        setIsWibsSubmitting(
+                                                            true,
+                                                        );
+                                                        router.patch(
+                                                            wibsMarkForEncoding(
+                                                                currentRequest.id,
+                                                            ).url,
+                                                            {},
+                                                            {
+                                                                onFinish: () =>
+                                                                    setIsWibsSubmitting(
+                                                                        false,
+                                                                    ),
+                                                            },
+                                                        );
+                                                    }}
+                                                >
+                                                    {isWibsSubmitting
+                                                        ? 'Processing…'
+                                                        : 'Mark for WIBS Encoding'}
+                                                </Button>
+                                            </div>
+                                        ) : currentRequest.status ===
+                                          'for_wibs_encoding' ? (
+                                            <form
+                                                className="space-y-3"
+                                                onSubmit={(e) => {
+                                                    e.preventDefault();
                                                     setIsWibsSubmitting(true);
                                                     router.patch(
-                                                        wibsMarkForEncoding(
+                                                        wibsRecordReference(
                                                             currentRequest.id,
                                                         ).url,
-                                                        {},
+                                                        {
+                                                            wibs_loan_reference:
+                                                                wibsReference,
+                                                        },
                                                         {
                                                             onFinish: () =>
                                                                 setIsWibsSubmitting(
@@ -2304,125 +2329,47 @@ export default function StaffLoanRequestShow({
                                                     );
                                                 }}
                                             >
-                                                {isWibsSubmitting
-                                                    ? 'Processing…'
-                                                    : 'Mark for WIBS Encoding'}
-                                            </Button>
-                                        </div>
-                                    ) : currentRequest.status ===
-                                      'for_wibs_encoding' ? (
-                                        <form
-                                            className="space-y-3"
-                                            onSubmit={(e) => {
-                                                e.preventDefault();
-                                                setIsWibsSubmitting(true);
-                                                router.patch(
-                                                    wibsRecordReference(
-                                                        currentRequest.id,
-                                                    ).url,
-                                                    {
-                                                        wibs_loan_reference:
-                                                            wibsReference,
-                                                    },
-                                                    {
-                                                        onFinish: () =>
-                                                            setIsWibsSubmitting(
-                                                                false,
-                                                            ),
-                                                    },
-                                                );
-                                            }}
-                                        >
-                                            <div className="space-y-1">
-                                                <Label htmlFor="wibs_loan_reference">
-                                                    WIBS Loan Reference
-                                                </Label>
-                                                <Input
-                                                    id="wibs_loan_reference"
-                                                    value={wibsReference}
-                                                    onChange={(e) =>
-                                                        setWibsReference(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    maxLength={100}
-                                                    required
-                                                    placeholder="e.g. WIBS-2026-001"
-                                                />
-                                            </div>
-                                            <Button
-                                                type="submit"
-                                                disabled={isWibsSubmitting}
-                                            >
-                                                {isWibsSubmitting
-                                                    ? 'Saving…'
-                                                    : 'Record WIBS Reference'}
-                                            </Button>
-                                        </form>
-                                    ) : currentRequest.status ===
-                                      'wibs_loan_created' ? (
-                                        <form
-                                            className="space-y-3"
-                                            onSubmit={(e) => {
-                                                e.preventDefault();
-                                                setIsWibsSubmitting(true);
-                                                router.patch(
-                                                    wibsScheduleRelease(
-                                                        currentRequest.id,
-                                                    ).url,
-                                                    {
-                                                        wibs_release_date:
-                                                            wibsReleaseDate,
-                                                    },
-                                                    {
-                                                        onFinish: () =>
-                                                            setIsWibsSubmitting(
-                                                                false,
-                                                            ),
-                                                    },
-                                                );
-                                            }}
-                                        >
-                                            <div className="space-y-1">
-                                                <Label htmlFor="wibs_release_date">
-                                                    Release Date
-                                                </Label>
-                                                <DateInputWithPicker
-                                                    id="wibs_release_date"
-                                                    name="wibs_release_date"
-                                                    value={wibsReleaseDate}
-                                                    onChange={
-                                                        setWibsReleaseDate
-                                                    }
-                                                    required
-                                                    aria-label="Choose release date"
-                                                />
-                                            </div>
-                                            <Button
-                                                type="submit"
-                                                disabled={isWibsSubmitting}
-                                            >
-                                                {isWibsSubmitting
-                                                    ? 'Saving…'
-                                                    : 'Schedule Release'}
-                                            </Button>
-                                        </form>
-                                    ) : currentRequest.status ===
-                                      'release_scheduled' ? (
-                                        <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">
-                                                Confirm that the loan has been
-                                                released to the member.
-                                            </p>
-                                            <Button
-                                                disabled={isWibsSubmitting}
-                                                onClick={() => {
+                                                <div className="space-y-1">
+                                                    <Label htmlFor="wibs_loan_reference">
+                                                        WIBS Loan Reference
+                                                    </Label>
+                                                    <Input
+                                                        id="wibs_loan_reference"
+                                                        value={wibsReference}
+                                                        onChange={(e) =>
+                                                            setWibsReference(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        maxLength={100}
+                                                        required
+                                                        placeholder="e.g. WIBS-2026-001"
+                                                    />
+                                                </div>
+                                                <Button
+                                                    type="submit"
+                                                    disabled={isWibsSubmitting}
+                                                >
+                                                    {isWibsSubmitting
+                                                        ? 'Saving…'
+                                                        : 'Record WIBS Reference'}
+                                                </Button>
+                                            </form>
+                                        ) : currentRequest.status ===
+                                          'wibs_loan_created' ? (
+                                            <form
+                                                className="space-y-3"
+                                                onSubmit={(e) => {
+                                                    e.preventDefault();
                                                     setIsWibsSubmitting(true);
                                                     router.patch(
-                                                        wibsConfirmRelease(
+                                                        wibsScheduleRelease(
                                                             currentRequest.id,
                                                         ).url,
-                                                        {},
+                                                        {
+                                                            wibs_release_date:
+                                                                wibsReleaseDate,
+                                                        },
                                                         {
                                                             onFinish: () =>
                                                                 setIsWibsSubmitting(
@@ -2432,71 +2379,125 @@ export default function StaffLoanRequestShow({
                                                     );
                                                 }}
                                             >
-                                                {isWibsSubmitting
-                                                    ? 'Processing…'
-                                                    : 'Confirm Release'}
-                                            </Button>
-                                        </div>
-                                    ) : null}
-                                </LoanRequestSectionCard>
-                            ) : null}
-                        </ReviewTabPanel>
-                        <ReviewTabPanel id="history" tab={tab}>
-                            <LoanRequestActivityTab
-                                auditTrail={currentAuditTrail}
-                                notifications={currentNotificationHistory}
+                                                <div className="space-y-1">
+                                                    <Label htmlFor="wibs_release_date">
+                                                        Release Date
+                                                    </Label>
+                                                    <DateInputWithPicker
+                                                        id="wibs_release_date"
+                                                        name="wibs_release_date"
+                                                        value={wibsReleaseDate}
+                                                        onChange={
+                                                            setWibsReleaseDate
+                                                        }
+                                                        required
+                                                        aria-label="Choose release date"
+                                                    />
+                                                </div>
+                                                <Button
+                                                    type="submit"
+                                                    disabled={isWibsSubmitting}
+                                                >
+                                                    {isWibsSubmitting
+                                                        ? 'Saving…'
+                                                        : 'Schedule Release'}
+                                                </Button>
+                                            </form>
+                                        ) : currentRequest.status ===
+                                          'release_scheduled' ? (
+                                            <div className="space-y-2">
+                                                <p className="text-sm text-muted-foreground">
+                                                    Confirm that the loan has
+                                                    been released to the member.
+                                                </p>
+                                                <Button
+                                                    disabled={isWibsSubmitting}
+                                                    onClick={() => {
+                                                        setIsWibsSubmitting(
+                                                            true,
+                                                        );
+                                                        router.patch(
+                                                            wibsConfirmRelease(
+                                                                currentRequest.id,
+                                                            ).url,
+                                                            {},
+                                                            {
+                                                                onFinish: () =>
+                                                                    setIsWibsSubmitting(
+                                                                        false,
+                                                                    ),
+                                                            },
+                                                        );
+                                                    }}
+                                                >
+                                                    {isWibsSubmitting
+                                                        ? 'Processing…'
+                                                        : 'Confirm Release'}
+                                                </Button>
+                                            </div>
+                                        ) : null}
+                                    </LoanRequestSectionCard>
+                                ) : null}
+                            </ReviewTabPanel>
+                            <ReviewTabPanel id="history" tab={tab}>
+                                <LoanRequestActivityTab
+                                    auditTrail={currentAuditTrail}
+                                    notifications={currentNotificationHistory}
+                                />
+                            </ReviewTabPanel>
+                        </div>
+                        <aside className="min-w-0 space-y-4 lg:col-span-full xl:sticky xl:top-[72px] xl:col-span-1">
+                            <LoanRequestTasksCard
+                                stage={railStage}
+                                summary={taskSummary}
+                                exceptions={taskExceptions}
+                                onException={runTaskException}
+                                conditions={currentConditions}
+                                conditionPendingKey={conditionPendingKey}
+                                onToggleCondition={toggleCondition}
+                                documents={gates.documents}
+                                onOpenDocuments={() =>
+                                    goToTab('docs', 'document-checklist')
+                                }
+                                recommend={
+                                    canRecommendApproval
+                                        ? {
+                                              disabledReason: blockedReason,
+                                              note: taskNote,
+                                              onClick: () =>
+                                                  setOpenRecommendSignal(
+                                                      (n) => n + 1,
+                                                  ),
+                                          }
+                                        : null
+                                }
                             />
-                        </ReviewTabPanel>
+                            <LoanRequestInternalNotesCard
+                                notes={currentInternalNotes}
+                                onAdd={addInternalNote}
+                            />
+                            <LoanRequestStatusRailCard
+                                status={currentRequest.status}
+                                isV2={isV2Workflow}
+                                notificationsSent={
+                                    currentNotificationHistory.filter(
+                                        (event) => event.status === 'sent',
+                                    ).length
+                                }
+                                pdfHref={
+                                    [
+                                        'submitted',
+                                        'declined',
+                                        'cancelled',
+                                    ].includes(currentRequest.status ?? '')
+                                        ? pdfHref
+                                        : null
+                                }
+                            />
+                        </aside>
                     </div>
-                    <aside className="min-w-0 space-y-4 lg:col-span-full xl:sticky xl:top-[72px] xl:col-span-1">
-                        <LoanRequestTasksCard
-                            stage={railStage}
-                            summary={taskSummary}
-                            exceptions={taskExceptions}
-                            onException={runTaskException}
-                            conditions={currentConditions}
-                            conditionPendingKey={conditionPendingKey}
-                            onToggleCondition={toggleCondition}
-                            documents={gates.documents}
-                            onOpenDocuments={() =>
-                                goToTab('docs', 'document-checklist')
-                            }
-                            recommend={
-                                canRecommendApproval
-                                    ? {
-                                          disabledReason: blockedReason,
-                                          note: taskNote,
-                                          onClick: () =>
-                                              setOpenRecommendSignal(
-                                                  (n) => n + 1,
-                                              ),
-                                      }
-                                    : null
-                            }
-                        />
-                        <LoanRequestInternalNotesCard
-                            notes={currentInternalNotes}
-                            onAdd={addInternalNote}
-                        />
-                        <LoanRequestStatusRailCard
-                            status={currentRequest.status}
-                            isV2={isV2Workflow}
-                            notificationsSent={
-                                currentNotificationHistory.filter(
-                                    (event) => event.status === 'sent',
-                                ).length
-                            }
-                            pdfHref={
-                                ['submitted', 'declined', 'cancelled'].includes(
-                                    currentRequest.status ?? '',
-                                )
-                                    ? pdfHref
-                                    : null
-                            }
-                        />
-                    </aside>
-                </div>
-            </section>
+                </section>
+            </LoanRequestDetailView>
 
             {/* Keeps the mobile action bar from covering the last card. */}
             <div aria-hidden className="h-24 sm:hidden" />

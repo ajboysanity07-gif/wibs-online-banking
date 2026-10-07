@@ -118,7 +118,6 @@ test('staff page renders every section panel mounted in a three-pane grid', asyn
         page,
         /lg:grid-cols-\[210px_minmax\(0,1fr\)\] xl:grid-cols-\[210px_minmax\(0,1fr\)_320px\]/,
     );
-    assert.match(page, /max-w-\[1440px\]/);
     assert.match(
         page,
         /lg:col-span-full xl:sticky xl:top-\[72px\] xl:col-span-1/,
@@ -126,7 +125,10 @@ test('staff page renders every section panel mounted in a three-pane grid', asyn
     // Attention actions and "Full profile" switch section first.
     assert.match(page, /goToTab\(\s*'terms',\s*'processing-details',?\s*\)/);
     assert.match(page, /goToTab\(\s*'docs',\s*'document-checklist',?\s*\)/);
-    assert.match(page, /onFullProfile=\{\(\) => goToTab\('applicant'\)\}/);
+    assert.match(
+        page,
+        /onFullProfile=\{\(\) =>\s*goToTab\('applicant'\)\s*\}/,
+    );
     assert.match(page, /hasMissingSignatory\(/);
     assert.match(page, /label: `\$\{currentAuditTrail\.length\}`/);
 
@@ -161,7 +163,7 @@ test('processing panel splits into terms and signatories views with one save pat
     // Only the terms instance mirrors net proceeds and previews the checklist.
     assert.match(
         page,
-        /view="terms"\s*onDocumentChecklistPreview=\{\s*applyDocumentChecklistPreview\s*\}\s*onPreviewChange=\{setProcessingPreview\}/,
+        /view="terms"\s*onDocumentChecklistPreview=\{\s*applyDocumentChecklistPreview\s*\}\s*onPreviewChange=\{\s*setProcessingPreview\s*\}/,
     );
     // Every save still sends the full processing payload + passthrough.
     assert.match(

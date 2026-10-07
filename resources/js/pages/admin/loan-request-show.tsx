@@ -2,6 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { CircleAlert } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { AdminLoanRequestCorrectionDialog } from '@/components/loan-request/admin-loan-request-correction-dialog';
+import { LoanRequestDetailView } from '@/components/loan-request/loan-request-detail';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import { LoanRequestDocumentChecklistCard } from '@/components/loan-request/loan-request-document-checklist-card';
 import { ProcessingDetailsPanel } from '@/components/loan-request/processing-details-panel';
@@ -844,7 +845,21 @@ export default function LoanRequestShow({
                     ) : null}
                 </section>
             ) : null}
+            <LoanRequestDetailView
+                loanRequest={currentRequest}
+                auditTrail={currentAuditTrail}
+                releaseMethod={`${currentDataSections.banking?.release_method ?? ''}`}
+                repaymentMethod={`${currentDataSections.banking?.payment_option ?? ''}`}
+                backHref={requestsIndex().url}
+                pdfHref={pdfHref}
+                applicant={currentApplicant}
+                coMakerOne={currentCoMakerOne}
+                coMakerTwo={currentCoMakerTwo}
+            />
             <LoanRequestDetailPage
+                hideSummaryHeader
+                hideGuidance
+                hideStatusCard
                 loanRequest={currentRequest}
                 applicant={currentApplicant}
                 coMakerOne={currentCoMakerOne}

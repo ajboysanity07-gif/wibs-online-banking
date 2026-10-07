@@ -7,13 +7,8 @@ import { pathToFileURL } from 'node:url';
 const read = (...parts) =>
     readFile(resolve('resources', 'js', ...parts), 'utf8');
 
-test('staff request review uses a scrolling record header with header-layout actions', async () => {
+test('staff request review renders the shared detail view with header-layout actions', async () => {
     const page = await read('pages', 'staff', 'loan-request-show.tsx');
-    const header = await read(
-        'components',
-        'loan-request',
-        'loan-request-record-header.tsx',
-    );
     const actions = await read(
         'components',
         'loan-request',
@@ -25,17 +20,8 @@ test('staff request review uses a scrolling record header with header-layout act
         'loan-request-action-bar.tsx',
     );
 
-    // Scrolls with the page; only the app header stays sticky.
-    assert.doesNotMatch(header, /sticky/);
-    assert.match(header, /bg-card shadow-card/);
-    // Key figures strip and chevron stage path.
-    assert.match(page, /label: 'Net proceeds'[\s\S]*?tone: 'primary'/);
-    assert.match(page, /PROCESSING_AGE_ISSUE_THRESHOLD_DAYS\}d`/);
-    assert.match(page, /\? 'You'/);
-    assert.match(page, /title: 'My queue'/);
-    assert.match(header, /clip-path:polygon/);
-    assert.match(header, /Stage guidance:/);
-    assert.match(header, /scrollbar-hide/);
+    assert.match(page, /<LoanRequestDetailView/);
+    assert.doesNotMatch(page, /LoanRequestRecordHeader/);
     assert.doesNotMatch(
         page,
         /LoanRequestProgressCard|LoanRequestDecisionHeader/,

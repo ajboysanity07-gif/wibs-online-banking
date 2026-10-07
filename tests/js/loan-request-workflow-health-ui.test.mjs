@@ -51,7 +51,7 @@ test('staff page moves Audit trail and Notification history to the History secti
 
     const sectionWrapperMatches = [
         ...pageFile.matchAll(
-            /<section className="mx-auto my-5 w-full max-w-\[1440px\] px-4 sm:px-6 lg:px-8">/g,
+            /<section className="w-full">/g,
         ),
     ];
     assert.equal(

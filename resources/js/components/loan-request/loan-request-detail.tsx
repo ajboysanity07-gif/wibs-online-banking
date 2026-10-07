@@ -351,23 +351,29 @@ type Props = {
     repaymentMethod: string;
     releaseAccountLabel?: string;
     repaymentAccountLabel?: string;
-    canChangePaymentMethod: boolean;
-    onChangeReleaseMethod: () => void;
-    onChangeRepaymentMethod: () => void;
+    /** Member-only: shows the "Change" buttons on the payment methods. */
+    canChangePaymentMethod?: boolean;
+    onChangeReleaseMethod?: () => void;
+    onChangeRepaymentMethod?: () => void;
     backHref: string;
     /** Null when the status does not allow a PDF download. */
     pdfHref: string | null;
-    editHref: string | null;
+    editHref?: string | null;
     applicant: LoanRequestPersonData | null;
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
-    cancellation: {
+    /** Member-only; omit to hide the cancel action. */
+    cancellation?: {
         show: boolean;
         isProcessing: boolean;
         /** Resolves true once the request is cancelled. */
         onConfirm: (reason: string | null) => Promise<boolean>;
     };
-    /** Status-specific action cards, shown right under the stage path. */
+    /** Status before `cancelled`, so a cancelled request keeps its stage. */
+    previousStatus?: LoanRequestStatusValue | null;
+    /** Staff workflow actions, shown inside the green header. */
+    headerActions?: ReactNode;
+    /** Status-specific action cards (or the staff workspace), shown right under the stage path. */
     children?: ReactNode;
 };
 
@@ -378,21 +384,24 @@ export function LoanRequestDetailView({
     repaymentMethod,
     releaseAccountLabel,
     repaymentAccountLabel,
-    canChangePaymentMethod,
-    onChangeReleaseMethod,
-    onChangeRepaymentMethod,
+    canChangePaymentMethod = false,
+    onChangeReleaseMethod = () => undefined,
+    onChangeRepaymentMethod = () => undefined,
     backHref,
     pdfHref,
-    editHref,
+    editHref = null,
     applicant,
     coMakerOne,
     coMakerTwo,
     cancellation,
+    previousStatus,
+    headerActions,
     children,
 }: Props) {
     const [openParty, setOpenParty] = useState<PartyKey | null>(null);
     const [isCancelOpen, setIsCancelOpen] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
+    const isCancelling = cancellation?.isProcessing ?? false;
     const parties = (
         [
             { key: 'applicant', role: 'Applicant', person: applicant },
@@ -407,7 +416,7 @@ export function LoanRequestDetailView({
     const selectedParty =
         parties.find((party) => party.key === openParty) ?? null;
     const confirmCancellation = async () => {
-        const cancelled = await cancellation.onConfirm(
+        const cancelled = await cancellation?.onConfirm(
             cancelReason.trim() || null,
         );
 
@@ -416,7 +425,10 @@ export function LoanRequestDetailView({
             setCancelReason('');
         }
     };
-    const { step, held } = resolveLoanRequestProgress(loanRequest.status);
+    const { step, held } = resolveLoanRequestProgress(
+        loanRequest.status,
+        previousStatus,
+    );
     const { meaning, window: updateWindow } = statusMeaning(loanRequest.status);
     const amount = Number(loanRequest.requested_amount) || 0;
     const term = Number(loanRequest.requested_term) || 0;
@@ -489,6 +501,11 @@ export function LoanRequestDetailView({
                         className="rounded-md border-transparent bg-card px-3 py-1 text-[13px] font-bold text-card-foreground"
                     />
                 </p>
+                {headerActions ? (
+                    <div className="rounded-lg bg-card p-3 text-card-foreground">
+                        {headerActions}
+                    </div>
+                ) : null}
             </section>
 
             <section
@@ -888,9 +905,10 @@ export function LoanRequestDetailView({
 
                                         return (
                                             <li key={party.key}>
-                                                <Button variant="ghost"
+                                                <Button
+                                                    variant="ghost"
                                                     type="button"
-                                                    className="h-auto md:h-auto justify-start gap-0 whitespace-normal rounded-none px-0 py-0 has-[>svg]:px-0 font-normal hover:bg-transparent hover:text-current flex min-h-11 w-full items-center gap-3 rounded-lg border border-border px-3 has-[>svg]:px-3 py-2.5 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
+                                                    className="flex h-auto min-h-11 w-full items-center justify-start gap-0 gap-3 rounded-lg rounded-none border border-border px-0 px-3 py-0 py-2.5 text-left font-normal whitespace-normal transition-colors outline-none hover:bg-muted hover:bg-transparent hover:text-current focus-visible:ring-[3px] focus-visible:ring-ring/50 has-[>svg]:px-0 has-[>svg]:px-3 motion-reduce:transition-none md:h-auto"
                                                     onClick={() =>
                                                         setOpenParty(party.key)
                                                     }
@@ -953,7 +971,7 @@ export function LoanRequestDetailView({
                                     </Link>
                                 </Button>
                             ) : null}
-                            {cancellation.show ? (
+                            {cancellation?.show ? (
                                 <div className="flex flex-col gap-2.5 rounded-lg border border-destructive/40 p-3">
                                     <p className="text-xs font-bold tracking-wider text-destructive uppercase">
                                         Application action
@@ -962,7 +980,7 @@ export function LoanRequestDetailView({
                                         type="button"
                                         variant="destructive"
                                         className="min-h-11 w-full"
-                                        disabled={cancellation.isProcessing}
+                                        disabled={isCancelling}
                                         onClick={() => setIsCancelOpen(true)}
                                     >
                                         <Ban aria-hidden="true" />
@@ -1030,7 +1048,7 @@ export function LoanRequestDetailView({
             <AlertDialog
                 open={isCancelOpen}
                 onOpenChange={(open) => {
-                    if (!cancellation.isProcessing) {
+                    if (!isCancelling) {
                         setIsCancelOpen(open);
                     }
                 }}
@@ -1054,7 +1072,7 @@ export function LoanRequestDetailView({
                             className="flex min-h-[96px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                             maxLength={1000}
                             value={cancelReason}
-                            disabled={cancellation.isProcessing}
+                            disabled={isCancelling}
                             onChange={(event) =>
                                 setCancelReason(event.target.value)
                             }
@@ -1063,7 +1081,7 @@ export function LoanRequestDetailView({
                     <AlertDialogFooter>
                         <AlertDialogCancel
                             className="min-h-11"
-                            disabled={cancellation.isProcessing}
+                            disabled={isCancelling}
                         >
                             Keep application
                         </AlertDialogCancel>
@@ -1071,10 +1089,10 @@ export function LoanRequestDetailView({
                             type="button"
                             variant="destructive"
                             className="min-h-11"
-                            disabled={cancellation.isProcessing}
+                            disabled={isCancelling}
                             onClick={() => void confirmCancellation()}
                         >
-                            {cancellation.isProcessing
+                            {isCancelling
                                 ? 'Cancelling…'
                                 : 'Cancel application'}
                         </Button>
