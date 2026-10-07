@@ -17,6 +17,8 @@ test('web responses carry security headers and a nonce-based CSP', function (): 
     $csp = $response->headers->get('Content-Security-Policy');
 
     expect($csp)->toContain("object-src 'none'")->toContain("frame-ancestors 'self'");
+    // The printable loan-payments report loads organization fonts from Google Fonts.
+    expect($csp)->toContain('https://fonts.googleapis.com')->toContain('https://fonts.gstatic.com');
     expect(preg_match("/script-src 'self' 'nonce-([^']+)'/", $csp, $m))->toBe(1);
     expect($response->getContent())->toContain('nonce="'.$m[1].'"');
 });

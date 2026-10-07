@@ -2565,7 +2565,7 @@ export default function OrganizationSettings() {
                                                             </p>
                                                         </div>
 
-                                                        <div className="grid gap-6 lg:grid-cols-2">
+                                                        <div className="grid gap-6">
                                                             <div className="space-y-4 rounded-xl border border-border bg-muted p-4">
                                                                 <div className="space-y-1">
                                                                     <p className="text-sm font-semibold">
