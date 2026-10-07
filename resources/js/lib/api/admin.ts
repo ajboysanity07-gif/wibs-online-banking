@@ -34,6 +34,7 @@ import type {
     MemberLoanSecurityLedgerResponse,
     MemberStatusAction,
     MembersResponse,
+    PaginationMeta,
     ReportedRequestsResponse,
     RequestsResponse,
     StaffAccount,
@@ -945,14 +946,15 @@ export const adminApi = {
     },
     async searchMembers(
         query: string,
+        page = 1,
         signal?: AbortSignal,
-    ): Promise<StaffAccount[]> {
-        const params = query !== '' ? { query } : {};
+    ): Promise<{ members: StaffAccount[]; meta: PaginationMeta }> {
+        const params = { ...(query !== '' ? { query } : {}), page };
         const response = await client.get<
-            ApiResponse<{ members: StaffAccount[] }>
+            ApiResponse<{ members: StaffAccount[]; meta: PaginationMeta }>
         >('/spa/superadmin/staff/search-members', { params, signal });
 
-        return unwrap(response).members;
+        return unwrap(response);
     },
     async promoteMember(
         payload: PromoteMemberPayload,

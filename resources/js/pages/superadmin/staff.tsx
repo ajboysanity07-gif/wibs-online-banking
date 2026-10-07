@@ -49,14 +49,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import {
     TableSkeleton,
     type TableSkeletonColumn,
 } from '@/components/ui/table-skeleton';
@@ -72,6 +64,7 @@ import { index as superadminStaffIndex } from '@/routes/superadmin/staff';
 import type { BreadcrumbItem } from '@/types';
 import type {
     EditableStaffRoleName,
+    PaginationMeta,
     StaffAccessStatus,
     StaffAccount,
     StaffHistoryEntry,
@@ -91,6 +84,14 @@ const tableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-28', cellClassName: 'w-28' },
     { headerClassName: 'w-36', cellClassName: 'w-40' },
     { headerClassName: 'w-12', cellClassName: 'h-8 w-10', align: 'right' },
+];
+
+const promoteSkeletonColumns: TableSkeletonColumn[] = [
+    { headerClassName: 'w-24', cellClassName: 'w-36' },
+    { headerClassName: 'w-20', cellClassName: 'w-16' },
+    { headerClassName: 'w-16', cellClassName: 'w-36' },
+    { headerClassName: 'w-24', cellClassName: 'w-24' },
+    { headerClassName: 'w-12', cellClassName: 'h-8 w-14', align: 'right' },
 ];
 
 const editableRoleOptions: Array<{
@@ -282,9 +283,11 @@ type PromoteDialogState = {
     step: 1 | 2;
     stepDirection: 'forward' | 'back';
     query: string;
+    page: number;
     searchLoading: boolean;
     searchError: string | null;
     searchResults: StaffAccount[];
+    searchMeta: PaginationMeta;
     selectedMember: StaffAccount | null;
     role: EditableStaffRoleName | '';
     reason: string;
@@ -297,9 +300,11 @@ const initialPromoteDialogState: PromoteDialogState = {
     step: 1,
     stepDirection: 'forward',
     query: '',
+    page: 1,
     searchLoading: false,
     searchError: null,
     searchResults: [],
+    searchMeta: { page: 1, perPage: 10, total: 0, lastPage: 1 },
     selectedMember: null,
     role: '',
     reason: '',
@@ -402,10 +407,12 @@ export default function SuperadminStaffPage() {
         const timer = setTimeout(
             async () => {
                 try {
-                    const members = await adminApi.searchMembers(
-                        query,
-                        controller.signal,
-                    );
+                    const { members, meta: searchMeta } =
+                        await adminApi.searchMembers(
+                            query,
+                            promoteDialog.page,
+                            controller.signal,
+                        );
 
                     if (!controller.signal.aborted) {
                         setPromoteDialog((current) => {
@@ -414,6 +421,7 @@ export default function SuperadminStaffPage() {
                                 ...current,
                                 searchLoading: false,
                                 searchResults: members,
+                                searchMeta,
                             };
                         });
                     }
@@ -434,7 +442,12 @@ export default function SuperadminStaffPage() {
             clearTimeout(timer);
             controller.abort();
         };
-    }, [promoteDialog.query, promoteDialog.open, promoteDialog.step]);
+    }, [
+        promoteDialog.query,
+        promoteDialog.page,
+        promoteDialog.open,
+        promoteDialog.step,
+    ]);
 
     const showSkeleton = loading && items.length === 0;
     const searchValue = search.trim();
@@ -768,6 +781,99 @@ export default function SuperadminStaffPage() {
             showErrorToast(requestError, 'Failed to reset the password.');
         }
     };
+
+    const promoteColumns: ColumnDef<StaffAccount>[] = [
+        {
+            accessorKey: 'display_name',
+            meta: {
+                priority: 'title',
+                text: (row) => row.display_name ?? '',
+            },
+            header: 'Name',
+            cell: ({ row }) => (
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-bold">
+                        {row.original.display_name}
+                    </span>
+                    {row.original.roles.some((role) => role.editable) ? (
+                        <Badge
+                            variant="secondary"
+                            className="text-xs whitespace-nowrap"
+                        >
+                            Already a staff member
+                        </Badge>
+                    ) : null}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'acctno',
+            meta: { priority: 'detail' },
+            header: 'Account No',
+            cell: ({ row }) => row.original.acctno ?? '--',
+        },
+        {
+            accessorKey: 'email',
+            meta: { priority: 'detail' },
+            header: 'Email',
+            cell: ({ row }) => (
+                <span className="text-sm">{row.original.email ?? '--'}</span>
+            ),
+        },
+        {
+            accessorKey: 'roles',
+            meta: { priority: 'detail' },
+            header: 'Current roles',
+            cell: ({ row }) => {
+                const displayRoles = row.original.roles.filter(
+                    (role) => role.name !== 'member',
+                );
+
+                return displayRoles.length === 0 ? (
+                    <span className="text-sm text-muted-foreground">None</span>
+                ) : (
+                    <div className="flex flex-wrap gap-1">
+                        {displayRoles.map((role) => (
+                            <Badge
+                                key={`${row.original.user_id}-${role.name}`}
+                                variant={roleBadgeVariant(role.name)}
+                                className="text-xs"
+                            >
+                                {role.label}
+                            </Badge>
+                        ))}
+                    </div>
+                );
+            },
+        },
+        {
+            id: 'actions',
+            meta: { priority: 'action', label: 'Actions' },
+            header: '',
+            cell: ({ row }) => (
+                <div className="flex justify-end">
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                            setPromoteDialog((current) => ({
+                                ...current,
+                                step: 2,
+                                stepDirection: 'forward',
+                                selectedMember: row.original,
+                                role: '',
+                                reason: '',
+                                errors: {},
+                            }))
+                        }
+                    >
+                        Select
+                    </Button>
+                </div>
+            ),
+        },
+    ];
 
     const columns: ColumnDef<StaffAccount>[] = [
         {
@@ -1990,7 +2096,7 @@ export default function SuperadminStaffPage() {
                             (() => {
                                 const searchQuery = promoteDialog.query.trim();
                                 const memberCount =
-                                    promoteDialog.searchResults.length;
+                                    promoteDialog.searchMeta.total;
                                 const countLabel = promoteDialog.searchLoading
                                     ? searchQuery === ''
                                         ? 'Loading members…'
@@ -2020,6 +2126,7 @@ export default function SuperadminStaffPage() {
                                                                 query: event
                                                                     .target
                                                                     .value,
+                                                                page: 1,
                                                                 searchError:
                                                                     null,
                                                             }),
@@ -2042,178 +2149,63 @@ export default function SuperadminStaffPage() {
 
                                         <div
                                             className={cn(
-                                                'overflow-x-auto overflow-y-hidden rounded-xl border border-border motion-safe:transition-opacity motion-safe:duration-150',
+                                                'overflow-hidden rounded-xl border border-border motion-safe:transition-opacity motion-safe:duration-150',
                                                 promoteDialog.searchLoading
                                                     ? 'opacity-60'
                                                     : 'opacity-100',
                                             )}
                                         >
-                                            <Table>
-                                                <TableHeader className="bg-muted">
-                                                    <TableRow>
-                                                        <TableHead className="min-w-[180px]">
-                                                            Name
-                                                        </TableHead>
-                                                        <TableHead className="whitespace-nowrap">
-                                                            Account No
-                                                        </TableHead>
-                                                        <TableHead className="min-w-[160px]">
-                                                            Email
-                                                        </TableHead>
-                                                        <TableHead className="min-w-[120px]">
-                                                            Current roles
-                                                        </TableHead>
-                                                        <TableHead className="text-right whitespace-nowrap">
-                                                            Action
-                                                        </TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {promoteDialog.searchLoading ? (
-                                                        <TableRow>
-                                                            <TableCell
-                                                                colSpan={5}
-                                                                className="h-24 text-center text-sm text-muted-foreground"
-                                                            >
-                                                                {searchQuery ===
-                                                                ''
-                                                                    ? 'Loading members…'
-                                                                    : 'Searching…'}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ) : promoteDialog
-                                                          .searchResults
-                                                          .length === 0 ? (
-                                                        <TableRow>
-                                                            <TableCell
-                                                                colSpan={5}
-                                                                className="h-24 text-center text-sm text-muted-foreground"
-                                                            >
-                                                                {searchQuery ===
-                                                                ''
-                                                                    ? 'No registered members yet. Members must self-register before they can be promoted to staff.'
-                                                                    : 'No members found.'}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ) : (
-                                                        promoteDialog.searchResults.map(
-                                                            (member) => {
-                                                                const staffRoles =
-                                                                    member.roles.filter(
-                                                                        (r) =>
-                                                                            r.editable,
-                                                                    );
-                                                                const displayRoles =
-                                                                    member.roles.filter(
-                                                                        (r) =>
-                                                                            r.name !==
-                                                                            'member',
-                                                                    );
-
-                                                                return (
-                                                                    <TableRow
-                                                                        key={
-                                                                            member.user_id
-                                                                        }
-                                                                    >
-                                                                        <TableCell className="min-w-[180px]">
-                                                                            <div className="flex flex-wrap items-center gap-2">
-                                                                                <p className="font-medium">
-                                                                                    {
-                                                                                        member.display_name
-                                                                                    }
-                                                                                </p>
-                                                                                {staffRoles.length >
-                                                                                0 ? (
-                                                                                    <Badge
-                                                                                        variant="secondary"
-                                                                                        className="text-xs whitespace-nowrap"
-                                                                                    >
-                                                                                        Already
-                                                                                        a
-                                                                                        staff
-                                                                                        member
-                                                                                    </Badge>
-                                                                                ) : null}
-                                                                            </div>
-                                                                        </TableCell>
-                                                                        <TableCell className="whitespace-nowrap">
-                                                                            {member.acctno ??
-                                                                                '--'}
-                                                                        </TableCell>
-                                                                        <TableCell
-                                                                            className="max-w-[180px] truncate"
-                                                                            title={
-                                                                                member.email ??
-                                                                                undefined
-                                                                            }
-                                                                        >
-                                                                            {member.email ??
-                                                                                '--'}
-                                                                        </TableCell>
-                                                                        <TableCell>
-                                                                            {displayRoles.length ===
-                                                                            0 ? (
-                                                                                <span className="text-sm text-muted-foreground">
-                                                                                    None
-                                                                                </span>
-                                                                            ) : (
-                                                                                <div className="flex flex-wrap gap-1">
-                                                                                    {displayRoles.map(
-                                                                                        (
-                                                                                            r,
-                                                                                        ) => (
-                                                                                            <Badge
-                                                                                                key={
-                                                                                                    r.name
-                                                                                                }
-                                                                                                variant={roleBadgeVariant(
-                                                                                                    r.name,
-                                                                                                )}
-                                                                                                className="text-xs"
-                                                                                            >
-                                                                                                {
-                                                                                                    r.label
-                                                                                                }
-                                                                                            </Badge>
-                                                                                        ),
-                                                                                    )}
-                                                                                </div>
-                                                                            )}
-                                                                        </TableCell>
-                                                                        <TableCell className="text-right whitespace-nowrap">
-                                                                            <Button
-                                                                                type="button"
-                                                                                size="sm"
-                                                                                variant="outline"
-                                                                                onClick={() =>
-                                                                                    setPromoteDialog(
-                                                                                        (
-                                                                                            current,
-                                                                                        ) => ({
-                                                                                            ...current,
-                                                                                            step: 2,
-                                                                                            stepDirection:
-                                                                                                'forward',
-                                                                                            selectedMember:
-                                                                                                member,
-                                                                                            role: '',
-                                                                                            reason: '',
-                                                                                            errors: {},
-                                                                                        }),
-                                                                                    )
-                                                                                }
-                                                                            >
-                                                                                Select
-                                                                            </Button>
-                                                                        </TableCell>
-                                                                    </TableRow>
-                                                                );
-                                                            },
+                                            {promoteDialog.searchLoading &&
+                                            promoteDialog.searchResults
+                                                .length === 0 ? (
+                                                <div aria-busy="true">
+                                                    <TableSkeleton
+                                                        columns={
+                                                            promoteSkeletonColumns
+                                                        }
+                                                        rows={5}
+                                                        tableClassName="bg-transparent"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <DataTable
+                                                    columns={promoteColumns}
+                                                    data={
+                                                        promoteDialog.searchResults
+                                                    }
+                                                    emptyMessage={
+                                                        searchQuery === ''
+                                                            ? 'No registered members yet. Members must self-register before they can be promoted to staff.'
+                                                            : 'No members found.'
+                                                    }
+                                                    className="rounded-none border-0 bg-transparent"
+                                                />
+                                            )}
+                                            {promoteDialog.searchMeta.total >
+                                            0 ? (
+                                                <RequestsPager
+                                                    page={
+                                                        promoteDialog.searchMeta
+                                                            .page
+                                                    }
+                                                    perPage={
+                                                        promoteDialog.searchMeta
+                                                            .perPage
+                                                    }
+                                                    total={
+                                                        promoteDialog.searchMeta
+                                                            .total
+                                                    }
+                                                    onPageChange={(page) =>
+                                                        setPromoteDialog(
+                                                            (current) => ({
+                                                                ...current,
+                                                                page,
+                                                            }),
                                                         )
-                                                    )}
-                                                </TableBody>
-                                            </Table>
+                                                    }
+                                                />
+                                            ) : null}
                                         </div>
 
                                         <DialogFooter>

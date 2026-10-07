@@ -422,22 +422,65 @@ test('non-superadmin cannot access member lookup or member search', function ():
         ->assertForbidden();
 });
 
-test('searchMembers with empty query returns registered members up to 25', function (): void {
+test('searchMembers with empty query paginates registered members', function (): void {
     $actor = createSuperadminActor();
 
-    for ($i = 1; $i <= 30; $i++) {
+    for ($i = 1; $i <= 25; $i++) {
         createSearchableMember(
             sprintf('008%03d', $i),
             sprintf('default%d@example.com', $i),
             'Default',
-            sprintf('Member%d', $i),
+            sprintf('Member%02d', $i),
         );
     }
 
-    $this->actingAs($actor)
+    $first = $this->actingAs($actor)
         ->getJson(route('spa.superadmin.staff.search-members'))
         ->assertOk()
-        ->assertJsonCount(25, 'data.members');
+        ->assertJsonCount(10, 'data.members')
+        ->assertJsonPath('data.meta.page', 1)
+        ->assertJsonPath('data.meta.perPage', 10)
+        ->assertJsonPath('data.meta.total', 25)
+        ->assertJsonPath('data.meta.lastPage', 3);
+
+    $last = $this->actingAs($actor)
+        ->getJson(route('spa.superadmin.staff.search-members', ['page' => 3]))
+        ->assertOk()
+        ->assertJsonCount(5, 'data.members')
+        ->assertJsonPath('data.meta.page', 3);
+
+    $firstIds = collect($first->json('data.members'))->pluck('user_id');
+    $lastIds = collect($last->json('data.members'))->pluck('user_id');
+    expect($firstIds->intersect($lastIds))->toBeEmpty();
+});
+
+test('searchMembers query count does not grow with the number of members', function (): void {
+    $actor = createSuperadminActor();
+
+    $countQueries = function () use ($actor): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->actingAs($actor)
+            ->getJson(route('spa.superadmin.staff.search-members'))
+            ->assertOk();
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $count;
+    };
+
+    for ($i = 1; $i <= 2; $i++) {
+        createSearchableMember(sprintf('012%03d', $i), "few{$i}@example.com", 'Few', "Member{$i}");
+    }
+    $countQueries(); // warm schema cache
+    $few = $countQueries();
+
+    for ($i = 3; $i <= 10; $i++) {
+        createSearchableMember(sprintf('012%03d', $i), "many{$i}@example.com", 'Many', "Member{$i}");
+    }
+    $many = $countQueries();
+
+    expect($many)->toBeLessThanOrEqual($few + 2);
 });
 
 test('searchMembers with empty query excludes accounts without acctno', function (): void {

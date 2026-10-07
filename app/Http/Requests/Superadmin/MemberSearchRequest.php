@@ -22,6 +22,8 @@ class MemberSearchRequest extends FormRequest
     {
         return [
             'query' => ['nullable', 'string', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'perPage' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];
     }
 }

@@ -14,7 +14,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -44,7 +43,7 @@ class StaffManagementService
                 'latestRoleChange.actor.adminProfile',
             ]);
 
-        if (Schema::hasTable('wmaster')) {
+        if ($this->schemaCapabilities->hasTable('wmaster')) {
             $query->with('wmaster');
         }
 
@@ -467,7 +466,7 @@ class StaffManagementService
                 'latestRoleChange.actor.adminProfile',
             ]);
 
-        if (Schema::hasTable('wmaster')) {
+        if ($this->schemaCapabilities->hasTable('wmaster')) {
             $query->with('wmaster');
         }
 
@@ -475,12 +474,16 @@ class StaffManagementService
     }
 
     /**
-     * @return Collection<int, AppUser>
+     * @return LengthAwarePaginator<int, AppUser>
      */
-    public function searchMembers(string $query, int $limit = 10): Collection
-    {
+    public function searchMembers(
+        string $query,
+        int $page = 1,
+        int $perPage = 10,
+    ): LengthAwarePaginator {
         $trimmed = trim($query);
-        $isDefault = $trimmed === '' || mb_strlen($trimmed) < 2;
+        $perPage = max(1, min($perPage, 50));
+        $hasWmaster = $this->schemaCapabilities->hasTable('wmaster');
 
         $q = AppUser::query()
             ->with([
@@ -494,96 +497,51 @@ class StaffManagementService
                 $roleQuery->where('name', Role::MEMBER);
             });
 
-        if ($isDefault) {
-            // Sorting needs up to 200 candidate rows, but only 25 are ever
-            // returned. Rank with a lightweight query (no heavy eager loads)
-            // first, then eager-load the 5 relations only for the final 25
-            // instead of for all 200.
-            $rankingQuery = AppUser::query()
-                ->select(['user_id', 'username', 'email', 'acctno'])
-                ->whereHas('roles', function (Builder $roleQuery): void {
-                    $roleQuery->where('name', Role::MEMBER);
-                })
-                ->whereNotNull('acctno')
-                ->where('acctno', '!=', '')
-                ->with('adminProfile:user_id,fullname');
-
-            $hasWmaster = Schema::hasTable('wmaster');
-
-            if ($hasWmaster) {
-                $rankingQuery->with('wmaster:acctno,lname,fname');
-            }
-
-            $orderedIds = $rankingQuery->limit(200)->get()
-                ->sortBy(fn (AppUser $user): string => $this->memberSortKey($user))
-                ->values()
-                ->take(25)
-                ->pluck('user_id')
-                ->all();
-
-            if ($orderedIds === []) {
-                return new Collection;
-            }
-
-            if ($hasWmaster) {
-                $q->with('wmaster');
-            }
-
-            $byId = $q->whereIn('user_id', $orderedIds)->get()->keyBy('user_id');
-
-            return new Collection(
-                collect($orderedIds)->map(fn ($id) => $byId->get($id))->filter()->values(),
-            );
-        }
-
-        $searchLike = '%'.addcslashes($trimmed, '%_\\').'%';
-        $limit = max(1, min($limit, 10));
-
-        $q->where(function (Builder $builder) use ($searchLike): void {
-            $builder
-                ->where('username', 'like', $searchLike)
-                ->orWhere('email', 'like', $searchLike)
-                ->orWhere('acctno', 'like', $searchLike)
-                ->orWhereHas('adminProfile', function (Builder $profileQuery) use ($searchLike): void {
-                    $profileQuery->where('fullname', 'like', $searchLike);
-                });
-
-            if (Schema::hasTable('wmaster')) {
-                $builder->orWhereHas('wmaster', function (Builder $wmasterQuery) use ($searchLike): void {
-                    $wmasterQuery
-                        ->where('fname', 'like', $searchLike)
-                        ->orWhere('mname', 'like', $searchLike)
-                        ->orWhere('lname', 'like', $searchLike)
-                        ->orWhere('bname', 'like', $searchLike);
-                });
-            }
-        });
-
-        if (Schema::hasTable('wmaster')) {
+        if ($hasWmaster) {
             $q->with('wmaster');
         }
 
-        return $q->limit($limit)->get();
-    }
+        if (mb_strlen($trimmed) < 2) {
+            $q->whereNotNull('acctno')->where('acctno', '!=', '');
+        } else {
+            $searchLike = '%'.addcslashes($trimmed, '%_\\').'%';
 
-    private function memberSortKey(AppUser $user): string
-    {
-        if (Schema::hasTable('wmaster') && $user->wmaster !== null) {
-            $parts = array_filter([
-                trim((string) ($user->wmaster->lname ?? '')),
-                trim((string) ($user->wmaster->fname ?? '')),
-            ]);
-            $name = implode(', ', $parts);
-            if ($name !== '') {
-                return strtolower($name);
+            $q->where(function (Builder $builder) use ($searchLike, $hasWmaster): void {
+                $builder
+                    ->where('username', 'like', $searchLike)
+                    ->orWhere('email', 'like', $searchLike)
+                    ->orWhere('acctno', 'like', $searchLike)
+                    ->orWhereHas('adminProfile', function (Builder $profileQuery) use ($searchLike): void {
+                        $profileQuery->where('fullname', 'like', $searchLike);
+                    });
+
+                if ($hasWmaster) {
+                    $builder->orWhereHas('wmaster', function (Builder $wmasterQuery) use ($searchLike): void {
+                        $wmasterQuery
+                            ->where('fname', 'like', $searchLike)
+                            ->orWhere('mname', 'like', $searchLike)
+                            ->orWhere('lname', 'like', $searchLike)
+                            ->orWhere('bname', 'like', $searchLike);
+                    });
+                }
+            });
+        }
+
+        if ($hasWmaster) {
+            // Keep the directory sorted by surname, then first name, in the DB
+            // so pagination stays correct; username breaks ties and covers
+            // members without a wmaster row.
+            foreach (['lname', 'fname'] as $column) {
+                $q->orderBy(
+                    DB::table('wmaster')
+                        ->select($column)
+                        ->whereColumn('wmaster.acctno', 'appusers.acctno')
+                        ->limit(1),
+                );
             }
         }
 
-        if ($user->adminProfile?->fullname !== null && trim($user->adminProfile->fullname) !== '') {
-            return strtolower(trim($user->adminProfile->fullname));
-        }
-
-        return strtolower(trim((string) ($user->username ?? $user->email ?? '')));
+        return $q->orderBy('username')->paginate($perPage, ['*'], 'page', max(1, $page));
     }
 
     public function linkMembership(AppUser $actor, string $acctno): AppUser
@@ -807,7 +765,7 @@ class StaffManagementService
                     $profileQuery->where('fullname', 'like', $searchLike);
                 });
 
-            if (Schema::hasTable('wmaster')) {
+            if ($this->schemaCapabilities->hasTable('wmaster')) {
                 $builder->orWhereHas('wmaster', function (Builder $wmasterQuery) use ($searchLike): void {
                     $wmasterQuery
                         ->where('acctno', 'like', $searchLike)
@@ -831,7 +789,7 @@ class StaffManagementService
                 'userProfile',
             ]);
 
-        if (Schema::hasTable('wmaster')) {
+        if ($this->schemaCapabilities->hasTable('wmaster')) {
             $query->with('wmaster');
         }
 
@@ -850,7 +808,7 @@ class StaffManagementService
                 'latestRoleChange.actor.adminProfile',
             ]);
 
-        if (Schema::hasTable('wmaster')) {
+        if ($this->schemaCapabilities->hasTable('wmaster')) {
             $query->with('wmaster');
         }
 
@@ -1105,7 +1063,7 @@ class StaffManagementService
 
     private function resolveAdminFullName(AppUser $user): string
     {
-        if (Schema::hasTable('wmaster')) {
+        if ($this->schemaCapabilities->hasTable('wmaster')) {
             $user->loadMissing('wmaster');
             $wmasterName = $user->wmaster?->displayName();
 

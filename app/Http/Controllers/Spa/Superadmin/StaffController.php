@@ -182,12 +182,22 @@ class StaffController extends Controller
         MemberSearchRequest $request,
         StaffManagementService $service,
     ): JsonResponse {
-        $members = $service->searchMembers((string) $request->input('query', ''));
+        $members = $service->searchMembers(
+            (string) $request->input('query', ''),
+            (int) $request->input('page', 1),
+            (int) $request->input('perPage', 10),
+        );
 
         return response()->json([
             'ok' => true,
             'data' => [
-                'members' => StaffAccountResource::collection($members)->resolve(),
+                'members' => StaffAccountResource::collection($members->getCollection())->resolve(),
+                'meta' => [
+                    'page' => $members->currentPage(),
+                    'perPage' => $members->perPage(),
+                    'total' => $members->total(),
+                    'lastPage' => $members->lastPage(),
+                ],
             ],
         ]);
     }
