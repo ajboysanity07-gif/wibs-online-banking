@@ -12,7 +12,8 @@ use Throwable;
 
 class OrganizationSettingsService
 {
-    private const CACHE_TTL_SECONDS = 300;
+    // Cache keys embed the row's updated_at, so a long TTL is safe.
+    private const CACHE_TTL_SECONDS = 3600;
 
     private const DEFAULT_PORTAL_LABEL = 'Member Portal';
 
@@ -417,7 +418,7 @@ class OrganizationSettingsService
 
     public function logoDataUri(): ?string
     {
-        $setting = OrganizationSetting::query()->first();
+        $setting = $this->currentSetting();
 
         return Cache::remember(
             sprintf(
@@ -452,9 +453,18 @@ class OrganizationSettingsService
         );
     }
 
+    /**
+     * Read on every page load (branding is shared with each Inertia response)
+     * and the DB is remote, so cache the row; OrganizationSetting flushes this
+     * key on save/delete.
+     */
     protected function currentSetting(): ?OrganizationSetting
     {
-        return OrganizationSetting::query()->first();
+        return Cache::remember(
+            OrganizationSetting::CURRENT_CACHE_KEY,
+            self::CACHE_TTL_SECONDS,
+            fn () => OrganizationSetting::query()->first(),
+        );
     }
 
     private function resolveCompanyName(?string $companyName): string

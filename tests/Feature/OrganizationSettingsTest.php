@@ -314,3 +314,29 @@ test('branding falls back to safe defaults when lookup throws', function () {
                 );
         });
 });
+
+test('branding is served from cache without querying the database', function () {
+    OrganizationSetting::query()->create(['company_name' => 'Cached Co']);
+    $service = app(OrganizationSettingsService::class);
+    $service->branding();
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $branding = $service->branding();
+    $queries = DB::getQueryLog();
+    DB::disableQueryLog();
+
+    expect($branding['companyName'])->toBe('Cached Co');
+    expect($queries)->toBeEmpty();
+});
+
+test('saving organization settings refreshes the cached branding immediately', function () {
+    $setting = OrganizationSetting::query()->create(['company_name' => 'Before']);
+    $service = app(OrganizationSettingsService::class);
+    expect($service->branding()['companyName'])->toBe('Before');
+
+    $this->travel(5)->seconds();
+    $setting->update(['company_name' => 'After']);
+
+    expect($service->branding()['companyName'])->toBe('After');
+});

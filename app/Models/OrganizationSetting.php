@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class OrganizationSetting extends Model
 {
@@ -79,6 +80,16 @@ class OrganizationSetting extends Model
         'sms_send_window',
         'updated_by',
     ];
+
+    public const CURRENT_CACHE_KEY = 'organization-settings.current';
+
+    protected static function booted(): void
+    {
+        $flush = static fn () => Cache::forget(self::CURRENT_CACHE_KEY);
+
+        static::saved($flush);
+        static::deleted($flush);
+    }
 
     public const TIMEZONES = ['Asia/Manila', 'Asia/Singapore', 'UTC'];
 
