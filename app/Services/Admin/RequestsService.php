@@ -216,6 +216,10 @@ class RequestsService
             ];
         }
 
+        // Per-row capability checks call hasRole()/hasPermission(), which hit the
+        // remote DB on every call unless these relations are already loaded.
+        $user->loadMissing('roles.permissions', 'staffAccessControl', 'adminProfile');
+
         $hasCorrectionReportsTable = $this->hasCorrectionReportsTable();
         $query = $this->baseQuery();
         $this->workspaceService->applyVisibleScope($query, $user);

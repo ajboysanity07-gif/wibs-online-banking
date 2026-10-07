@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { CreditCard, FileText, Plus, ShieldCheck } from 'lucide-react';
+import { FileText, Plus, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { loans as clientLoans } from '@/routes/client';
@@ -11,7 +11,6 @@ const actions: Array<{ label: string; href: string; icon: LucideIcon }> = [
         href: LoanRequestController.create().url,
         icon: Plus,
     },
-    { label: 'Make a payment', href: clientLoans().url, icon: CreditCard },
     {
         label: 'Statement of account',
         href: clientLoans().url,
@@ -30,7 +29,7 @@ export function MemberQuickActions() {
             <h2 id="quick-actions-heading" className="text-lg font-semibold">
                 Quick actions
             </h2>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                 {actions.map(({ label, href, icon: Icon }) => (
                     <Link
                         key={label}

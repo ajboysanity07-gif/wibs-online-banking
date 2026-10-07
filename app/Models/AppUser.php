@@ -6,6 +6,7 @@ namespace App\Models;
 use App\LoanCivilStatus;
 use App\LoanSex;
 use App\Services\Locations\PsgcService;
+use App\Support\SchemaCapabilities;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -13,7 +14,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
@@ -140,7 +140,7 @@ class AppUser extends Authenticatable
 
     public function hasCanonicalMemberRecord(): bool
     {
-        if (! Schema::hasTable('wmaster')) {
+        if (! app(SchemaCapabilities::class)->hasTable('wmaster')) {
             return false;
         }
 
@@ -163,7 +163,7 @@ class AppUser extends Authenticatable
      */
     private function memberApplicationProfileWmasterOverrides(): array
     {
-        if (! Schema::hasTable('wmaster')) {
+        if (! app(SchemaCapabilities::class)->hasTable('wmaster')) {
             return [];
         }
 
@@ -293,8 +293,8 @@ class AppUser extends Authenticatable
     public function isSuperadmin(): bool
     {
         if (
-            Schema::hasTable('roles') &&
-            Schema::hasTable('user_roles') &&
+            app(SchemaCapabilities::class)->hasTable('roles') &&
+            app(SchemaCapabilities::class)->hasTable('user_roles') &&
             $this->hasRole(Role::SUPERADMIN)
         ) {
             return true;
@@ -356,7 +356,7 @@ class AppUser extends Authenticatable
             return $fullname;
         }
 
-        if ($this->hasMemberAccess() && Schema::hasTable('wmaster')) {
+        if ($this->hasMemberAccess() && app(SchemaCapabilities::class)->hasTable('wmaster')) {
             $this->loadMissing('wmaster');
             $memberName = $this->wmaster?->displayName();
 
@@ -379,7 +379,7 @@ class AppUser extends Authenticatable
             return false;
         }
 
-        if (! Schema::hasTable('staff_access_controls')) {
+        if (! app(SchemaCapabilities::class)->hasTable('staff_access_controls')) {
             return true;
         }
 
@@ -390,7 +390,7 @@ class AppUser extends Authenticatable
 
     public function isStaffAccessSuspended(): bool
     {
-        if (! $this->isStaffUser() || ! Schema::hasTable('staff_access_controls')) {
+        if (! $this->isStaffUser() || ! app(SchemaCapabilities::class)->hasTable('staff_access_controls')) {
             return false;
         }
 
@@ -513,8 +513,8 @@ class AppUser extends Authenticatable
         }
 
         if (
-            ! Schema::hasTable('roles') ||
-            ! Schema::hasTable('user_roles')
+            ! app(SchemaCapabilities::class)->hasTable('roles') ||
+            ! app(SchemaCapabilities::class)->hasTable('user_roles')
         ) {
             return false;
         }
