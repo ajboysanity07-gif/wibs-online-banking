@@ -61,9 +61,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
  && docker-php-ext-install bcmath gd intl mbstring opcache pdo zip \
  && pecl install sqlsrv pdo_sqlsrv \
  && docker-php-ext-enable sqlsrv pdo_sqlsrv \
- && a2enmod rewrite headers
+ && a2enmod rewrite headers deflate
 
 COPY docker/opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
+COPY docker/performance.conf /etc/apache2/conf-enabled/performance.conf
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 
